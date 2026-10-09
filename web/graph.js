@@ -46,7 +46,8 @@ export function openGraph(app, onClose) {
       element('button', { onclick: () => app.catalogIdentifiers([...app.selection]) }, 'ADD TO CATALOG'),
       mapButton),
     element('div', { class: 'graph-help' },
-      'Select: click, or drag a box (SHIFT adds, CTRL removes)    Time: drag the timeline, or right-click    Zoom: wheel, SHIFT+wheel pans'));
+      element('span', {}, 'Select: click, or drag a box (SHIFT adds, CTRL removes)    Time: drag the timeline, or right-click    Zoom: wheel, SHIFT+wheel pans'),
+      element('button', { onclick: () => app.browseCatalog() }, 'OPEN CATALOG')));
   const shade = element('div', { class: 'shade' }, panel);
   document.body.append(shade, tooltip);
 
@@ -457,6 +458,8 @@ export function openGraph(app, onClose) {
 
   function onKey(event) {
     if (document.querySelector('.dialog-shade')) return;
+    const shades = document.querySelectorAll('.shade');
+    if (shades[shades.length - 1] !== shade) return;  // the catalog is open over it
     if (event.target instanceof HTMLSelectElement) return;
     const key = event.key.toLowerCase();
     if (key === 'tab') { event.preventDefault(); dot = !dot; redraw(); }

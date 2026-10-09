@@ -121,7 +121,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 #history { font-size: 12px; color: rgb(158, 181, 160); white-space: pre; min-width: 160px; }
 #message { flex: 1; font-size: 12px; color: rgb(187, 199, 181); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
 #message.note { color: var(--amber); }
-#footer .export { padding: 9px 16px; }
+#footer .export, #footer #open-catalog { padding: 9px 16px; }
+#footer #open-catalog { margin-right: -14px; }
 #footer .export.any { background: var(--amber); color: var(--back); }
 
 .lost { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgb(120, 50, 40); color: #fff; padding: 8px 16px; border-radius: 5px; z-index: 50; }
@@ -179,7 +180,9 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .graph-canvas canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .graph-bottom { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .graph-bottom .graph-describe { flex: 1; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.graph-help { white-space: pre; font-size: 12px; color: rgb(144, 170, 151); margin-top: 6px; }
+.graph-help { display: flex; align-items: center; white-space: pre; font-size: 12px; color: rgb(144, 170, 151); margin-top: 6px; }
+.graph-help span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.graph-help button { min-width: 130px; }
 .sort-select { font: 12px var(--sans); color: var(--text); background: var(--raised); border: 1px solid var(--green); height: 30px; padding: 0 8px; }
 .tooltip {
   position: fixed; z-index: 30; pointer-events: none; background: var(--back); border: 1px solid var(--green); border-radius: 6px;

@@ -65,7 +65,7 @@ export function openSetup(app, onClose) {
       element('div', { class: 'lead' }, 'Set up the world, then start it. It replaces the world running now, for everyone viewing it.'),
       element('div', { class: 'scroll' }, rows,
         element('div', { class: 'import-head' }, element('span', {}, 'IMPORT BITZKEYS'),
-          element('button', { onclick: openCatalog }, 'FROM CATALOG'),
+          element('button', { onclick: openSetupCatalog }, 'FROM CATALOG'),
           element('button', { onclick: openDesigner }, 'DESIGN'),
           element('button', { onclick: () => fileInput.click() }, 'LOAD FILE'),
           element('button', { onclick: () => { importBox.value = ''; checkImport(); } }, 'CLEAR')),
@@ -482,120 +482,136 @@ export function openSetup(app, onClose) {
 
   // ---- The catalog
 
-  async function openCatalog() {
-    let entries = [], chosen = new Set(), picked = 0, anchor = 0, catalogNote = '';
-    const list = element('div', { class: 'catalog-list scroll' });
-    const side = element('div', { class: 'catalog-details scroll' });
-    const hint = element('span', { class: 'catalog-hint' });
-    const importButton = element('button', { class: 'primary', onclick: importChosen }, 'ADD TO IMPORT');
-    const removeButton = element('button', { onclick: askToRemove }, 'REMOVE');
-
-    async function load() {
-      const loaded = await api('/api/catalog');
-      entries = loaded.entries;
-      catalogNote = loaded.note || catalogNote;
-      picked = Math.max(0, Math.min(entries.length - 1, picked));
-      chosen = new Set([...chosen].filter(index => index < entries.length));
-      if (entries.length && !chosen.size) chosen.add(picked);
-      anchor = picked;
-      draw();
-    }
-
-    function draw() {
-      if (!entries.length) {
-        list.replaceChildren(element('div', { class: 'empty-note' }, 'The catalog is empty.',
-          element('small', {}, 'Add Bitzkeys from a running world: ADD TO CATALOG in the sidebar, the export list or the colour graph, or press K.')));
-        side.replaceChildren();
-      } else {
-        list.replaceChildren(...entries.map((entry, index) => {
-          const row = element('div', { class: `entry${chosen.has(index) ? ' chosen' : ''}${index === picked ? ' picked' : ''}` },
-            bitzkeyCanvas(look(entry.details), dotRadius(entry.details.body[1])), entry.line);
-          row.addEventListener('click', event => choose(index, event.shiftKey, event.ctrlKey || event.metaKey));
-          return row;
-        }));
-        const agent = entries[picked].details;
-        side.replaceChildren(element('div', { class: 'big-look' }, bitzkeyCanvas(look(agent), 9 * dotRadius(agent.body[1]), 18)), details(agent));
-        list.children[picked]?.scrollIntoView({ block: 'nearest' });
-      }
-      importButton.textContent = chosen.size <= 1 ? 'ADD TO IMPORT' : `ADD ${chosen.size} TO IMPORT`;
-      importButton.disabled = !chosen.size;
-      removeButton.disabled = !chosen.size;
-      hint.textContent = catalogNote || 'CLICK, SHIFT or CTRL+CLICK  choose    ENTER  add to import    DELETE  remove    ESC  close';
-      hint.classList.toggle('warn', Boolean(catalogNote));
-    }
-
-    // As in Windows: a click chooses one, CTRL+click adds or takes one out, SHIFT+click chooses the
-    // run from the last clicked (CTRL+SHIFT adds it).
-    function choose(index, shift, ctrl) {
-      if (shift) {
-        const run = [];
-        for (let at = Math.min(anchor, index); at <= Math.max(anchor, index); ++at) run.push(at);
-        chosen = ctrl ? new Set([...chosen, ...run]) : new Set(run);
-      } else if (ctrl) {
-        if (!chosen.delete(index)) chosen.add(index);
-        anchor = index;
-      } else {
-        chosen = new Set([index]);
-        anchor = index;
-      }
-      picked = index;
-      draw();
-    }
-
-    async function askToRemove() {
-      if (!chosen.size) return;
-      const count = chosen.size;
-      const answer = await dialog('Remove from the catalog?',
-        [count === 1 ? entries[[...chosen][0]].line : plural(count), count === 1 ? 'It will be gone from the catalog for good.' : 'They will be gone from the catalog for good.'],
-        [['keep', 'KEEP'], ['remove', 'REMOVE']], 'keep');
-      if (answer !== 'remove') return;
-      try {
-        catalogNote = (await api('/api/catalog/remove', { indexes: [...chosen] })).note;
-      } catch (error) {
-        catalogNote = error.message;
-      }
-      chosen = new Set();
-      await load();
-    }
-
-    async function importChosen() {
-      if (!chosen.size) return;
-      const records = await api('/api/catalog/records', { indexes: [...chosen] });
-      addImport(records.text);
-      tell(records.count === 1 ? 'Added a Bitzkey from the catalog to the import list, with its trained brain.'
-                               : `Added ${records.count} Bitzkeys from the catalog to the import list, with their trained brains.`, false);
-      closeCatalog();
-    }
-
-    const catalogShade = screen('catalog', panel => {
-      panel.append(
-        element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY CATALOG'), element('span', {}, 'NEW WORLD  /  YOUR FAVOURITES')),
-        element('div', { class: 'lead' }, 'Each one kept as it was when catalogued, its trained brain and all. Choose those to import.'),
-        element('div', { class: 'catalog-body' }, list, side),
-        element('div', { class: 'catalog-foot' }, removeButton, hint, importButton, element('button', { onclick: closeCatalog }, 'CLOSE')));
+  function openSetupCatalog() {
+    openCatalog({
+      onImport(records) {
+        addImport(records.text);
+        tell(records.count === 1 ? 'Added a Bitzkey from the catalog to the import list, with its trained brain.'
+                                 : `Added ${records.count} Bitzkeys from the catalog to the import list, with their trained brains.`, false);
+      },
     });
-    function onCatalogKey(event) {
-      if (!onTop(catalogShade)) return;
-      if (event.key === 'Escape') { event.preventDefault(); closeCatalog(); }
-      else if (event.key === 'Enter') { event.preventDefault(); importChosen(); }
-      else if (event.key === 'Delete') { event.preventDefault(); askToRemove(); }
-      else if ((event.key === 'a' || event.key === 'A') && (event.ctrlKey || event.metaKey)) {
-        event.preventDefault();
-        chosen = new Set(entries.map((_, index) => index));
-        draw();
-      } else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && entries.length) {
-        event.preventDefault();
-        const moved = Math.max(0, Math.min(entries.length - 1, picked + (event.key === 'ArrowDown' ? 1 : -1)));
-        choose(moved, event.shiftKey, false);
-      }
-    }
-    document.addEventListener('keydown', onCatalogKey);
-    function closeCatalog() {
-      document.removeEventListener('keydown', onCatalogKey);
-      catalogShade.remove();
-    }
-    load();
   }
 
   return { update() {}, close };
+}
+
+// The catalog of favourite Bitzkeys. Opened from the setup panel, the Bitzkeys chosen go to `onImport`
+// with their records; opened to browse (no `onImport`), it only shows them, and can remove them.
+// `onClose` is told when it closes.
+export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
+  const browsing = !onImport;
+  let entries = [], chosen = new Set(), picked = 0, anchor = 0, catalogNote = '';
+  const list = element('div', { class: 'catalog-list scroll' });
+  const side = element('div', { class: 'catalog-details scroll' });
+  const hint = element('span', { class: 'catalog-hint' });
+  const importButton = element('button', { class: 'primary', onclick: importChosen }, 'ADD TO IMPORT');
+  const removeButton = element('button', { onclick: askToRemove }, 'REMOVE');
+
+  async function load() {
+    const loaded = await api('/api/catalog');
+    entries = loaded.entries;
+    catalogNote = loaded.note || catalogNote;
+    picked = Math.max(0, Math.min(entries.length - 1, picked));
+    chosen = new Set([...chosen].filter(index => index < entries.length));
+    if (entries.length && !chosen.size) chosen.add(picked);
+    anchor = picked;
+    draw();
+  }
+
+  function draw() {
+    if (!entries.length) {
+      list.replaceChildren(element('div', { class: 'empty-note' }, 'The catalog is empty.',
+        element('small', {}, 'Add Bitzkeys from a running world: ADD TO CATALOG in the sidebar, the export list or the colour graph, or press K.')));
+      side.replaceChildren();
+    } else {
+      list.replaceChildren(...entries.map((entry, index) => {
+        const row = element('div', { class: `entry${chosen.has(index) ? ' chosen' : ''}${index === picked ? ' picked' : ''}` },
+          bitzkeyCanvas(look(entry.details), dotRadius(entry.details.body[1])), entry.line);
+        row.addEventListener('click', event => choose(index, event.shiftKey, event.ctrlKey || event.metaKey));
+        return row;
+      }));
+      const agent = entries[picked].details;
+      side.replaceChildren(element('div', { class: 'big-look' }, bitzkeyCanvas(look(agent), 9 * dotRadius(agent.body[1]), 18)), details(agent));
+      list.children[picked]?.scrollIntoView({ block: 'nearest' });
+    }
+    importButton.textContent = chosen.size <= 1 ? 'ADD TO IMPORT' : `ADD ${chosen.size} TO IMPORT`;
+    importButton.disabled = !chosen.size;
+    removeButton.disabled = !chosen.size;
+    hint.textContent = catalogNote || (browsing ? 'CLICK, SHIFT or CTRL+CLICK  choose    DELETE  remove    ESC  close'
+                                                : 'CLICK, SHIFT or CTRL+CLICK  choose    ENTER  add to import    DELETE  remove    ESC  close');
+    hint.classList.toggle('warn', Boolean(catalogNote));
+  }
+
+  // As in Windows: a click chooses one, CTRL+click adds or takes one out, SHIFT+click chooses the
+  // run from the last clicked (CTRL+SHIFT adds it).
+  function choose(index, shift, ctrl) {
+    if (shift) {
+      const run = [];
+      for (let at = Math.min(anchor, index); at <= Math.max(anchor, index); ++at) run.push(at);
+      chosen = ctrl ? new Set([...chosen, ...run]) : new Set(run);
+    } else if (ctrl) {
+      if (!chosen.delete(index)) chosen.add(index);
+      anchor = index;
+    } else {
+      chosen = new Set([index]);
+      anchor = index;
+    }
+    picked = index;
+    draw();
+  }
+
+  async function askToRemove() {
+    if (!chosen.size) return;
+    const count = chosen.size;
+    const answer = await dialog('Remove from the catalog?',
+      [count === 1 ? entries[[...chosen][0]].line : plural(count), count === 1 ? 'It will be gone from the catalog for good.' : 'They will be gone from the catalog for good.'],
+      [['keep', 'KEEP'], ['remove', 'REMOVE']], 'keep');
+    if (answer !== 'remove') return;
+    try {
+      catalogNote = (await api('/api/catalog/remove', { indexes: [...chosen] })).note;
+    } catch (error) {
+      catalogNote = error.message;
+    }
+    chosen = new Set();
+    await load();
+  }
+
+  async function importChosen() {
+    if (!chosen.size || browsing) return;
+    onImport(await api('/api/catalog/records', { indexes: [...chosen] }));
+    closeCatalog();
+  }
+
+  const catalogShade = screen('catalog', panel => {
+    panel.append(
+      element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY CATALOG'),
+        element('span', {}, browsing ? 'YOUR FAVOURITES' : 'NEW WORLD  /  YOUR FAVOURITES')),
+      element('div', { class: 'lead' }, browsing ? 'Each one kept as it was when catalogued, its trained brain and all.'
+                                                 : 'Each one kept as it was when catalogued, its trained brain and all. Choose those to import.'),
+      element('div', { class: 'catalog-body' }, list, side),
+      element('div', { class: 'catalog-foot' }, removeButton, hint, browsing ? null : importButton,
+        element('button', { onclick: closeCatalog }, 'CLOSE')));
+  });
+  function onCatalogKey(event) {
+    if (!onTop(catalogShade)) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeCatalog(); }
+    else if (event.key === 'Enter') { event.preventDefault(); importChosen(); }
+    else if (event.key === 'Delete') { event.preventDefault(); askToRemove(); }
+    else if ((event.key === 'a' || event.key === 'A') && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      chosen = new Set(entries.map((_, index) => index));
+      draw();
+    } else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && entries.length) {
+      event.preventDefault();
+      const moved = Math.max(0, Math.min(entries.length - 1, picked + (event.key === 'ArrowDown' ? 1 : -1)));
+      choose(moved, event.shiftKey, false);
+    }
+  }
+  document.addEventListener('keydown', onCatalogKey);
+  function closeCatalog() {
+    document.removeEventListener('keydown', onCatalogKey);
+    catalogShade.remove();
+    onClose();
+  }
+  load();
 }

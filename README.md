@@ -79,6 +79,7 @@ The page has the window app's screens, laid out the same way:
   - the import box, for pasting, loading a file, the catalog or the designer;
   - the advanced rules.
   Starting a new world replaces the running world for every viewer.
+- **OPEN CATALOG**, in the footer and on the colour graph. Looks through the catalog without importing or exporting anything; REMOVE still works.
 - **FILES.** Downloads exports the daemon has saved. Brain reports (B) open in a new tab.
 
 ### Keys and mouse

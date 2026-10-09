@@ -7,7 +7,7 @@ import { drawBitzkey, drawReticle, zoneColour, mapDotRadii, dotRadius, bitzkeyCa
          GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
-import { openSetup } from './setup.js';
+import { openSetup, openCatalog } from './setup.js';
 
 const MAP_ZOOM_STEP = 1.25;
 const MAP_ZOOM_MAX = 12;
@@ -35,6 +35,7 @@ export const app = {
   catalogIdentifiers,
   exportIdentifiers,
   renew,
+  browseCatalog,
 };
 
 let shownVersion = -1;
@@ -779,6 +780,13 @@ function setup() {
   app.overlay = openSetup(app, () => { app.overlay = null; poll(true); });
 }
 
+// Look through the catalog, importing and exporting nothing. Over the graph, it returns there.
+function browseCatalog() {
+  const under = app.overlay;
+  app.overlay = { update() {} };
+  openCatalog({ onClose: () => { app.overlay = under; } });
+}
+
 function toggleInsights() {
   app.showInsights = !app.showInsights;
   $('sidebar-body').scrollTop = 0;
@@ -821,6 +829,7 @@ $('save-report').onclick = saveReport;
 $('show-files').onclick = showFiles;
 $('new-world').onclick = setup;
 $('export-all').onclick = openExportDialog;
+$('open-catalog').onclick = () => { if (!app.overlay) browseCatalog(); };
 $('message').textContent = HINT;
 
 window.bitzkey = app;  // for looking into from the browser's console
