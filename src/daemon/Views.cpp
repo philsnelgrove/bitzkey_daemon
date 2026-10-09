@@ -337,7 +337,7 @@ Json design(Dna dna) {
         const double fertility = sample.physique(Fertility);
         const std::array<std::pair<int, int>, 2> parents = {std::pair{sample.body[Litter], sample.body[Size]},
                                                             std::pair{sample.body[Litter], sample.body[Size]}};
-        const int litter = litter_size(parents, sample.species);
+        const int litter = litter_size(parents);
         const std::string species(species_name(sample.species));
         facts = {
             format("A %s.  Health %.0f.  Metabolism %.2f.", species.c_str(), sample.max_health, sample.metabolism),

@@ -58,7 +58,6 @@ std::vector<Rule> make_rules() {
         {"LITTER_RANGE.0", "Breeding", "Smallest litter", "fewest young per birth, while there is room", 1, 20, 1, true, &LITTER_RANGE[0]},
         {"LITTER_RANGE.1", "Breeding", "Largest litter", "most young per birth, while there is room", 1, 20, 1, true, &LITTER_RANGE[1]},
         {"LITTER_SIZE_WEIGHT", "Breeding", "Small-body litters", "share of litter size from small bodies; the rest from the trait", 0.0, 1.0, 0.05, false, &LITTER_SIZE_WEIGHT},
-        {"PREDATOR_LITTERS", "Breeding", "Predator litters", "predators' litters are this share of the usual, rounded up", 0.05, 2.0, 0.05, false, &PREDATOR_LITTERS},
         {"SMALL_LITTERS", "Breeding", "Small-body litter boost", "the smallest bodies' litters are this many times the usual, falling to the usual for the largest", 1.0, 4.0, 0.25, false, &SMALL_LITTERS},
         {"GESTATION.0", "Breeding", "Shortest gestation", "turns the smallest animals carry their young", 1, 500, 1, true, &GESTATION[0]},
         {"GESTATION.1", "Breeding", "Longest gestation", "turns the largest animals carry their young", 1, 500, 1, true, &GESTATION[1]},

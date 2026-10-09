@@ -148,7 +148,6 @@ inline double SHARED_DIET = 0.5;
 // grazers against omnivores), so a scarce prey is left alone to recover.
 inline double SWITCH_SHARE = 0.25;   // how much another species eating some of the same food counts as a mouth
 inline double STRIKE_EFFORT = 0.2;
-inline double PREDATOR_LITTERS = 0.5;
 inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
 inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging
 inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with strength above this
@@ -356,7 +355,7 @@ struct Bitzkey {
     Rgb ring_color() const { return color_from_word(body_word(dna)); }
 };
 
-int litter_size(std::span<const std::pair<int, int>> parents, Species species);
+int litter_size(std::span<const std::pair<int, int>> parents);
 int gestation(int size);  // turns an animal of this body size carries its young
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.

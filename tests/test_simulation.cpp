@@ -83,15 +83,14 @@ TEST_CASE("bodies set health pools, metabolism, stomachs and lifespans") {
     CHECK(predator.steps == 4);
 }
 
-TEST_CASE("litters: small bodies and a high litter trait make more young, predators half as many") {
+TEST_CASE("litters: small bodies and a high litter trait make more young, for every species alike") {
     const std::array<std::pair<int, int>, 2> fecund = {std::pair{7, 0}, std::pair{7, 0}};
     const std::array<std::pair<int, int>, 2> sparse = {std::pair{0, 7}, std::pair{0, 7}};
-    CHECK(litter_size(fecund, Species::Grazer) == 12);  // twice the usual, for the smallest
-    CHECK(litter_size(sparse, Species::Grazer) == 1);
-    CHECK(litter_size(fecund, Species::Predator) == 6);
+    CHECK(litter_size(fecund) == 12);  // twice the usual, for the smallest
+    CHECK(litter_size(sparse) == 1);
     const double small_litters = SMALL_LITTERS;
     SMALL_LITTERS = 1.0;
-    CHECK(litter_size(fecund, Species::Grazer) == 6);
+    CHECK(litter_size(fecund) == 6);
     SMALL_LITTERS = small_litters;
 }
 

@@ -298,7 +298,7 @@ Dna predator_dna(Dna dna) {
     return (dna & ~(Dna{0x7} << shift)) | (((trait & 0x4) | 0x3) << shift);
 }
 
-int litter_size(std::span<const std::pair<int, int>> parents, Species species) {
+int litter_size(std::span<const std::pair<int, int>> parents) {
     const int smallest = LITTER_RANGE[0], largest = LITTER_RANGE[1];
     std::vector<double> tendencies;
     for (const auto& [litter, size] : parents) {
@@ -311,7 +311,7 @@ int litter_size(std::span<const std::pair<int, int>> parents, Species species) {
     for (const auto& [trait, size] : parents) sizes.push_back(share(size));
     const double small = 1 - py_sum(sizes) / static_cast<double>(parents.size());
     litter = static_cast<int>(litter * (1 + (SMALL_LITTERS - 1) * small) + 0.5);
-    return species == Species::Predator ? static_cast<int>(std::ceil(litter * PREDATOR_LITTERS)) : litter;
+    return litter;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1656,7 +1656,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     // The parent that chose to breed conceives the litter and carries it for its gestation.
     const std::array<std::pair<int, int>, 2> parents = {std::pair{first.body[Litter], first.body[Size]},
                                                         std::pair{second.body[Litter], second.body[Size]}};
-    int litter = litter_size(parents, first.species);
+    int litter = litter_size(parents);
     litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second)) / CROWDING_LIMIT) + 0.5));
     litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * FOOD_NEEDED)) + 0.5));
     litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
