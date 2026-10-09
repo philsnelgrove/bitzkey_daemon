@@ -26,7 +26,7 @@ export function details(agent, { large = 0 } = {}) {
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   panel.append(element('div', { class: 'mono' }, `DOT / MIND   ${agent.dot}`));
   panel.append(element('div', { class: 'mono' }, `RING / BODY  ${agent.ring}`));
-  const mind = element('div', { class: 'traits' }, element('div', { class: 'label' }, known ? 'MIND      born   now' : 'MIND      born'));
+  const mind = element('div', { class: 'traits' }, element('div', { class: 'label mono small' }, known ? 'MIND      born   now' : 'MIND      born'));
   for (let trait = 0; trait < MIND_TRAITS.length; ++trait) {
     const born = agent.inborn[trait];
     if (!known) {
