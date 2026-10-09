@@ -216,6 +216,22 @@ TEST_CASE("primal fear grows with the disparity, spares predators, and lasts whi
     CHECK_FALSE(grazer.primal_fear);
 }
 
+TEST_CASE("predators see prey further, and their young are predators") {
+    Simulation simulation = world();
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 0}}), 1, 1);
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"sight", 0}}), 1, 8);
+    const Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 1, 5);
+    simulation.index_cells();
+    CHECK(simulation.sense(predator).situation.quarry == &grazer);
+    CHECK(simulation.sense(omnivore).situation.quarry == nullptr);
+    for (const Species species : {Species::Plant, Species::Grazer, Species::Omnivore, Species::Predator}) {
+        const Dna made = predator_dna(encode_dna(species, {{"size", 5}}));
+        CHECK(static_cast<Species>(decode_body(made)[SpeciesTrait]) == Species::Predator);
+        CHECK(decode_body(made)[Size] == 5);
+    }
+    CHECK(predator_dna(encode_dna(Species::Predator)) == encode_dna(Species::Predator));
+}
+
 TEST_CASE("weak grazers cannot strike back") {
     Simulation simulation = world();
     Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);

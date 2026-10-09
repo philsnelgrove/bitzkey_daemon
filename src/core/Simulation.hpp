@@ -26,7 +26,7 @@ namespace bitzkey {
 constexpr int GRID_SIZE = 100;
 constexpr int INITIAL_POPULATION = 90;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
-inline double GRASS_REGROWTH = 0.004;  // share of the starting grass that grows back each turn
+inline double GRASS_REGROWTH = 0.008;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_RADIUS = 4;
 inline int CROWDING_LIMIT = 10;
@@ -89,7 +89,7 @@ inline double WALK_REST = 0.5;
 inline double GO_EFFORT = 0.25;
 inline double FEAR_DREAD = 0.3;
 inline double UNEASE = 0.1;
-inline double CLIMATE_UNEASE = 0.5;  // discomfort two or more steps from home, half that one step; less for the hardy
+inline double CLIMATE_UNEASE = 1.5;  // discomfort two or more steps from home, half that one step; less for the hardy
 inline double EMPATHY_PAIN = 0.15;
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
@@ -109,6 +109,12 @@ inline int REPLAY_PER_INTELLECT = 2;
 // PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often). While a
 // hunter is in sight it then panics every turn, fleeing, or, with a chance of PRIMAL_FREEZE at the lowest
 // intellect and none at the highest, freezes and does nothing at all.
+// The instinct to hunt: whenever hunting or attacking is open to a predator, it values each this much more,
+// times its hunger as a share, whatever its brain has learnt; the brain's learning adds to it.
+inline double HUNTING_INSTINCT = 1.0;
+constexpr int MAX_PREDATOR_SIGHT = 3;
+inline int PREDATOR_SIGHT = 3;  // predators see prey this many cells further than they otherwise see, up to MAX_PREDATOR_SIGHT
+inline int HUNT_STEPS = 1;      // and chase it this many more steps a turn
 inline double PRIMAL_FEAR = 0.5;
 inline double PRIMAL_FEAR_PREDATORS = 1.0 / 3;
 inline double PRIMAL_FREEZE = 0.5;
@@ -234,7 +240,7 @@ double season_progress(int turn);
 double temperature_at(int y, int height, int turn);
 // A cell's fixed share, 0 to 1, below which a row's shortfall from medium makes its grass die back.
 double dieback_threshold(int x, int y);
-constexpr int MAX_SIGHT = 2 + TRAIT_MAX;
+constexpr int MAX_SIGHT = 2 + TRAIT_MAX + MAX_PREDATOR_SIGHT;  // the furthest anything is seen: a predator's sight for prey
 // For each territorial species, predators then omnivores: how many rivals it tolerates from the
 // least to the most empathetic, and how strongly overcrowding moves it (its rivalry at most).
 struct Territory {
@@ -352,6 +358,9 @@ struct Bitzkey {
 
 int litter_size(std::span<const std::pair<int, int>> parents, Species species);
 int gestation(int size);  // turns an animal of this body size carries its young
+// The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
+// trait mod 4), the rest unchanged.
+Dna predator_dna(Dna dna);
 
 enum class EndReason { None, Extinct, Full };
 
@@ -613,9 +622,10 @@ private:
         Bitzkey* suitor = nullptr;
         Bitzkey* flora = nullptr;
     };
-    Seen look_around(const Bitzkey& agent, int sight) const;
+    // Prey as far as `prey_sight`, when it sees prey further; else as far as `sight`.
+    Seen look_around(const Bitzkey& agent, int sight, int prey_sight = -1) const;
     void move(Bitzkey& agent, int x, int y);
-    void move_toward(Bitzkey& agent, int x, int y);
+    void move_toward(Bitzkey& agent, int x, int y, int steps = -1);  // its own steps, unless given
     void move_away(Bitzkey& agent, const Bitzkey& threat);
     bool in_bounds(int x, int y) const { return 0 <= x && x < width_ && 0 <= y && y < height_; }
     // A row kept on the map: the top and bottom edges are barriers, though east and west wrap round.

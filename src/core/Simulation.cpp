@@ -292,6 +292,12 @@ Brain& Bitzkey::own_brain() {
     return *brain;
 }
 
+Dna predator_dna(Dna dna) {
+    constexpr int shift = 32;  // the species trait is the ring's first
+    const Dna trait = (dna >> shift) & 0x7;
+    return (dna & ~(Dna{0x7} << shift)) | (((trait & 0x4) | 0x3) << shift);
+}
+
 int litter_size(std::span<const std::pair<int, int>> parents, Species species) {
     const int smallest = LITTER_RANGE[0], largest = LITTER_RANGE[1];
     std::vector<double> tendencies;
@@ -1032,7 +1038,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             situation.panic = true;
             options = {Flee};
         }
-        const auto odds = choice_odds(values[index], options);
+        Values valued = values[index];
+        if (agent.species == Species::Predator) {  // the instinct to hunt, on top of what its brain has learnt
+            const double urge = HUNTING_INSTINCT * std::min(1.0, agent.hunger / 100);
+            valued[Hunt] += urge;
+            valued[Attack] += urge;
+        }
+        const auto odds = choice_odds(valued, options);
         double roll = random_.random();
         int choice = options.back();
         for (const auto& [option, chance] : odds) {
@@ -1141,7 +1153,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (grazes) s.grass = nearest_grass(agent, sight);
     if (agent.species != Species::Grazer) s.carrion = nearest_carrion(agent, sight);  // grazers don't scavenge
     if (agent.species == Species::Omnivore || agent.species == Species::Predator) s.kill = nearest_kill(agent, sight);
-    const Seen seen = look_around(agent, sight);
+    const int prey_sight = sight + (agent.species == Species::Predator ? PREDATOR_SIGHT : 0);
+    const Seen seen = look_around(agent, sight, prey_sight);
     s.quarry = seen.quarry;
     s.hunter = seen.hunter;
     s.suitor = seen.suitor;
@@ -1224,7 +1237,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseReadyToBreed] = agent.cooldown == 0;
     senses[SensePreyNear] = std::min<int>(4, static_cast<int>(prey.size())) / 4.0;
     senses[SensePreyFrailty] = s.prey ? std::min(1.0, damage(agent, *s.prey) / s.prey->health) : 0.0;
-    senses[SensePreyCloseness] = closeness(agent, cell_of(s.quarry), sight);
+    senses[SensePreyCloseness] = closeness(agent, cell_of(s.quarry), prey_sight);
     senses[SenseThreatNear] = std::min<int>(4, static_cast<int>(threats.size())) / 4.0;
     senses[SenseThreatDanger] = s.threat ? std::min(1.0, damage(*s.threat, agent) / agent.health) : 0.0;
     senses[SenseThreatCloseness] = closeness(agent, cell_of(s.hunter), sight);
@@ -1376,7 +1389,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         }
         case Hunt: {
             Bitzkey& quarry = *s.quarry;
-            move_toward(agent, quarry.x, quarry.y);
+            move_toward(agent, quarry.x, quarry.y, agent.steps + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
             agent.last_action = "hunted";
             if (quarry.alive() && distance(quarry.x, quarry.y, agent.x, agent.y) <= 1) {
                 attack(agent, quarry);
@@ -1659,7 +1672,10 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         // dot is written from that mind, so experience is inherited and shows. Its brain, a mix of
         // its parents', is as deep as its own inborn intellect makes it.
         const Mind mind = inherit_mind(first.mind, second.mind, random_, mind_mutation_);
-        const Dna dna = cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_);
+        Dna dna = cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_);
+        if (first.species == Species::Predator || second.species == Species::Predator) {
+            dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
+        }
         auto brain = std::make_shared<Brain>(
             Brain::inherit(*first.brain, *second.brain, random_, depth_for(decode_mind(dna)[Intellect])));
         first.womb.push_back({dna, mind, std::move(brain), given / litter, generation});
@@ -1777,20 +1793,24 @@ Bitzkey* Simulation::nearest_kill(const Bitzkey& agent, int sight) const {
     return nullptr;
 }
 
-Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight) const {
+Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int prey_sight) const {
     Seen seen;
+    if (prey_sight < 0) prey_sight = sight;
     const bool hunts = agent.species == Species::Omnivore || agent.species == Species::Predator;
     const bool hunted = agent.species != Species::Plant;
     const bool browses = agent.species == Species::Grazer || agent.species == Species::Omnivore;
     const bool courts = agent.can_breed();
-    for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
-        if ((seen.quarry || !hunts) && (seen.hunter || !hunted) && (seen.suitor || !courts) && (seen.flora || !browses)) break;
+    for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(std::max(sight, prey_sight))]) {
+        const bool far = std::abs(offset.dx) + std::abs(offset.dy) > sight;  // beyond its sight but for prey
+        if ((seen.quarry || !hunts) && (far || ((seen.hunter || !hunted) && (seen.suitor || !courts) && (seen.flora || !browses)))) break;
         const auto* list = cell_if(agent.x + offset.dx, agent.y + offset.dy);
         if (!list) continue;
         for (Bitzkey* other : *list) {
             if (other == &agent || !other->alive()) continue;
             if (!seen.quarry && is_prey(agent, *other)) {
                 seen.quarry = other;
+            } else if (far) {
+                continue;
             } else if (!seen.hunter && is_prey(*other, agent)) {
                 seen.hunter = other;
             } else if (browses && !seen.flora && other->species == Species::Plant && !other->cooldown) {
@@ -1824,8 +1844,9 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
     if (in_bounds(x, y)) cell_at(x, y).push_back(&agent);
 }
 
-void Simulation::move_toward(Bitzkey& agent, int x, int y) {
-    for (int step = 0; step < agent.steps; ++step) {
+void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
+    if (steps < 0) steps = agent.steps;
+    for (int step = 0; step < steps; ++step) {
         if (agent.x != x) {
             move(agent, agent.x + (x > agent.x ? 1 : -1), agent.y);
         } else if (agent.y != y) {

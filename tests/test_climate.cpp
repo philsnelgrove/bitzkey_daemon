@@ -459,7 +459,10 @@ TEST_CASE("grass grows only where it is medium now") {
 }
 
 TEST_CASE("a seed that falls where it can't grow waits for its temperature") {
+    const double regrowth = GRASS_REGROWTH;
+    GRASS_REGROWTH = 0.004;  // the world this test was laid out in: the seed falls where it waits long enough
     Simulation simulation = world_at(240);
+    GRASS_REGROWTH = regrowth;
     simulation.set_mutation(0.5, 0.0);
     Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {{"temperature", Cold}, {"fertility", 7}}), 50, 30);
     simulation.index_cells();
