@@ -1181,7 +1181,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     // Only from a hunter close by, unless the herd raised the alarm.
     available[Flee] = s.hunter && (alarmed || distance(s.hunter->x, s.hunter->y, agent.x, agent.y) <=
                                                   flee_range(agent, view.close));
-    available[Defend] = s.defend_target != nullptr;
+    available[Defend] = s.defend_target != nullptr &&  // a grazer only when strong enough
+                        (agent.species != Species::Grazer || agent.body[Strength] > GRAZER_DEFENCE_STRENGTH);
     // The more fearful it is, the closer it keeps to the herd's middle, but not where the middle is
     // further from its home temperature than here.
     available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) >
@@ -1473,6 +1474,7 @@ void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
         return;
     }
     agent.nourish(FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * corpse.physique(Size)));
+    if (agent.species == Species::Predator) agent.reward += FEAST_JOY;
     corpse.meat = 0.0;
     corpse.died_turn = turn_ - CORPSE_TURNS;
     if (in_bounds(corpse.x, corpse.y)) {
@@ -1493,7 +1495,11 @@ double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender) {
         return THORN_FORCE * thorns * (1 - 0.6 * defender.toughness);
     }
     const double force = STRIKE_FORCE * (2 + 9 * attacker.might);
-    return force * (1 + 0.75 * attacker.physique(Weapons)) * (1 - 0.6 * defender.toughness);
+    return force * (1 + 0.75 * armed(attacker)) * (1 - 0.6 * defender.toughness);
+}
+
+double Simulation::armed(const Bitzkey& animal) {
+    return animal.physique(Weapons) * (animal.species == Species::Predator ? PREDATOR_WEAPONS : 1.0);
 }
 
 void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
@@ -1541,13 +1547,14 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
     }
     if (killed) die(victim, "killed");
 
-    const double sting = 4.5 * victim.physique(Weapons) * (1 - 0.6 * agent.toughness);
+    const double sting = 4.5 * armed(victim) * (1 - 0.6 * agent.toughness);
     if (sting > 0) {
         agent.health -= sting;
         experience(agent, Stung);
         if (!agent.alive()) die(agent, "killed");
     }
     exhausted(agent);
+    if (agent.species == Species::Predator && agent.alive()) agent.reward += ATTACK_JOY;  // a blow it lived through
 }
 
 void Simulation::exhausted(Bitzkey& agent) {
@@ -1805,7 +1812,8 @@ bool Simulation::compatible(const Bitzkey& first, const Bitzkey& second) {
 
 bool Simulation::willing(const Bitzkey& agent, const Bitzkey& other) {
     const double tolerance = agent.feeling(Tolerance);
-    return ring_difference(agent.dna, other.dna) <= MATE_RING_DIFFERENCE + (1 - MATE_RING_DIFFERENCE) * tolerance &&
+    const double accepted = agent.species == Species::Predator ? KIND_DIFFERENCE : MATE_RING_DIFFERENCE;  // a predator its kind
+    return ring_difference(agent.dna, other.dna) <= accepted + (1 - accepted) * tolerance &&
            dot_difference(agent.dna, other.dna) <= MATE_DOT_DIFFERENCE + (1 - MATE_DOT_DIFFERENCE) * tolerance;
 }
 
@@ -1819,14 +1827,9 @@ double Simulation::cannibal_reluctance(const Bitzkey& animal) {
 }
 
 double Simulation::rival_weight(const Bitzkey& hunter, const Bitzkey& other) {
-    if (hunter.species == Species::Predator) {
-        return (other.species == Species::Predator || other.species == Species::Omnivore) ? 1.0 : 0.0;
-    }
-    if (hunter.species == Species::Omnivore) {
-        if (other.species == Species::Omnivore) return 1.0;
-        return other.species == Species::Predator ? 1 - hunter.feeling(Empathy) : 0.0;
-    }
-    return 0.0;
+    // Only its own species: predators for a predator, omnivores for an omnivore. Other species are prey.
+    const bool hunts = hunter.species == Species::Predator || hunter.species == Species::Omnivore;
+    return hunts && other.species == hunter.species ? 1.0 : 0.0;
 }
 
 void Simulation::witness(const Bitzkey& actor, double outcome) {
@@ -1971,14 +1974,14 @@ std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
         return total == 0 || static_cast<double>(count) / total >= SWITCH_SHARE;
     };
     if (hunter.species == Species::Omnivore) return {common(grazers, grazers + plants), false};
-    return {common(grazers, grazers + omnivores), common(omnivores, grazers + omnivores)};
+    return {common(grazers, grazers + omnivores), true};  // omnivores are always prey
 }
 
 bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (hunter.species == Species::Omnivore) {
         // Grazers while they are common enough to switch to, and other omnivores only in an
         // overcrowded territory, once hungry past its reluctance as that rivalry wears it down.
-        return (other.species == Species::Grazer && hunter.hunts_grazers) ||
+        return (other.species == Species::Grazer && hunter.hunts_grazers) || other.species == Species::Predator ||
                (other.species == Species::Omnivore && hunter.own_rivalry > 0 &&
                 hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - hunter.own_rivalry));
     }
@@ -1986,9 +1989,9 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (other.species == Species::Grazer) return hunter.hunts_grazers;
     if (other.species == Species::Omnivore) return hunter.hunts_omnivores;
     if (other.species != Species::Predator) return false;
-    // Its own kind only when hungry past its reluctance, which a territory overcrowded with
-    // predators wears away.
-    return !same_kind(hunter, other) || hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - hunter.own_rivalry);
+    // Other predators, of whatever kind, only when hungry past its reluctance, which a territory
+    // overcrowded with predators wears away.
+    return hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - hunter.own_rivalry);
 }
 
 }  // namespace bitzkey

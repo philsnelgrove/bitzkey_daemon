@@ -119,7 +119,9 @@ inline double HERD_LONELINESS = 0.1;
 inline double HERD_SAFETY = 0.6;
 inline double HERD_DEFEND_JOY = 0.5;
 inline double PACK_BONUS = 0.5;
-inline double KIND_DIFFERENCE = 0.05;
+// Predators whose ring colours differ by no more than this are one kind: they hunt together, and breed
+// together as readily as other animals do with this much less difference.
+inline double KIND_DIFFERENCE = 0.25;
 // Breeding responsibly: before breeding, an animal weighs the food it eats within FORAGE_RADIUS
 // against the mouths that share it, itself included. Below FOOD_NEEDED meals a mouth it doesn't
 // breed; between that and twice that, its litter shrinks in proportion.
@@ -134,7 +136,11 @@ inline double SHARED_DIET = 0.5;
 inline double SWITCH_SHARE = 0.25;   // how much another species eating some of the same food counts as a mouth
 inline double STRIKE_EFFORT = 0.2;
 inline double PREDATOR_LITTERS = 0.5;
-inline double STRIKE_FORCE = 1.5;
+inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
+inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging
+inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with strength above this
+inline double FEAST_JOY = 1.5;   // a predator's pleasure in feasting on a fresh kill
+inline double ATTACK_JOY = 0.1;  // a predator's pleasure in a blow it lives through
 inline double KILL_MEAL = 25;
 inline double KILL_MEAL_FOR_SIZE = 45;
 inline double CARRION_MEAT = 30;
@@ -525,6 +531,8 @@ public:
     int crowding(const Bitzkey& agent, const Bitzkey& partner) const;
 
     static double damage(const Bitzkey& attacker, const Bitzkey& defender);
+    // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over.
+    static double armed(const Bitzkey& animal);
     static bool compatible(const Bitzkey& first, const Bitzkey& second);
     static bool willing(const Bitzkey& agent, const Bitzkey& other);
     static bool same_kind(const Bitzkey& first, const Bitzkey& second);

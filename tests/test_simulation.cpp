@@ -163,16 +163,60 @@ TEST_CASE("animals shun mates whose ring or dot differ too far, and tolerance wi
     CHECK(Simulation::compatible(animal, strange));
 }
 
-TEST_CASE("predators hunt other kinds freely, and their own kind only past their reluctance") {
+TEST_CASE("predators hunt other predators, of any kind, only past their reluctance") {
     Simulation simulation = world();
     Bitzkey& gentle = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 7}, {"tolerance", 7}, {"patience", 7}}), 1, 1);
-    const Bitzkey& kin = simulation.add_agent(gentle.dna, 2, 1);
-    const Bitzkey& stranger = simulation.add_agent(gentle.dna ^ (0xFFULL << 56), 3, 1);
+    const Bitzkey& kin = simulation.add_agent(gentle.dna ^ (0xFFULL << 56), 2, 1);       // 25% apart: its kind
+    const Bitzkey& stranger = simulation.add_agent(gentle.dna ^ (0xFFFFULL << 48), 3, 1);  // 50% apart
+    CHECK(Simulation::same_kind(gentle, kin));
+    CHECK_FALSE(Simulation::same_kind(gentle, stranger));
     gentle.hunger = 30;
-    CHECK(Simulation::is_prey(gentle, stranger));
+    CHECK_FALSE(Simulation::is_prey(gentle, stranger));
     CHECK_FALSE(Simulation::is_prey(gentle, kin));
     gentle.own_rivalry = 0.8;  // reluctance worn down to a fifth
     CHECK(Simulation::is_prey(gentle, kin));
+    CHECK(Simulation::is_prey(gentle, stranger));
+}
+
+TEST_CASE("predators breed with their kind, and omnivores and predators prey on each other") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Predator, {{"tolerance", 0}});
+    const Bitzkey& first = simulation.add_agent(dna, 1, 1);
+    const Bitzkey& kin = simulation.add_agent(dna ^ (0xFFULL << 56), 2, 2);
+    const Bitzkey& stranger = simulation.add_agent(dna ^ (0xFFFFULL << 48), 3, 3);
+    CHECK(Simulation::willing(first, kin));
+    CHECK_FALSE(Simulation::willing(first, stranger));
+    const Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore), 4, 4);
+    CHECK(Simulation::is_prey(omnivore, first));
+    CHECK(Simulation::rival_weight(first, omnivore) == 0.0);
+    CHECK(Simulation::rival_weight(omnivore, first) == 0.0);
+}
+
+TEST_CASE("a predator's weapons count three times, and the best-armed kill the largest grazer in three") {
+    Simulation simulation = world();
+    const Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"armour", 7}}), 5, 5);
+    const Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 5, 6);
+    const Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 6, 5);
+    CHECK(Simulation::damage(hunter, grazer) > Simulation::damage(omnivore, grazer));
+    CHECK(3 * Simulation::damage(hunter, grazer) >= grazer.max_health);
+    CHECK(2 * Simulation::damage(hunter, grazer) < grazer.max_health);
+}
+
+TEST_CASE("weak grazers cannot strike back") {
+    Simulation simulation = world();
+    Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);
+    Bitzkey& strong = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 6}}), 9, 9);
+    const Bitzkey& first = simulation.add_agent(encode_dna(Species::Predator), 5, 6);
+    const Bitzkey& second = simulation.add_agent(encode_dna(Species::Predator), 9, 10);
+    simulation.index_cells();
+    weak.assailant = first.identifier;
+    strong.assailant = second.identifier;
+    const auto offers = [&](Bitzkey& grazer) {
+        const auto options = simulation.sense(grazer).options;
+        return std::find(options.begin(), options.end(), Defend) != options.end();
+    };
+    CHECK_FALSE(offers(weak));
+    CHECK(offers(strong));
 }
 
 TEST_CASE("omnivores fight their own only in an overcrowded territory") {
@@ -185,14 +229,15 @@ TEST_CASE("omnivores fight their own only in an overcrowded territory") {
     CHECK(Simulation::is_prey(ruthless, other));
 }
 
-TEST_CASE("territory: the less empathetic tolerate fewer rivals, and omnivores crowd predators") {
+TEST_CASE("territory: the less empathetic tolerate fewer rivals, and only their own species crowds them") {
     Simulation simulation = world(30);
     Bitzkey& callous = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 0}}), 15, 15);
     for (const int x : {11, 12, 13, 17, 18, 19}) simulation.add_agent(encode_dna(Species::Omnivore), x, 15);
     simulation.index_cells();
-    const auto [rivalry, own] = simulation.territory(callous);
-    CHECK(rivalry == 1.0);
-    CHECK(own == 0.0);
+    CHECK(simulation.territory(callous) == std::pair{0.0, 0.0});  // omnivores are prey, not rivals
+    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(encode_dna(Species::Predator), x, 14);
+    simulation.index_cells();
+    CHECK(simulation.territory(callous) == std::pair{1.0, 1.0});
 }
 
 TEST_CASE("the herd action moves toward the middle of the herd, fear setting how close it keeps") {
