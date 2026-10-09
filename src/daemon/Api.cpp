@@ -551,7 +551,8 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     server.Post("/api/rules/check", guarded([](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
         rules::Values values = rules::defaults();
-        for (const auto& [key, value] : given.value("rules", Json::object()).items()) {
+        const Json asked = given.value("rules", Json::object());  // kept, for the loop to read
+        for (const auto& [key, value] : asked.items()) {
             if (const rules::Rule* rule = rules::find(key); rule && value.is_number()) values[key] = rule->clamp(value.get<double>());
         }
         Json shown = Json::object();
@@ -587,7 +588,8 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         Simulation::Settings settings = read_settings(given.value("settings", Json::object()));
         rules::Values changed;
         rules::Values values = rules::defaults();
-        for (const auto& [key, value] : given.value("rules", Json::object()).items()) {
+        const Json asked = given.value("rules", Json::object());  // kept, for the loop to read
+        for (const auto& [key, value] : asked.items()) {
             if (const rules::Rule* rule = rules::find(key); rule && value.is_number()) values[key] = rule->clamp(value.get<double>());
         }
         if (const auto problems = rules::problems(values); !problems.empty()) throw std::invalid_argument(problems.front() + ".");
