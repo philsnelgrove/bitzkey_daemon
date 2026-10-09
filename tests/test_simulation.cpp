@@ -433,7 +433,7 @@ TEST_CASE("hunters switch away from prey that is scarce nearby") {
     Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator), 25, 25);
     for (int x = 20; x < 25; ++x) simulation.add_agent(encode_dna(Species::Omnivore), x, 22);
     simulation.index_cells();
-    CHECK(simulation.prey_switching(predator) == std::pair{false, true});  // omnivores near, and no grazers
+    CHECK(simulation.prey_switching(predator) == std::pair{true, true});  // a predator always hunts both
 }
 
 TEST_CASE("a blow that exhausts the striker kills it, and no body is left without a recorded death") {

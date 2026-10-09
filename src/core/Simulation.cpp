@@ -2019,9 +2019,10 @@ double Simulation::flee_range(const Bitzkey& agent, int herd_near) {
 }
 
 std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
-    // Which prey a hunter goes after: each kind only while it makes up at least SWITCH_SHARE of the
-    // food weighed within FORAGE_RADIUS (grazers against plants for an omnivore, grazers against
-    // omnivores for a predator), or while none of that food is near at all.
+    // Which prey a hunter goes after, grazers and omnivores. A predator always hunts both. An omnivore
+    // hunts grazers only while they make up at least SWITCH_SHARE of the food weighed within
+    // FORAGE_RADIUS, against plants, or while none of that food is near at all.
+    if (hunter.species == Species::Predator) return {true, true};  // grazers and omnivores are always prey to a predator
     int grazers = 0, omnivores = 0, plants = 0;
     for (const Bitzkey* other : nearby(hunter, FORAGE_RADIUS)) {
         grazers += other->species == Species::Grazer;
@@ -2031,8 +2032,7 @@ std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
     const auto common = [](int count, int total) {
         return total == 0 || static_cast<double>(count) / total >= SWITCH_SHARE;
     };
-    if (hunter.species == Species::Omnivore) return {common(grazers, grazers + plants), false};
-    return {common(grazers, grazers + omnivores), true};  // omnivores are always prey
+    return {common(grazers, grazers + plants), false};
 }
 
 bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
