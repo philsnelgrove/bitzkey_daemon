@@ -1,0 +1,76 @@
+#pragma once
+// The one world the daemon runs, shared by everyone viewing it. It turns on its own thread at the chosen
+// speed; the web interface reads it and steers it through the same lock, held only briefly, so the
+// simulation never waits on a browser.
+
+#include <array>
+#include <atomic>
+#include <condition_variable>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+
+#include "core/Rules.hpp"
+#include "core/Simulation.hpp"
+
+namespace bitzkey::daemon {
+
+// Seconds between turns at each speed, as in the window app: 1x, 2x, 4x, 8x, and as fast as possible.
+constexpr std::array<double, 5> TURN_INTERVALS = {0.24, 0.12, 0.06, 0.03, 0.0};
+constexpr std::array<const char*, 5> SPEED_LABELS = {"1x", "2x", "4x", "8x", "MAX"};
+
+class World {
+public:
+    struct Paths {
+        std::filesystem::path catalog, exports, reports;
+    };
+
+    World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir);
+    ~World();
+    World(const World&) = delete;
+    World& operator=(const World&) = delete;
+
+    // Hold this while reading or changing anything below.
+    std::mutex& mutex() { return mutex_; }
+
+    Simulation& simulation() { return *simulation_; }
+    const Simulation::Settings& settings() const { return settings_; }
+    const rules::Values& rules() const { return rules_; }
+    const Paths& paths() const { return paths_; }
+    bool playing() const { return playing_; }
+    int speed() const { return speed_; }
+    // Grows whenever the world changes, so a viewer can tell whether it has anything new to fetch.
+    std::uint64_t version() const { return version_; }
+    // Grows with each new world, so a viewer can forget what it knew of the last.
+    std::uint64_t world_number() const { return world_number_; }
+
+    void play(bool on);
+    void set_speed(int speed);
+    bool step();    // a turn on, paused
+    bool rewind();  // a turn back, paused
+    void seek(int turn);
+    // A new world from these settings and advanced rules, replacing the present one.
+    void new_world(Simulation::Settings settings, rules::Values rules);
+    void restart();  // the same settings again
+    void touch() { ++version_; }  // something changed that viewers should fetch again
+
+private:
+    void run();
+
+    std::mutex mutex_;
+    std::unique_ptr<Simulation> simulation_;
+    Simulation::Settings settings_;
+    rules::Values rules_;
+    Paths paths_;
+    bool playing_ = true;
+    int speed_ = 0;
+    std::uint64_t version_ = 1;
+    std::uint64_t world_number_ = 1;
+    std::atomic<bool> stopping_ = false;
+    std::thread thread_;  // last, so it starts once the rest is ready
+};
+
+}  // namespace bitzkey::daemon

@@ -1,0 +1,28 @@
+# Bitzkey as a service: one world, its interface at http://<this machine>:49152/
+[Unit]
+Description=Bitzkey daemon (an artificial ecology, served as a web page)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/bitzkey_daemon --config /etc/bitzkey_daemon.conf
+Restart=on-failure
+RestartSec=5
+# A user of its own, made when it starts; its catalog, exports and reports live in /var/lib/bitzkey_daemon.
+DynamicUser=yes
+StateDirectory=bitzkey_daemon
+# The GPU, for thinking on it: the render and video groups reach /dev/dri (NVIDIA's devices are open to all).
+SupplementaryGroups=render video
+# Nothing else of the system to touch.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

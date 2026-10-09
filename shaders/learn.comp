@@ -1,0 +1,141 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Brains learn their lessons: one workgroup a brain, working through its lessons in order, as
+// Brain::learn and Brain::learn_traced do on the CPU (in floats, not doubles).
+
+layout(local_size_x = 64) in;
+#include "brain.glsl"
+
+layout(std430, binding = 0) buffer Weights { float weights[]; };
+layout(std430, binding = 1) buffer Traces { float traces[]; };
+struct Group {
+    uint slot;   // the brain
+    uint first;  // its first lesson
+    uint count;  // how many, in order
+    uint unused;
+};
+layout(std430, binding = 2) readonly buffer Groups { Group groups[]; };
+struct Lesson {
+    uint action;
+    uint traced;  // 1: TD(lambda), learning from its own choice; 0: a plain lesson
+    float target;
+    float rate;
+    float decay;  // for a traced lesson: how much each trace fades first
+    uint unused0;
+    uint unused1;
+    uint unused2;
+};
+layout(std430, binding = 3) readonly buffer Lessons { Lesson lessons[]; };
+layout(std430, binding = 4) readonly buffer Inputs { float inputs[]; };  // INPUTS senses a lesson
+
+shared float found[(MAX_DEPTH + 1u) * INPUTS];  // the senses, then each layer's output
+shared float gradient[INPUTS];
+shared float delta[HIDDEN];
+shared float shared_error;
+
+float activation(uint layer, uint index) { return found[layer * INPUTS + index]; }
+
+void main() {
+    const uint group = push.first + gl_WorkGroupID.x;
+    if (group >= push.first + push.count) return;
+    const uint thread = gl_LocalInvocationID.x;
+    const uint base = groups[group].slot * push.slot_floats;
+    const uint biases = biases_of(base);
+    const uint outputs = outputs_of(base);
+    const uint output_biases = output_biases_of(base);
+    for (uint k = 0u; k < groups[group].count; ++k) {
+        const uint index = groups[group].first + k;
+        const Lesson lesson = lessons[index];
+        for (uint item = thread; item < INPUTS; item += THREADS) found[item] = inputs[index * INPUTS + item];
+        barrier();
+        for (uint layer = 0u; layer < push.depth; ++layer) {  // forward, keeping every layer's output
+            const uint reads = reads_of(layer);
+            const uint row = weights_of(base, layer);
+            if (thread < HIDDEN) {
+                float sum = 0.0;
+                for (uint item = 0u; item < reads; ++item) sum += weights[row + item * HIDDEN + thread] * activation(layer, item);
+                found[(layer + 1u) * INPUTS + thread] = tanh(sum + weights[biases + layer * HIDDEN + thread]);
+            }
+            barrier();
+        }
+        const uint top = push.depth;
+        if (thread == 0u) {
+            float sum = 0.0;
+            for (uint neuron = 0u; neuron < HIDDEN; ++neuron) sum += weights[outputs + neuron * ACTIONS + lesson.action] * activation(top, neuron);
+            shared_error = clamp(sum + weights[output_biases + lesson.action] - lesson.target, -1.0, 1.0);
+        }
+        barrier();
+        const float error = shared_error;
+
+        if (lesson.traced == 0u) {  // a plain lesson: move this action's value toward the target
+            if (thread < HIDDEN) gradient[thread] = error * weights[outputs + thread * ACTIONS + lesson.action];
+            barrier();
+            if (thread < HIDDEN) weights[outputs + thread * ACTIONS + lesson.action] -= lesson.rate * error * activation(top, thread);
+            barrier();
+            for (int layer = int(push.depth) - 1; layer >= 0; --layer) {
+                const uint at = uint(layer);
+                const uint reads = reads_of(at);
+                const uint row = weights_of(base, at);
+                if (thread < HIDDEN) {
+                    const float value = activation(at + 1u, thread);
+                    delta[thread] = gradient[thread] * (1.0 - value * value);
+                }
+                barrier();
+                if (at > 0u) {
+                    for (uint item = thread; item < reads; item += THREADS) {
+                        float back = 0.0;
+                        for (uint neuron = 0u; neuron < HIDDEN; ++neuron) back += weights[row + item * HIDDEN + neuron] * delta[neuron];
+                        gradient[item] = back;
+                    }
+                }
+                barrier();
+                if (thread < HIDDEN) weights[biases + at * HIDDEN + thread] -= lesson.rate * delta[thread];
+                for (uint entry = thread; entry < HIDDEN * reads; entry += THREADS) {
+                    weights[row + entry] -= lesson.rate * (delta[entry % HIDDEN] * activation(at, entry / HIDDEN));
+                }
+                barrier();
+            }
+            if (thread == 0u) weights[output_biases + lesson.action] -= lesson.rate * error;
+            barrier();
+        } else {  // TD(lambda): every trace fades and gains how this action's value moves with it
+            for (uint entry = thread; entry < ACTIONS * HIDDEN; entry += THREADS) {
+                float trace = traces[outputs + entry] * lesson.decay;
+                if (entry % ACTIONS == lesson.action) trace += activation(top, entry / ACTIONS);
+                traces[outputs + entry] = trace;
+            }
+            for (uint action = thread; action < ACTIONS; action += THREADS) {
+                float trace = traces[output_biases + action] * lesson.decay;
+                if (action == lesson.action) trace += 1.0;
+                traces[output_biases + action] = trace;
+            }
+            if (thread < HIDDEN) gradient[thread] = weights[outputs + thread * ACTIONS + lesson.action];
+            barrier();
+            for (int layer = int(push.depth) - 1; layer >= 0; --layer) {
+                const uint at = uint(layer);
+                const uint reads = reads_of(at);
+                const uint row = weights_of(base, at);
+                if (thread < HIDDEN) {
+                    const float value = activation(at + 1u, thread);
+                    delta[thread] = gradient[thread] * (1.0 - value * value);
+                }
+                barrier();
+                if (at > 0u) {
+                    for (uint item = thread; item < reads; item += THREADS) {
+                        float back = 0.0;
+                        for (uint neuron = 0u; neuron < HIDDEN; ++neuron) back += weights[row + item * HIDDEN + neuron] * delta[neuron];
+                        gradient[item] = back;
+                    }
+                }
+                barrier();
+                for (uint entry = thread; entry < HIDDEN * reads; entry += THREADS) {
+                    traces[row + entry] = traces[row + entry] * lesson.decay + delta[entry % HIDDEN] * activation(at, entry / HIDDEN);
+                }
+                if (thread < HIDDEN) traces[biases + at * HIDDEN + thread] = traces[biases + at * HIDDEN + thread] * lesson.decay + delta[thread];
+                barrier();
+            }
+            const float step = lesson.rate * error;  // then every weight moves by the error times its trace
+            for (uint entry = thread; entry < push.slot_floats; entry += THREADS) weights[base + entry] -= step * traces[base + entry];
+            barrier();
+        }
+    }
+}

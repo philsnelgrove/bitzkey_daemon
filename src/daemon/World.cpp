@@ -1,0 +1,101 @@
+#include "daemon/World.hpp"
+
+#include <algorithm>
+#include <chrono>
+
+namespace bitzkey::daemon {
+
+namespace {
+constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed, the longest the lock is held at once
+}
+
+World::World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir)
+    : simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)), playing_(playing) {
+    paths_ = {data_dir / "catalog.json", data_dir / "exports", data_dir / "reports"};
+    std::filesystem::create_directories(data_dir);
+    thread_ = std::thread([this] { run(); });
+}
+
+World::~World() {
+    stopping_ = true;
+    if (thread_.joinable()) thread_.join();
+}
+
+void World::play(bool on) {
+    playing_ = on && !simulation_->ended();
+    touch();
+}
+
+void World::set_speed(int speed) {
+    speed_ = std::max(0, std::min(static_cast<int>(TURN_INTERVALS.size()) - 1, speed));
+    touch();
+}
+
+bool World::step() {
+    playing_ = false;
+    const int before = simulation_->turn();
+    simulation_->advance();
+    touch();
+    return simulation_->turn() != before;
+}
+
+bool World::rewind() {
+    playing_ = false;
+    const bool moved = simulation_->rewind();
+    touch();
+    return moved;
+}
+
+void World::seek(int turn) {
+    playing_ = false;
+    simulation_->seek(turn);
+    touch();
+}
+
+void World::new_world(Simulation::Settings settings, rules::Values rules) {
+    rules::apply(rules);  // the advanced rules hold for this world and its restarts
+    auto made = std::make_unique<Simulation>(settings);  // may throw, leaving the present world as it is
+    simulation_ = std::move(made);
+    settings_ = std::move(settings);
+    rules_ = std::move(rules);
+    playing_ = true;
+    ++world_number_;
+    touch();
+}
+
+void World::restart() { new_world(settings_, rules_); }
+
+void World::run() {
+    using Clock = std::chrono::steady_clock;
+    auto last_turn = Clock::now();
+    while (!stopping_) {
+        bool busy = false;
+        {
+            std::lock_guard lock(mutex_);
+            if (playing_ && !simulation_->ended()) {
+                const double interval = TURN_INTERVALS[static_cast<std::size_t>(speed_)];
+                const auto now = Clock::now();
+                if (interval <= 0) {  // as fast as possible, in slices, letting viewers in between
+                    const auto start = now;
+                    do {
+                        simulation_->advance();
+                    } while (!simulation_->ended() && Clock::now() - start < MAX_TURN_SLICE);
+                    ++version_;
+                    busy = true;
+                } else if (std::chrono::duration<double>(now - last_turn).count() >= interval) {
+                    simulation_->advance();
+                    last_turn = now;
+                    ++version_;
+                }
+                if (simulation_->ended()) {  // the run is over: it stops there, and viewers show its graph
+                    playing_ = false;
+                    ++version_;
+                }
+            }
+        }
+        if (!busy) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        else std::this_thread::yield();
+    }
+}
+
+}  // namespace bitzkey::daemon

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitzkey</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%2383cd8f'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23131a1b'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="header">
+  <span class="title">BITZKEY</span>
+  <span class="subtitle">ARTIFICIAL ECOLOGY  /  RESEARCH BUILD</span>
+  <span class="controls">
+    <button id="rewind" title="A turn back (LEFT)">&#9664;&#9664;</button>
+    <button id="play" title="Run or pause (SPACE)">&#9654;</button>
+    <button id="step" title="A turn on (RIGHT)">&#9654;&#9654;</button>
+    <button id="slower" title="Slower (-)">&minus;</button>
+    <button id="faster" title="Faster (+)">+</button>
+    <button id="show-insights" title="Insights (I)">INSIGHTS</button>
+    <button id="show-graph" title="The colour graph (G)">GRAPH</button>
+    <button id="save-report" title="Save a brain report (B)">REPORT</button>
+    <button id="show-files" title="Files saved by the daemon">FILES</button>
+    <button id="new-world" title="Set up a new world (ESC)">NEW WORLD</button>
+  </span>
+  <span id="gpu" class="gpu"></span>
+  <span id="speed" class="speed"></span>
+  <span id="status" class="status"></span>
+</header>
+<main id="main">
+  <section id="board">
+    <div id="exemplars-left" class="exemplars"></div>
+    <div id="map-holder"><canvas id="map"></canvas></div>
+    <div id="exemplars-right" class="exemplars"></div>
+  </section>
+  <aside id="sidebar">
+    <div class="turn-row"><span id="turn" class="big">TURN 00000</span><span id="year" class="year">YEAR 1</span></div>
+    <div class="turn-row"><span id="alive" class="small-light">0 ALIVE    0 LOST</span><span id="season" class="small-light">MILD</span></div>
+    <hr>
+    <div class="heading">POPULATION</div>
+    <div id="population"></div>
+    <hr>
+    <div id="sidebar-body"></div>
+  </aside>
+</main>
+<footer id="footer">
+  <span id="history"></span>
+  <span id="message"></span>
+  <button id="export-all" class="export">EXPORT ALL SELECTED (0)</button>
+</footer>
+<div id="lost" class="lost" hidden>The daemon can't be reached; trying again...</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

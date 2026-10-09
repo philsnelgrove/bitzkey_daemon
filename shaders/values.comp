@@ -1,0 +1,39 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Every brain asked values each action at once: one workgroup a brain, its threads a layer's neurons.
+
+layout(local_size_x = 64) in;
+#include "brain.glsl"
+
+layout(std430, binding = 0) readonly buffer Weights { float weights[]; };
+layout(std430, binding = 1) readonly buffer Slots { uint slots[]; };    // the brain each request asks
+layout(std430, binding = 2) readonly buffer Inputs { float inputs[]; }; // INPUTS senses a request
+layout(std430, binding = 3) writeonly buffer Values { float values[]; }; // ACTIONS values a request
+
+shared float layers[2][INPUTS];
+
+void main() {
+    const uint request = push.first + gl_WorkGroupID.x;
+    if (request >= push.first + push.count) return;
+    const uint thread = gl_LocalInvocationID.x;
+    const uint base = slots[request] * push.slot_floats;
+    for (uint item = thread; item < INPUTS; item += THREADS) layers[0][item] = inputs[request * INPUTS + item];
+    barrier();
+    uint below = 0u;
+    for (uint layer = 0u; layer < push.depth; ++layer) {
+        const uint reads = reads_of(layer);
+        const uint row = weights_of(base, layer);
+        if (thread < HIDDEN) {
+            float sum = 0.0;
+            for (uint item = 0u; item < reads; ++item) sum += weights[row + item * HIDDEN + thread] * layers[below][item];
+            layers[1u - below][thread] = tanh(sum + weights[biases_of(base) + layer * HIDDEN + thread]);
+        }
+        barrier();
+        below = 1u - below;
+    }
+    if (thread < ACTIONS) {
+        float sum = 0.0;
+        for (uint neuron = 0u; neuron < HIDDEN; ++neuron) sum += weights[outputs_of(base) + neuron * ACTIONS + thread] * layers[below][neuron];
+        values[request * ACTIONS + thread] = sum + weights[output_biases_of(base) + thread];
+    }
+}
