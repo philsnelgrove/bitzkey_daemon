@@ -1017,7 +1017,16 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         Bitzkey& agent = *agents[index];
         Situation& situation = plans[index].situation;
         std::vector<int>& options = plans[index].options;
-        if (agent.panicked && situation.assailant) {
+        if (primal_fear(agent, situation.hunter)) {
+            // Overcome: it panics, fleeing the hunter, or freezes where it stands, whatever its brain wants.
+            if (random_.random() < PRIMAL_FREEZE * (1 - agent.feeling(Intellect))) {
+                situation.frozen = true;
+                options = {Rest};
+            } else {
+                situation.panic = true;
+                options = {Flee};
+            }
+        } else if (agent.panicked && situation.assailant) {
             // Fight or flight, decided by fear: it breaks off and flees its assailant.
             situation.hunter = situation.assailant;
             situation.panic = true;
@@ -1033,7 +1042,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 break;
             }
         }
-        if (!situation.panic) insights_.record(agent.species, agent.profile(), options, choice);
+        if (!situation.panic && !situation.frozen) insights_.record(agent.species, agent.profile(), options, choice);  // no choice
         agent.odds.fill(0.0);
         agent.odds_offered = 0;
         for (const auto& [option, chance] : odds) {
@@ -1343,6 +1352,10 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
             feast(agent, *s.kill);
             break;
         case Rest:
+            if (s.frozen) {
+                agent.last_action = "froze";  // paralysed by fear: nothing done, nothing gained
+                break;
+            }
             agent.hunger = std::max(0.0, agent.hunger - agent.burn / 2);
             agent.heal(0.015);
             agent.last_action = "rested";
@@ -1600,6 +1613,30 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
         victim.panicked = true;
         experience(victim, Panicked);
     }
+}
+
+bool Simulation::primal_fear(Bitzkey& agent, const Bitzkey* hunter) {
+    if (!hunter || agent.species == Species::Plant) {
+        agent.primal_fear = false;
+        return false;
+    }
+    if (!agent.primal_fear) {
+        const double lopsided = disparity(agent, *hunter);
+        if (lopsided > 0) {
+            const double chance = PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0);
+            if (random_.random() < chance) {
+                agent.primal_fear = true;
+                experience(agent, Panicked);
+            }
+        }
+    }
+    return agent.primal_fear;
+}
+
+double Simulation::disparity(const Bitzkey& agent, const Bitzkey& opponent) {
+    const double mine = damage(agent, opponent) / std::max(1.0, opponent.health);
+    const double theirs = damage(opponent, agent) / std::max(1.0, agent.health);
+    return theirs <= mine ? 0.0 : 1 - mine / theirs;
 }
 
 void Simulation::breed(Bitzkey& first, Bitzkey& second) {

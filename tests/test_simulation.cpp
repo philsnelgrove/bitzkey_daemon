@@ -202,6 +202,20 @@ TEST_CASE("a predator's weapons count three times, and the best-armed kill the l
     CHECK(2 * Simulation::damage(hunter, grazer) < grazer.max_health);
 }
 
+TEST_CASE("primal fear grows with the disparity, spares predators, and lasts while a hunter is in sight") {
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 0}}), 5, 5);
+    const Bitzkey& brute = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 5, 8);
+    const Bitzkey& weakling = simulation.add_agent(encode_dna(Species::Predator, {{"size", 0}}), 9, 9);
+    CHECK(Simulation::disparity(grazer, brute) > 0.9);
+    CHECK(Simulation::disparity(brute, grazer) == 0.0);
+    CHECK(Simulation::disparity(grazer, brute) > Simulation::disparity(grazer, weakling));
+    grazer.primal_fear = true;
+    CHECK(simulation.primal_fear(grazer, &brute));
+    CHECK_FALSE(simulation.primal_fear(grazer, nullptr));
+    CHECK_FALSE(grazer.primal_fear);
+}
+
 TEST_CASE("weak grazers cannot strike back") {
     Simulation simulation = world();
     Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);

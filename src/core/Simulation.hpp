@@ -105,6 +105,13 @@ inline double LEARNING_RATE = 0.045;
 // inborn intellect, so the least replay none.
 inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
+// Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
+// PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often). While a
+// hunter is in sight it then panics every turn, fleeing, or, with a chance of PRIMAL_FREEZE at the lowest
+// intellect and none at the highest, freezes and does nothing at all.
+inline double PRIMAL_FEAR = 0.5;
+inline double PRIMAL_FEAR_PREDATORS = 1.0 / 3;
+inline double PRIMAL_FREEZE = 0.5;
 inline std::array<double, 2> PANIC = {0.3, 1.0};
 inline double THORN_FORCE = 15;
 inline double THORN_SIZE_SHARE = 0.2;
@@ -272,6 +279,7 @@ struct Bitzkey {
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
     bool panicked = false;              // failed a morale check when struck
+    bool primal_fear = false;           // overcome by a stronger hunter: it panics, or freezes, while one is in sight
     double rivalry = 0.0;               // how overcrowded its territory was with rivals
     double own_rivalry = 0.0;           // the same, counting only its own species
     bool hunts_grazers = true;          // hunters: whether grazers were common enough to hunt
@@ -457,6 +465,7 @@ public:
         std::optional<Cell> herd_middle;
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         bool panic = false;
+        bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
     struct Sensed {
         Senses senses{};
@@ -498,6 +507,13 @@ public:
     void struck(Bitzkey& victim, const Bitzkey& striker);
     void exhausted(Bitzkey& agent);
     void breed(Bitzkey& first, Bitzkey& second);
+    // Whether an animal is in primal fear this turn. With no hunter in sight it is calm again. Facing one
+    // stronger than itself, it may be overcome, more likely the more lopsided the fight; a predator a third
+    // as often. Once overcome, it stays so while a hunter is in sight.
+    bool primal_fear(Bitzkey& agent, const Bitzkey* hunter);
+    // How much stronger an opponent is, 0 (no stronger) to 1 (overwhelmingly): weighing the share of each
+    // other's health one blow takes, with every trait that counts in a fight.
+    static double disparity(const Bitzkey& agent, const Bitzkey& opponent);
     // The young it carries are born on the free cells nearest it, as many as there are cells and the
     // population cap allows; the rest are lost. Each starts with its share of the energy its parents gave.
     void give_birth(Bitzkey& mother);
