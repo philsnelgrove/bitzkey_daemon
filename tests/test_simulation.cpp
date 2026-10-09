@@ -321,6 +321,22 @@ TEST_CASE("predators loom larger in primal fear, and feel half their fear") {
     CHECK(fearful.fearfulness() == doctest::Approx(0.5));
 }
 
+TEST_CASE("predators think twice as well, and good experiences sharpen everyone") {
+    Simulation simulation = world();
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"intellect", 3}}), 5, 5);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", 3}}), 6, 5);
+    CHECK(predator.intelligence() == doctest::Approx(6.0 / 7));
+    CHECK(grazer.intelligence() == doctest::Approx(3.0 / 7));
+    CHECK(thinking_intellect(3, Species::Predator) == 6);
+    CHECK(thinking_intellect(5, Species::Predator) == 7);
+    CHECK(thinking_intellect(3, Species::Grazer) == 3);
+    CHECK(predator.brain->depth() == 12);
+    const double before = grazer.mind[Intellect];
+    simulation.experience(grazer, 9);   // discovery
+    simulation.experience(grazer, 13);  // lesson
+    CHECK(grazer.mind[Intellect] > before);
+}
+
 TEST_CASE("weak grazers cannot strike back") {
     Simulation simulation = world();
     Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);

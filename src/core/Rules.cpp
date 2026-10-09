@@ -106,6 +106,8 @@ std::vector<Rule> make_rules() {
          &PRIMAL_FEAR_PREDATORS},
         {"PREDATOR_LOOMS", "Mind", "Predators loom", "steps larger and stronger a predator counts as, sizing up a fight for primal fear", 0,
          7, 1, true, &PREDATOR_LOOMS},
+        {"PREDATOR_INTELLIGENCE", "Mind", "Predator intelligence", "times over a predator's intellect counts, up to the full range", 1.0,
+         5.0, 0.1, false, &PREDATOR_INTELLIGENCE},
         {"PREDATOR_FEAR", "Mind", "Predator fear", "share of fear's effects a predator feels: dread, panic, keeping to its herd", 0.0, 1.0,
          0.05, false, &PREDATOR_FEAR},
         {"PRIMAL_FREEZE", "Mind", "Primal freeze", "chance an overcome animal freezes rather than flees, at the lowest intellect", 0.0, 1.0,

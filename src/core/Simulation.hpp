@@ -117,6 +117,7 @@ constexpr int MAX_PREDATOR_SIGHT = 3;
 inline int PREDATOR_SIGHT = 3;  // predators see prey this many cells further than they otherwise see, up to MAX_PREDATOR_SIGHT
 inline int HUNT_STEPS = 1;      // and chase it this many more steps a turn
 inline double PRIMAL_FEAR = 0.5;
+inline double PREDATOR_INTELLIGENCE = 2.0;  // a predator's intellect counts this many times over in all it does, up to the full range
 inline double PREDATOR_FEAR = 0.5;  // a predator feels this share of its fear's effects: dread, panic, keeping close to its herd
 inline int PREDATOR_LOOMS = 2;      // sizing up a fight for primal fear, a predator counts as this many steps larger and stronger
 inline double PRIMAL_FEAR_PREDATORS = 1.0 / 3;
@@ -184,7 +185,7 @@ inline int SEED_REACH = 5;
 inline int LIGHT_RADIUS = 3;  // plants compete for light with the plants within this many cells
 inline int LIGHT_LIMIT = 3;   // each cuts a plant's chance of seeding by this share, to none at this many
 inline int PLANT_CROWDING = 3;
-inline double TEMPERAMENT_RELAPSE = 0.005;
+inline double TEMPERAMENT_RELAPSE = 0.0005;
 // Climate. The map is banded into zones across its height: ARCTIC_SHARE at the top and at the
 // bottom is arctic, cold; a strip of EQUATOR_SHARE across the middle is the equator, hot; the rest
 // is temperate, medium. Every YEAR_LENGTH turns is a year, starting mild. Through its second quarter
@@ -259,10 +260,10 @@ struct Shift {
     int trait;
     double change;
 };
-constexpr std::array<std::string_view, 13> EXPERIENCE_NAMES = {
+constexpr std::array<std::string_view, 14> EXPERIENCE_NAMES = {
     "kill", "hit", "stung", "wounded", "wounded_alone", "bred", "bred_into_hunger", "starving", "foraged_meal",
-    "discovery", "ambushed", "defended", "panicked"};
-extern std::array<std::vector<Shift>, 13> EXPERIENCES;
+    "discovery", "ambushed", "defended", "panicked", "lesson"};
+extern std::array<std::vector<Shift>, 14> EXPERIENCES;
 
 struct Cell {
     int x = 0, y = 0;
@@ -340,6 +341,9 @@ struct Bitzkey {
 
     double physique(int trait) const { return share(body[trait]); }
     double feeling(int trait) const { return share(mind[trait]); }
+    // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
+    // PREDATOR_INTELLIGENCE times over, up to the full range.
+    double intelligence() const { return std::min(1.0, feeling(Intellect) * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)); }
     double fearfulness() const { return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR : 1.0); }  // as its effects feel it
     double herd_instinct() const { return std::min(feeling(Empathy), feeling(Patience)); }
     Profile profile() const;
@@ -368,6 +372,9 @@ Dna predator_dna(Dna dna);
 // may move it one step either way along the chain, or make any animal a predator, but no further, and never
 // makes a plant an animal or an animal a plant. Any other change of species is undone, the rest as it is.
 Dna evolved(Dna parent, Dna child);
+// An inborn intellect as it counts for the brain's depth and how much it replays: a predator's
+// PREDATOR_INTELLIGENCE times over, up to the full range.
+int thinking_intellect(int intellect, Species species);
 
 enum class EndReason { None, Extinct, Full };
 

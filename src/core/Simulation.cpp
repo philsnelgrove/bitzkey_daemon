@@ -18,20 +18,21 @@
 
 namespace bitzkey {
 
-std::array<std::vector<Shift>, 13> EXPERIENCES = {{
-    {{Aggression, 0.04}, {Fear, -0.02}},          // kill
+std::array<std::vector<Shift>, 14> EXPERIENCES = {{
+    {{Aggression, 0.04}, {Fear, -0.02}, {Intellect, 0.002}},  // kill
     {{Aggression, 0.0067}},                       // hit
     {{Aggression, -0.0133}, {Fear, 0.0133}},      // stung
     {{Fear, 0.0333}, {Aggression, -0.0067}},      // wounded
     {{Sociability, 0.02}},                        // wounded_alone
-    {{Libido, 0.02}, {Sociability, 0.0133}},      // bred
+    {{Libido, 0.02}, {Sociability, 0.0133}, {Intellect, 0.002}},  // bred
     {{Libido, -0.0533}},                          // bred_into_hunger
     {{Appetite, 0.0033}, {Patience, -0.0033}},    // starving
-    {{Patience, 0.0067}},                         // foraged_meal
-    {{Curiosity, 0.01}},                          // discovery
+    {{Patience, 0.0067}, {Intellect, 0.0003}},    // foraged_meal
+    {{Curiosity, 0.01}, {Intellect, 0.002}},      // discovery
     {{Curiosity, -0.02}, {Fear, 0.0133}},         // ambushed
-    {{Fear, -0.0133}, {Aggression, 0.0067}},      // defended
+    {{Fear, -0.0133}, {Aggression, 0.0067}, {Intellect, 0.002}},  // defended
     {{Fear, 0.0067}},                             // panicked
+    {{Intellect, 0.0001}},                        // lesson: a choice that turned out well, learnt from
 }};
 
 namespace {
@@ -50,7 +51,7 @@ namespace {
 
 // The experiences, in the order of EXPERIENCES.
 enum Event { Kill, Hit, Stung, Wounded, WoundedAlone, Bred, BredIntoHunger, Starving, ForagedMeal, Discovery,
-             Ambushed, Defended, Panicked };
+             Ambushed, Defended, Panicked, Lesson };
 
 struct Offset {
     int dx, dy;
@@ -292,6 +293,10 @@ Brain& Bitzkey::own_brain() {
     return *brain;
 }
 
+int thinking_intellect(int intellect, Species species) {
+    return std::min(TRAIT_MAX, static_cast<int>(intellect * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)));
+}
+
 Dna evolved(Dna parent, Dna child) {
     constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
     const Dna before = (parent >> shift) & 0x3, after = (child >> shift) & 0x3;
@@ -496,7 +501,7 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
         }
     }
     if (agent->species != Species::Plant) {  // plants need no brain
-        const int depth = depth_for(agent->inborn[Intellect]);  // twice its inborn intellect, at least two
+        const int depth = depth_for(thinking_intellect(agent->inborn[Intellect], agent->species));  // twice its inborn intellect, at least two
         if (!brain) brain = std::make_shared<Brain>(Brain::random(random_, depth));
         else if (brain->depth() != depth) brain = std::make_shared<Brain>(brain->resized(depth));
         agent->brain = std::move(brain);
@@ -875,7 +880,7 @@ void Simulation::sow(int tufts) {
 // Temperament, decisions and learning
 
 void Simulation::experience(Bitzkey& agent, int event) {
-    const double plasticity = 0.2 + 0.8 * agent.feeling(Intellect);
+    const double plasticity = 0.2 + 0.8 * agent.intelligence();
     for (const Shift& shift : EXPERIENCES[static_cast<std::size_t>(event)]) {
         agent.mind[shift.trait] = std::max(0.0, std::min(static_cast<double>(TRAIT_MAX),
                                                          agent.mind[shift.trait] + shift.change * TRAIT_MAX * plasticity));
@@ -890,7 +895,7 @@ void Simulation::settle(Bitzkey& agent) {
 
 static double learning_rate(const Bitzkey& agent) {
     // How fast its brain learns: with its intellect, boosted further the cleverer it is.
-    const double sharpness = agent.feeling(Intellect);
+    const double sharpness = agent.intelligence();
     return LEARNING_RATE * sharpness * (1 + LEARNING_BOOST * sharpness);
 }
 
@@ -899,11 +904,11 @@ void Simulation::learn(Bitzkey& agent, double target, bool replay) {
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
     // and remembers this one. On the GPU, the lessons are queued, to be learnt in one batch.
     const double rate = learning_rate(agent);
-    const std::size_t count = replay ? static_cast<std::size_t>(REPLAY_PER_INTELLECT * agent.inborn[Intellect]) : 0;
+    const std::size_t count = replay ? static_cast<std::size_t>(REPLAY_PER_INTELLECT * thinking_intellect(agent.inborn[Intellect], agent.species)) : 0;
     const std::size_t first = agent.memories.size() > count ? agent.memories.size() - count : 0;
     if (gpu_) {
         if (rate > 0) {
-            const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.feeling(Intellect));
+            const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
             queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate, true, decay);
             for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
                 const Bitzkey::Memory& memory = agent.memories[index];
@@ -911,7 +916,7 @@ void Simulation::learn(Bitzkey& agent, double target, bool replay) {
             }
         }
     } else {
-        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate, discount(agent), agent.feeling(Intellect));
+        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate, discount(agent), agent.intelligence());
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
             agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate);
@@ -1024,6 +1029,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);
         learn(agent, reward + discount(agent) * best, true);
+        if (reward > 0) experience(agent, Lesson);  // a lesson learnt from a choice that turned out well
     }
     learn_queued();  // on the GPUs, every brain's lessons at once
     timings.learn += lap(clock);
@@ -1035,7 +1041,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         std::vector<int>& options = plans[index].options;
         if (primal_fear(agent, situation.hunter)) {
             // Overcome: it panics, fleeing the hunter, or freezes where it stands, whatever its brain wants.
-            if (random_.random() < PRIMAL_FREEZE * (1 - agent.feeling(Intellect))) {
+            if (random_.random() < PRIMAL_FREEZE * (1 - agent.intelligence())) {
                 situation.frozen = true;
                 options = {Rest};
             } else {
@@ -1723,7 +1729,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
             dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
         }
         auto brain = std::make_shared<Brain>(
-            Brain::inherit(*first.brain, *second.brain, random_, depth_for(decode_mind(dna)[Intellect])));
+            Brain::inherit(*first.brain, *second.brain, random_,
+                           depth_for(thinking_intellect(decode_mind(dna)[Intellect], static_cast<Species>(decode_body(dna)[SpeciesTrait])))));
         if (static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Predator && first.species != Species::Predator) {
             // Born a predator of other parents: what they learnt of eating and uprooting it brings to
             // hunting and feasting.
@@ -1950,7 +1957,7 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
         if (!observer->brain || !society(*observer, actor) || distance(observer->x, observer->y, actor.x, actor.y) > observer->sight) {
             continue;
         }
-        const double heed = observer->feeling(Empathy) * observer->feeling(Intellect);
+        const double heed = observer->feeling(Empathy) * observer->intelligence();
         witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING});  // learnt at the end
         observer->reward += SOCIAL_MOOD * heed * outcome;
         if (outcome > 0) observer->seen_success = 1.0;
