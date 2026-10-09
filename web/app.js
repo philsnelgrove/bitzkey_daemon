@@ -15,6 +15,7 @@ const MAP_DRAG_THRESHOLD = 5;
 const TRAIL_OPACITY = 0.5;
 const POLL_MS = 120;
 const SLOW_POLL_MS = 1000;
+const FRAME_MS = 500;  // the map and the graph refresh at most twice a second, however fast the world runs
 const MESSAGE_MS = 5000;
 const SPEED_COUNT = 5;
 
@@ -48,6 +49,7 @@ let messageTimer = null;
 let exemplarChoices = remembered('exemplars', null);
 let frameLoading = false;
 let lastSlow = 0;
+let lastFrame = 0;
 let agentCache = null;    // the selected Bitzkey's details, with the version they are of
 
 // ---------------------------------------------------------------------------------------------
@@ -110,15 +112,16 @@ async function poll(force = false) {
     $('lost').hidden = true;
     applyState(state);
     const now = performance.now();
-    if (force || state.version !== shownVersion) {
+    if (force || (state.version !== shownVersion && now - lastFrame >= FRAME_MS)) {
       shownVersion = state.version;
+      lastFrame = now;
       await loadFrame();
+      app.overlay?.update?.(state);
     }
     if (force || now - lastSlow > SLOW_POLL_MS) {
       lastSlow = now;
       await Promise.all([loadExemplars(), drawSidebar()]);
     }
-    app.overlay?.update?.(state);
   } catch (error) {
     $('lost').hidden = false;
   }

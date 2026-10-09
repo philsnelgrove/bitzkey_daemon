@@ -304,6 +304,23 @@ TEST_CASE("a brain matrix shows each situation its species meets") {
     CHECK(lines.front().find("hunt") == std::string::npos);  // a grazer never meets a chance to hunt
 }
 
+TEST_CASE("predators loom larger in primal fear, and feel half their fear") {
+    Simulation simulation = world();
+    const auto body = [](Species species, int size, int strength) {
+        return encode_dna(species, {{"size", size}, {"strength", strength}, {"weapons", 0}, {"armour", 0}});
+    };
+    const Bitzkey& grazer = simulation.add_agent(body(Species::Grazer, 3, 3), 5, 5);
+    const Bitzkey& omnivore = simulation.add_agent(body(Species::Omnivore, 3, 3), 6, 5);
+    const Bitzkey& predator = simulation.add_agent(body(Species::Predator, 3, 3), 7, 5);
+    CHECK(Simulation::disparity(grazer, omnivore) == 0.0);
+    CHECK(Simulation::disparity(grazer, predator) > 0.0);
+    CHECK(Simulation::disparity(predator, omnivore) == 0.0);
+    const Bitzkey& bigger = simulation.add_agent(body(Species::Omnivore, 5, 5), 8, 5);
+    CHECK(Simulation::disparity(bigger, predator) == doctest::Approx(0.0));
+    const Bitzkey& fearful = simulation.add_agent(encode_dna(Species::Predator, {{"fear", 7}}), 9, 9);
+    CHECK(fearful.fearfulness() == doctest::Approx(0.5));
+}
+
 TEST_CASE("weak grazers cannot strike back") {
     Simulation simulation = world();
     Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);

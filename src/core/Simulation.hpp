@@ -117,6 +117,8 @@ constexpr int MAX_PREDATOR_SIGHT = 3;
 inline int PREDATOR_SIGHT = 3;  // predators see prey this many cells further than they otherwise see, up to MAX_PREDATOR_SIGHT
 inline int HUNT_STEPS = 1;      // and chase it this many more steps a turn
 inline double PRIMAL_FEAR = 0.5;
+inline double PREDATOR_FEAR = 0.5;  // a predator feels this share of its fear's effects: dread, panic, keeping close to its herd
+inline int PREDATOR_LOOMS = 2;      // sizing up a fight for primal fear, a predator counts as this many steps larger and stronger
 inline double PRIMAL_FEAR_PREDATORS = 1.0 / 3;
 inline double PRIMAL_FREEZE = 0.5;
 inline std::array<double, 2> PANIC = {0.3, 1.0};
@@ -338,6 +340,7 @@ struct Bitzkey {
 
     double physique(int trait) const { return share(body[trait]); }
     double feeling(int trait) const { return share(mind[trait]); }
+    double fearfulness() const { return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR : 1.0); }  // as its effects feel it
     double herd_instinct() const { return std::min(feeling(Empathy), feeling(Patience)); }
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
@@ -530,6 +533,10 @@ public:
     // How much stronger an opponent is, 0 (no stronger) to 1 (overwhelmingly): weighing the share of each
     // other's health one blow takes, with every trait that counts in a fight.
     static double disparity(const Bitzkey& agent, const Bitzkey& opponent);
+    // One blow, as damage(), and an animal's health, with each side's size and strength as they count in sizing
+    // up a fight: a predator's PREDATOR_LOOMS steps more of each (past the full range, for the largest).
+    static double looming_damage(const Bitzkey& attacker, const Bitzkey& defender);
+    static double looming_health(const Bitzkey& animal);
     // The young it carries are born on the free cells nearest it, as many as there are cells and the
     // population cap allows; the rest are lost. Each starts with its share of the energy its parents gave.
     void give_birth(Bitzkey& mother);

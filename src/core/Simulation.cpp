@@ -1218,7 +1218,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     // The more fearful it is, the closer it keeps to the herd's middle, but not where the middle is
     // further from its home temperature than here.
     available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) >
-                                         HERD_SPREAD * (1 - agent.feeling(Fear)) &&
+                                         HERD_SPREAD * (1 - agent.fearfulness()) &&
                       agent.climate_steps(temperature(view.middle->y)) <= discomfort;
     if (agent.species == Species::Grazer && agent.hunger >= UPROOT_HUNGER) {
         for (Bitzkey* other : neighbors) {
@@ -1300,13 +1300,13 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double herd_near = std::min(3, s.herd_near) / 3.0;
     const double company_around = std::min(3.0, s.kin + tolerance * s.others);
     const double company = COMPANY_JOY * agent.feeling(Sociability) * company_around / 3;
-    const double dread = FEAR_DREAD * agent.feeling(Fear) * (1 - 0.5 * tolerance) * std::min(2, s.threats) / 2 *
+    const double dread = FEAR_DREAD * agent.fearfulness() * (1 - 0.5 * tolerance) * std::min(2, s.threats) / 2 *
                          (1 - HERD_SAFETY * instinct * herd_near);
     const double unease = UNEASE * (1 - tolerance) * std::min(3, s.others) / 3;
     const double crowded = RIVAL_UNEASE * (1 - 0.5 * tolerance) * s.rivalry;
     double herding = HERD_JOY * instinct * herd_near;
     if (!s.herd) herding -= HERD_LONELINESS * instinct;
-    herding *= 0.5 + agent.feeling(Fear);  // the fearful feel their herd, and its absence, most
+    herding *= 0.5 + agent.fearfulness();  // the fearful feel their herd, and its absence, most
     // Out of its home temperature, it is uneasy, the more so the further, and less if hardy to it.
     const double exposed = CLIMATE_UNEASE * s.exposure;
     return company - dread - unease - crowded + herding - exposed;
@@ -1648,7 +1648,7 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     const double unhurt = PANIC[0], dying = PANIC[1];
     const double hurt = 1 - std::max(0.0, victim.health) / victim.max_health;
     const double steadied = 1 - HERD_SAFETY * victim.herd_instinct() * std::min(3, herd_near) / 3;
-    if (random_.random() < victim.feeling(Fear) * (unhurt + (dying - unhurt) * hurt) * steadied) {
+    if (random_.random() < victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied) {
         victim.panicked = true;
         experience(victim, Panicked);
     }
@@ -1673,9 +1673,29 @@ bool Simulation::primal_fear(Bitzkey& agent, const Bitzkey* hunter) {
 }
 
 double Simulation::disparity(const Bitzkey& agent, const Bitzkey& opponent) {
-    const double mine = damage(agent, opponent) / std::max(1.0, opponent.health);
-    const double theirs = damage(opponent, agent) / std::max(1.0, agent.health);
+    const double mine = looming_damage(agent, opponent) / std::max(1.0, looming_health(opponent));
+    const double theirs = looming_damage(opponent, agent) / std::max(1.0, looming_health(agent));
     return theirs <= mine ? 0.0 : 1 - mine / theirs;
+}
+
+namespace {
+// Size and strength, as shares of their full range, as they count in sizing up a fight.
+std::pair<double, double> looming(const Bitzkey& animal) {
+    const double more = animal.species == Species::Predator ? static_cast<double>(PREDATOR_LOOMS) / TRAIT_MAX : 0.0;
+    return {animal.physique(Size) + more, animal.physique(Strength) + more};
+}
+}  // namespace
+
+double Simulation::looming_damage(const Bitzkey& attacker, const Bitzkey& defender) {
+    const auto [size, strength] = looming(attacker);
+    const double defender_size = looming(defender).first;
+    const double might = (1 - SIZE_IN_MIGHT) * strength + SIZE_IN_MIGHT * size;
+    const double toughness = (1 - SIZE_IN_MIGHT) * defender.physique(Armour) + SIZE_IN_MIGHT * defender_size;
+    return STRIKE_FORCE * (2 + 9 * might) * (1 + 0.75 * armed(attacker)) * (1 - 0.6 * toughness);
+}
+
+double Simulation::looming_health(const Bitzkey& animal) {
+    return animal.health * (60.0 + 90 * looming(animal).first) / animal.max_health;
 }
 
 void Simulation::breed(Bitzkey& first, Bitzkey& second) {
