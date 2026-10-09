@@ -24,7 +24,7 @@ The script does the following:
 2. Builds the daemon and runs its tests.
 3. Copies the program to `/usr/local/bin/bitzkey_daemon`.
 4. Copies the settings to `/etc/bitzkey_daemon.conf`, unless that file is already there.
-5. Starts `bitzkey_daemon.service` under systemd, so it runs at every boot.
+5. Starts `bitzkey.service` under systemd, so it runs at every boot.
 6. If `ufw` is active, opens port 49152.
 
 You can then open `http://<server>:49152/` from any machine on the network.
@@ -33,9 +33,9 @@ To work with the service:
 
 | What | How |
 |---|---|
-| Show its log | `journalctl -u bitzkey_daemon -f` |
-| Restart it | `sudo systemctl restart bitzkey_daemon` |
-| Stop it | `sudo systemctl stop bitzkey_daemon` |
+| Show its log | `journalctl -u bitzkey -f` |
+| Restart it | `sudo systemctl restart bitzkey` |
+| Stop it | `sudo systemctl stop bitzkey` |
 | Update it | `git pull`, then `sudo packaging/install.sh` again |
 | Remove it | `sudo packaging/install.sh uninstall`; this leaves its settings and data |
 

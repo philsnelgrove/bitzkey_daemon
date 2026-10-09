@@ -1,4 +1,4 @@
-# Bitzkey as a service: one world, its interface at http://<this machine>:49152/
+# bitzkey.service — Bitzkey as a service: one world, its interface at http://<this machine>:49152/
 [Unit]
 Description=Bitzkey daemon (an artificial ecology, served as a web page)
 After=network-online.target
@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/bitzkey_daemon --config /etc/bitzkey_daemon.conf
-Restart=on-failure
+Restart=always
 RestartSec=5
 # A user of its own, made when it starts; its catalog, exports and reports live in /var/lib/bitzkey_daemon.
 DynamicUser=yes
