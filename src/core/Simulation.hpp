@@ -157,7 +157,6 @@ inline double KILL_MEAL = 25;
 inline double KILL_MEAL_FOR_SIZE = 45;
 inline double CARRION_MEAT = 30;
 inline double CARRION_MEAT_FOR_SIZE = 50;
-inline double SCAVENGE_BITE = 25;
 inline double GRAZER_SPEED = 1.5;
 inline int FLEE_RANGE = 3;          // a hunter is only worth fleeing within this many steps, unless alarmed
 inline double HERD_VIGILANCE = 0.5; // how far three herd-mates close by, at full instinct, shrink that range
@@ -209,7 +208,7 @@ inline int WAVE_FRONT = 4;
 // A dead animal is a fresh kill, not yet carrion, through the turn it died and FRESH_KILL_TURNS more;
 // then it starts to rot. A predator or omnivore may eat a fresh kill of what it lives on whole,
 // FRESH_KILL_MEALS times the meal of making the kill, and nothing is left.
-inline int FRESH_KILL_TURNS = 1;
+inline int FRESH_KILL_TURNS = 3;
 inline double FRESH_KILL_MEALS = 3.0;
 inline double SEED_VIABILITY = 0.75;  // years a seed that falls where it can't grow stays able to germinate
 inline int PLANT_GESTATION = 10;  // turns a seed lies in the ground before it can sprout
@@ -295,6 +294,7 @@ struct Bitzkey {
     std::optional<int> herd_assailant;  // what struck a herd-mate close by, from alongside it
     double meat = 0.0;                  // a corpse's meat left for scavengers
     double rot = 0.0;                   // meat lost to rot each turn
+    int portions = 0;                   // a body's portions left to eat, feasting or scavenging: one for each size class
     std::vector<std::pair<int, int>> trail;  // the cells it passed through this turn, for the map
     struct Memory {  // an experience to re-learn from
         Senses senses{};
@@ -360,6 +360,10 @@ int gestation(int size);  // turns an animal of this body size carries its young
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.
 Dna predator_dna(Dna dna);
+// A child's genome with its species kept to the chain of evolution, grazer, omnivore, predator: a mutation
+// may move it one step either way along the chain, or make any animal a predator, but no further, and never
+// makes a plant an animal or an animal a plant. Any other change of species is undone, the rest as it is.
+Dna evolved(Dna parent, Dna child);
 
 enum class EndReason { None, Extinct, Full };
 
@@ -536,6 +540,7 @@ public:
     std::vector<std::vector<int>> zones() const;
     void scavenge(Bitzkey& agent, Bitzkey& corpse);
     void feast(Bitzkey& agent, Bitzkey& corpse);
+    void eat_portion(Bitzkey& corpse);  // a portion of a body eaten: once the last is, the body is gone at the turn's end
     bool fresh(const Bitzkey& corpse) const;  // still a fresh kill, not yet carrion
     Bitzkey* nearest_kill(const Bitzkey& agent, int sight) const;  // of something it lives on
     void wither_grass();

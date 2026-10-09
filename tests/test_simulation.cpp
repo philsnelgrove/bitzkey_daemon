@@ -231,6 +231,43 @@ TEST_CASE("predators see prey further, and their young are predators") {
     CHECK(predator_dna(encode_dna(Species::Predator)) == encode_dna(Species::Predator));
 }
 
+TEST_CASE("species evolve along the chain, and plants stay plants") {
+    const std::array<Species, 4> all = {Species::Plant, Species::Grazer, Species::Omnivore, Species::Predator};
+    for (const Species before : all) {
+        const Dna parent = encode_dna(before, {{"size", 3}});
+        for (const Species after : all) {
+            const Dna child = (parent & ~(Dna{0x7} << 32)) | (static_cast<Dna>(after) << 32);
+            const int step = std::abs(static_cast<int>(after) - static_cast<int>(before));
+            const bool allowed = after == before || (before != Species::Plant && after != Species::Plant &&
+                                                     (after == Species::Predator || step == 1));
+            CHECK(static_cast<Species>(decode_body(evolved(parent, child))[SpeciesTrait]) == (allowed ? after : before));
+            CHECK(decode_body(evolved(parent, child))[Size] == 3);
+        }
+    }
+}
+
+TEST_CASE("a body is eaten a portion at a time, and gone with the last") {
+    Simulation simulation = world();
+    Bitzkey& corpse = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 1}}), 5, 5);  // two portions
+    corpse.health = 0;
+    simulation.die(corpse, "killed");
+    CHECK(corpse.portions == 2);
+    Bitzkey& first = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 5, 6);
+    Bitzkey& second = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 4, 5);
+    simulation.index_cells();
+    first.hunger = second.hunger = 80;
+    simulation.feast(first, corpse);
+    const double meal = FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * corpse.physique(Size));
+    CHECK(first.hunger == doctest::Approx(std::max(0.0, 80 - meal / first.stomach)));  // a whole feast
+    CHECK(corpse.portions == 1);
+    CHECK(*corpse.died_turn == simulation.turn());
+    simulation.feast(second, corpse);
+    CHECK(corpse.portions == 0);
+    CHECK(corpse.meat == 0.0);
+    simulation.feast(first, corpse);
+    CHECK(first.last_action == "sought a kill");
+}
+
 TEST_CASE("weak grazers cannot strike back") {
     Simulation simulation = world();
     Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"strength", 5}}), 5, 5);
@@ -457,7 +494,7 @@ TEST_CASE("grazers don't scavenge") {
     Bitzkey& corpse = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
     corpse.health = 0;
     simulation.die(corpse, "wounded");
-    corpse.died_turn = -2;  // no longer a fresh kill
+    corpse.died_turn = -5;  // no longer a fresh kill
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"carrion", 7}, {"sight", 4}}), 5, 6);
     Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"sight", 4}}), 5, 4);
     simulation.index_cells();
@@ -468,7 +505,7 @@ TEST_CASE("grazers don't scavenge") {
     CHECK(std::find(sensed.options.begin(), sensed.options.end(), Scavenge) != sensed.options.end());
 }
 
-TEST_CASE("a body is a fresh kill through its death turn and the next, then carrion") {
+TEST_CASE("a body is a fresh kill through its death turn and three more, then carrion") {
     for (const bool watched : {true, false}) {  // a hunter watching from the start would eat it
         Simulation simulation = world();
         Bitzkey& corpse = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
@@ -483,8 +520,8 @@ TEST_CASE("a body is a fresh kill through its death turn and the next, then carr
             CHECK(sensed.senses[SenseKillCloseness] > 0);
             continue;
         }
-        simulation.take_turn();  // fresh through this turn too; it starts to rot at its end
-        CHECK(corpse.meat == doctest::Approx(40.0 - 40.0 / 29));
+        for (int turn = 0; turn < 3; ++turn) simulation.take_turn();  // fresh through these; it starts to rot at the third's end
+        CHECK(corpse.meat == doctest::Approx(40.0 - 40.0 / 27));
         simulation.take_turn();
         Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 4}}), 5, 8);
         simulation.index_cells();

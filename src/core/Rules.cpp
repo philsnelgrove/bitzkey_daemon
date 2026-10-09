@@ -153,7 +153,6 @@ std::vector<Rule> make_rules() {
         {"UPROOT_BITE", "Food", "Uproot bite", "health a plant loses to being uprooted", 0, 200, 1, true, &UPROOT_BITE},
         {"CARRION_MEAT", "Food", "Carrion meat", "meat a well-fed corpse leaves", 0, 200, 5, true, &CARRION_MEAT},
         {"CARRION_MEAT_FOR_SIZE", "Food", "Carrion meat for size", "more meat, up to this for the largest", 0, 200, 5, true, &CARRION_MEAT_FOR_SIZE},
-        {"SCAVENGE_BITE", "Food", "Scavenge bite", "meat eaten in one go", 0, 200, 5, true, &SCAVENGE_BITE},
         {"GRAZING.grazer", "Food", "Grazer on grass", "share of the food in grass a grazer gets", 0.0, 3.0, 0.05, false, &GRAZING[1]},
         {"GRAZING.omnivore", "Food", "Omnivore on grass", "share of the food in grass an omnivore gets", 0.0, 3.0, 0.05, false, &GRAZING[2]},
         {"BROWSING.grazer", "Food", "Grazer on plants", "share of the food in plants a grazer gets", 0.0, 3.0, 0.05, false, &BROWSING[1]},

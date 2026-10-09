@@ -292,6 +292,15 @@ Brain& Bitzkey::own_brain() {
     return *brain;
 }
 
+Dna evolved(Dna parent, Dna child) {
+    constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
+    const Dna before = (parent >> shift) & 0x3, after = (child >> shift) & 0x3;
+    constexpr Dna plant = 0, predator = 3;
+    const Dna step = after > before ? after - before : before - after;
+    if (after == before || (before != plant && after != plant && (after == predator || step == 1))) return child;
+    return (child & ~(Dna{0x3} << shift)) | (before << shift);
+}
+
 Dna predator_dna(Dna dna) {
     constexpr int shift = 32;  // the species trait is the ring's first
     const Dna trait = (dna >> shift) & 0x7;
@@ -780,7 +789,7 @@ void Simulation::seed_plant(Bitzkey& plant) {
     if (plant.y + offset.dy < 0 || plant.y + offset.dy >= height_) return;  // off the top or bottom of the map: the seed is lost
     const Cell cell{py_mod(plant.x + offset.dx, width_), plant.y + offset.dy};
     if (!room_for_seedling(cell)) return;
-    const Dna dna = cross(plant.dna, plant.dna, random_, std::nullopt, mind_mutation_, body_mutation_);
+    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, random_, std::nullopt, mind_mutation_, body_mutation_));
     plant.hunger += SEED_COST;
     plant.children += 1;
     plant.last_action = "seeded";
@@ -1321,6 +1330,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause) {
     const double nourished = agent.species == Species::Plant ? 0.0 : std::max(0.0, 1 - agent.hunger / 100);
     agent.meat = (CARRION_MEAT + CARRION_MEAT_FOR_SIZE * agent.physique(Size)) * nourished * (cause == "killed" ? 0.5 : 1);
     agent.rot = agent.meat / std::max(1, CORPSE_TURNS - FRESH_KILL_TURNS);  // it rots once no longer fresh
+    agent.portions = agent.species == Species::Plant ? 0 : 1 + agent.body[Size];
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
         ++kill_count_;
@@ -1480,35 +1490,49 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
 }
 
 void Simulation::scavenge(Bitzkey& agent, Bitzkey& corpse) {
+    // Go to the carrion and, once alongside, eat a portion, its share of the meat left; a carrion-eater's
+    // gut gets the most from it. The last portion eaten, the body is gone.
     move_toward(agent, corpse.x, corpse.y);
-    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1) {
+    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || corpse.portions <= 0) {
         agent.last_action = "sought carrion";
         return;
     }
-    const double bite = std::min(corpse.meat, SCAVENGE_BITE);
+    const double bite = corpse.meat / corpse.portions;
     corpse.meat -= bite;
     agent.nourish(bite * agent.digestion);
     agent.last_action = "scavenged";
+    eat_portion(corpse);
 }
 
 void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
-    // Go to the fresh kill and, once alongside, eat it whole: FRESH_KILL_MEALS times the meal of
-    // making the kill. It isn't scavenging, and nothing is left: the body is gone at the turn's end.
+    // Go to the fresh kill and, once alongside, eat a portion of it: a whole feast, FRESH_KILL_MEALS times
+    // the meal of making the kill, so a large body is many feasts. It isn't scavenging; the carrion left
+    // shrinks by the portion's share. The last portion eaten, the body is gone.
     move_toward(agent, corpse.x, corpse.y);
-    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || !fresh(corpse) || corpse.meat <= 0) {
+    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || !fresh(corpse) || corpse.meat <= 0 || corpse.portions <= 0) {
         agent.last_action = "sought a kill";  // out of reach, or already eaten
         return;
     }
     agent.nourish(FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * corpse.physique(Size)));
     if (agent.species == Species::Predator) agent.reward += FEAST_JOY;
+    corpse.meat -= corpse.meat / corpse.portions;
+    agent.last_action = "feasted";
+    eat_portion(corpse);
+}
+
+void Simulation::eat_portion(Bitzkey& corpse) {
+    if (--corpse.portions > 0) return;
     corpse.meat = 0.0;
     corpse.died_turn = turn_ - CORPSE_TURNS;
-    if (in_bounds(corpse.x, corpse.y)) {
-        auto& kills = kills_[static_cast<std::size_t>(corpse.y) * width_ + corpse.x];
-        kills.erase(std::find(kills.begin(), kills.end(), &corpse));
-        --kill_count_;
+    if (!in_bounds(corpse.x, corpse.y)) return;
+    const std::size_t cell = static_cast<std::size_t>(corpse.y) * width_ + corpse.x;
+    for (auto [bodies, count] : {std::pair{&kills_[cell], &kill_count_}, std::pair{&carrion_[cell], &carrion_count_}}) {
+        const auto found = std::find(bodies->begin(), bodies->end(), &corpse);
+        if (found != bodies->end()) {
+            bodies->erase(found);
+            --*count;
+        }
     }
-    agent.last_action = "feasted";
 }
 
 bool Simulation::fresh(const Bitzkey& corpse) const {
@@ -1672,12 +1696,20 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         // dot is written from that mind, so experience is inherited and shows. Its brain, a mix of
         // its parents', is as deep as its own inborn intellect makes it.
         const Mind mind = inherit_mind(first.mind, second.mind, random_, mind_mutation_);
-        Dna dna = cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_);
+        Dna dna = evolved(first.dna, cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_));
         if (first.species == Species::Predator || second.species == Species::Predator) {
             dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
         }
         auto brain = std::make_shared<Brain>(
             Brain::inherit(*first.brain, *second.brain, random_, depth_for(decode_mind(dna)[Intellect])));
+        if (static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Predator && first.species != Species::Predator) {
+            // Born a predator of other parents: what they learnt of eating and uprooting it brings to
+            // hunting and feasting.
+            for (const auto& [learnt, now] : {std::pair{Eat, Hunt}, std::pair{Uproot, Feast}}) {
+                brain->output_weights[static_cast<std::size_t>(now)] = brain->output_weights[static_cast<std::size_t>(learnt)];
+                brain->output_biases[static_cast<std::size_t>(now)] = brain->output_biases[static_cast<std::size_t>(learnt)];
+            }
+        }
         first.womb.push_back({dna, mind, std::move(brain), given / litter, generation});
     }
     first.due_turn = turn_ + gestation(first.body[Size]);
