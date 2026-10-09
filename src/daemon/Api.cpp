@@ -218,6 +218,60 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, exemplars(world.simulation(), choices));
     }));
 
+    // Every death so far, by species and cause: a row for each cause, the most common first.
+    server.Get("/api/deaths", guarded([&world](const httplib::Request&, httplib::Response& response) {
+        std::lock_guard lock(world.mutex());
+        const Simulation& simulation = world.simulation();
+        const auto& by_species = simulation.death_causes();
+        std::map<std::string, int> totals;
+        for (const auto& causes : by_species) {
+            for (const auto& [cause, count] : causes) totals[cause] += count;
+        }
+        std::vector<std::pair<std::string, int>> ranked(totals.begin(), totals.end());
+        std::stable_sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+        Json rows = Json::array();
+        for (const auto& [cause, total] : ranked) {
+            Json counts = Json::array();
+            for (const auto& causes : by_species) {
+                const auto found = causes.find(cause);
+                counts.push_back(found == causes.end() ? 0 : found->second);
+            }
+            rows.push_back({{"cause", cause}, {"counts", counts}, {"total", total}});
+        }
+        reply(response, {{"turn", simulation.turn()}, {"deaths", simulation.deaths()}, {"species", SPECIES}, {"rows", rows}});
+    }));
+
+    // One animal's brain probed with the standard situations: its chance of choosing each action open to it.
+    server.Get(R"(/api/brain/(\d+))", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const int identifier = std::stoi(request.matches[1]);
+        std::lock_guard lock(world.mutex());
+        Simulation& simulation = world.simulation();
+        simulation.sync_brains();  // the brains as they now are, when they think on the GPUs
+        for (const Bitzkey* agent : simulation.living()) {
+            if (agent->identifier != identifier || !agent->brain) continue;
+            Json rows = Json::array();
+            std::vector<bool> used(ACTION_COUNT, false);
+            for (const BrainRow& row : brain_matrix(*agent)) {
+                Json chances = Json::object();
+                for (const auto& [action, chance] : row.chances) {
+                    chances[std::string(ACTIONS[static_cast<std::size_t>(action)])] = chance;
+                    used[static_cast<std::size_t>(action)] = true;
+                }
+                rows.push_back({{"situation", row.situation}, {"chances", chances}});
+            }
+            Json actions = Json::array();
+            for (int action = 0; action < ACTION_COUNT; ++action) {
+                if (used[static_cast<std::size_t>(action)]) {
+                    actions.push_back({{"name", std::string(ACTIONS[static_cast<std::size_t>(action)])},
+                                       {"short", std::string(short_action(action))}});
+                }
+            }
+            reply(response, {{"identifier", identifier}, {"species", std::string(species_name(agent->species))}, {"actions", actions}, {"rows", rows}});
+            return;
+        }
+        fail(response, "Only a living animal has a brain to inspect.", 404);
+    }));
+
     server.Get("/api/insights", guarded([&world](const httplib::Request&, httplib::Response& response) {
         std::lock_guard lock(world.mutex());
         reply(response, insights(world.simulation()));

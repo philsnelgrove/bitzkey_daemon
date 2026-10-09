@@ -2,6 +2,7 @@
 // Turn-based Bitzkey world and its deterministic history.
 
 #include <array>
+#include <map>
 #include <cstdint>
 #include <deque>
 #include <filesystem>
@@ -392,6 +393,9 @@ public:
     int turn() const { return turn_; }
     int frontier() const { return frontier_; }
     int deaths() const { return deaths_; }
+    // Every death so far, by species and then cause.
+    using DeathCauses = std::array<std::map<std::string, int, std::less<>>, 4>;
+    const DeathCauses& death_causes() const { return death_causes_; }
     int next_identifier() const { return next_identifier_; }
     std::optional<int> population_cap() const { return population_cap_; }
     void set_population_cap(std::optional<int> cap) { population_cap_ = cap; }
@@ -594,6 +598,7 @@ private:
         std::vector<Seed> seeds;
         PyRandom::State random;
         Insights::State insights;
+        DeathCauses death_causes;
         std::uintmax_t bytes = 0;  // the memory it takes, near enough
     };
 
@@ -646,6 +651,7 @@ private:
     std::vector<Dna> lineage_;
     int turn_ = 0;
     int deaths_ = 0;
+    DeathCauses death_causes_;
     int next_identifier_ = 0;
     std::vector<std::unique_ptr<Bitzkey>> agents_;
     std::vector<std::unique_ptr<Bitzkey>> departed_;  // removed corpses, kept until the cells are re-indexed

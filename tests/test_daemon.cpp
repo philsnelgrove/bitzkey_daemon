@@ -214,6 +214,12 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(agent["inborn"].size() == MIND_TRAIT_COUNT);
         CHECK(client.Get("/api/agent/999999")->status == 404);
 
+        const Json deaths = get(client, "/api/deaths");
+        CHECK(deaths["species"].size() == 4);
+        const Json brain = get(client, "/api/brain/" + std::to_string(identifier));
+        CHECK_FALSE(brain["rows"].empty());
+        CHECK(client.Get("/api/brain/999999")->status == 404);
+
         const Json cards = post(client, "/api/exemplars", Json::object());
         CHECK(cards.size() == 10);
         CHECK(cards[0]["title"] == "SMARTEST");

@@ -570,7 +570,8 @@ async function drawSidebar() {
   agentCache = agent;
   const listed = app.exportList.some(entry => entry.identifier === identifier);
   holder.replaceChildren(
-    element('div', { class: 'heading' }, 'SELECTED BITZKEY'),
+    element('div', { class: 'heading-row' }, element('div', { class: 'heading' }, 'SELECTED BITZKEY'),
+      agent.alive !== false ? element('button', { onclick: () => inspectBrains(identifier) }, 'INSPECT BRAINS') : null),
     details(agent),
     element('div', { class: 'faint keys', style: { marginTop: '14px' } }, 'C  copy as JSON      A  export      K  catalog'),
     element('div', { class: 'sidebar-buttons' },
@@ -579,7 +580,8 @@ async function drawSidebar() {
 }
 
 function insightsPanel(data) {
-  const panel = element('div', { class: 'insights' });
+  const panel = element('div', { class: 'insights' },
+    element('div', { class: 'panel-tools' }, element('button', { onclick: openDeathReport }, 'DEATH REPORT')));
   const heads = data.species.map(name => element('th', {}, upper(name.slice(0, 4))));
   const table = (title, note, rows) => {
     panel.append(element('h3', {}, title), element('div', { class: 'sub' }, note));
@@ -607,6 +609,70 @@ function insightsPanel(data) {
       element('span', {}, row.share)));
   }
   return panel;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The death report and a brain inspected
+
+// A table laid over the page: a title, a note, a header row and rows; ESC or CLOSE closes it.
+function showTable(title, note, header, rows) {
+  const close = () => {
+    document.removeEventListener('keydown', onKey, true);
+    shade.remove();
+  };
+  const onKey = event => {
+    if (event.key === 'Escape' || event.key === 'Enter') {
+      event.stopPropagation();
+      event.preventDefault();
+      close();
+    }
+  };
+  const shade = element('div', { class: 'shade dialog-shade', onclick: event => { if (event.target === shade) close(); } },
+    element('div', { class: 'dialog report' },
+      element('h2', {}, title),
+      element('p', {}, note),
+      element('div', { class: 'report-body scroll' },
+        element('table', { class: 'report-table' },
+          element('thead', {}, element('tr', {}, header.map(cell => element('th', {}, cell)))),
+          element('tbody', {}, rows.map(row => element('tr', {}, row.map(cell =>
+            cell instanceof Node ? cell : element('td', {}, cell))))))),
+      element('div', { class: 'dialog-buttons' }, element('button', { class: 'primary', onclick: close }, 'CLOSE'))));
+  document.body.append(shade);
+  document.addEventListener('keydown', onKey, true);
+}
+
+async function openDeathReport() {
+  try {
+    const data = await api('/api/deaths');
+    const totals = data.species.map((_, index) => data.rows.reduce((sum, row) => sum + row.counts[index], 0));
+    const rows = data.rows.map(row => [row.cause, ...row.counts.map(String), String(row.total)]);
+    rows.push([element('td', { class: 'total' }, 'ALL'), ...[...totals, data.deaths].map(count => element('td', { class: 'total' }, String(count)))]);
+    showTable('Death report', `Every death in this world up to turn ${data.turn}: ${data.deaths} in all, by cause and species.`,
+              ['CAUSE', ...data.species.map(upper), 'ALL'], rows);
+  } catch (error) {
+    say(error.message);
+  }
+}
+
+async function inspectBrains(identifier) {
+  await control('pause');  // the world waits while it is looked at, for everyone viewing it
+  try {
+    const data = await api(`/api/brain/${identifier}`);
+    const rows = data.rows.map(row => {
+      const best = Object.entries(row.chances).reduce((most, entry) => entry[1] > most[1] ? entry : most)[0];
+      return [element('td', { class: 'situation' }, row.situation), ...data.actions.map(action => {
+        const chance = row.chances[action.name];
+        if (chance === undefined) return element('td', { class: 'closed' }, '·');
+        return element('td', { class: action.name === best ? 'best' : '' }, `${Math.round(chance * 100)}%`);
+      })];
+    });
+    showTable(`Brains of #${pad3(identifier)}, ${data.species}`,
+              'Its chance of choosing each action open to it, in each standard situation, with its temperament now. ' +
+              'The likeliest is lit; · marks an action not open. The world is paused.',
+              ['SITUATION', ...data.actions.map(action => action.short)], rows);
+  } catch (error) {
+    say(error.message);
+  }
 }
 
 // ---------------------------------------------------------------------------------------------

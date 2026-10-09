@@ -246,3 +246,20 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .files a:hover { background: var(--raised); }
 .files a span:last-child { color: var(--faint); }
 .keys { white-space: pre; }
+
+/* The death report and a brain inspected */
+.panel-tools { display: flex; justify-content: flex-end; margin-bottom: -18px; }
+.panel-tools button, .heading-row button { padding: 4px 10px; font-size: 11px; }
+.heading-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.heading-row .heading { margin-bottom: 0; }
+.dialog.report { max-width: min(1500px, 98vw); width: auto; }
+.report-body { max-height: 65vh; overflow: auto; margin-top: 8px; }
+.report-table { border-collapse: collapse; font: 13px var(--mono); color: rgb(187, 199, 181); }
+.report-table th { position: sticky; top: 0; background: var(--panel); color: var(--text); font-weight: normal; text-align: right; padding: 2px 8px; white-space: nowrap; }
+.report-table th:first-child, .report-table td:first-child { text-align: left; }
+.report-table td { text-align: right; padding: 2px 8px; white-space: nowrap; }
+.report-table tr:hover td { background: var(--raised); }
+.report-table td.best { color: var(--green); font-weight: bold; }
+.report-table td.closed { color: var(--faint); }
+.report-table td.total { color: var(--text); border-top: 1px solid var(--line); }
+.report-table td.situation { color: var(--soft); }

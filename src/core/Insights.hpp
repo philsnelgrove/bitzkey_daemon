@@ -2,6 +2,7 @@
 // What the Bitzkeys have learned: recent choice statistics and brain probing.
 
 #include <array>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -64,5 +65,18 @@ private:
 
 // Probe every living brain with standard situations and summarise who prefers what.
 std::string brain_report(int turn, std::span<const Bitzkey* const> animals, const Insights& insights);
+
+// The two reports a viewer can open, each laid out as lines of text in a fixed-width font: every death so far, a
+// row for each cause (the most common first) and a column for each species, with the totals; and one animal's
+// brain probed with the standard situations its species can meet, its chance of choosing each action open to
+// it, with its temperament now, the likeliest marked * and an action not open shown as a dot.
+std::vector<std::string> death_report_lines(const std::array<std::map<std::string, int, std::less<>>, 4>& death_causes);
+struct BrainRow {
+    std::string situation;
+    std::vector<std::pair<int, double>> chances;  // (action, chance), for the actions open in it
+};
+std::vector<BrainRow> brain_matrix(const Bitzkey& animal);
+std::vector<std::string> brain_matrix_lines(const Bitzkey& animal);
+std::string_view short_action(int action);  // an action's name in a column of the matrix
 
 }  // namespace bitzkey

@@ -11,6 +11,7 @@
 #include <set>
 
 #include "core/PyFormat.hpp"
+#include "core/Insights.hpp"
 #include "core/Simulation.hpp"
 
 using namespace bitzkey;
@@ -266,6 +267,41 @@ TEST_CASE("a body is eaten a portion at a time, and gone with the last") {
     CHECK(corpse.meat == 0.0);
     simulation.feast(first, corpse);
     CHECK(first.last_action == "sought a kill");
+}
+
+TEST_CASE("deaths are counted by species and cause, and rewound") {
+    Simulation world_now(30, 30, 60, 4);
+    for (int turn = 0; turn < 60; ++turn) world_now.advance();
+    const auto total = [&] {
+        int count = 0;
+        for (const auto& causes : world_now.death_causes()) {
+            for (const auto& [cause, n] : causes) count += n;
+        }
+        return count;
+    };
+    CHECK(total() == world_now.deaths());
+    const auto lines = death_report_lines(world_now.death_causes());
+    CHECK(lines.front().rfind("CAUSE", 0) == 0);
+    const auto later = world_now.death_causes();
+    world_now.seek(world_now.turn() - 20);
+    CHECK(total() == world_now.deaths());
+    while (world_now.turn() < world_now.frontier()) world_now.advance();
+    CHECK(world_now.death_causes() == later);  // replayed, not counted twice
+}
+
+TEST_CASE("a brain matrix shows each situation its species meets") {
+    Simulation simulation = world();
+    const Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    const auto rows = brain_matrix(grazer);
+    CHECK(!rows.empty());
+    for (const BrainRow& row : rows) {
+        double sum = 0;
+        for (const auto& [action, chance] : row.chances) sum += chance;
+        CHECK(sum == doctest::Approx(1.0));
+    }
+    const auto lines = brain_matrix_lines(grazer);
+    CHECK(lines.size() == rows.size() + 1);
+    CHECK(lines.front().find("hunt") == std::string::npos);  // a grazer never meets a chance to hunt
 }
 
 TEST_CASE("weak grazers cannot strike back") {

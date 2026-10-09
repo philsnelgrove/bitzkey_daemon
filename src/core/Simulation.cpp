@@ -550,7 +550,7 @@ void Simulation::record() {
         history_.push_back(Snapshot{turn_});
         return;
     }
-    Snapshot held{turn_, deaths_, next_identifier_, {}, grass_, seeds_, random_.getstate(), insights_.snapshot()};
+    Snapshot held{turn_, deaths_, next_identifier_, {}, grass_, seeds_, random_.getstate(), insights_.snapshot(), death_causes_};
     held.agents.reserve(agents_.size());
     for (const auto& agent : agents_) {
         held.agents.push_back(*agent);
@@ -577,6 +577,7 @@ void Simulation::restore(const Snapshot& held) {
     seeds_ = held.seeds;
     random_.setstate(held.random);
     insights_.restore(held.insights);
+    death_causes_ = held.death_causes;
     update_climate();
     index_cells();
 }
@@ -1336,6 +1337,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause) {
         ++kill_count_;
     }
     deaths_ += 1;
+    death_causes_[static_cast<std::size_t>(agent.species)][std::string(cause)] += 1;
     if (agent.species == Species::Plant) {
         plants_ -= 1;
     } else {

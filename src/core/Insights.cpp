@@ -339,4 +339,100 @@ std::string brain_report(int turn, std::span<const Bitzkey* const> animals, cons
     return text;
 }
 
+namespace {
+constexpr std::array<std::string_view, 4> SPECIES_ORDER = {"plant", "grazer", "omnivore", "predator"};
+constexpr std::array<std::string_view, ACTION_COUNT> SHORT_ACTIONS = {
+    "eat", "forage", "browse", "uproot", "scaven", "feast", "rest", "court", "breed", "hunt", "attack", "defend", "flee", "herd",
+    "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W"};
+constexpr int CELL = 7;        // characters to a column of figures
+constexpr int SITUATION = 42;  // characters to the situations' column
+
+std::string upper_case(std::string_view text) {
+    std::string result(text);
+    for (char& c : result) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    return result;
+}
+}  // namespace
+
+std::string_view short_action(int action) { return SHORT_ACTIONS[static_cast<std::size_t>(action)]; }
+
+std::vector<std::string> death_report_lines(const std::array<std::map<std::string, int, std::less<>>, 4>& death_causes) {
+    std::map<std::string, int> causes;
+    for (const auto& counts : death_causes) {
+        for (const auto& [cause, count] : counts) causes[cause] += count;
+    }
+    std::vector<std::pair<std::string, int>> ranked(causes.begin(), causes.end());
+    std::stable_sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+    const auto count_of = [&](std::size_t species, const std::string& cause) {
+        const auto found = death_causes[species].find(cause);
+        return found == death_causes[species].end() ? 0 : found->second;
+    };
+    std::string heading = pad_right("CAUSE", 18);
+    for (const auto species : SPECIES_ORDER) heading += pad_left(upper_case(species), 10);
+    std::vector<std::string> lines = {heading + pad_left("ALL", 10)};
+    for (const auto& [cause, total] : ranked) {
+        std::string line = pad_right(cause, 18);
+        for (std::size_t species = 0; species < SPECIES_ORDER.size(); ++species) line += pad_left(std::to_string(count_of(species, cause)), 10);
+        lines.push_back(line + pad_left(std::to_string(total), 10));
+    }
+    std::string line = pad_right("ALL", 18);
+    int all = 0;
+    for (const auto& counts : death_causes) {
+        int total = 0;
+        for (const auto& [cause, count] : counts) total += count;
+        line += pad_left(std::to_string(total), 10);
+        all += total;
+    }
+    lines.push_back(line + pad_left(std::to_string(all), 10));
+    return lines;
+}
+
+std::vector<BrainRow> brain_matrix(const Bitzkey& animal) {
+    std::vector<BrainRow> rows;
+    for (const Scenario& scenario : scenarios()) {
+        if (std::find(scenario.species.begin(), scenario.species.end(), animal.species) == scenario.species.end()) continue;
+        Senses senses{};
+        for (const auto& [sense, value] : scenario.situation) senses[sense] = value;
+        for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) senses[SenseMind + trait] = animal.feeling(trait);
+        gene_senses(animal.dna, senses);
+        const std::vector<int> options(scenario.actions.begin(), scenario.actions.end());
+        rows.push_back({scenario.title, choice_odds(animal.brain->values(senses), options)});
+    }
+    return rows;
+}
+
+std::vector<std::string> brain_matrix_lines(const Bitzkey& animal) {
+    const std::vector<BrainRow> rows = brain_matrix(animal);
+    std::vector<int> used;
+    for (int action = 0; action < ACTION_COUNT; ++action) {
+        for (const BrainRow& row : rows) {
+            if (std::any_of(row.chances.begin(), row.chances.end(), [action](const auto& entry) { return entry.first == action; })) {
+                used.push_back(action);
+                break;
+            }
+        }
+    }
+    std::string heading = pad_right("SITUATION", SITUATION);
+    for (const int action : used) heading += pad_left(std::string(short_action(action)), CELL);
+    std::vector<std::string> lines = {heading};
+    for (const BrainRow& row : rows) {
+        int best = row.chances.front().first;
+        double most = row.chances.front().second;
+        for (const auto& [action, chance] : row.chances) {  // the first of the likeliest, as Python's max
+            if (chance > most) {
+                best = action;
+                most = chance;
+            }
+        }
+        std::string line = pad_right(row.situation.substr(0, SITUATION - 1), SITUATION);
+        for (const int action : used) {
+            const auto found = std::find_if(row.chances.begin(), row.chances.end(), [action](const auto& entry) { return entry.first == action; });
+            line += found == row.chances.end() ? pad_left("· ", CELL + 1)  // the dot is two bytes in UTF-8
+                                               : pad_left(py_percent(found->second, 0) + (action == best ? "*" : " "), CELL);
+        }
+        lines.push_back(line);
+    }
+    return lines;
+}
+
 }  // namespace bitzkey
