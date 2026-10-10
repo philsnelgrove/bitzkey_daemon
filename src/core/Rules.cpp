@@ -151,6 +151,7 @@ std::vector<Rule> make_rules() {
         {"TERRITORY_RADIUS", "Territory", "Territory radius", "a hunter's territory: the cells within this many steps", 1, 12, 1, true, &TERRITORY_RADIUS},
         {"TERRITORY_RAMP", "Territory", "Territory ramp", "rivals past the limit that bring rivalry to its full strength", 1, 20, 1, true, &TERRITORY_RAMP},
         {"RIVAL_UNEASE", "Territory", "Rival unease", "discomfort of a fully overcrowded territory", 0.0, 5.0, 0.05, false, &RIVAL_UNEASE},
+        {"RIVALRY_WEAR", "Territory", "Rivalry wear", "how much an overcrowded territory wears down reluctance to kill its own species", 0.0, 1.0, 0.05, false, &RIVALRY_WEAR},
         {"RIVAL_KILL_JOY", "Territory", "Rival kill joy", "relief at killing a rival in an overcrowded territory", 0.0, 5.0, 0.05, false, &RIVAL_KILL_JOY},
         {"TERRITORY.predator.fewest", "Territory", "Predator rivals, cruel", "rivals the least empathetic predator tolerates", 0, 50, 1, true, &TERRITORY[0].fewest},
         {"TERRITORY.predator.most", "Territory", "Predator rivals, kind", "rivals the most empathetic predator tolerates", 0, 50, 1, true, &TERRITORY[0].most},

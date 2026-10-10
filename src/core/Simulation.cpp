@@ -2193,17 +2193,19 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (hunter.species == Species::Omnivore) {
         // Grazers while they are common enough to switch to, and other omnivores only in an
         // overcrowded territory, once hungry past its reluctance as that rivalry wears it down.
-        return (other.species == Species::Grazer && hunter.hunts_grazers) || other.species == Species::Predator ||
+        // Predators only when it would win, blow for blow.
+        return (other.species == Species::Grazer && hunter.hunts_grazers) ||
+               (other.species == Species::Predator && would_win(hunter, other)) ||
                (other.species == Species::Omnivore && hunter.own_rivalry > 0 &&
-                hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - hunter.own_rivalry));
+                hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry));
     }
     if (hunter.species != Species::Predator) return false;
     if (other.species == Species::Grazer) return hunter.hunts_grazers;
     if (other.species == Species::Omnivore) return hunter.hunts_omnivores && would_win(hunter, other);  // only one it would beat
-    if (other.species != Species::Predator) return false;
-    // Other predators, of whatever kind, only when hungry past its reluctance, which a territory
-    // overcrowded with predators wears away.
-    return hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - hunter.own_rivalry);
+    if (other.species != Species::Predator || same_kind(hunter, other)) return false;  // never its own kind
+    // Other kinds of predator only when hungry past its reluctance, which a territory overcrowded
+    // with predators wears away.
+    return hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry);
 }
 
 }  // namespace bitzkey

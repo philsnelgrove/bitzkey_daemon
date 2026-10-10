@@ -143,7 +143,8 @@ inline double THORN_SIZE_SHARE = 0.2;
 inline int TERRITORY_RADIUS = 6;
 inline int TERRITORY_RAMP = 3;
 inline double RIVAL_UNEASE = 0.3;
-inline double RIVAL_KILL_JOY = 1.0;
+inline double RIVALRY_WEAR = 0.5;  // how much an overcrowded territory wears down a hunter's reluctance to kill its own species
+inline double RIVAL_KILL_JOY = 0.5;
 inline int HERD_RADIUS = 4;
 inline int HERD_SPREAD = 3;
 inline double HERD_JOY = 0.15;
@@ -169,7 +170,7 @@ inline double SHARED_DIET = 0.5;
 // Prey switching: a hunter goes after a kind of prey only while it makes up at least SWITCH_SHARE
 // of the food it weighs within FORAGE_RADIUS (for omnivores, grazers against plants; for predators,
 // grazers against omnivores), so a scarce prey is left alone to recover.
-inline double SWITCH_SHARE = 0.25;   // how much another species eating some of the same food counts as a mouth
+inline double SWITCH_SHARE = 0.5;    // a prey is hunted while it is at least this share of the food
 inline double STRIKE_EFFORT = 0.2;
 inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
 inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging;

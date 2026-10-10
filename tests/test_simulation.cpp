@@ -163,7 +163,7 @@ TEST_CASE("animals shun mates whose ring or dot differ too far, and tolerance wi
     CHECK(Simulation::compatible(animal, strange));
 }
 
-TEST_CASE("predators hunt other predators, of any kind, only past their reluctance") {
+TEST_CASE("predators hunt other kinds of predator only past their reluctance, and never their own") {
     Simulation simulation = world();
     Bitzkey& gentle = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 7}, {"tolerance", 7}, {"patience", 7}}), 1, 1);
     const Bitzkey& kin = simulation.add_agent(gentle.dna ^ (0xFFULL << 56), 2, 1);       // 25% apart: its kind
@@ -173,9 +173,12 @@ TEST_CASE("predators hunt other predators, of any kind, only past their reluctan
     gentle.hunger = 30;
     CHECK_FALSE(Simulation::is_prey(gentle, stranger));
     CHECK_FALSE(Simulation::is_prey(gentle, kin));
-    gentle.own_rivalry = 0.8;  // reluctance worn down to a fifth
-    CHECK(Simulation::is_prey(gentle, kin));
+    gentle.own_rivalry = 0.8;  // reluctance worn down by RIVALRY_WEAR of 0.8, to 0.6
+    CHECK_FALSE(Simulation::is_prey(gentle, stranger));
+    gentle.hunger = 70;
     CHECK(Simulation::is_prey(gentle, stranger));
+    gentle.hunger = 99;
+    CHECK_FALSE(Simulation::is_prey(gentle, kin));  // never its own kind
 }
 
 TEST_CASE("predators breed with their kind, and omnivores and predators prey on each other") {
@@ -531,6 +534,8 @@ TEST_CASE("plants seed less the more plants shade them") {
 }
 
 TEST_CASE("hunters switch away from prey that is scarce nearby") {
+    const double switch_share = SWITCH_SHARE;
+    SWITCH_SHARE = 0.25;  // the switch measured at a quarter
     Simulation simulation = world(30);
     Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"sight", 7}}), 15, 15);
     const Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 15, 16);
@@ -548,6 +553,7 @@ TEST_CASE("hunters switch away from prey that is scarce nearby") {
     for (int x = 20; x < 25; ++x) simulation.add_agent(encode_dna(Species::Omnivore), x, 22);
     simulation.index_cells();
     CHECK(simulation.prey_switching(predator) == std::pair{true, true});  // a predator always hunts both
+    SWITCH_SHARE = switch_share;
 }
 
 TEST_CASE("a blow that exhausts the striker kills it, and no body is left without a recorded death") {
