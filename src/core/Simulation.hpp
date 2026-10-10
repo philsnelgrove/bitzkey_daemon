@@ -30,7 +30,7 @@ constexpr double GRASS_DENSITY = 50;      // percent of cells that start with gr
 inline double GRASS_REGROWTH = 0.016;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_RADIUS = 4;
-inline int CROWDING_LIMIT = 10;
+inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
@@ -61,7 +61,7 @@ std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
 inline int CORPSE_TURNS = 30;
-inline double BREED_RESERVE = 10;
+inline double BREED_RESERVE = 0;
 inline double MATE_RING_DIFFERENCE = 0.05;
 inline double MATE_DOT_DIFFERENCE = 0.20;
 inline std::array<int, 2> LITTER_RANGE = {1, 6};
@@ -158,7 +158,10 @@ inline double KIND_DIFFERENCE = 0.25;
 // against the mouths that share it, itself included. Below FOOD_NEEDED meals a mouth it doesn't
 // breed; between that and twice that, its litter shrinks in proportion.
 inline int FORAGE_RADIUS = 6;
-inline double FOOD_NEEDED = 3.0;
+inline double FOOD_NEEDED = 0.0;  // 0: no limit, and litters don't follow food
+inline double UPROOT_FOOD = 3.0;  // a starving grazer uproots a plant only with fewer meals a mouth than this about it
+inline double BREED_COOLDOWN = 0.0;  // share of the usual rest after breeding, 20 turns for the least fertile to 5 for the most
+inline double PREDATOR_FOOD_NEEDED = 0.0;  // the same for predators: none, so the food about them never stops them breeding
 inline double PLANT_MEALS = 2.0;   // meals a plant is worth to a full-efficiency browser
 inline double PREY_MEALS = 10.0;  // meals a prey animal is worth: meat fills about ten times what grass does
 inline double SHARED_DIET = 0.5;
@@ -606,7 +609,8 @@ public:
     };
     HerdView herd(const Bitzkey& agent) const;
     double room() const;
-    int crowding(const Bitzkey& agent, const Bitzkey& partner) const;
+    // Other animals, besides its partner, within CROWDING_RADIUS cells; with `own_kind`, only those of its own kind.
+    int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
     static double damage(const Bitzkey& attacker, const Bitzkey& defender);
     // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over, an
@@ -623,6 +627,7 @@ public:
     static bool is_prey(const Bitzkey& hunter, const Bitzkey& other);
     static bool feeds_on(const Bitzkey& eater, const Bitzkey& other);
     static double diet_share(const Bitzkey& eater, const Bitzkey& other);
+    static double food_needed(const Bitzkey& agent);  // the meals a mouth it needs about it to breed; 0, none
     double food_supply(const Bitzkey& agent) const;
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.

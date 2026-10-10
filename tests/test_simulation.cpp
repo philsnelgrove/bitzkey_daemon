@@ -454,6 +454,8 @@ TEST_CASE("each species weighs the food it eats against the mouths sharing it") 
 }
 
 TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
+    const double food_needed = FOOD_NEEDED;
+    FOOD_NEEDED = 3.0;  // food limiting breeding, as it may be set to
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
     Bitzkey& first = simulation.add_agent(dna, 5, 5);
@@ -475,6 +477,7 @@ TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
     simulation.give_birth(first);
     SMALL_LITTERS = small_litters;
     CHECK(simulation.agents().size() == 2 + 6);
+    FOOD_NEEDED = food_needed;
 }
 
 TEST_CASE("a distant hunter is watched but not fled, and a herd flees only hunters closer still") {

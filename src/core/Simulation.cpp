@@ -1255,7 +1255,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Feast] = s.kill != nullptr;
     available[Court] = s.suitor != nullptr;
     available[Breed] = s.mate && agent.can_breed() && !s.nurseries.empty() && room() > 0 &&
-                       crowding(agent, *s.mate) < CROWDING_LIMIT && food_supply(agent) >= FOOD_NEEDED;
+                       (!CROWDING_LIMIT || crowding(agent, *s.mate, true) < CROWDING_LIMIT) &&  // its own kind crowds it
+                       (!food_needed(agent) || food_supply(agent) >= food_needed(agent));
     available[Hunt] = s.quarry != nullptr;
     available[Attack] = s.prey != nullptr;
     // Only from a hunter close by, unless the herd raised the alarm.
@@ -1276,7 +1277,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         // Starving, with food scarce: it may tear into a plant beside it.
-        available[Uproot] = s.uprootable && food_supply(agent) < FOOD_NEEDED;
+        available[Uproot] = s.uprootable && food_supply(agent) < UPROOT_FOOD;
     }
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
@@ -1781,8 +1782,10 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     const std::array<std::pair<int, int>, 2> parents = {std::pair{first.body[Litter], first.body[Size]},
                                                         std::pair{second.body[Litter], second.body[Size]}};
     int litter = litter_size(parents);
-    litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second)) / CROWDING_LIMIT) + 0.5));
-    litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * FOOD_NEEDED)) + 0.5));
+    if (CROWDING_LIMIT) litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second)) / CROWDING_LIMIT) + 0.5));
+    if (const double needed = food_needed(first); needed > 0) {  // litters follow food only while food limits breeding
+        litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * needed)) + 0.5));
+    }
     litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
     const std::array<double, 2> costs = {first.breeding_cost, second.breeding_cost};
     const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
@@ -1818,7 +1821,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     for (int index = 0; index < 2; ++index) {
         Bitzkey& parent = *pair[index];
         parent.hunger += costs[index];
-        parent.cooldown = static_cast<int>(py_round(20 - 15 * parent.physique(Fertility)));
+        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * BREED_COOLDOWN));
         parent.children += litter;
         parent.reward += BREED_JOY * parent.feeling(Libido);
         if (!parent.alive()) {
@@ -1853,9 +1856,11 @@ double Simulation::room() const {
     return static_cast<double>(*population_cap_ - population_);
 }
 
-int Simulation::crowding(const Bitzkey& agent, const Bitzkey& partner) const {
+int Simulation::crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind) const {
     int count = 0;
-    for (const Bitzkey* other : nearby(agent, CROWDING_RADIUS)) count += other->species != Species::Plant && other != &partner;
+    for (const Bitzkey* other : nearby(agent, CROWDING_RADIUS)) {
+        count += other->species != Species::Plant && other != &partner && (!own_kind || same_kind(agent, *other));
+    }
     return count;
 }
 
@@ -2113,6 +2118,11 @@ std::optional<Cell> Simulation::comfort_row(const Bitzkey& agent, int sight) con
         }
     }
     return std::nullopt;
+}
+
+double Simulation::food_needed(const Bitzkey& agent) {
+    // The meals a mouth an animal needs about it to breed: 0, none.
+    return agent.species == Species::Predator ? PREDATOR_FOOD_NEEDED : FOOD_NEEDED;
 }
 
 double Simulation::food_supply(const Bitzkey& agent) const {
