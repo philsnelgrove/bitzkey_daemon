@@ -112,6 +112,7 @@ inline double MATING_CALL = 0.5;      // how much more a predator ready to breed
 inline int MATING_CALL_RANGE = 6;          // a predator ready to breed seeks a mate this far off, beyond its sight
 inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
 inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
+inline double NEWBORN_FOOD = 15.0;    // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
 inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this many mouths each on its food, sharing kills
 inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
 inline double CARRION_CRAVING = 1.0;  // how much more an animal values scavenging carrion it sees, at the highest

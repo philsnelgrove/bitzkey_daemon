@@ -111,6 +111,7 @@ std::vector<Rule> make_rules() {
         {"MATING_CALL_RANGE", "Mind", "Mating call range", "steps a predator ready to breed seeks a mate, beyond its sight", 0, 20, 1, true, &MATING_CALL_RANGE},
         {"OMNIVORE_MATING_CALL", "Mind", "Mating call, omnivores", "how much more an omnivore ready to breed values breeding, or else courting", 0.0, 5.0, 0.05, false, &OMNIVORE_MATING_CALL},
         {"HUNTER_BREEDING_COST", "Mind", "Breeding cost, hunters", "share of the usual breeding cost a predator or omnivore pays", 0.0, 1.0, 0.05, false, &HUNTER_BREEDING_COST},
+        {"NEWBORN_FOOD", "Mind", "Newborn food", "food, as a share of a stomach, each young must start with: parents conceive no more young than they can give this; 0: no limit", 0.0, 100.0, 5.0, false, &NEWBORN_FOOD},
         {"PACK_MOUTHS", "Mind", "Pack mouths", "mouths each pack-mate counts as on a hunter's food, sharing its kills", 0.0, 1.0, 0.05, false, &PACK_MOUTHS},
         {"BLOODLUST", "Mind", "Bloodlust", "how much more a predator values feasting whenever it sees a fresh kill", 0.0, 5.0, 0.05, false, &BLOODLUST},
         {"CARRION_CRAVING", "Mind", "Carrion craving", "how much more the highest carrion trait values scavenging carrion it sees; none up to the middle",

@@ -99,6 +99,8 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     CHECK(std::vector<int>{gestation(0), gestation(1), gestation(4), gestation(7)} == std::vector<int>{10, 16, 33, 50});
     const double damage = CLIMATE_DAMAGE;
     CLIMATE_DAMAGE = 0;
+    const double newborn_food = NEWBORN_FOOD;
+    NEWBORN_FOOD = 0;  // the full litter, whatever energy is given
     Simulation simulation(Simulation::Settings{30, 30, 0, 3});
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});  // the smallest: ten turns, twelve young
     Bitzkey& first = simulation.add_agent(dna, 15, 15);
@@ -120,6 +122,7 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     CHECK(further);  // more than the eight cells beside her
     simulation.die(first, "killed");
     CLIMATE_DAMAGE = damage;
+    NEWBORN_FOOD = newborn_food;
 }
 
 TEST_CASE("young die with the mother carrying them") {
@@ -459,9 +462,29 @@ TEST_CASE("each species weighs the food it eats against the mouths sharing it") 
     CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS / (2 + PACK_MOUTHS)));
 }
 
+TEST_CASE("parents conceive only as many young as they can feed, but always at least one") {
+    const double newborn_food = NEWBORN_FOOD, small_litters = SMALL_LITTERS;
+    SMALL_LITTERS = 1.0;  // the usual litters, without the small-body boost
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
+    for (const auto& [food, young] : {std::pair{5.0, 4}, std::pair{30.0, 1}}) {
+        // six young by their traits, but 10% of a stomach from each parent feeds four at 5% each, and none at 30%
+        NEWBORN_FOOD = food;
+        Simulation simulation = world();
+        Bitzkey& first = simulation.add_agent(dna, 5, 5);
+        simulation.add_agent(dna, 5, 6);
+        simulation.index_cells();
+        simulation.breed(first, *simulation.agents()[1]);
+        simulation.give_birth(first);
+        CHECK(simulation.agents().size() == 2 + young);
+    }
+    SMALL_LITTERS = small_litters;
+    NEWBORN_FOOD = newborn_food;
+}
+
 TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
-    const double food_needed = FOOD_NEEDED;
+    const double food_needed = FOOD_NEEDED, newborn_food = NEWBORN_FOOD;
     FOOD_NEEDED = 3.0;  // food limiting breeding, as it may be set to
+    NEWBORN_FOOD = 0.0;  // no limit from the energy given
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
     Bitzkey& first = simulation.add_agent(dna, 5, 5);
@@ -484,6 +507,7 @@ TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
     SMALL_LITTERS = small_litters;
     CHECK(simulation.agents().size() == 2 + 6);
     FOOD_NEEDED = food_needed;
+    NEWBORN_FOOD = newborn_food;
 }
 
 TEST_CASE("a distant hunter is watched but not fled, and a herd flees only hunters closer still") {

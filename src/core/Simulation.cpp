@@ -1808,11 +1808,15 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     if (const double needed = food_needed(first); needed > 0) {  // litters follow food only while food limits breeding
         litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * needed)) + 0.5));
     }
-    litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
     const std::array<double, 2> costs = {first.breeding_cost, second.breeding_cost};
     const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
                                          std::min(costs[1], std::max(0.0, 100 - second.hunger)) * second.stomach};
     const double given = py_sum(gifts);
+    if (NEWBORN_FOOD) {  // only as many young as the parents can feed, rather than many born starving
+        const double stomach = (first.stomach + second.stomach) / 2;
+        litter = std::max(1, std::min(litter, static_cast<int>(given / (NEWBORN_FOOD * stomach))));
+    }
+    litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
     const int generation = std::max(first.generation, second.generation) + 1;
     Bitzkey* couple[] = {&first, &second};
     sync(couple);  // their brains as they now are, to inherit from
