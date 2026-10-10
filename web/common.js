@@ -1,8 +1,15 @@
 // What every screen shares: talking to the daemon, dialogs, the clipboard, and small helpers.
 
-export async function api(path, body) {
+const FETCH_TIMEOUT_MS = 10000;  // a request the daemon hasn't answered by then fails, rather than stall the page
+
+// A fetch that gives up after FETCH_TIMEOUT_MS.
+function request(path, body) {
   const options = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-  const response = await fetch(path, options);
+  return fetch(path, { ...options, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+}
+
+export async function api(path, body) {
+  const response = await request(path, body);
   const text = await response.text();
   let value;
   try {
@@ -15,8 +22,7 @@ export async function api(path, body) {
 }
 
 export async function binary(path, body) {
-  const options = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-  const response = await fetch(path, options);
+  const response = await request(path, body);
   if (!response.ok) throw new Error(`The daemon answered ${response.status}`);
   return new DataView(await response.arrayBuffer());
 }

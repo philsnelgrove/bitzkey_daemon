@@ -117,7 +117,7 @@ TEST_CASE("the world turns on its own while playing, and waits while paused") {
         World world(small_world(), false, folder);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         {
-            std::lock_guard lock(world.mutex());
+            auto lock = world.lock();
             CHECK(world.simulation().turn() == 0);
             CHECK(world.step());
             CHECK(world.simulation().turn() == 1);
@@ -125,7 +125,7 @@ TEST_CASE("the world turns on its own while playing, and waits while paused") {
             world.play(true);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         CHECK(world.simulation().turn() > 1);
         world.play(false);
         const int turn = world.simulation().turn();
@@ -135,11 +135,34 @@ TEST_CASE("the world turns on its own while playing, and waits while paused") {
     std::filesystem::remove_all(folder);
 }
 
+TEST_CASE("at full speed, viewers are let in between turns rather than kept waiting") {
+    const auto folder = scratch("fair");
+    {
+        World world(small_world(), false, folder);
+        {
+            auto lock = world.lock();
+            world.set_speed(4);  // as fast as it goes
+            world.play(true);
+        }
+        using Clock = std::chrono::steady_clock;
+        auto longest = Clock::duration::zero();
+        for (int look = 0; look < 40; ++look) {
+            const auto asked = Clock::now();
+            auto lock = world.lock();
+            longest = std::max(longest, Clock::now() - asked);
+        }
+        CHECK(longest < std::chrono::milliseconds(500));  // a slice of turns at most, never indefinitely
+        auto lock = world.lock();
+        world.play(false);
+    }
+    std::filesystem::remove_all(folder);
+}
+
 TEST_CASE("the map frame holds every Bitzkey and the grass") {
     const auto folder = scratch("frame");
     {
         World world(small_world(), false, folder);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         world.step();
         const Simulation& simulation = world.simulation();
         const std::string data = frame(simulation);
@@ -160,7 +183,7 @@ TEST_CASE("the colour graph is drawn bar by bar, and finds who lies under a poin
     const auto folder = scratch("graph");
     {
         World world(small_world(), false, folder);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         for (int turn = 0; turn < 20; ++turn) world.step();
         Simulation& simulation = world.simulation();
         Graph graph;
@@ -205,7 +228,7 @@ TEST_CASE("the web API shows the world and steers it") {
 
         int identifier = 0;
         {
-            std::lock_guard lock(world.mutex());
+            auto lock = world.lock();
             identifier = world.simulation().living().front()->identifier;
         }
         const Json agent = get(client, "/api/agent/" + std::to_string(identifier));

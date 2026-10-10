@@ -69,6 +69,7 @@ void World::run() {
     using Clock = std::chrono::steady_clock;
     auto last_turn = Clock::now();
     while (!stopping_) {
+        while (waiting_ > 0 && !stopping_) std::this_thread::sleep_for(std::chrono::microseconds(200));  // viewers first
         bool busy = false;
         {
             std::lock_guard lock(mutex_);

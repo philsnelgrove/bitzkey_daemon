@@ -107,6 +107,8 @@ The page has the window app's screens, laid out the same way:
 
 Browsers only give a page the clipboard over HTTPS or from the same machine. Over plain HTTP on the network, the page offers the text to copy by hand when the clipboard is blocked.
 
+The page gives up on any request the daemon hasn't answered within 10 seconds and shows the daemon as lost until it answers again, rather than freezing.
+
 ## Building for development
 
 On Linux:
@@ -135,7 +137,7 @@ With `--web-dir web`, edits to the page show up on a reload, without rebuilding.
 | Path | Contents |
 |---|---|
 | `src/core/` | The simulation, copied from `bitzkey-cpp` (see below) |
-| `src/daemon/World.*` | The world, turning on its own thread at the chosen speed, behind a lock the web requests share |
+| `src/daemon/World.*` | The world, turning on its own thread at the chosen speed, behind a lock the web requests share; a waiting request goes before the next slice of turns, so even at MAX speed the page never stalls |
 | `src/daemon/Views.*` | What the page is shown: JSON for the panels, and a binary frame for the map |
 | `src/daemon/Graph.*` | The colour graph, drawn on the server, which can hold millions of slices |
 | `src/daemon/Api.*` | The HTTP routes |

@@ -33,8 +33,15 @@ public:
     World(const World&) = delete;
     World& operator=(const World&) = delete;
 
-    // Hold this while reading or changing anything below.
-    std::mutex& mutex() { return mutex_; }
+    // Hold this while reading or changing anything below. A viewer waiting for it is let in before the world
+    // turns again, however fast it runs: a plain mutex, released and at once retaken by the turning thread,
+    // could keep a viewer waiting indefinitely.
+    std::unique_lock<std::mutex> lock() {
+        ++waiting_;
+        std::unique_lock<std::mutex> held(mutex_);
+        --waiting_;
+        return held;
+    }
 
     Simulation& simulation() { return *simulation_; }
     const Simulation::Settings& settings() const { return settings_; }
@@ -61,6 +68,7 @@ private:
     void run();
 
     std::mutex mutex_;
+    std::atomic<int> waiting_{0};  // viewers waiting for the lock
     std::unique_ptr<Simulation> simulation_;
     Simulation::Settings settings_;
     rules::Values rules_;

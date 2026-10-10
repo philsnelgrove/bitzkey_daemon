@@ -177,14 +177,14 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     // ---- The world as it is
 
     server.Get("/api/state", guarded([&world](const httplib::Request&, httplib::Response& response) {
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         reply(response, state(world));
     }));
 
     server.Get("/api/frame", guarded([&world](const httplib::Request&, httplib::Response& response) {
         std::string data;
         {
-            std::lock_guard lock(world.mutex());
+            auto lock = world.lock();
             data = frame(world.simulation());
         }
         response.set_content(std::move(data), BINARY_TYPE);
@@ -192,7 +192,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Get(R"(/api/agent/(\d+))", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         const int identifier = std::stoi(request.matches[1]);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         for (const auto& agent : simulation.agents()) {
             if (agent->identifier == identifier) {
@@ -214,13 +214,13 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         const Json given = body(request);
         std::vector<int> choices(DEFAULT_EXEMPLARS.begin(), DEFAULT_EXEMPLARS.end());
         if (given.contains("choices") && given["choices"].is_array()) choices = given["choices"].get<std::vector<int>>();
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         reply(response, exemplars(world.simulation(), choices));
     }));
 
     // Every death so far, by species and cause: a row for each cause, the most common first.
     server.Get("/api/deaths", guarded([&world](const httplib::Request&, httplib::Response& response) {
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         const Simulation& simulation = world.simulation();
         const auto& by_species = simulation.death_causes();
         std::map<std::string, int> totals;
@@ -244,7 +244,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     // One animal's brain probed with the standard situations: its chance of choosing each action open to it.
     server.Get(R"(/api/brain/(\d+))", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         const int identifier = std::stoi(request.matches[1]);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         simulation.sync_brains();  // the brains as they now are, when they think on the GPUs
         for (const Bitzkey* agent : simulation.living()) {
@@ -273,7 +273,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     }));
 
     server.Get("/api/insights", guarded([&world](const httplib::Request&, httplib::Response& response) {
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         reply(response, insights(world.simulation()));
     }));
 
@@ -282,7 +282,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     server.Post("/api/control", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
         const std::string action = given.value("action", std::string());
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         std::string note;
         if (action == "play") {
@@ -328,7 +328,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         const Json given = body(request);
         std::string data;
         {
-            std::lock_guard lock(world.mutex());
+            auto lock = world.lock();
             const Simulation& simulation = world.simulation();
             data = graph->image(simulation, graph_view(given, simulation), identifiers(given.value("selection", Json::array())));
         }
@@ -337,7 +337,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Post("/api/graph/pick", guarded([&world, graph](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         const Simulation& simulation = world.simulation();
         const std::set<int> found = graph->living_in(simulation, graph_view(given, simulation), given.value("bar_from", 0),
                                                      given.value("bar_to", 0), given.value("top", 0.0), given.value("bottom", 0.0));
@@ -346,7 +346,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Post("/api/graph/hover", guarded([&world, graph](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         const auto hit = graph->at(simulation, graph_view(given, simulation), given.value("bar", 0), given.value("y", 0.0));
         if (!hit) {
@@ -376,7 +376,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         const Json given = body(request);
         const std::set<int> wanted = identifiers(given.value("identifiers", Json::array()));
         const bool living_only = given.value("living_only", false);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         simulation.sync_brains();  // the brains as they now are, when they think on the GPUs
         const auto agents = by_identifier(simulation);
@@ -406,7 +406,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     server.Post("/api/export", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
         const bool to_file = given.value("save", false);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         simulation.sync_brains();
         std::vector<nlohmann::ordered_json> records;
@@ -488,7 +488,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     }));
 
     server.Post("/api/report", guarded([&world](const httplib::Request&, httplib::Response& response) {
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         simulation.sync_brains();
         const auto alive = simulation.living();
@@ -515,7 +515,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Post("/api/catalog/add", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Simulation& simulation = world.simulation();
         simulation.sync_brains();
         std::vector<catalog::Entry> entries;
@@ -562,7 +562,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         std::vector<int> indexes = given.value("indexes", std::vector<int>());
         std::sort(indexes.rbegin(), indexes.rend());  // the last first, so the rest keep their places
         indexes.erase(std::unique(indexes.begin(), indexes.end()), indexes.end());
-        std::lock_guard lock(world.mutex());  // one change to the file at a time
+        auto lock = world.lock();  // one change to the file at a time
         const std::size_t count = catalog::load(world.paths().catalog).size();
         for (const int index : indexes) {
             if (index >= 0 && static_cast<std::size_t>(index) < count) catalog::remove(static_cast<std::size_t>(index), world.paths().catalog);
@@ -585,7 +585,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     // ---- A new world: the setup panel, the advanced rules and the designer
 
     server.Get("/api/setup", guarded([&world](const httplib::Request&, httplib::Response& response) {
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         Json result = settings_form(world.settings());
         result["rules"] = rules_form(world.rules())["rules"];
         result["changed"] = world.rules();
@@ -648,7 +648,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         }
         if (const auto problems = rules::problems(values); !problems.empty()) throw std::invalid_argument(problems.front() + ".");
         changed = rules::changed(values);
-        std::lock_guard lock(world.mutex());
+        auto lock = world.lock();
         world.new_world(std::move(settings), std::move(changed));
         Json result = state(world);
         result["note"] = "A new world has begun.";

@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
         std::cout << "bitzkey_daemon " << BITZKEY_VERSION << ": serving http://" << config.host << ":" << config.port
                   << "/  (data in " << config.data_dir.string() << ")" << std::endl;
         {
-            std::lock_guard lock(world.mutex());
+            auto lock = world.lock();
             if (!world.simulation().gpu_status().empty()) std::cout << "  " << world.simulation().gpu_status() << std::endl;
         }
         server.listen_after_bind();
