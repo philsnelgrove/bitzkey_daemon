@@ -147,7 +147,11 @@ Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind,
           double body_chance) {
     const std::uint32_t mask = static_cast<std::uint32_t>((1ULL << rng.randrange(1, 32)) - 1);
     std::uint32_t body = (body_word(first) & mask) | (body_word(second) & ~mask & WORD);
-    if (rng.random() < body_chance) body ^= 1U << rng.randrange(32);
+    if (rng.random() < body_chance) {
+        int bit = static_cast<int>(rng.randrange(32));
+        if (bit < 2 && rng.random() < SPECIES_REROLL) bit = static_cast<int>(rng.randrange(32));  // the bits that set the species: often rolled afresh
+        body ^= 1U << bit;
+    }
     const Mind start = mind ? *mind : inherit_mind(to_mind(decode_mind(first)), to_mind(decode_mind(second)), rng, mind_chance);
     const std::array<Dna, 2> parents = {first, second};
     const std::uint32_t spare = mind_word(rng.choice(parents));

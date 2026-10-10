@@ -42,9 +42,10 @@ constexpr Dna HEAT_TOLERANCE = Dna{1} << 30;
 constexpr Dna COLD_TOLERANCE = Dna{1} << 31;
 constexpr int V1_TEMPERATURE = 1;  // medium
 // Default chances, per birth, of a mutation; a world can set its own.
-constexpr double MIND_MUTATION_CHANCE = 0.5;  // for each of MIND_MUTATION_ROLLS: one mind trait steps
+constexpr double MIND_MUTATION_CHANCE = 0.25;  // for each of MIND_MUTATION_ROLLS: one mind trait steps
 constexpr int MIND_MUTATION_ROLLS = 3;
-constexpr double BODY_MUTATION_CHANCE = 0.5;  // one bit of the ring flips
+constexpr double BODY_MUTATION_CHANCE = 0.25;  // one bit of the ring flips
+constexpr double SPECIES_REROLL = 0.5;  // a body mutation landing on the species is moved to another bit, rolled afresh, this often
 constexpr int V1_MAX = 15;
 
 enum class Species : std::uint8_t { Plant, Grazer, Omnivore, Predator };
