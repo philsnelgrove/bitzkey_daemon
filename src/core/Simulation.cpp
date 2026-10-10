@@ -1782,7 +1782,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     const std::array<std::pair<int, int>, 2> parents = {std::pair{first.body[Litter], first.body[Size]},
                                                         std::pair{second.body[Litter], second.body[Size]}};
     int litter = litter_size(parents);
-    if (CROWDING_LIMIT) litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second)) / CROWDING_LIMIT) + 0.5));
+    if (CROWDING_LIMIT) litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second, true)) / CROWDING_LIMIT) + 0.5));  // its own kind
     if (const double needed = food_needed(first); needed > 0) {  // litters follow food only while food limits breeding
         litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * needed)) + 0.5));
     }
