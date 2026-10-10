@@ -99,13 +99,15 @@ inline double SOCIAL_LEARNING = 1.0;  // how fast it learns from what it sees, b
 inline double SOCIAL_MOOD = 0.3;      // how much what it sees moves its mood
 inline double SOCIAL_MEMORY = 0.8;    // the share of a seen success or failure it still senses a turn later
 inline double OTHER_KIND = 0.4;
-inline double LEARNING_RATE = 0.045;
+inline double LEARNING_RATE = 0.09;
 // The clever learn faster. The learning rate rises with intellect, and on top of that by up to
 // LEARNING_BOOST times again at the highest; the least intelligent get no boost. And each turn an
 // animal re-learns from REPLAY_PER_INTELLECT of its most recent experiences for each point of its
 // inborn intellect, so the least replay none.
 inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
+inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
+                                         // an omnivore's gets half the bonus
 // Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
 // PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often). While a
 // hunter is in sight it then panics every turn, fleeing, or, with a chance of PRIMAL_FREEZE at the lowest
