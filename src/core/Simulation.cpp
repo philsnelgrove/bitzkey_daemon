@@ -256,7 +256,8 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
                                             : middle + (longest - middle) * (2 * slowing - 1);
         lifespan = years * YEAR_LENGTH;
     }
-    breeding_cost = 25 - 15 * physique(Fertility);
+    breeding_cost = (25 - 15 * physique(Fertility)) *
+                    (species == Species::Omnivore || species == Species::Predator ? HUNTER_BREEDING_COST : 1.0);  // hunters pay less
     digestion = 0.2 + 0.8 * physique(Carrion);
 }
 
@@ -1085,10 +1086,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             valued[Attack] += urge;
             valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
         }
-        if (agent.species == Species::Predator && agent.can_breed()) {
-            // The mating call: to breed if it can, else to court a mate it sees.
+        const double call = agent.species == Species::Predator  ? MATING_CALL
+                            : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL
+                                                                 : 0.0;
+        if (call > 0 && agent.can_breed()) {
+            // The mating call: to breed if it can, else to court a mate it seeks.
             const bool can = std::find(options.begin(), options.end(), Breed) != options.end();
-            valued[can ? Breed : Court] += MATING_CALL;
+            valued[can ? Breed : Court] += call;
         }
         valued[Scavenge] += CARRION_CRAVING * std::max(0.0, 2 * agent.physique(Carrion) - 1);  // a carrion-eater's craving
         const auto odds = choice_odds(valued, options);
@@ -1206,6 +1210,14 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.quarry = seen.quarry;
     s.hunter = seen.hunter;
     s.suitor = seen.suitor;
+    if (!s.suitor && agent.species == Species::Predator && agent.can_breed()) {  // the mating call reaches further
+        for (Bitzkey* other : nearby(agent, MATING_CALL_RANGE)) {
+            if (compatible(agent, *other) && other->can_breed()) {
+                s.suitor = other;
+                break;
+            }
+        }
+    }
     s.flora = seen.flora;
     for (Bitzkey* other : neighbors) {
         if (agent.assailant && other->identifier == *agent.assailant) {
@@ -1370,7 +1382,8 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     return company - dread - unease - crowded + herding - exposed;
 }
 
-void Simulation::die(Bitzkey& agent, std::string_view cause) {
+void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer) {
+    death_records_[agent.identifier] = {std::string(cause), killer ? killer->identifier : -1, killer ? killer->species : Species::Plant};
     if (agent.brain && agent.has_last_senses) {
         const double penalty = cause == "old age" ? 0.0 : DEATH_PENALTY;
         if (!gpu_) learn(agent, agent.reward + wellbeing(agent) - agent.last_wellbeing - penalty);  // on the GPU, a brain about to go learns nothing that lasts
@@ -1529,7 +1542,7 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     plant.cooldown = PLANT_RECOVERY;
     agent.last_action = "browsed";
     if (!plant.alive()) {
-        die(plant, "eaten");
+        die(plant, "eaten", &agent);
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);  // a plant can't flee, but an armed one strikes back
     }
@@ -1546,7 +1559,7 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     plant.cooldown = PLANT_RECOVERY;
     agent.last_action = "uprooted";
     if (!plant.alive()) {
-        die(plant, "uprooted");
+        die(plant, "uprooted", &agent);
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
     }
@@ -1617,13 +1630,20 @@ bool Simulation::fresh(const Bitzkey& corpse) const {
     return corpse.died_turn && turn_ - *corpse.died_turn <= FRESH_KILL_TURNS;
 }
 
-double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender) {
+double Simulation::defence_share(const Bitzkey& animal) {
+    return animal.species == Species::Grazer    ? GRAZER_DEFENCE_WEAPONS
+           : animal.species == Species::Omnivore ? OMNIVORE_DEFENCE_WEAPONS
+                                                 : 1.0;
+}
+
+double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending) {
     if (attacker.species == Species::Plant) {
         const double thorns = THORN_SIZE_SHARE * attacker.physique(Size) + (1 - THORN_SIZE_SHARE) * attacker.physique(Weapons);
         return THORN_FORCE * thorns * (1 - 0.6 * defender.toughness);
     }
     const double force = STRIKE_FORCE * (2 + 9 * attacker.might);
-    return force * (1 + 0.75 * armed(attacker)) * (1 - 0.6 * defender.toughness);
+    const double weapons = armed(attacker) * (defending ? defence_share(attacker) : 1.0);
+    return force * (1 + 0.75 * weapons) * (1 - 0.6 * defender.toughness);
 }
 
 double Simulation::armed(const Bitzkey& animal) {
@@ -1677,13 +1697,13 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
             witness->reward -= pain * witness->feeling(Empathy) * kinship;
         }
     }
-    if (killed) die(victim, "killed");
+    if (killed) die(victim, "killed", &agent);
 
-    const double sting = 4.5 * armed(victim) * (1 - 0.6 * agent.toughness);
+    const double sting = 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness);
     if (sting > 0) {
         agent.health -= sting;
         experience(agent, Stung);
-        if (!agent.alive()) die(agent, "killed");
+        if (!agent.alive()) die(agent, "killed", &victim);  // its victim's spines
     }
     exhausted(agent);
     if (agent.species == Species::Predator && agent.alive()) agent.reward += ATTACK_JOY;  // a blow it lived through
@@ -1696,7 +1716,7 @@ void Simulation::exhausted(Bitzkey& agent) {
 }
 
 void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
-    const double blow = damage(agent, assailant);
+    const double blow = damage(agent, assailant, true);
     assailant.health -= blow;
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;
     experience(assailant, Stung);
@@ -1707,7 +1727,7 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
         experience(agent, Defended);
     }
     if (!assailant.alive()) {
-        die(assailant, "killed");
+        die(assailant, "killed", &agent);
     } else if (assailant.species != Species::Plant) {
         struck(assailant, agent);
     }
@@ -2080,8 +2100,10 @@ std::pair<double, double> Simulation::territory(const Bitzkey& hunter) const {
     const double tolerated = fewest + (most - fewest) * hunter.feeling(Empathy);
     double rivals = 0.0, own = 0.0;
     for (const Bitzkey* other : nearby(hunter, TERRITORY_RADIUS)) {
-        rivals += rival_weight(hunter, *other);
-        own += other->species == hunter.species;
+        // A predator's pack-mates count only PACK_RIVALRY each: its pack mentality overcomes rivalry.
+        const double pack = hunter.species == Species::Predator && herd_mate(hunter, *other) ? PACK_RIVALRY : 1.0;
+        rivals += rival_weight(hunter, *other) * pack;
+        own += (other->species == hunter.species) * pack;
     }
     const auto crowded = [&](double count) {
         return strength * std::min(1.0, std::max(0.0, count - tolerated) / TERRITORY_RAMP);

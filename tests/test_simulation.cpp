@@ -375,7 +375,10 @@ TEST_CASE("territory: the less empathetic tolerate fewer rivals, and only their 
     for (const int x : {11, 12, 13, 17, 18, 19}) simulation.add_agent(encode_dna(Species::Omnivore), x, 15);
     simulation.index_cells();
     CHECK(simulation.territory(callous) == std::pair{0.0, 0.0});  // omnivores are prey, not rivals
-    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(encode_dna(Species::Predator), x, 14);
+    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(callous.dna, x, 16);  // its pack
+    simulation.index_cells();
+    CHECK(simulation.territory(callous) == std::pair{0.0, 0.0});  // is no rival
+    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(encode_dna(Species::Predator) ^ (0xFFFFULL << 48), x, 14);  // another kind
     simulation.index_cells();
     CHECK(simulation.territory(callous) == std::pair{1.0, 1.0});
 }

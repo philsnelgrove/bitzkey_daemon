@@ -333,7 +333,11 @@ export function openGraph(app, onClose) {
     if (s.turn < s.frontier) chosen = `Rewound to turn ${s.turn} of ${s.frontier}.     ${chosen}`;
     else if (s.ended) chosen = `${s.end_note}     ${chosen}`;
     if (!hovered) return chosen;
-    if (!hovered.alive) return `${chosen}     |     dead   ring ${hovered.ring}   dot ${hovered.dot}`;
+    if (!hovered.alive) {
+      let died = hovered.cause ? `died: ${hovered.cause}` : 'dead';
+      if (hovered.killer !== undefined) died += ` by #${pad3(hovered.killer)} ${hovered.killer_species}`;
+      return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  ${died}   ring ${hovered.ring}   dot ${hovered.dot}`;
+    }
     return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  alive   ring ${hovered.ring}   dot ${hovered.dot}`;
   }
 

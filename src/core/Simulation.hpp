@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 #include "core/Brain.hpp"
@@ -108,6 +109,9 @@ inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
 inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
 inline double MATING_CALL = 0.5;      // how much more a predator ready to breed values breeding, or else courting a mate it sees
+inline int MATING_CALL_RANGE = 6;          // a predator ready to breed seeks a mate this far off, beyond its sight
+inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
+inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
 inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this many mouths each on its food, sharing kills
 inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
 inline double CARRION_CRAVING = 1.0;  // how much more an animal values scavenging carrion it sees, at the highest
@@ -141,6 +145,7 @@ inline std::array<double, 2> PANIC = {0.3, 1.0};
 inline double THORN_FORCE = 15;
 inline double THORN_SIZE_SHARE = 0.2;
 inline int TERRITORY_RADIUS = 6;
+inline double PACK_RIVALRY = 0.0;  // how much a predator's pack-mates count as rivals crowding its territory: its pack is no rival
 inline int TERRITORY_RAMP = 3;
 inline double RIVAL_UNEASE = 0.3;
 inline double RIVALRY_WEAR = 0.5;  // how much an overcrowded territory wears down a hunter's reluctance to kill its own species
@@ -173,6 +178,8 @@ inline double SHARED_DIET = 0.5;
 inline double SWITCH_SHARE = 0.5;    // a prey is hunted while it is at least this share of the food
 inline double STRIKE_EFFORT = 0.2;
 inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
+inline double GRAZER_DEFENCE_WEAPONS = 0.5;    // share of its weapons a grazer brings to defence: striking back, and its spines
+inline double OMNIVORE_DEFENCE_WEAPONS = 0.75;  // the same for an omnivore; a predator defends with all of its weapons
 inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging;
                                         // an omnivore's three quarters of that and a grazer's half
 inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with strength above this
@@ -456,6 +463,16 @@ public:
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
     Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier)); }
+    // A death: its cause, and the identifier and species of what killed it, when something did.
+    struct DeathRecord {
+        std::string cause;
+        int killer = -1;
+        Species killer_species = Species::Plant;
+    };
+    const DeathRecord* death_record(int identifier) const {
+        const auto found = death_records_.find(identifier);
+        return found == death_records_.end() ? nullptr : &found->second;
+    }
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
     // A row's temperature now, part way between two while the weather turns.
@@ -562,7 +579,7 @@ public:
     // How much warmer than home a row feels, as a sense: 0.5 a step, from -1 (two or more steps too
     // cold) to 1 (two or more too hot).
     double warmth(const Bitzkey& agent, int y) const;
-    void die(Bitzkey& agent, std::string_view cause);
+    void die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer = nullptr);
     void attack(Bitzkey& agent, Bitzkey& victim);
     void defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd = false);
     void struck(Bitzkey& victim, const Bitzkey& striker);
@@ -614,7 +631,9 @@ public:
     // Other animals, besides its partner, within CROWDING_RADIUS cells; with `own_kind`, only those of its own kind.
     int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
-    static double damage(const Bitzkey& attacker, const Bitzkey& defender);
+    // One blow; struck in defence, a grazer's or omnivore's weapons count for less.
+    static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
+    static double defence_share(const Bitzkey& animal);  // the share of its weapons an animal brings to defence
     // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over, an
     // omnivore's three quarters and a grazer's half as many times.
     static double armed(const Bitzkey& animal);
@@ -705,6 +724,7 @@ private:
     Insights insights_;
     Census census_;
     std::vector<Dna> lineage_;
+    std::unordered_map<int, DeathRecord> death_records_;
     int turn_ = 0;
     int deaths_ = 0;
     DeathCauses death_causes_;

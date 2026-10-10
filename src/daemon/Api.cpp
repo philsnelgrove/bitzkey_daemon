@@ -362,7 +362,14 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                        {"ring", hex_word(body_word(dna))},
                        {"dot", hex_word(mind_word(dna))},
                        {"species", std::string(SPECIES[static_cast<std::size_t>(decode_body(dna)[SpeciesTrait])])}};
-        if (alive) {  // the dead show only their colour
+        if (const Simulation::DeathRecord* record = alive ? nullptr : simulation.death_record(identifier)) {  // how it died
+            result["cause"] = record->cause;
+            if (record->killer >= 0) {
+                result["killer"] = record->killer;
+                result["killer_species"] = std::string(species_name(record->killer_species));
+            }
+        }
+        if (alive) {  // the dead show only their colour, and how they died
             for (const Bitzkey* agent : simulation.living()) {
                 if (agent->identifier == identifier) result["details"] = inspect(*agent, true, simulation.temperature(agent->y));
             }
