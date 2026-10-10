@@ -299,11 +299,19 @@ int thinking_intellect(int intellect, Species species) {
 
 Dna evolved(Dna parent, Dna child) {
     constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
-    const Dna before = (parent >> shift) & 0x3, after = (child >> shift) & 0x3;
-    constexpr Dna plant = 0, predator = 3;
-    const Dna step = after > before ? after - before : before - after;
-    if (after == before || (before != plant && after != plant && (after == predator || step == 1))) return child;
-    return (child & ~(Dna{0x3} << shift)) | (before << shift);
+    const int before = static_cast<int>((parent >> shift) & 0x3), after = static_cast<int>((child >> shift) & 0x3);
+    constexpr int plant = 0, predator = 3;
+    if (after == before) return child;
+    int species;
+    if (before == plant) {
+        species = plant;
+    } else if (after == predator) {
+        species = predator;
+    } else {
+        species = ((before ^ after) & 0x1) ? before + 1 : before - 1;  // the lower bit a step up, the upper a step down
+        if (!(plant < species && species <= predator)) species = before;
+    }
+    return (child & ~(Dna{0x3} << shift)) | (static_cast<Dna>(species) << shift);
 }
 
 Dna predator_dna(Dna dna) {

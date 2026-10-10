@@ -368,9 +368,10 @@ int gestation(int size);  // turns an animal of this body size carries its young
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.
 Dna predator_dna(Dna dna);
-// A child's genome with its species kept to the chain of evolution, grazer, omnivore, predator: a mutation
-// may move it one step either way along the chain, or make any animal a predator, but no further, and never
-// makes a plant an animal or an animal a plant. Any other change of species is undone, the rest as it is.
+// A child's genome with its species moved along the chain of evolution, grazer, omnivore, predator, by a
+// mutation of the species: a flip landing on predator makes any animal a predator; otherwise a flip of the
+// species' lower bit moves it a step up the chain, and of its upper bit a step down. A step off the chain is
+// undone, a plant stays a plant and an animal never becomes one; the rest of the genome is as it is.
 Dna evolved(Dna parent, Dna child);
 // An inborn intellect as it counts for the brain's depth and how much it replays: a predator's
 // PREDATOR_INTELLIGENCE times over, up to the full range.

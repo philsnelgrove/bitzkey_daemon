@@ -233,18 +233,20 @@ TEST_CASE("predators see prey further, and their young are predators") {
 }
 
 TEST_CASE("species evolve along the chain, and plants stay plants") {
-    const std::array<Species, 4> all = {Species::Plant, Species::Grazer, Species::Omnivore, Species::Predator};
-    for (const Species before : all) {
+    // (before, the species bit flipped, after)
+    const std::array<std::tuple<Species, int, Species>, 8> expected = {{
+        {Species::Plant, 0, Species::Plant}, {Species::Plant, 1, Species::Plant},
+        {Species::Grazer, 0, Species::Omnivore}, {Species::Grazer, 1, Species::Predator},
+        {Species::Omnivore, 0, Species::Predator}, {Species::Omnivore, 1, Species::Grazer},
+        {Species::Predator, 0, Species::Predator}, {Species::Predator, 1, Species::Omnivore},
+    }};
+    for (const auto& [before, bit, after] : expected) {
         const Dna parent = encode_dna(before, {{"size", 3}});
-        for (const Species after : all) {
-            const Dna child = (parent & ~(Dna{0x7} << 32)) | (static_cast<Dna>(after) << 32);
-            const int step = std::abs(static_cast<int>(after) - static_cast<int>(before));
-            const bool allowed = after == before || (before != Species::Plant && after != Species::Plant &&
-                                                     (after == Species::Predator || step == 1));
-            CHECK(static_cast<Species>(decode_body(evolved(parent, child))[SpeciesTrait]) == (allowed ? after : before));
-            CHECK(decode_body(evolved(parent, child))[Size] == 3);
-        }
+        const Dna child = evolved(parent, parent ^ (Dna{1} << (32 + bit)));
+        CHECK(static_cast<Species>(decode_body(child)[SpeciesTrait]) == after);
+        CHECK(decode_body(child)[Size] == 3);
     }
+    CHECK(evolved(encode_dna(Species::Grazer), encode_dna(Species::Grazer)) == encode_dna(Species::Grazer));
 }
 
 TEST_CASE("a body is eaten a portion at a time, and gone with the last") {
