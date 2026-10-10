@@ -27,7 +27,7 @@ namespace bitzkey {
 constexpr int GRID_SIZE = 100;
 constexpr int INITIAL_POPULATION = 90;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
-inline double GRASS_REGROWTH = 0.008;  // share of the starting grass that grows back each turn
+inline double GRASS_REGROWTH = 0.016;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_RADIUS = 4;
 inline int CROWDING_LIMIT = 10;
@@ -99,13 +99,18 @@ inline double SOCIAL_LEARNING = 1.0;  // how fast it learns from what it sees, b
 inline double SOCIAL_MOOD = 0.3;      // how much what it sees moves its mood
 inline double SOCIAL_MEMORY = 0.8;    // the share of a seen success or failure it still senses a turn later
 inline double OTHER_KIND = 0.4;
-inline double LEARNING_RATE = 0.09;
+inline double LEARNING_RATE = 0.045;
 // The clever learn faster. The learning rate rises with intellect, and on top of that by up to
 // LEARNING_BOOST times again at the highest; the least intelligent get no boost. And each turn an
 // animal re-learns from REPLAY_PER_INTELLECT of its most recent experiences for each point of its
 // inborn intellect, so the least replay none.
 inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
+inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
+inline double CARRION_CRAVING = 1.0;  // how much more an animal values scavenging carrion it sees, at the highest
+                                      // carrion trait; nothing up to the middle of the trait's range
+inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hunter, for a grazer; to a kill, for a hunter
+inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
 inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
 // Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
@@ -166,8 +171,8 @@ inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with s
 inline double FEAST_JOY = 1.5;   // a predator's pleasure in feasting on a fresh kill
 inline double SATED_JOY = 1.0;   // pleasure in hunger relieved by eating, hunting, feasting or scavenging, per its full range
 inline double ATTACK_JOY = 0.1;  // a predator's pleasure in a blow it lives through
-inline double KILL_MEAL = 25;
-inline double KILL_MEAL_FOR_SIZE = 45;
+inline double KILL_MEAL = 185;
+inline double KILL_MEAL_FOR_SIZE = 200;  // meat is about ten times as filling as grass, and five times plants
 inline double CARRION_MEAT = 30;
 inline double CARRION_MEAT_FOR_SIZE = 50;
 inline double GRAZER_SPEED = 1.5;
@@ -175,16 +180,16 @@ inline int FLEE_RANGE = 3;          // a hunter is only worth fleeing within thi
 inline double HERD_VIGILANCE = 0.5; // how far three herd-mates close by, at full instinct, shrink that range
 inline double GRASS_OUTLOOK = 150;  // judging grass before breeding, count what regrows in this many turns
 inline double STANDING_GRASS = 0.25;  // and this share of the grass standing now
-inline double GRASS_MEAL = 35;
-inline double PLANT_MEAL = 45;
-inline double PLANT_MEAL_FOR_SIZE = 25;
+inline double GRASS_MEAL = 18;  // hunger a tuft of grass sates: about a tenth of a middle-sized kill
+inline double PLANT_MEAL = 37;  // hunger a bite of a plant sates, plus up to PLANT_MEAL_FOR_SIZE for the largest:
+inline double PLANT_MEAL_FOR_SIZE = 66;  // a fifth of a kill of the same size
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
 inline int PLANT_RECOVERY = 8;
 // A desperate grazer, starving with food scarce about it, may uproot a plant beside it: it eats this
 // many times a bite's meal, and tears this much of the plant's health away, recovering or not.
 inline int UPROOT_HUNGER = 80;  // starving: hunger at least this
-inline double UPROOT_MEALS = 2.0;
+inline double UPROOT_MEALS = 0.5;  // share of a feast on a body of the plant's size an uprooting grazer eats
 inline int UPROOT_BITE = 45;
 inline std::array<double, 2> SEED_CHANCE = {0.03, 0.10};
 inline double SEED_COST = 20;
@@ -207,7 +212,7 @@ inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its ye
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
-inline double CLIMATE_DAMAGE = 0.1;   // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
+inline double CLIMATE_DAMAGE = 0.02;   // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
 inline int GRASS_DIEBACK = 20;     // where it isn't medium, a cell's grass loses a tuft every this many turns
 // The weather turns in waves, one in each climate zone, all setting off together as the season turns,
@@ -301,7 +306,8 @@ struct Bitzkey {
     double own_rivalry = 0.0;           // the same, counting only its own species
     bool hunts_grazers = true;          // hunters: whether grazers were common enough to hunt
     bool hunts_omnivores = true;        // predators: the same for omnivores
-    std::optional<int> alarm;           // what struck a herd-mate close by since it last acted
+    std::optional<int> alarm;           // what struck a herd-mate close by since it last acted, or it was alerted to
+    std::optional<Cell> kill_alert;     // where a pack-mate alerted it to a fresh kill since it last acted
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     std::optional<int> herd_assailant;  // what struck a herd-mate close by, from alongside it
@@ -499,6 +505,7 @@ public:
         Bitzkey* carrion = nullptr;
         Bitzkey* kill = nullptr;
         Bitzkey* flora = nullptr;
+        Bitzkey* alert_to = nullptr;  // what it may alert its herd to
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
         int kin = 0;
@@ -576,6 +583,7 @@ public:
     std::uintmax_t history_bytes() const { return history_bytes_; }  // the memory they take, near enough
     // The climate zones from top to bottom, each the rows it covers outside the winters.
     std::vector<std::vector<int>> zones() const;
+    void alert(Bitzkey& agent, const Bitzkey& about);  // alert its herd to a hunter, or a fresh kill
     void scavenge(Bitzkey& agent, Bitzkey& corpse);
     void feast(Bitzkey& agent, Bitzkey& corpse);
     void eat_portion(Bitzkey& corpse);  // a portion of a body eaten: once the last is, the body is gone at the turn's end
@@ -606,6 +614,9 @@ public:
     static bool same_kind(const Bitzkey& first, const Bitzkey& second);
     static double cannibal_reluctance(const Bitzkey& animal);
     static double rival_weight(const Bitzkey& hunter, const Bitzkey& other);
+    // Whether an animal's blows would bring the opponent down as fast as the opponent's would bring it down,
+    // each as it stands now.
+    static bool would_win(const Bitzkey& agent, const Bitzkey& opponent);
     static bool is_prey(const Bitzkey& hunter, const Bitzkey& other);
     static bool feeds_on(const Bitzkey& eater, const Bitzkey& other);
     static double diet_share(const Bitzkey& eater, const Bitzkey& other);

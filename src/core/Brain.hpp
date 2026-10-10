@@ -29,6 +29,7 @@ enum Sense : int {
     SensePreyNear,         // adjacent prey, 0..4 scaled to 0..1
     SensePreyFrailty,      // share of the frailest adjacent prey's health one blow would take
     SensePreyCloseness,    // 1 when prey is adjacent, falling to 0 beyond sight
+    SensePreyPregnant,     // 1 when the nearest prey in sight carries young
     SenseThreatNear,       // adjacent hunters, 0..4 scaled to 0..1
     SenseThreatDanger,     // share of its own health the worst adjacent hunter's blow would take
     SenseThreatCloseness,  // 1 when a hunter is adjacent, falling to 0 beyond sight
@@ -42,7 +43,8 @@ enum Sense : int {
     SenseRivalry,          // predators and omnivores: how overcrowded its territory is with rivals
     SenseHerdNear,         // herd-mates within two cells, 0..3 scaled to 0..1
     SenseHerdCloseness,    // 1 at the middle of its herd in range, falling to 0 at the range's edge
-    SenseAlarm,            // 1 when a herd-mate close by was struck since it last acted
+    SenseAlarm,            // 1 when a herd-mate close by was struck, or alerted it to a hunter, since it last acted
+    SenseKillAlert,        // 1 when a pack-mate alerted it to a fresh kill, still there, since it last acted
     SenseHerdSuccess,      // 1 when it has just seen a herd-mate succeed (a kill), fading turn by turn
     SenseHerdFailure,      // 1 when it has just seen a herd-mate fail (die), fading turn by turn
     SenseClimateDiscomfort,  // how far the temperature here is from home, as it feels it: 0.5 a step, to 1 two or more
@@ -60,11 +62,11 @@ enum Sense : int {
     SenseMind,             // then its current temperament, each trait 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest };
-constexpr int ACTION_COUNT = 22;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert };
+constexpr int ACTION_COUNT = 23;
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
-    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west"};
+    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west", "alert"};
 constexpr int SenseInborn = SenseMind + MIND_TRAIT_COUNT;  // then its dot's traits, as born, 0..1
 constexpr int SenseBody = SenseInborn + MIND_TRAIT_COUNT;  // then its ring's traits, 0..1 (species 0 plant to 1 predator)
 constexpr int SenseHomeTemperature = SenseBody + BODY_TRAIT_COUNT;  // then its climate genes: home 0 hot to 1 very cold,
@@ -73,9 +75,9 @@ constexpr int SenseColdTolerance = SenseHeatTolerance + 1;
 constexpr int INPUT_SIZE = SenseColdTolerance + 1;
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
-    "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "threat_near", "threat_danger",
+    "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "prey_pregnant", "threat_near", "threat_danger",
     "threat_closeness", "kin_near", "others_near", "carrion_closeness", "kill_closeness", "plant_closeness",
-    "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "herd_success", "herd_failure",
+    "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
     "warmth_north", "warmth_south", "aggression", "libido", "sociability", "curiosity",
     "fear", "appetite", "patience", "intellect", "empathy", "tolerance", "inborn_aggression",

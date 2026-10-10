@@ -146,6 +146,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .screen .screen-title b { font: bold 22px var(--sans); color: rgb(229, 239, 220); }
 .screen .screen-title span { font-size: 12px; color: rgb(144, 170, 151); }
 .screen .lead { font-size: 15px; color: rgb(157, 177, 159); margin: 10px 0 14px; }
+.screen .lead.natural-law { color: rgb(229, 239, 220); margin-bottom: 0; }
 .screen .screen-foot { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
 .screen .screen-foot button { font-size: 18px; padding: 10px 28px; min-width: 140px; }
 .screen .screen-note { white-space: pre; overflow: hidden; text-overflow: ellipsis; text-align: center; font-size: 12px; color: rgb(130, 152, 136); margin-top: 10px; min-height: 16px; }

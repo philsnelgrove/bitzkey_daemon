@@ -602,6 +602,8 @@ TEST_CASE("a body is a fresh kill through its death turn and three more, then ca
 }
 
 TEST_CASE("a hunter eats a fresh kill whole for three times the kill meal") {
+    const double kill_meal = KILL_MEAL;
+    KILL_MEAL = 25;  // a meal small enough to measure, short of filling it
     Simulation simulation = world();
     Bitzkey& corpse = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
     corpse.health = 0;
@@ -618,6 +620,7 @@ TEST_CASE("a hunter eats a fresh kill whole for three times the kill meal") {
     const int identifier = corpse.identifier;
     simulation.take_turn();
     for (const auto& agent : simulation.agents()) CHECK(agent->identifier != identifier);  // the body is gone
+    KILL_MEAL = kill_meal;
 }
 
 TEST_CASE("only hunters feast, and only on what they live on") {
@@ -757,9 +760,9 @@ TEST_CASE("a starving grazer with food scarce may uproot a plant beside it") {
     plant.cooldown = 5;  // still recovering from a bite: it can't be browsed, but it can be uprooted
     Simulation::Sensed sensed = simulation.sense(grazer);
     CHECK((offered(sensed, Uproot) && !offered(sensed, Browse)));
-    const double meal = PLANT_MEAL * grazer.browsing * UPROOT_MEALS / grazer.stomach;
+    const double meal = UPROOT_MEALS * FRESH_KILL_MEALS * KILL_MEAL / grazer.stomach;  // half a feast on a body of its size
     simulation.act(grazer, Uproot, sensed.situation);
-    CHECK(grazer.hunger == doctest::Approx(85 - meal));
+    CHECK(grazer.hunger == doctest::Approx(std::max(0.0, 85 - meal)));  // it may fill it
     CHECK((plant.health == doctest::Approx(60 - UPROOT_BITE) && grazer.last_action == "uprooted"));
     grazer.hunger = 85;
     sensed = simulation.sense(grazer);
@@ -901,6 +904,9 @@ TEST_CASE("starving is recorded and its body handled however it comes") {
     Bitzkey& herd_mate = simulation.add_agent(grazer.dna, 11, 10);
     simulation.index_cells();
     simulation.think(grazer);  // a decision to learn from
+    herd_mate.x = grazer.x + 1;  // still alongside, wherever that took it
+    herd_mate.y = grazer.y;
+    simulation.index_cells();
     grazer.hunger = 100.5;      // starved by something that recorded nothing
     const int deaths = simulation.deaths();
     simulation.advance();

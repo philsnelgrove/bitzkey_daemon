@@ -293,6 +293,7 @@ export function openSetup(app, onClose) {
             }
             refresh();
           } }, 'RESET ALL')),
+        element('div', { class: 'lead natural-law' }, "These are the settings for what might be called 'natural law'.  They have been carefully balanced to produce a world with fair chances for all.  Messing with any of them can produce unpredictable results.  Have fun!"),
         lead, list,
         element('div', { class: 'screen-foot' },
           element('button', { onclick: closeAdvanced }, 'CANCEL'),

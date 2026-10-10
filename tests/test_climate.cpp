@@ -38,6 +38,13 @@ std::vector<double> bands(std::initializer_list<std::pair<int, int>> runs) {
 
 }  // namespace
 
+// These tests measure exposure's harm at the harsher rate climate began with, a tenth of full health a step.
+struct HarshClimate {
+    double saved = CLIMATE_DAMAGE;
+    HarshClimate() { CLIMATE_DAMAGE = 0.1; }
+    ~HarshClimate() { CLIMATE_DAMAGE = saved; }
+};
+
 TEST_CASE("zones band the map arctic, temperate, equator, temperate, arctic") {
     std::vector<double> rows;
     for (int y = 0; y < 100; ++y) rows.push_back(zone_temperature(y, 100));
@@ -104,6 +111,7 @@ TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the wa
 }
 
 TEST_CASE("while the weather turns, its effects turn with it") {
+    const HarshClimate harsh;
     Simulation simulation = world_at(116);  // at turn 117, next, the temperate zone's front has turned row 32 0.6 of the way to cold
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 50, 32);
     simulation.add_agent(encode_dna(Species::Predator), 90, 90);
@@ -160,6 +168,7 @@ TEST_CASE("hardiness halves an animal's exposure in one direction, and plants ha
 }
 
 TEST_CASE("a hardy animal suffers half the extra hunger and damage") {
+    const HarshClimate harsh;
     Simulation simulation = world_at(239);  // mid-year, mild, the weather settled
     Bitzkey& tender = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}}), 20, 10);  // the arctic: two steps too cold
     Bitzkey& hardy = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"cold_tolerance", 1}}), 40, 10);
@@ -174,6 +183,7 @@ TEST_CASE("a hardy animal suffers half the extra hunger and damage") {
 }
 
 TEST_CASE("a step from home doubles an animal's food, and two steps also hurt") {
+    const HarshClimate harsh;
     Simulation simulation = world_at(239);  // the next turn is in the second quarter: no winter
     Bitzkey& at_home = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 10, 30);
     Bitzkey& one_away = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 30, 30);
@@ -210,6 +220,7 @@ TEST_CASE("tolerance is rare in the starting genomes") {
 }
 
 TEST_CASE("winter turns a home zone hostile, and the cold can kill") {
+    const HarshClimate harsh;
     Simulation simulation = world_at(149);  // by turn 150, next, the north's winter has set in
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}}), 50, 10);
     grazer.health = 5;
@@ -220,6 +231,7 @@ TEST_CASE("winter turns a home zone hostile, and the cold can kill") {
 }
 
 TEST_CASE("a plant out of its temperature withers without growing or seeding, and two steps hurt") {
+    const HarshClimate harsh;
     Simulation simulation = world_at(239);
     Bitzkey& one_away = simulation.add_agent(encode_dna(Species::Plant, {{"temperature", Hot}, {"fertility", 7}}), 50, 30);
     Bitzkey& two_away = simulation.add_agent(encode_dna(Species::Plant, {{"temperature", VeryCold}, {"fertility", 7}}), 20, 30);

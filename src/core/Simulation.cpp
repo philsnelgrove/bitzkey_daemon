@@ -1083,7 +1083,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             const double urge = HUNTING_INSTINCT * std::min(1.0, agent.hunger / 100);
             valued[Hunt] += urge;
             valued[Attack] += urge;
+            valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
         }
+        valued[Scavenge] += CARRION_CRAVING * std::max(0.0, 2 * agent.physique(Carrion) - 1);  // a carrion-eater's craving
         const auto odds = choice_odds(valued, options);
         double roll = random_.random();
         int choice = options.back();
@@ -1111,6 +1113,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.panicked = false;
         agent.alarm.reset();
         agent.herd_assailant.reset();
+        agent.kill_alert.reset();
         choices.push_back(choice);
     }
     if (gpu_) {  // the brains of all about to breed, and their mates', back from the GPUs at once
@@ -1217,15 +1220,27 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     const double here = in_bounds(agent.x, agent.y) ? temperature(agent.y) : Medium;
     const double discomfort = agent.climate_steps(here);
     const std::optional<Cell> comfort = discomfort > 0 ? comfort_row(agent, sight) : std::nullopt;
+    Bitzkey* const seen_hunter = s.hunter;  // what it sees itself, to alert its herd to
     bool alarmed = false;
     if (agent.alarm) {
-        for (Bitzkey* other : nearby(agent, 3)) {
+        for (Bitzkey* other : nearby(agent, ALARM_REACH)) {
             if (other->identifier == *agent.alarm) {
                 alarmed = true;
-                if (!s.hunter) s.hunter = other;  // the herd's alarm: flight from whatever struck a herd-mate
+                if (!s.hunter) s.hunter = other;  // the herd's alarm: flight from whatever struck a herd-mate, or it was alerted to
                 break;
             }
         }
+    }
+    Bitzkey* const seen_kill = s.kill;
+    Bitzkey* alerted_kill = nullptr;
+    if (agent.kill_alert && in_bounds(agent.kill_alert->x, agent.kill_alert->y)) {  // a pack-mate's alert
+        for (Bitzkey* corpse : kills_[static_cast<std::size_t>(agent.kill_alert->y) * width_ + agent.kill_alert->x]) {
+            if (feeds_on(agent, *corpse)) {
+                alerted_kill = corpse;
+                break;
+            }
+        }
+        if (!s.kill) s.kill = alerted_kill;  // a fresh kill it may not see itself
     }
 
     std::array<bool, ACTION_COUNT> available{};
@@ -1260,6 +1275,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         // Starving, with food scarce: it may tear into a plant beside it.
         available[Uproot] = s.uprootable && food_supply(agent) < FOOD_NEEDED;
     }
+    if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
+        if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
+        else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
+    }
+    available[Alert] = s.alert_to != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -1278,6 +1298,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SensePreyNear] = std::min<int>(4, static_cast<int>(prey.size())) / 4.0;
     senses[SensePreyFrailty] = s.prey ? std::min(1.0, damage(agent, *s.prey) / s.prey->health) : 0.0;
     senses[SensePreyCloseness] = closeness(agent, cell_of(s.quarry), prey_sight);
+    senses[SensePreyPregnant] = s.quarry && !s.quarry->womb.empty();
     senses[SenseThreatNear] = std::min<int>(4, static_cast<int>(threats.size())) / 4.0;
     senses[SenseThreatDanger] = s.threat ? std::min(1.0, damage(*s.threat, agent) / agent.health) : 0.0;
     senses[SenseThreatCloseness] = closeness(agent, cell_of(s.hunter), sight);
@@ -1295,6 +1316,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         view.middle ? std::max(0.0, 1 - static_cast<double>(distance(view.middle->x, view.middle->y, agent.x, agent.y)) / HERD_RADIUS)
                     : 0.0;
     senses[SenseAlarm] = agent.alarm.has_value();
+    senses[SenseKillAlert] = alerted_kill != nullptr;
     senses[SenseHerdSuccess] = agent.seen_success;
     senses[SenseHerdFailure] = agent.seen_failure;
     senses[SenseClimateDiscomfort] = std::min(2.0, discomfort) / 2;
@@ -1457,6 +1479,9 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
             move_toward(agent, s.herd_middle->x, s.herd_middle->y);
             agent.last_action = "herded";
             break;
+        case Alert:
+            alert(agent, *s.alert_to);
+            break;
         case GoNorth:
         case GoSouth:
         case GoEast:
@@ -1509,8 +1534,8 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
         agent.last_action = "sought plants";
         return;
     }
-    const double meal = (PLANT_MEAL + PLANT_MEAL_FOR_SIZE * plant.physique(Size)) * agent.browsing * plant_yield(plant);
-    agent.nourish(meal * UPROOT_MEALS);
+    const double feast = FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * plant.physique(Size));  // on a body of its size
+    agent.nourish(UPROOT_MEALS * feast * plant_yield(plant));
     plant.health -= UPROOT_BITE;
     plant.cooldown = PLANT_RECOVERY;
     agent.last_action = "uprooted";
@@ -1519,6 +1544,21 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
     }
+}
+
+void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
+    // Its herd within HERD_RADIUS: a grazer alerts them to the hunter it sees, so they may flee it from further
+    // than they would; a hunter to the fresh kill it sees, so they may come to feast on it.
+    for (Bitzkey* other : nearby(agent, HERD_RADIUS)) {
+        if (!herd_mate(agent, *other)) continue;
+        if (agent.species == Species::Grazer) {
+            if (!other->alarm) other->alarm = about.identifier;
+        } else {
+            other->kill_alert = Cell{about.x, about.y};
+        }
+    }
+    agent.reward += ALERT_JOY;
+    agent.last_action = "alerted";
 }
 
 void Simulation::scavenge(Bitzkey& agent, Bitzkey& corpse) {
@@ -2112,7 +2152,7 @@ std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
     // Which prey a hunter goes after, grazers and omnivores. A predator always hunts both. An omnivore
     // hunts grazers only while they make up at least SWITCH_SHARE of the food weighed within
     // FORAGE_RADIUS, against plants, or while none of that food is near at all.
-    if (hunter.species == Species::Predator) return {true, true};  // grazers and omnivores are always prey to a predator
+    if (hunter.species == Species::Predator) return {true, true};  // grazers are always prey to a predator, and omnivores it would beat
     int grazers = 0, omnivores = 0, plants = 0;
     for (const Bitzkey* other : nearby(hunter, FORAGE_RADIUS)) {
         grazers += other->species == Species::Grazer;
@@ -2125,6 +2165,10 @@ std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
     return {common(grazers, grazers + plants), false};
 }
 
+bool Simulation::would_win(const Bitzkey& agent, const Bitzkey& opponent) {
+    return damage(agent, opponent) / std::max(1.0, opponent.health) >= damage(opponent, agent) / std::max(1.0, agent.health);
+}
+
 bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (hunter.species == Species::Omnivore) {
         // Grazers while they are common enough to switch to, and other omnivores only in an
@@ -2135,7 +2179,7 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     }
     if (hunter.species != Species::Predator) return false;
     if (other.species == Species::Grazer) return hunter.hunts_grazers;
-    if (other.species == Species::Omnivore) return hunter.hunts_omnivores;
+    if (other.species == Species::Omnivore) return hunter.hunts_omnivores && would_win(hunter, other);  // only one it would beat
     if (other.species != Species::Predator) return false;
     // Other predators, of whatever kind, only when hungry past its reluctance, which a territory
     // overcrowded with predators wears away.
