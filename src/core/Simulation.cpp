@@ -1085,6 +1085,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             valued[Attack] += urge;
             valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
         }
+        if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && agent.can_breed()) {
+            valued[Court] += MATING_CALL;  // the mating call
+        }
         valued[Scavenge] += CARRION_CRAVING * std::max(0.0, 2 * agent.physique(Carrion) - 1);  // a carrion-eater's craving
         const auto odds = choice_odds(valued, options);
         double roll = random_.random();
@@ -1156,7 +1159,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     Sensed sensed;
     Situation& s = sensed.situation;
     const std::vector<Bitzkey*> neighbors = nearby(agent, 1);
-    for (Bitzkey* other : neighbors) {
+    for (Bitzkey* other : nearby(agent, MATE_REACH)) {  // close enough to breed with
         if (compatible(agent, *other) && other->can_breed()) {
             s.mate = other;
             break;
@@ -1443,7 +1446,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
             break;
         case Breed: {
             Bitzkey& mate = *s.mate;
-            if (!(mate.alive() && mate.can_breed() && agent.can_breed() && distance(mate.x, mate.y, agent.x, agent.y) <= 1)) {
+            if (!(mate.alive() && mate.can_breed() && agent.can_breed() && distance(mate.x, mate.y, agent.x, agent.y) <= MATE_REACH)) {
                 agent.last_action = "was spurned";  // its mate died, moved off or bred with another first
                 break;
             }
@@ -2137,7 +2140,11 @@ double Simulation::food_supply(const Bitzkey& agent) const {
         } else if (feeds_on(agent, *other)) {
             food += PREY_MEALS;
         } else {
-            mouths += diet_share(agent, *other);
+            double share = diet_share(agent, *other);
+            if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && herd_mate(agent, *other)) {
+                share *= PACK_MOUTHS;  // a pack shares its kills
+            }
+            mouths += share;
         }
     }
     return food / mouths;

@@ -443,11 +443,14 @@ TEST_CASE("each species weighs the food it eats against the mouths sharing it") 
     simulation.index_cells();
     simulation.set_grass_regrowth(0);  // judge the standing grass alone
     CHECK(simulation.food_supply(grazer) == doctest::Approx(1.25 * (0.25 * 6 + 2) / (1 + 1 + 0.5)));
-    CHECK(simulation.food_supply(omnivore) == doctest::Approx((0.5 * 0.25 * 6 + 0.75 * 2 + 2 * 2) / (1 + 0.5)));
-    CHECK(simulation.food_supply(predator) == doctest::Approx(3 * 2));
-    simulation.add_agent(encode_dna(Species::Predator) ^ (0xFFULL << 56), 18, 16);  // a rival, not food
+    CHECK(simulation.food_supply(omnivore) == doctest::Approx((0.5 * 0.25 * 6 + 0.75 * 2 + 2 * PREY_MEALS) / (1 + 0.5)));
+    CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS));
+    simulation.add_agent(encode_dna(Species::Predator) ^ (0xFFFFULL << 48), 18, 16);  // a rival of another kind, not food
     simulation.index_cells();
-    CHECK(simulation.food_supply(predator) == doctest::Approx(3 * 2 / 2.0));
+    CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS / 2.0));
+    simulation.add_agent(predator.dna, 18, 14);  // a pack-mate shares its kills, so counts as only part of a mouth
+    simulation.index_cells();
+    CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS / (2 + PACK_MOUTHS)));
 }
 
 TEST_CASE("scarce food stops breeding, and plenty allows full litters") {

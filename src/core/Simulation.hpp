@@ -106,6 +106,9 @@ inline double LEARNING_RATE = 0.045;
 // inborn intellect, so the least replay none.
 inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
+inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
+inline double MATING_CALL = 1.0;      // how much more a predator or omnivore ready to breed values courting a mate it sees
+inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this many mouths each on its food, sharing kills
 inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
 inline double CARRION_CRAVING = 1.0;  // how much more an animal values scavenging carrion it sees, at the highest
                                       // carrion trait; nothing up to the middle of the trait's range
@@ -157,7 +160,7 @@ inline double KIND_DIFFERENCE = 0.25;
 inline int FORAGE_RADIUS = 6;
 inline double FOOD_NEEDED = 3.0;
 inline double PLANT_MEALS = 2.0;   // meals a plant is worth to a full-efficiency browser
-inline double PREY_MEALS = 2.0;    // meals a prey animal is worth
+inline double PREY_MEALS = 10.0;  // meals a prey animal is worth: meat fills about ten times what grass does
 inline double SHARED_DIET = 0.5;
 // Prey switching: a hunter goes after a kind of prey only while it makes up at least SWITCH_SHARE
 // of the food it weighs within FORAGE_RADIUS (for omnivores, grazers against plants; for predators,
