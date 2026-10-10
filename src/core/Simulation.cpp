@@ -1085,8 +1085,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             valued[Attack] += urge;
             valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
         }
-        if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && agent.can_breed()) {
-            valued[Court] += MATING_CALL;  // the mating call
+        if (agent.species == Species::Predator && agent.can_breed()) {
+            // The mating call: to breed if it can, else to court a mate it sees.
+            const bool can = std::find(options.begin(), options.end(), Breed) != options.end();
+            valued[can ? Breed : Court] += MATING_CALL;
         }
         valued[Scavenge] += CARRION_CRAVING * std::max(0.0, 2 * agent.physique(Carrion) - 1);  // a carrion-eater's craving
         const auto odds = choice_odds(valued, options);
@@ -1821,7 +1823,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     for (int index = 0; index < 2; ++index) {
         Bitzkey& parent = *pair[index];
         parent.hunger += costs[index];
-        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * BREED_COOLDOWN));
+        const double rest = parent.species == Species::Predator ? PREDATOR_BREED_COOLDOWN : BREED_COOLDOWN;
+        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest));
         parent.children += litter;
         parent.reward += BREED_JOY * parent.feeling(Libido);
         if (!parent.alive()) {
