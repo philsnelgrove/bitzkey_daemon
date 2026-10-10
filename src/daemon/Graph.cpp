@@ -113,10 +113,15 @@ void Graph::build(const Simulation& simulation, const GraphView& view) {
     peak_ = nice_ceiling(static_cast<double>(most));
 }
 
+std::pair<double, double> Graph::scale(const GraphView& view) const {
+    const int height = std::max(1, view.height);
+    return {height * view.zoom / peak_, height + view.floor * view.zoom * height};
+}
+
 std::string Graph::image(const Simulation& simulation, const GraphView& view, const std::set<int>& selection) {
     build(simulation, view);
     const int height = std::max(1, view.height);
-    const double unit = height / peak_;
+    const auto [unit, base] = scale(view);
     std::string out;
     out += "BZG1";
     put<std::uint32_t>(out, static_cast<std::uint32_t>(bars_.size()));
@@ -143,7 +148,7 @@ std::string Graph::image(const Simulation& simulation, const GraphView& view, co
             for (int y = y0; y < y1; ++y) column[static_cast<std::size_t>(y)] = colour;
         };
         std::optional<Rgb> run_colour;
-        double run_top = 0, run_bottom = 0, bottom = height;
+        double run_top = 0, run_bottom = 0, bottom = base;
         for (const int identifier : bar.members) {
             auto found = colours.find(identifier);
             if (found == colours.end()) {
@@ -171,7 +176,7 @@ std::string Graph::image(const Simulation& simulation, const GraphView& view, co
     }
     std::map<int, std::pair<double, double>> bands;  // species -> (top, bottom) in the last bar
     if (!bars_.empty()) {
-        double bottom = height;
+        double bottom = base;
         for (const int identifier : bars_.back().members) {
             const int species = decode_body(simulation.lineage(identifier))[SpeciesTrait];
             const double top = bottom - unit;
@@ -196,11 +201,11 @@ std::string Graph::image(const Simulation& simulation, const GraphView& view, co
 
 std::set<int> Graph::living_in(const Simulation& simulation, const GraphView& view, int bar_from, int bar_to, double top, double bottom) {
     build(simulation, view);
-    const double unit = std::max(1, view.height) / peak_;
+    const auto [unit, base] = scale(view);
     std::set<int> found;
     const int last = static_cast<int>(bars_.size()) - 1;
     for (int index = std::max(0, std::min(bar_from, bar_to)); index <= std::min(last, std::max(bar_from, bar_to)); ++index) {
-        double slice_bottom = std::max(1, view.height);
+        double slice_bottom = base;
         for (const int identifier : bars_[static_cast<std::size_t>(index)].members) {
             const double slice_top = slice_bottom - unit;
             if (slice_bottom > top && slice_top < bottom && alive_.contains(identifier)) found.insert(identifier);
@@ -213,9 +218,9 @@ std::set<int> Graph::living_in(const Simulation& simulation, const GraphView& vi
 std::optional<std::pair<int, bool>> Graph::at(const Simulation& simulation, const GraphView& view, int bar, double y) {
     build(simulation, view);
     if (bar < 0 || bar >= static_cast<int>(bars_.size())) return std::nullopt;
-    const double unit = std::max(1, view.height) / peak_;
+    const auto [unit, base] = scale(view);
     const auto& members = bars_[static_cast<std::size_t>(bar)].members;
-    const double from_bottom = std::max(1, view.height) - y;
+    const double from_bottom = base - y;
     if (from_bottom < 0) return std::nullopt;
     const auto slot = static_cast<std::size_t>(from_bottom / unit);
     if (slot >= members.size()) return std::nullopt;

@@ -1,6 +1,7 @@
 // The colour graph: every Bitzkey alive over time, stacked in its own colour, by species, as in the
-// window app. The daemon draws the bars; this lays them out, zooms and pans through the run, travels in
-// time along the timeline, and picks Bitzkeys by click or box, sharing the pick with the map.
+// window app. The daemon draws the bars; this lays them out, zooms (into the run, and as on the map into
+// the height around the pointer) and pans by dragging with the right or middle button, travels in time
+// along the timeline, and picks Bitzkeys by click or box, sharing the pick with the map.
 
 import { api, binary, element, upper, plural, pad3 } from './common.js';
 import { drawIcon, SPECIES, pyRound } from './draw.js';
@@ -10,6 +11,7 @@ const BAR_PIXELS = 5;
 const DRAG_THRESHOLD = 4;
 const MIN_VIEW = 10;
 const ZOOM_STEP = 0.8;
+const HEIGHT_ZOOM_MAX = 32;  // the closest the graph zooms into its height, times the whole
 const YEAR_LABEL_SPACING = 56;
 const FONT = '12px "Segoe UI", "Noto Sans", "DejaVu Sans", Arial, sans-serif';
 const LEFT = 64, RIGHT = 4, TOP = 20, TIMELINE = 24, GAP = 4;
@@ -19,6 +21,8 @@ let sorts = null;
 export function openGraph(app, onClose) {
   let dot = false, sort = 0;
   let view = null, pinned = false;  // the turns shown when zoomed in, and whether that keeps to the latest
+  let heightZoom = 1, floor = 0;    // how far zoomed into the height, and the share of the full height at the bottom
+  let panning = null;               // a drag with the right or middle button: where, which, the view and floor then, moved
   let image = null;                 // the bars as last drawn by the daemon
   let requestKey = '', loading = false, again = false;
   let press = null, scrub = null, mouse = null, hovered = null, hoverTimer = null, hoverAsked = '';
@@ -46,7 +50,7 @@ export function openGraph(app, onClose) {
       element('button', { onclick: () => app.catalogIdentifiers([...app.selection]) }, 'ADD TO CATALOG'),
       mapButton),
     element('div', { class: 'graph-help' },
-      element('span', {}, 'Select: click, or drag a box (SHIFT adds, CTRL removes)    Time: drag the timeline, or right-click    Zoom: wheel, SHIFT+wheel pans'),
+      element('span', {}, 'Select: click, or drag a box (SHIFT adds, CTRL removes)    Time: drag the timeline, or right-click    Zoom: wheel    Pan: right-drag    Z: all'),
       element('button', { onclick: () => app.browseCatalog() }, 'OPEN CATALOG')));
   const shade = element('div', { class: 'shade' }, panel);
   document.body.append(shade, tooltip);
@@ -97,6 +101,36 @@ export function openGraph(app, onClose) {
     view = [newFirst, newFirst + newSpan - 1];
     pinned = view[1] >= frontier();
   }
+  function zoomHeight(notches, y) {
+    // As the map zooms: the population under the pointer stays put.
+    const chart = chartRect();
+    const up = (chart.y + chart.h - y) / Math.max(1, chart.h);
+    const share = floor + up / heightZoom;
+    heightZoom = Math.max(1, Math.min(HEIGHT_ZOOM_MAX, heightZoom * (1 / ZOOM_STEP) ** notches));
+    setFloor(share - up / heightZoom);
+  }
+  function setFloor(value) {
+    floor = Math.max(0, Math.min(1 - 1 / heightZoom, value));
+  }
+  function drag(started, to) {
+    // The graph follows the pointer: in time while zoomed into it, in height while zoomed into that.
+    const chart = chartRect();
+    if (view) {
+      const [first, last] = started.view;
+      const span = last - first + 1;
+      const shift = pyRound((to.x - started.x) * span / Math.max(1, chart.w));
+      const newFirst = Math.max(0, Math.min(frontier() + 1 - span, first - shift));
+      view = [newFirst, newFirst + span - 1];
+      pinned = view[1] >= frontier();
+    }
+    setFloor(started.floor + (to.y - started.y) / Math.max(1, chart.h) / heightZoom);
+  }
+  function unzoom() {
+    view = null;
+    pinned = false;
+    heightZoom = 1;
+    floor = 0;
+  }
   function pan(notches) {
     if (!view) return;
     const [first, last] = window_();
@@ -108,7 +142,8 @@ export function openGraph(app, onClose) {
 
   function graphView() {
     const chart = chartRect(), [first, last] = window_();
-    return { first, last, bars: Math.max(1, Math.floor(chart.w / BAR_PIXELS)), height: Math.round(chart.h), dot, sort };
+    return { first, last, bars: Math.max(1, Math.floor(chart.w / BAR_PIXELS)), height: Math.round(chart.h), dot, sort,
+             zoom: heightZoom, floor };
   }
 
   // ---- Fetching and drawing
@@ -195,7 +230,11 @@ export function openGraph(app, onClose) {
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'right';
       ctx.fillStyle = 'rgb(149,170,150)';
-      for (const fraction of [0, 0.5, 1]) ctx.fillText(String(image.peak * fraction), chart.x - 8, chart.y + chart.h - fraction * chart.h);
+      const zoomed = image.asked.zoom, lowest = image.asked.floor;
+      for (const fraction of [0, 0.5, 1]) {
+        const value = image.peak * (lowest + fraction / zoomed);
+        ctx.fillText(zoomed === 1 ? String(value) : String(Math.round(value)), chart.x - 8, chart.y + chart.h - fraction * chart.h);
+      }
       labelSpecies(chart);
     }
     drawTimeline(chart, timeline);
@@ -216,7 +255,8 @@ export function openGraph(app, onClose) {
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     for (const band of image.bands) {
-      const top = chart.y + band.top * scaleY, bottom = chart.y + band.bottom * scaleY;
+      const top = Math.max(chart.y, chart.y + band.top * scaleY);  // the part in view
+      const bottom = Math.min(chart.y + chart.h, chart.y + band.bottom * scaleY);
       if (bottom - top < 15) continue;
       const label = `${upper(SPECIES[band.species])}S`;
       const textWidth = ctx.measureText(label).width;
@@ -261,8 +301,9 @@ export function openGraph(app, onClose) {
     }
     ctx.strokeStyle = 'rgb(54,68,62)';
     ctx.strokeRect(timeline.x + 0.5, timeline.y + 0.5, timeline.w - 1, timeline.h - 1);
-    const middle = !view ? `TURN ${Math.floor((first + last) / 2)}`
-                         : `TURNS ${first} - ${last}  (ZOOM x${((frontier() + 1) / (last - first + 1)).toFixed(1)})`;
+    let middle = !view ? `TURN ${Math.floor((first + last) / 2)}`
+                       : `TURNS ${first} - ${last}  (ZOOM x${((frontier() + 1) / (last - first + 1)).toFixed(1)})`;
+    if (heightZoom > 1) middle += `  (HEIGHT x${heightZoom.toFixed(1)})`;
     ctx.fillStyle = 'rgb(149,170,150)';
     ctx.textBaseline = 'middle';
     const y = timeline.y + timeline.h / 2;
@@ -367,6 +408,11 @@ export function openGraph(app, onClose) {
     lastClient = { x: event.clientX, y: event.clientY };
     mouse = point(event);
     if (scrub !== null) scrub = turnAt(mouse.x);
+    if (panning && (panning.moved || Math.max(Math.abs(mouse.x - panning.x), Math.abs(mouse.y - panning.y)) >= DRAG_THRESHOLD)) {
+      panning.moved = true;
+      drag(panning, mouse);
+      redraw();
+    }
     if (!tooltip.hidden) placeTooltip();
     hover();
     if (press || scrub !== null) draw();
@@ -381,8 +427,9 @@ export function openGraph(app, onClose) {
   canvas.addEventListener('mousedown', event => {
     const p = point(event);
     const chart = chartRect(), timeline = timelineRect();
-    if (event.button === 2 && (inside(p, chart) || inside(p, timeline))) {
-      seek(turnAt(p.x));
+    if ((event.button === 1 || event.button === 2) && (inside(p, chart) || inside(p, timeline))) {
+      event.preventDefault();  // no autoscroll for the middle button
+      panning = { x: p.x, y: p.y, button: event.button, view: window_(), floor, moved: false };
     } else if (event.button === 0 && inside(p, timeline)) {
       scrub = turnAt(p.x);
       draw();
@@ -392,6 +439,12 @@ export function openGraph(app, onClose) {
     }
   });
   const onUp = async event => {
+    if ((event.button === 1 || event.button === 2) && panning) {
+      const ended = panning;
+      panning = null;
+      if (ended.button === 2 && !ended.moved) seek(turnAt(ended.x));  // a right-click, not a pan
+      return;
+    }
     if (event.button !== 0) return;
     if (scrub !== null) {
       const turn = turnAt(point(event).x);
@@ -423,7 +476,10 @@ export function openGraph(app, onClose) {
     const notches = event.deltaY < 0 ? 1 : -1;
     if (event.deltaX) pan(event.deltaX > 0 ? 1 : -1);
     else if (event.shiftKey) pan(-notches);
-    else zoom(notches, p.x);
+    else {
+      zoom(notches, p.x);
+      if (inside(p, chartRect())) zoomHeight(notches, p.y);
+    }
     redraw();
   }, { passive: false });
 
@@ -466,6 +522,7 @@ export function openGraph(app, onClose) {
     else if (key === 'c') app.exportIdentifiers([...app.selection], false);
     else if (key === 's') app.exportIdentifiers([...app.selection], true);
     else if (key === 'k') app.catalogIdentifiers([...app.selection]);
+    else if (key === 'z') { unzoom(); redraw(); }
     else if (key === 'g' || key === 'escape') { event.preventDefault(); close(state().ended); }
     else if (key === ' ') { event.preventDefault(); }
   }

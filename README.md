@@ -91,7 +91,7 @@ The page has the window app's screens, laid out the same way:
 | SPACE | Pause or run |
 | - / + | Slower or faster |
 | LEFT / RIGHT | A turn back or on |
-| Wheel, right-drag, Z | Zoom, pan, and back to the whole map |
+| Wheel, right-drag, Z | Zoom, pan, and back to the whole map; on the graph, zoom time and height around the pointer, pan both, and show it all again (a right-click without dragging moves the world to that turn) |
 | Click | Select a Bitzkey |
 | Drag | Select every Bitzkey in a box |
 | CTRL+click | Add or take one out |

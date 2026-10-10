@@ -83,6 +83,8 @@ GraphView graph_view(const Json& request, const Simulation& simulation) {
     view.height = std::max(1, std::min(2000, request.value("height", 400)));
     view.dot = request.value("dot", false);
     view.sort = std::max(0, std::min(sort_count() - 1, request.value("sort", 0)));
+    view.zoom = std::max(1.0, std::min(32.0, request.value("zoom", 1.0)));
+    view.floor = std::max(0.0, std::min(1 - 1 / view.zoom, request.value("floor", 0.0)));
     return view;
 }
 

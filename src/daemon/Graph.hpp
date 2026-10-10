@@ -27,6 +27,9 @@ struct GraphView {
     int height = 1;           // the chart's height in pixels
     bool dot = false;         // the dot's (mind's) colour, else the ring's
     int sort = 0;
+    // Zoomed into the height, the chart shows 1 / zoom of it, from floor (a share of the top) up;
+    // slices beyond it lie outside the chart.
+    double zoom = 1.0, floor = 0.0;
 };
 
 class Graph {
@@ -50,6 +53,8 @@ private:
         std::vector<int> members;  // bottom to top
     };
     void build(const Simulation& simulation, const GraphView& view);
+    // Pixels a Bitzkey's slice stands, and where none would stand, at the view's height and zoom.
+    std::pair<double, double> scale(const GraphView& view) const;
 
     std::vector<long long> key_;
     std::vector<Bar> bars_;

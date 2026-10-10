@@ -201,6 +201,16 @@ TEST_CASE("the colour graph is drawn bar by bar, and finds who lies under a poin
         CHECK(bottom->second);
         const auto all = graph.living_in(simulation, view, 9, 9, 0, 100);
         CHECK(all.size() == simulation.living().size());
+
+        GraphView zoomed = view;  // zoomed fourfold into the height, from the bottom: fewer fit the chart
+        zoomed.zoom = 4.0;
+        CHECK(graph.at(simulation, zoomed, 9, 99.5) == bottom);
+        const auto some = graph.living_in(simulation, zoomed, 9, 9, 0, 100);
+        const double peak = read<float>(data, 12);  // the population the whole chart's height holds
+        CHECK(some.size() < all.size());
+        CHECK(static_cast<double>(some.size()) <= peak / 4 + 1);
+        zoomed.floor = 0.75;  // and raised to the top quarter: the lowest slice lies below the chart
+        CHECK(graph.at(simulation, zoomed, 9, 99.5) != bottom);
     }
     std::filesystem::remove_all(folder);
 }
