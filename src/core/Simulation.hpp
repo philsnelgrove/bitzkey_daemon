@@ -109,7 +109,8 @@ inline int REPLAY_PER_INTELLECT = 2;
 inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
 // Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
-// PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often). While a
+// PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often, and less
+// the hungrier, none as they starve). While a
 // hunter is in sight it then panics every turn, fleeing, or, with a chance of PRIMAL_FREEZE at the lowest
 // intellect and none at the highest, freezes and does nothing at all.
 // The instinct to hunt: whenever hunting or attacking is open to a predator, it values each this much more,
@@ -155,9 +156,11 @@ inline double SHARED_DIET = 0.5;
 inline double SWITCH_SHARE = 0.25;   // how much another species eating some of the same food counts as a mouth
 inline double STRIKE_EFFORT = 0.2;
 inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
-inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging
+inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging;
+                                        // an omnivore's three quarters of that and a grazer's half
 inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with strength above this
 inline double FEAST_JOY = 1.5;   // a predator's pleasure in feasting on a fresh kill
+inline double SATED_JOY = 1.0;   // pleasure in hunger relieved by eating, hunting, feasting or scavenging, per its full range
 inline double ATTACK_JOY = 0.1;  // a predator's pleasure in a blow it lives through
 inline double KILL_MEAL = 25;
 inline double KILL_MEAL_FOR_SIZE = 45;
@@ -346,13 +349,23 @@ struct Bitzkey {
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
     // PREDATOR_INTELLIGENCE times over, up to the full range.
     double intelligence() const { return std::min(1.0, feeling(Intellect) * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)); }
-    double fearfulness() const { return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR : 1.0); }  // as its effects feel it
+    // Its fear, as its effects feel it: a predator's PREDATOR_FEAR as much, and less the hungrier it is.
+    double fearfulness() const { return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR * unafraid() : 1.0); }
+    // The share of its fear's effects hunger leaves a predator: all when fed, falling with its hunger to none
+    // as it starves; any other animal feels them all.
+    double unafraid() const { return species == Species::Predator ? std::max(0.0, 1 - hunger / 100) : 1.0; }
     double herd_instinct() const { return std::min(feeling(Empathy), feeling(Patience)); }
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
     bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_cost <= 100 - BREED_RESERVE; }
     bool alive() const { return health > 0 && hunger < 100; }
-    void nourish(double food) { hunger = std::max(0.0, hunger - food / stomach); }
+    void nourish(double food) { relieve(food / stomach); }
+    // Ease its hunger by an amount, eating, and take SATED_JOY's pleasure in what was eased.
+    void relieve(double amount) {
+        const double eased = std::min(hunger, amount);
+        hunger -= eased;
+        reward += SATED_JOY * eased / 100;
+    }
     void heal(double amount) { health = std::min(max_health, health + max_health * amount * metabolism); }
     Brain& own_brain();  // the brain, made this animal's own before it changes
     // How many steps a temperature is from home.
@@ -581,7 +594,8 @@ public:
     int crowding(const Bitzkey& agent, const Bitzkey& partner) const;
 
     static double damage(const Bitzkey& attacker, const Bitzkey& defender);
-    // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over.
+    // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over, an
+    // omnivore's three quarters and a grazer's half as many times.
     static double armed(const Bitzkey& animal);
     static bool compatible(const Bitzkey& first, const Bitzkey& second);
     static bool willing(const Bitzkey& agent, const Bitzkey& other);

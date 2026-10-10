@@ -1399,7 +1399,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
                 agent.last_action = "froze";  // paralysed by fear: nothing done, nothing gained
                 break;
             }
-            agent.hunger = std::max(0.0, agent.hunger - agent.burn / 2);
+            agent.hunger = std::max(0.0, agent.hunger - agent.burn / 2);  // burns less, but eases no hunger
             agent.heal(0.015);
             agent.last_action = "rested";
             break;
@@ -1459,7 +1459,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
             const int moved = heading.dy ? std::abs(y - agent.y) : cells;  // north and south stop at the map's edge
             move(agent, py_mod(agent.x + heading.dx * cells, width_), y);
             if (heading.walk) {
-                agent.hunger = std::max(0.0, agent.hunger - agent.burn * WALK_REST);
+                agent.hunger = std::max(0.0, agent.hunger - agent.burn * WALK_REST);  // burns less, but eases no hunger
             } else {
                 agent.hunger += agent.burn * GO_EFFORT * std::max(0, moved - 1);
                 exhausted(agent);
@@ -1569,7 +1569,11 @@ double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender) {
 }
 
 double Simulation::armed(const Bitzkey& animal) {
-    return animal.physique(Weapons) * (animal.species == Species::Predator ? PREDATOR_WEAPONS : 1.0);
+    const double share = animal.species == Species::Predator  ? 1.0
+                         : animal.species == Species::Omnivore ? 0.75
+                         : animal.species == Species::Grazer   ? 0.5
+                                                               : 0.0;
+    return animal.physique(Weapons) * (share > 0 ? PREDATOR_WEAPONS * share : 1.0);
 }
 
 void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
@@ -1680,7 +1684,8 @@ bool Simulation::primal_fear(Bitzkey& agent, const Bitzkey* hunter) {
     if (!agent.primal_fear) {
         const double lopsided = disparity(agent, *hunter);
         if (lopsided > 0) {
-            const double chance = PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0);
+            const double chance =
+                PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0) * agent.unafraid();
             if (random_.random() < chance) {
                 agent.primal_fear = true;
                 experience(agent, Panicked);

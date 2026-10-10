@@ -346,7 +346,7 @@ TEST_CASE("a walk moves one cell for half a turn's food, and going further costs
     simulation.act(grazer, WalkNorth, sensed.situation);
     CHECK((grazer.x == 50 && grazer.y == 49 && grazer.last_action == "walked north"));
     CHECK(grazer.hunger == doctest::Approx(50 - grazer.burn * WALK_REST));  // saves half the turn's burn, as resting does
-    CHECK(grazer.reward == doctest::Approx(CURIOSITY_JOY));                 // walking explores too
+    CHECK(grazer.reward == doctest::Approx(CURIOSITY_JOY));  // walking explores too, but eases no hunger
     grazer.hunger = 50;
     simulation.act(grazer, GoSouth, sensed.situation);
     CHECK(grazer.y == 55);
