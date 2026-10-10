@@ -93,6 +93,8 @@ std::vector<Rule> make_rules() {
         {"SMART_TRACE_DECAY", "Mind", "Trace decay, smartest", "trace decay at the highest intellect; the lowest keeps the one above", 0.0, 1.0, 0.01, false, &SMART_TRACE_DECAY},
         {"LEARNING_BOOST", "Mind", "Learning boost", "the highest intellect learns this much faster again; the lowest, no faster", 0.0, 5.0, 0.1, false, &LEARNING_BOOST},
         {"REPLAY_PER_INTELLECT", "Mind", "Replays per intellect", "recent experiences re-learnt each turn per point of intellect", 0, 4, 1, true, &REPLAY_PER_INTELLECT},
+        {"KILL_FOOD_LEARNING", "Mind", "Kill food learning", "times as much any animal learns from hunting, attacking and feasting", 0.0, 10.0, 0.1, false, &KILL_FOOD_LEARNING},
+        {"PLANT_FOOD_LEARNING", "Mind", "Plant food learning", "times as much any animal learns from eating, foraging, browsing and uprooting", 0.0, 10.0, 0.1, false, &PLANT_FOOD_LEARNING},
         {"PREDATOR_LEARNING", "Mind", "Predator learning", "times as fast a predator's brain learns from its own choices; an omnivore gets half the bonus", 1.0, 5.0, 0.1, false, &PREDATOR_LEARNING},
         {"TEMPERATURE", "Mind", "Choice temperature", "how loosely a brain picks among its options", 0.01, 5.0, 0.05, false, &TEMPERATURE},
         {"MUTATION", "Mind", "Brain mutation", "how much a newborn's brain varies from its parents'", 0.0, 1.0, 0.01, false, &MUTATION},

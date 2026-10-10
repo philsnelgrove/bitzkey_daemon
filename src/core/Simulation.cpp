@@ -911,6 +911,17 @@ static double learning_rate(const Bitzkey& agent) {
     return LEARNING_RATE * sharpness * (1 + LEARNING_BOOST * sharpness) * hunter;
 }
 
+namespace {
+// How much more, or less, a choice is learnt from for the food it seeks.
+double food_learning(int choice) {
+    switch (choice) {
+        case Hunt: case Attack: case Feast: return KILL_FOOD_LEARNING;
+        case Eat: case Forage: case Browse: case Uproot: return PLANT_FOOD_LEARNING;
+        default: return 1.0;
+    }
+}
+}  // namespace
+
 void Simulation::learn(Bitzkey& agent, double target, bool replay) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
@@ -921,17 +932,18 @@ void Simulation::learn(Bitzkey& agent, double target, bool replay) {
     if (gpu_) {
         if (rate > 0) {
             const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
-            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate, true, decay);
+            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * food_learning(agent.last_choice), true, decay);
             for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
                 const Bitzkey::Memory& memory = agent.memories[index];
-                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate, false, 0.0);
+                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * food_learning(memory.choice), false, 0.0);
             }
         }
     } else {
-        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate, discount(agent), agent.intelligence());
+        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * food_learning(agent.last_choice), discount(agent),
+                                       agent.intelligence());
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
-            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate);
+            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * food_learning(memory.choice));
         }
     }
     if (!count) return;
@@ -1975,7 +1987,7 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
             continue;
         }
         const double heed = observer->feeling(Empathy) * observer->intelligence();
-        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING});  // learnt at the end
+        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * food_learning(actor.last_choice)});  // learnt at the end
         observer->reward += SOCIAL_MOOD * heed * outcome;
         if (outcome > 0) observer->seen_success = 1.0;
         else observer->seen_failure = 1.0;

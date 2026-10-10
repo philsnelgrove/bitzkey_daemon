@@ -108,6 +108,10 @@ inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
 inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
+// Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
+// KILL_FOOD_LEARNING times as much, by any animal, and one to eat, forage, browse or uproot PLANT_FOOD_LEARNING.
+inline double KILL_FOOD_LEARNING = 5.0;
+inline double PLANT_FOOD_LEARNING = 0.5;
 // Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
 // PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often, and less
 // the hungrier, none as they starve). While a
