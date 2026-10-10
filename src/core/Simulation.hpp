@@ -30,7 +30,6 @@ constexpr int INITIAL_POPULATION = 90;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
 inline double GRASS_REGROWTH = 0.016;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
-inline int CROWDING_RADIUS = 4;
 inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
@@ -109,7 +108,8 @@ inline double LEARNING_BOOST = 1.0;
 inline int REPLAY_PER_INTELLECT = 2;
 inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
 inline double MATING_CALL = 0.5;      // how much more a predator ready to breed values breeding, or else courting a mate it sees
-inline int MATING_CALL_RANGE = 6;          // a predator ready to breed seeks a mate this far off, beyond its sight
+inline double MATING_CALL_RANGE = 2.0;    // a predator ready to breed that sees no mate seeks one this many times its sight off
+constexpr double MAX_MATING_CALL_RANGE = 3.0;
 inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
 inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
 inline double NEWBORN_FOOD = 15.0;    // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
@@ -133,6 +133,7 @@ inline double PLANT_FOOD_LEARNING = 0.5;
 // The instinct to hunt: whenever hunting or attacking is open to a predator, it values each this much more,
 // times its hunger as a share, whatever its brain has learnt; the brain's learning adds to it.
 inline double HUNTING_INSTINCT = 1.0;
+constexpr int SIGHT_PER_TRAIT = 3;  // each step of the sight trait lets an animal see this many cells further
 constexpr int MAX_PREDATOR_SIGHT = 3;
 inline int PREDATOR_SIGHT = 3;  // predators see prey this many cells further than they otherwise see, up to MAX_PREDATOR_SIGHT
 inline int HUNT_STEPS = 1;      // and chase it this many more steps a turn
@@ -145,13 +146,11 @@ inline double PRIMAL_FREEZE = 0.5;
 inline std::array<double, 2> PANIC = {0.3, 1.0};
 inline double THORN_FORCE = 15;
 inline double THORN_SIZE_SHARE = 0.2;
-inline int TERRITORY_RADIUS = 6;
 inline double PACK_RIVALRY = 0.0;  // how much a predator's pack-mates count as rivals crowding its territory: its pack is no rival
 inline int TERRITORY_RAMP = 3;
 inline double RIVAL_UNEASE = 0.3;
 inline double RIVALRY_WEAR = 0.5;  // how much an overcrowded territory wears down a hunter's reluctance to kill its own species
 inline double RIVAL_KILL_JOY = 0.5;
-inline int HERD_RADIUS = 4;
 inline int HERD_SPREAD = 3;
 inline double HERD_JOY = 0.15;
 inline double HERD_LONELINESS = 0.1;
@@ -272,7 +271,7 @@ double season_progress(int turn);
 double temperature_at(int y, int height, int turn);
 // A cell's fixed share, 0 to 1, below which a row's shortfall from medium makes its grass die back.
 double dieback_threshold(int x, int y);
-constexpr int MAX_SIGHT = 2 + TRAIT_MAX + MAX_PREDATOR_SIGHT;  // the furthest anything is seen: a predator's sight for prey
+constexpr int MAX_SIGHT = 2 + SIGHT_PER_TRAIT * TRAIT_MAX + MAX_PREDATOR_SIGHT;  // the furthest anything is seen: a predator's sight for prey
 // For each territorial species, predators then omnivores: how many rivals it tolerates from the
 // least to the most empathetic, and how strongly overcrowding moves it (its rivalry at most).
 struct Territory {
@@ -629,7 +628,7 @@ public:
     };
     HerdView herd(const Bitzkey& agent) const;
     double room() const;
-    // Other animals, besides its partner, within CROWDING_RADIUS cells; with `own_kind`, only those of its own kind.
+    // Other animals, besides its partner, within its sight; with `own_kind`, only those of its own kind.
     int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
     // One blow; struck in defence, a grazer's or omnivore's weapons count for less.

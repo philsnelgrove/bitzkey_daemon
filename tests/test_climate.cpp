@@ -284,13 +284,13 @@ TEST_CASE("spawned plants are at home in their zone, and imports keep theirs") {
 
 TEST_CASE("an animal senses how far it is from home and how close home weather is") {
     Simulation simulation = world_at(240);
-    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"sight", 7}}), 50, 23);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"sight", 2}}), 50, 23);  // sees 8 rows
     const auto comfort = simulation.comfort_row(grazer, grazer.sight);
     REQUIRE(comfort.has_value());
     CHECK((comfort->x == 50 && comfort->y == 19));  // the arctic, four rows north
     Simulation::Sensed sensed = simulation.sense(grazer);
     CHECK(sensed.senses[SenseClimateDiscomfort] == 0.5);  // temperate: a step too warm
-    CHECK(sensed.senses[SenseComfortCloseness] == doctest::Approx(1 - 3.0 / 9));
+    CHECK(sensed.senses[SenseComfortCloseness] == doctest::Approx(1 - 3.0 / 8));
 
     Bitzkey& at_home = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 50, 30);
     sensed = simulation.sense(at_home);
@@ -304,7 +304,7 @@ TEST_CASE("an animal senses how far it is from home and how close home weather i
 
 TEST_CASE("an animal sees the wave coming as a staircase of warmth") {
     Simulation simulation = world_at(117);  // the temperate zone's winter front at rows 30 to 37
-    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 7}}), 50, 32);  // sees 9 rows
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 2}}), 50, 32);  // sees 8 rows
     const Simulation::Sensed sensed = simulation.sense(grazer);
     CHECK(sensed.senses[SenseWarmthNorth] == doctest::Approx(-0.5));  // cold behind it,
     CHECK(sensed.senses[SenseWarmth] == doctest::Approx(-0.3));       // part way here,
@@ -314,12 +314,12 @@ TEST_CASE("an animal sees the wave coming as a staircase of warmth") {
 
 TEST_CASE("an animal senses where it is and how warm it is here, to the north and to the south") {
     Simulation simulation = world_at(0);  // mild: arctic rows 0-19, temperate 20-39, equator 40-59
-    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 7}}), 50, 35);  // sees 9 rows
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 2}}), 50, 35);  // sees 8 rows
     Simulation::Sensed sensed = simulation.sense(grazer);
     CHECK(sensed.senses[SenseLatitude] == 2 * 35.5 / 100 - 1);
     CHECK((sensed.senses[SenseWarmth] == 0.0 && sensed.senses[SenseWarmthNorth] == 0.0 &&
-           sensed.senses[SenseWarmthSouth] == 0.5));  // row 26 temperate, row 44 the equator
-    Bitzkey& cold = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"sight", 7}}), 50, 3);
+           sensed.senses[SenseWarmthSouth] == 0.5));  // row 27 temperate, row 43 the equator
+    Bitzkey& cold = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"sight", 2}}), 50, 3);
     sensed = simulation.sense(cold);
     CHECK((sensed.senses[SenseWarmth] == -1.0 && sensed.senses[SenseWarmthNorth] == -1.0 &&
            sensed.senses[SenseWarmthSouth] == -1.0));  // two steps too cold, north to the map's edge too
@@ -409,18 +409,18 @@ TEST_CASE("being out of its temperature is uncomfortable, less so for the hardy"
 
 TEST_CASE("foraging and herding never lead further from home") {
     Simulation simulation = world_at(0);  // row 40 is the hot equator, rows 20-39 temperate
-    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 7}}), 50, 38);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 2}}), 50, 38);
     simulation.grass_cell(50, 41) = 1;
     simulation.grass_cell(50, 33) = 1;
     Simulation::Situation situation = simulation.sense(grazer).situation;
     REQUIRE(situation.grass.has_value());
     CHECK((situation.grass->x == 50 && situation.grass->y == 33));  // past the nearer, hot one
-    Bitzkey& hot = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"sight", 7}}), 50, 42);
+    Bitzkey& hot = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"sight", 2}}), 50, 42);
     situation = simulation.sense(hot).situation;
     REQUIRE(situation.grass.has_value());
     CHECK((situation.grass->x == 50 && situation.grass->y == 41));  // it is at home there
 
-    Bitzkey& herder = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"empathy", 7}, {"patience", 7}}), 70, 36);
+    Bitzkey& herder = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"empathy", 7}, {"patience", 7}, {"sight", 1}}), 70, 36);  // sees 5 cells
     std::vector<Bitzkey*> mates;
     for (const int dx : {-1, 0, 1}) mates.push_back(&simulation.add_agent(herder.dna, 70 + dx, 40));  // on the equator
     simulation.index_cells();
@@ -521,12 +521,12 @@ TEST_CASE("animals sense the time of year as two clock hands a quarter apart") {
 TEST_CASE("herd-mates in sight learn from a death and feel it, by empathy and intellect") {
     Simulation simulation = world_at(240);
     simulation.add_agent(encode_dna(Species::Predator), 90, 90);  // far off
-    const Dna bright = encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 7}, {"sight", 3}});
+    const Dna bright = encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 7}, {"sight", 1}});  // sees 5 cells
     Bitzkey& dying = simulation.add_agent(bright, 50, 50);
     Bitzkey& witness = simulation.add_agent(bright, 50, 53);  // three cells off: in sight
-    Bitzkey& dull = simulation.add_agent(encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 0}, {"sight", 3}}), 51, 50);
+    Bitzkey& dull = simulation.add_agent(encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 0}, {"sight", 1}}), 51, 50);
     Bitzkey& far = simulation.add_agent(bright, 50, 59);  // out of sight
-    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Omnivore, {{"empathy", 7}, {"intellect", 7}, {"sight", 3}}), 49, 50);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Omnivore, {{"empathy", 7}, {"intellect", 7}, {"sight", 1}}), 49, 50);
     simulation.index_cells();
     const Simulation::Sensed sensed = simulation.sense(dying);
     dying.last_senses = sensed.senses;

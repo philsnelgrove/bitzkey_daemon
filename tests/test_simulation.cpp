@@ -374,7 +374,7 @@ TEST_CASE("omnivores fight their own only in an overcrowded territory") {
 
 TEST_CASE("territory: the less empathetic tolerate fewer rivals, and only their own species crowds them") {
     Simulation simulation = world(30);
-    Bitzkey& callous = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 0}}), 15, 15);
+    Bitzkey& callous = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 0}, {"sight", 1}}), 15, 15);  // a territory of five cells
     for (const int x : {11, 12, 13, 17, 18, 19}) simulation.add_agent(encode_dna(Species::Omnivore), x, 15);
     simulation.index_cells();
     CHECK(simulation.territory(callous) == std::pair{0.0, 0.0});  // omnivores are prey, not rivals
@@ -389,7 +389,7 @@ TEST_CASE("territory: the less empathetic tolerate fewer rivals, and only their 
 TEST_CASE("the herd action moves toward the middle of the herd, fear setting how close it keeps") {
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"empathy", 7}, {"patience", 7}});
-    Bitzkey& fearful = simulation.add_agent(encode_dna(Species::Grazer, {{"empathy", 7}, {"patience", 7}, {"fear", 7}}), 2, 5);
+    Bitzkey& fearful = simulation.add_agent(encode_dna(Species::Grazer, {{"empathy", 7}, {"patience", 7}, {"fear", 7}, {"sight", 1}}), 2, 5);  // sees its herd four off
     for (const auto& [x, y] : std::vector<std::pair<int, int>>{{5, 4}, {5, 6}, {6, 5}}) simulation.add_agent(dna, x, y);
     simulation.index_cells();
     auto sensed = simulation.sense(fearful);

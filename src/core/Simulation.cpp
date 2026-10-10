@@ -119,9 +119,11 @@ const std::vector<Offset>& birth_offsets(int reach) {
 }
 
 const std::vector<Offset>& nearby_offsets(int radius) {
-    static const std::array<std::vector<Offset>, 16> all = [] {  // built once, whatever thread asks first
-        std::array<std::vector<Offset>, 16> built;
-        for (int reach = 0; reach < 16; ++reach) {
+    // As far as anything reaches: the furthest mating call, at the sharpest sight.
+    constexpr int REACH = static_cast<int>(MAX_MATING_CALL_RANGE * (2 + SIGHT_PER_TRAIT * TRAIT_MAX)) + 1;
+    static const std::array<std::vector<Offset>, REACH> all = [] {  // built once, whatever thread asks first
+        std::array<std::vector<Offset>, REACH> built;
+        for (int reach = 0; reach < REACH; ++reach) {
             for (int dx = -reach; dx <= reach; ++dx) {
                 for (int dy = -(reach - std::abs(dx)); dy <= reach - std::abs(dx); ++dy) built[static_cast<std::size_t>(reach)].push_back({dx, dy});
             }
@@ -247,7 +249,7 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
     steps = species == Species::Grazer ? static_cast<int>(base_steps * GRAZER_SPEED + 0.5) : base_steps;
     grazing = GRAZING[static_cast<std::size_t>(species)];
     browsing = BROWSING[static_cast<std::size_t>(species)];
-    sight = 2 + body[Sight];
+    sight = 2 + SIGHT_PER_TRAIT * body[Sight];
     {  // plant or animal
         const double shortest = LIFESPAN_YEARS[0], middle = LIFESPAN_YEARS[1], longest = LIFESPAN_YEARS[2];
         const double fastest = METABOLISM[0], slowest = METABOLISM[1];
@@ -1211,7 +1213,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.hunter = seen.hunter;
     s.suitor = seen.suitor;
     if (!s.suitor && agent.species == Species::Predator && agent.can_breed()) {  // the mating call reaches further
-        for (Bitzkey* other : nearby(agent, MATING_CALL_RANGE)) {
+        for (Bitzkey* other : nearby(agent, static_cast<int>(MATING_CALL_RANGE * sight))) {
             if (compatible(agent, *other) && other->can_breed()) {
                 s.suitor = other;
                 break;
@@ -1331,7 +1333,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseRivalry] = agent.rivalry;
     senses[SenseHerdNear] = std::min(3, view.close) / 3.0;
     senses[SenseHerdCloseness] =
-        view.middle ? std::max(0.0, 1 - static_cast<double>(distance(view.middle->x, view.middle->y, agent.x, agent.y)) / HERD_RADIUS)
+        view.middle ? std::max(0.0, 1 - static_cast<double>(distance(view.middle->x, view.middle->y, agent.x, agent.y)) / agent.sight)
                     : 0.0;
     senses[SenseAlarm] = agent.alarm.has_value();
     senses[SenseKillAlert] = alerted_kill != nullptr;
@@ -1566,9 +1568,9 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
 }
 
 void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
-    // Its herd within HERD_RADIUS: a grazer alerts them to the hunter it sees, so they may flee it from further
+    // Its herd within its sight: a grazer alerts them to the hunter it sees, so they may flee it from further
     // than they would; a hunter to the fresh kill it sees, so they may come to feast on it.
-    for (Bitzkey* other : nearby(agent, HERD_RADIUS)) {
+    for (Bitzkey* other : nearby(agent, agent.sight)) {
         if (!herd_mate(agent, *other)) continue;
         if (agent.species == Species::Grazer) {
             if (!other->alarm) other->alarm = about.identifier;
@@ -1885,7 +1887,7 @@ double Simulation::room() const {
 
 int Simulation::crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind) const {
     int count = 0;
-    for (const Bitzkey* other : nearby(agent, CROWDING_RADIUS)) {
+    for (const Bitzkey* other : nearby(agent, agent.sight)) {  // within its sight
         count += other->species != Species::Plant && other != &partner && (!own_kind || same_kind(agent, *other));
     }
     return count;
@@ -2081,7 +2083,7 @@ bool Simulation::herd_mate(const Bitzkey& agent, const Bitzkey& other) const {
 
 Simulation::HerdView Simulation::herd(const Bitzkey& agent) const {
     std::vector<const Bitzkey*> mates;
-    for (const Bitzkey* other : nearby(agent, HERD_RADIUS)) {
+    for (const Bitzkey* other : nearby(agent, agent.sight)) {  // its herd: herd-mates within its sight
         if (herd_mate(agent, *other)) mates.push_back(other);
     }
     if (mates.empty()) return {};
@@ -2103,7 +2105,7 @@ std::pair<double, double> Simulation::territory(const Bitzkey& hunter) const {
     const double fewest = rule.fewest, most = rule.most, strength = rule.strength;
     const double tolerated = fewest + (most - fewest) * hunter.feeling(Empathy);
     double rivals = 0.0, own = 0.0;
-    for (const Bitzkey* other : nearby(hunter, TERRITORY_RADIUS)) {
+    for (const Bitzkey* other : nearby(hunter, hunter.sight)) {  // its territory: the cells within its sight
         // A predator's pack-mates count only PACK_RIVALRY each: its pack mentality overcomes rivalry.
         const double pack = hunter.species == Species::Predator && herd_mate(hunter, *other) ? PACK_RIVALRY : 1.0;
         rivals += rival_weight(hunter, *other) * pack;
