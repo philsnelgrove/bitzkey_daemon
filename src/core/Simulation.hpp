@@ -779,7 +779,14 @@ public:
     static double home_food_needed(const Bitzkey& agent);  // PLANTS_PER_GRAZER, PREY_PER_PREDATOR, or none
     // How well fed its home band is, as a sense: 1 at twice the food a mouth needs to breed, or more; 1 where no home
     // food limits it, and 0 for an omnivore.
-    double home_food_sense(const Bitzkey& agent) const;
+    double home_food_sense(const Bitzkey& agent) const;  // the share of a full litter it would feed
+    // The share of a full litter an animal's home band feeds: 1 at twice the food a mouth needs to breed, or more,
+    // falling to 0 with none, and 1 where no home food limits it. A grazer's is its plants, a predator's its prey, and
+    // an omnivore's both, half each: half the share its plants would give a grazer, and half the share its prey
+    // (grazers and predators) would give a predator, each per omnivore at home there.
+    double home_fed(const Bitzkey& agent) const;
+    // The share of a full litter `food` a mouth feeds where `needed` is the least to breed: full at twice it.
+    static double fed_share(double food, double needed) { return needed ? std::min(1.0, food / (2 * needed)) : 1.0; }
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;
@@ -886,6 +893,8 @@ private:
     std::vector<int> band_grazers_;    // as the cells were last indexed
     std::vector<int> band_prey_;       // the prey in each band, and the predators at home there, likewise
     std::vector<int> band_predators_;
+    std::vector<int> band_omnivores_;       // the omnivores at home in each band, and what they hunt there:
+    std::vector<int> band_omnivore_prey_;   // grazers and predators
     void index_bands();
     std::vector<int> grass_rows_;      // the rows where grass grows at all
     std::vector<double> grass_reach_;  // their growth added up, row by row, for sowing

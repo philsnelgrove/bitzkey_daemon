@@ -1280,7 +1280,8 @@ TEST_CASE("a predator's breeding follows the prey in its home band, which it sen
     CHECK(simulation.home_prey(first) == 1.5);  // three prey shared by two predators
     CHECK(offers_breed());
     CHECK(simulation.sense(first).senses[SenseHomeFood] == 0.5);
-    CHECK(simulation.sense(*simulation.agents()[5]).senses[SenseHomeFood] == 0.0);  // nothing for an omnivore
+    Bitzkey& omnivore = *simulation.agents()[5];
+    CHECK(simulation.sense(omnivore).senses[SenseHomeFood] == simulation.home_fed(omnivore));  // its own: both foods
     simulation.breed(first, second);
     simulation.give_birth(first);
     CHECK(simulation.agents().size() == 7 + 3);  // six young, halved: half the prey of a full litter
@@ -1577,4 +1578,33 @@ TEST_CASE("an omnivore struck always breaks, and a predator is never overcome by
     Bitzkey& brute = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 2, 4);
     CHECK(Simulation::disparity(small, brute) > 0.5);
     for (int roll = 0; roll < 50; ++roll) CHECK_FALSE(simulation.primal_fear(small, &brute));  // never overcome
+}
+
+TEST_CASE("an omnivore's litters follow the plants and prey at home, half each") {
+    const double small_litters = SMALL_LITTERS, newborn_food = NEWBORN_FOOD, plants = PLANTS_PER_GRAZER, prey = PREY_PER_PREDATOR;
+    SMALL_LITTERS = 1.0;
+    NEWBORN_FOOD = 0.0;
+    PLANTS_PER_GRAZER = 1.0;
+    PREY_PER_PREDATOR = 1.0;
+    Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
+    const Dna dna = encode_dna(Species::Omnivore, {{"fertility", 7}, {"litter", 7}});  // at home in the temperate bands
+    Bitzkey& first = simulation.add_agent(dna, 15, 8);
+    Bitzkey& second = simulation.add_agent(dna, 15, 9);
+    simulation.index_cells();
+    CHECK(simulation.home_fed(first) == 0.0);  // nothing to eat at home
+    for (const int x : {2, 4, 6, 8}) simulation.add_agent(encode_dna(Species::Plant), x, 7);  // two plants each: half from plants alone
+    simulation.index_cells();
+    CHECK(simulation.home_fed(first) == 0.5);
+    for (const int x : {10, 12, 14, 16}) simulation.add_agent(encode_dna(x == 16 ? Species::Predator : Species::Grazer), x, 11);
+    simulation.index_cells();
+    CHECK(simulation.home_fed(first) == 1.0);
+    for (const auto& agent : simulation.agents()) if (agent->species == Species::Plant) agent->health = 0;
+    simulation.index_cells();
+    CHECK(simulation.home_fed(first) == 0.5);  // prey alone: half
+    simulation.breed(first, second);
+    CHECK(first.womb.size() == 3);  // six by their traits, halved
+    SMALL_LITTERS = small_litters;
+    NEWBORN_FOOD = newborn_food;
+    PLANTS_PER_GRAZER = plants;
+    PREY_PER_PREDATOR = prey;
 }
