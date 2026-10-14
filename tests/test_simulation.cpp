@@ -647,16 +647,22 @@ TEST_CASE("parents conceive only as many young as they can feed, but always at l
     const double plants_per_grazer = PLANTS_PER_GRAZER;
     PLANTS_PER_GRAZER = 0;  // no plants about: breeding left to the rest
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
-    for (const auto& [food, young] : {std::pair{5.0, 4}, std::pair{30.0, 1}}) {
-        // six young by their traits, but 10% of a stomach from each parent feeds four at 5% each, and none at 30%
-        NEWBORN_FOOD = food;
+    struct Case {
+        double food, hunger;
+        int young;
+    };
+    for (const Case& test : {Case{5.0, 0.0, 6}, Case{5.0, 90.0, 4}, Case{5.0, 98.0, 1}, Case{60.0, 0.0, 1}}) {
+        // Six young by their traits: 25% of a stomach each could feed ten at 5% (however little the fertile pay), 10% each
+        // left only four, 2% each none, and 50% between them none at 60%; but always at least one.
+        NEWBORN_FOOD = test.food;
         Simulation simulation = world();
         Bitzkey& first = simulation.add_agent(dna, 5, 5);
         simulation.add_agent(dna, 5, 6);
         simulation.index_cells();
+        first.hunger = simulation.agents()[1]->hunger = test.hunger;
         simulation.breed(first, *simulation.agents()[1]);
         simulation.give_birth(first);
-        CHECK(simulation.agents().size() == 2 + young);
+        CHECK(simulation.agents().size() == static_cast<std::size_t>(2 + test.young));
     }
     SMALL_LITTERS = small_litters;
     NEWBORN_FOOD = newborn_food;
@@ -1550,4 +1556,25 @@ TEST_CASE("a pack courts and hunts only toward its home temperature, as a herd h
     CHECK((simulation.sense(predator).situation.quarry == &prey && simulation.sense(predator).situation.suitor == &partner));
     CHECK_FALSE(offers(Hunt));
     CHECK_FALSE(offers(Court));
+}
+
+TEST_CASE("an omnivore struck always breaks, and a predator is never overcome by primal fear") {
+    Simulation simulation = world();
+    Bitzkey& bold = simulation.add_agent(encode_dna(Species::Omnivore, {{"fear", 0}}), 5, 5);  // fearless, and unhurt
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Predator), 5, 6);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"fear", 0}}), 8, 8);
+    simulation.index_cells();
+    simulation.struck(bold, striker);
+    simulation.struck(grazer, striker);
+    CHECK(bold.panicked);  // a coward, whatever its fear
+    CHECK_FALSE(grazer.panicked);  // the fearless otherwise never break
+    COWARDLY_OMNIVORES = 0;
+    bold.panicked = false;
+    simulation.struck(bold, striker);
+    CHECK_FALSE(bold.panicked);
+    COWARDLY_OMNIVORES = 1;
+    Bitzkey& small = simulation.add_agent(encode_dna(Species::Predator, {{"size", 0}}), 2, 2);
+    Bitzkey& brute = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 2, 4);
+    CHECK(Simulation::disparity(small, brute) > 0.5);
+    for (int roll = 0; roll < 50; ++roll) CHECK_FALSE(simulation.primal_fear(small, &brute));  // never overcome
 }

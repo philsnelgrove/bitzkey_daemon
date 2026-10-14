@@ -124,6 +124,7 @@ std::vector<Rule> make_rules() {
         {"MOODINESS", "Mind", "Moodiness", "share more experience moves the moodiest temperament, and less the steadiest", 0.0, 1.0, 0.05, false, &MOODINESS},
         {"PANIC.0", "Mind", "Panic, unhurt", "chance a fully fearful animal breaks when struck, unhurt", 0.0, 1.0, 0.05, false, &PANIC[0]},
         {"PANIC.1", "Mind", "Panic, near death", "chance a fully fearful animal breaks when struck, near death", 0.0, 1.0, 0.05, false, &PANIC[1]},
+        {"COWARDLY_OMNIVORES", "Mind", "Cowardly omnivores", "1: an omnivore struck always breaks and flees, whatever its fear; 0: it checks its morale", 0, 1, 1, true, &COWARDLY_OMNIVORES},
         {"MATE_REACH", "Mind", "Mate reach", "steps within which a partner is close enough to breed with", 1, 5, 1, true, &MATE_REACH},
         {"MATING_CALL", "Mind", "Mating call", "how much more a predator ready to breed values breeding, or else courting a mate it sees", 0.0, 5.0, 0.05, false, &MATING_CALL},
         {"MATING_CALL_RANGE", "Mind", "Mating call range", "times its sight a predator ready to breed seeks a mate, when it sees none", 0.0, MAX_MATING_CALL_RANGE, 0.25, false, &MATING_CALL_RANGE},

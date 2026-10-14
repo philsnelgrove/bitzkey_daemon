@@ -264,7 +264,7 @@ void Bitzkey::derive() {
     grazing = GRAZING[static_cast<std::size_t>(species)];
     browsing = BROWSING[static_cast<std::size_t>(species)];
     sight = 2 + SIGHT_PER_TRAIT * trait(Sight);
-    breeding_cost = (25 - 15 * physique(Fertility)) *
+    breeding_cost = (BREEDING_COST_MOST - 15 * physique(Fertility)) *
                     (species == Species::Omnivore || species == Species::Predator ? HUNTER_BREEDING_COST : 1.0);  // hunters pay less
     digestion = 0.2 + 0.8 * physique(Carrion);
 }
@@ -1945,7 +1945,8 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     const double unhurt = PANIC[0], dying = PANIC[1];
     const double hurt = 1 - std::max(0.0, victim.health) / victim.max_health;
     const double steadied = 1 - HERD_SAFETY * victim.herd_instinct() * std::min(3, herd_near) / 3;
-    if (random_.random() < victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied) {
+    const bool coward = victim.species == Species::Omnivore && COWARDLY_OMNIVORES != 0;  // an omnivore struck always breaks
+    if (coward || random_.random() < victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied) {
         victim.panicked = true;
         experience(victim, Panicked);
     }
@@ -2012,9 +2013,14 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
                                          std::min(costs[1], std::max(0.0, 100 - second.hunger)) * second.stomach};
     const double given = py_sum(gifts);
-    if (NEWBORN_FOOD) {  // only as many young as the parents can feed, rather than many born starving
+    if (NEWBORN_FOOD) {  // only as many young as the parents could feed, rather than many born starving
+        // What the parents could give, BREEDING_COST_MOST of each stomach (or what each has left), whatever they pay:
+        // neither a fertile parent's cheap breeding nor a hunter's halved cost shrinks its litters.
+        const std::array<double, 2> could = {std::min(BREEDING_COST_MOST, std::max(0.0, 100 - first.hunger)) * first.stomach,
+                                             std::min(BREEDING_COST_MOST, std::max(0.0, 100 - second.hunger)) * second.stomach};
+        const double could_give = py_sum(could);
         const double stomach = (first.stomach + second.stomach) / 2;
-        litter = std::max(1, std::min(litter, static_cast<int>(given / (NEWBORN_FOOD * stomach))));
+        litter = std::max(1, std::min(litter, static_cast<int>(could_give / (NEWBORN_FOOD * stomach))));
     }
     litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
     const int generation = std::max(first.generation, second.generation) + 1;
