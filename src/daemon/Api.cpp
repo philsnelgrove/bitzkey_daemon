@@ -597,6 +597,28 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, {{"text", chosen.empty() ? std::string() : format_records(chosen)}, {"count", chosen.size()}});
     }));
 
+    // Catalogued Bitzkeys deployed onto the running world: DEPLOY_GROUP of each around a cell.
+    server.Post("/api/deploy", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        std::vector<int> indexes = given.value("indexes", std::vector<int>());
+        std::sort(indexes.begin(), indexes.end());
+        const auto entries = catalog::load(world.paths().catalog);
+        std::vector<Imported> bitzkeys;
+        for (const int index : indexes) {
+            if (index >= 0 && static_cast<std::size_t>(index) < entries.size()) {
+                bitzkeys.push_back(catalog::imported(entries[static_cast<std::size_t>(index)]));
+            }
+        }
+        if (bitzkeys.empty()) throw std::invalid_argument("Nothing chosen from the catalog to deploy.");
+        auto lock = world.lock();
+        Simulation& simulation = world.simulation();
+        const int x = given.value("x", -1), y = given.value("y", -1);
+        if (x < 0 || x >= simulation.width() || y < 0 || y >= simulation.height()) throw std::invalid_argument("Deploy on the map.");
+        const auto placed = simulation.deploy(bitzkeys, x, y);
+        world.touch();
+        reply(response, {{"count", placed.size()}, {"note", format("Deployed %zu at (%d, %d).  RIGHT-CLICK or ESC  stop", placed.size(), x, y)}});
+    }));
+
     // ---- A new world: the setup panel, the advanced rules and the designer
 
     server.Get("/api/setup", guarded([&world](const httplib::Request&, httplib::Response& response) {

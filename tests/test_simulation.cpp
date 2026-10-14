@@ -12,6 +12,9 @@
 #include <set>
 
 #include "core/PyFormat.hpp"
+#include <nlohmann/json.hpp>
+
+#include "core/Exchange.hpp"
 #include "core/Insights.hpp"
 #include "core/Simulation.hpp"
 
@@ -1141,4 +1144,31 @@ TEST_CASE("a history folder an earlier version left behind is cleared away once 
     CHECK_FALSE(std::filesystem::exists(old));
     CHECK(std::filesystem::exists(recent));
     std::filesystem::remove_all(recent);
+}
+
+TEST_CASE("deploying puts five of each around a cell, with their brains and minds, and lets a rewound future go") {
+    Simulation simulation(Simulation::Settings{30, 30, 40, 3});
+    for (int turn = 0; turn < 5; ++turn) simulation.advance();
+    const Bitzkey& animal = **std::find_if(simulation.agents().begin(), simulation.agents().end(),
+                                           [](const auto& agent) { return agent->alive() && agent->brain; });
+    const Imported bitzkey = import_bitzkeys(dumps(bitzkey_record(animal))).front();
+    const int turn = simulation.turn();
+    const std::size_t before = simulation.agents().size();
+    const std::vector<Bitzkey*> deployed = simulation.deploy({bitzkey, bitzkey}, 10, 1);  // near the top: kept on the map
+    CHECK((DEPLOY_GROUP == 5 && deployed.size() == 10 && simulation.agents().size() == before + 10));
+    for (const Bitzkey* agent : deployed) {
+        CHECK(agent->dna == animal.dna);
+        CHECK(std::min(std::abs(agent->x - 10), 30 - std::abs(agent->x - 10)) <= SPAWN_SPREAD);
+        CHECK((agent->y >= 0 && agent->y <= 1 + SPAWN_SPREAD));
+        CHECK((agent->brain != deployed.front()->brain || agent == deployed.front()));  // each its own copy
+        CHECK(agent->mind[Fear] == doctest::Approx(animal.mind[Fear]).epsilon(1e-3));
+    }
+    CHECK(simulation.turn() == turn);  // between turns
+    CHECK(simulation.history_turns().back() == turn);  // this turn, recorded again, as it now is
+    for (int step = 0; step < 3; ++step) simulation.advance();
+    simulation.seek(turn + 1);  // rewound: deploying lets the future go
+    simulation.deploy({bitzkey}, 20, 20);
+    CHECK((simulation.frontier() == turn + 1 && simulation.history_turns().back() == turn + 1));
+    simulation.advance();
+    CHECK(simulation.turn() == turn + 2);
 }

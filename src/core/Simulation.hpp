@@ -35,6 +35,7 @@ constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
 inline int SPAWN_SPREAD = 2;
+constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
 // The history is kept in memory: the world at each of the latest HISTORY_TURNS turns, whole, so the map
 // can be rewound to any of them at once, with nothing to replay. When a crowded world's brains make them
@@ -511,6 +512,10 @@ public:
     // it began, the grass that grows back each turn and its climate bands, and what each Bitzkey's genome makes
     // of it. Everything else reads the rules as it goes.
     void rules_changed();
+    // Put DEPLOY_GROUP of each of these Bitzkeys, each with its own copy of its saved brain and temperament,
+    // within SPAWN_SPREAD cells of a cell of the running world, between its turns. A world rewound lets the future
+    // it had go, as a turn played afresh would. Returns those deployed.
+    std::vector<Bitzkey*> deploy(const std::vector<Imported>& bitzkeys, int x, int y);
     // A row's temperature now, part way between two while the weather turns.
     double temperature(int y) const { return climate_[static_cast<std::size_t>(y)]; }
     // How well grass grows in a row: fully where it is medium, less the further it has turned from medium.

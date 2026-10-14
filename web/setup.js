@@ -396,7 +396,8 @@ export function openSetup(app, onClose) {
 }
 
 // The catalog of favourite Bitzkeys. Opened from the setup panel, the Bitzkeys chosen go to `onImport`
-// with their records; opened to browse (no `onImport`), it only shows them, and can remove them.
+// with their records; opened to browse (no `onImport`), it shows them, can remove them, and DEPLOY closes it
+// handing the chosen entries' places in the catalog to `onDeploy`, to paint them onto the running world.
 // `onClose` is told when it closes.
 // The advanced rules: every rule, by group, from `changed` (the rules changed from the defaults). `onApply` is given
 // every value and answers with a problem, or null once it has applied them. `running`: the rules of the world running
@@ -513,7 +514,7 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
   }
 }
 
-export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
+export function openCatalog({ onImport = null, onDeploy = null, onClose = () => {} } = {}) {
   const browsing = !onImport;
   let entries = [], chosen = new Set(), picked = 0, anchor = 0, catalogNote = '';
   const list = element('div', { class: 'catalog-list scroll' });
@@ -549,10 +550,11 @@ export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
       side.replaceChildren(element('div', { class: 'big-look' }, bitzkeyCanvas(look(agent), 9 * dotRadius(agent.body[1]), 18)), details(agent));
       list.children[picked]?.scrollIntoView({ block: 'nearest' });
     }
-    importButton.textContent = chosen.size <= 1 ? 'ADD TO IMPORT' : `ADD ${chosen.size} TO IMPORT`;
+    importButton.textContent = browsing ? (chosen.size <= 1 ? 'DEPLOY' : `DEPLOY ${chosen.size}`)  // onto the map
+      : chosen.size <= 1 ? 'ADD TO IMPORT' : `ADD ${chosen.size} TO IMPORT`;
     importButton.disabled = !chosen.size;
     removeButton.disabled = !chosen.size;
-    hint.textContent = catalogNote || (browsing ? 'CLICK, SHIFT or CTRL+CLICK  choose    DELETE  remove    ESC  close'
+    hint.textContent = catalogNote || (browsing ? 'CLICK, SHIFT or CTRL+CLICK  choose    ENTER  deploy    DELETE  remove    ESC  close'
                                                 : 'CLICK, SHIFT or CTRL+CLICK  choose    ENTER  add to import    DELETE  remove    ESC  close');
     hint.classList.toggle('warn', Boolean(catalogNote));
   }
@@ -592,7 +594,13 @@ export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
   }
 
   async function importChosen() {
-    if (!chosen.size || browsing) return;
+    if (!chosen.size) return;
+    if (browsing) {  // DEPLOY: onto the running world
+      const indexes = [...chosen].sort((a, b) => a - b);
+      closeCatalog();
+      onDeploy?.(indexes);
+      return;
+    }
     onImport(await api('/api/catalog/records', { indexes: [...chosen] }));
     closeCatalog();
   }
@@ -604,7 +612,7 @@ export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
       element('div', { class: 'lead' }, browsing ? 'Each one kept as it was when catalogued, its trained brain and all.'
                                                  : 'Each one kept as it was when catalogued, its trained brain and all. Choose those to import.'),
       element('div', { class: 'catalog-body' }, list, side),
-      element('div', { class: 'catalog-foot' }, removeButton, hint, browsing ? null : importButton,
+      element('div', { class: 'catalog-foot' }, removeButton, hint, browsing && !onDeploy ? null : importButton,
         element('button', { onclick: closeCatalog }, 'CLOSE')));
   });
   function onCatalogKey(event) {

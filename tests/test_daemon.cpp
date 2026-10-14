@@ -279,6 +279,11 @@ TEST_CASE("the web API shows the world and steers it") {
         const Json catalog = get(client, "/api/catalog");
         CHECK(catalog["entries"].size() == 1);
         CHECK(post(client, "/api/catalog/records", {{"indexes", {0}}})["count"] == 1);
+        const std::size_t before = [&] { auto lock = world.lock(); return world.simulation().agents().size(); }();
+        const Json deployed = post(client, "/api/deploy", {{"indexes", {0}}, {"x", 10}, {"y", 10}});  // from the catalog, added above
+        CHECK(deployed["count"] == DEPLOY_GROUP);
+        CHECK([&] { auto lock = world.lock(); return world.simulation().agents().size(); }() == before + DEPLOY_GROUP);
+        CHECK(client.Post("/api/deploy", Json{{"indexes", {0}}, {"x", -1}, {"y", 3}}.dump(), "application/json")->status == 400);
         post(client, "/api/catalog/remove", {{"indexes", {0}}});
         CHECK(get(client, "/api/catalog")["entries"].empty());
 

@@ -592,6 +592,28 @@ void Simulation::record() {
     }
 }
 
+std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, int x, int y) {
+    if (turn_ < frontier_) {
+        while (!history_.empty() && history_.back().turn > turn_) {
+            history_bytes_ -= history_.back().bytes;
+            history_.pop_back();
+        }
+    }
+    std::vector<Bitzkey*> deployed;
+    for (const Imported& bitzkey : bitzkeys) {
+        for (int member = 0; member < DEPLOY_GROUP; ++member) {
+            const int cell_x = py_mod(x + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD)), width_);
+            const int cell_y = within(y + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD)));
+            deployed.push_back(&add_agent(bitzkey.dna, cell_x, cell_y, bitzkey.brain ? std::make_shared<Brain>(*bitzkey.brain) : nullptr,
+                                          bitzkey.mind));
+        }
+    }
+    census_.forget_from(turn_);  // this turn again, as it now is
+    take_census();
+    record();
+    return deployed;
+}
+
 void Simulation::rules_changed() {
     grass_regrowth_ = initial_grass_ * GRASS_REGROWTH;
     band_of_row_.clear();  // the bands are worked out again as the cells are next indexed

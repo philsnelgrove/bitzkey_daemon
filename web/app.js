@@ -431,7 +431,13 @@ function select(identifier) {
 map.addEventListener('mousedown', event => {
   if (!app.frame) return;
   const [x, y] = mousePoint(event);
-  if (event.button === 0) {
+  if (deploying && event.button === 2) {
+    stopDeploying();
+    event.preventDefault();
+  } else if (deploying && event.button === 0) {
+    const cell = cellAt(x, y);
+    if (cell) deployAt(cell);
+  } else if (event.button === 0) {
     marquee = { x, y, nowX: x, nowY: y, adding: event.ctrlKey || event.metaKey };
   } else if (event.button === 1 || event.button === 2) {
     const geometry = board();
@@ -442,7 +448,10 @@ map.addEventListener('mousedown', event => {
 window.addEventListener('mousemove', event => {
   if (!app.frame) return;
   const [x, y] = mousePoint(event);
-  if (marquee) {
+  if (deploying && painted && event.buttons & 1) {  // painting: another group every DEPLOY_GROUP cells
+    const cell = cellAt(x, y);
+    if (cell && Math.max(Math.abs(cell[0] - painted[0]), Math.abs(cell[1] - painted[1])) >= DEPLOY_GROUP) deployAt(cell);
+  } else if (marquee) {
     marquee.nowX = x;
     marquee.nowY = y;
     drawMap();
@@ -454,6 +463,7 @@ window.addEventListener('mousemove', event => {
   }
 });
 window.addEventListener('mouseup', event => {
+  if (deploying && event.button === 0) painted = null;
   if (marquee && event.button === 0) {
     const [x, y] = mousePoint(event);
     const { x: startX, y: startY, adding } = marquee;
@@ -879,7 +889,42 @@ function showRulesChanged(count) {
 function browseCatalog() {
   const under = app.overlay;
   app.overlay = { update() {} };
-  openCatalog({ onClose: () => { app.overlay = under; } });
+  openCatalog({ onDeploy: startDeploying, onClose: () => { app.overlay = under; } });
+}
+
+// Deploy mode: the cursor becomes a target, and each click on the map, or each step of a drag, puts DEPLOY_GROUP of
+// each catalogued Bitzkey chosen there; a right-click or ESC stops.
+const DEPLOY_GROUP = 5;
+let deploying = null;  // the chosen entries' places in the catalog, while deploying
+let painted = null;    // the cell last painted while the button is held
+
+function startDeploying(indexes) {
+  deploying = indexes;
+  painted = null;
+  map.style.cursor = 'crosshair';
+  say(`DEPLOY: click or drag on the map to place ${DEPLOY_GROUP} of ${indexes.length === 1 ? 'it' : `each of the ${indexes.length}`}.  RIGHT-CLICK or ESC  stop`);
+}
+
+function stopDeploying() {
+  deploying = painted = null;
+  map.style.cursor = '';
+  say('Deploying stopped.');
+}
+
+function cellAt(x, y) {
+  const geometry = board();
+  const cellX = Math.floor((x - geometry.x) / geometry.cell), cellY = Math.floor((y - geometry.y) / geometry.cell);
+  return cellX >= 0 && cellX < app.frame.width && cellY >= 0 && cellY < app.frame.height ? [cellX, cellY] : null;
+}
+
+async function deployAt(cell) {
+  painted = cell;
+  try {
+    say((await api('/api/deploy', { indexes: deploying, x: cell[0], y: cell[1] })).note);
+    loadFrame();  // show them at once, even paused
+  } catch (error) {
+    say(error.message);
+  }
 }
 
 function toggleInsights() {
@@ -890,6 +935,11 @@ function toggleInsights() {
 
 document.addEventListener('keydown', event => {
   if (app.overlay || document.querySelector('.dialog-shade')) return;
+  if (deploying && event.key === 'Escape') {  // stops deploying, rather than leaving for a new world
+    event.preventDefault();
+    stopDeploying();
+    return;
+  }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
   if (event.ctrlKey || event.altKey || event.metaKey) return;
   const state = app.state;
