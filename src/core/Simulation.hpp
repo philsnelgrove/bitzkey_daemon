@@ -92,6 +92,10 @@ inline std::array<double, 2> STOMACH = {0.5, 2.0};
 inline double SIZE_IN_MIGHT = 0.5;
 inline double AGEING = 0.7;
 inline double DEATH_PENALTY = 2.0;
+// Deaths no last choice is blamed for: the health lost on the way has taught their lessons already.
+inline bool slow_death(std::string_view cause) {
+    return cause == "old age" || cause == "starved" || cause == "froze" || cause == "overheated";
+}
 // Breeding is the greatest pleasure there is, and courting a mate into reach the next: each at three quarters of its
 // full strength, and the rest by libido, so even the coldest animal learns to seek a mate. Courting is rewarded only
 // once it brings a ready, willing partner within MATE_REACH; neither costs anything when it fails.
@@ -166,7 +170,10 @@ inline double PLANT_FOOD_LEARNING = 0.5;
 inline double BREED_LEARNING = 1.0;
 inline double COURT_LEARNING = 1.0;
 // How much more, or less, a choice is learnt from: for the food it seeks, or the mate.
-double choice_learning(int choice);
+double choice_learning(int choice);  // how much more, or less, a success from a choice is learnt from
+// How much a lesson from a choice counts: a success (an outcome above 0) by the choice's learning weight, a failure
+// as any other, so that a weight makes success more, or less, memorable without making failure so.
+inline double lesson_weight(int choice, double outcome) { return outcome > 0 ? choice_learning(choice) : 1.0; }
 // Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
 // PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often, and less
 // the hungrier, none as they starve). While a
@@ -196,6 +203,11 @@ inline double RIVAL_KILL_JOY = 0.5;
 inline int HERD_SPREAD = 3;
 inline double HERD_JOY = 0.15;
 inline double HERD_LONELINESS = 0.1;
+inline int SOLITARY_OMNIVORES = 1;  // 1: omnivores live alone, in neither herd nor pack; 0: they herd with their own kind
+// Whether a species lives alone, with no herd or pack: plants, and omnivores while SOLITARY_OMNIVORES.
+inline bool solitary(Species species) {
+    return species == Species::Plant || (species == Species::Omnivore && SOLITARY_OMNIVORES != 0);
+}
 inline double HERD_SAFETY = 0.6;
 inline double HERD_DEFEND_JOY = 0.5;
 inline double PACK_BONUS = 0.5;
@@ -392,6 +404,7 @@ struct Bitzkey {
         Senses senses{};
         int choice = 0;
         double target = 0.0;
+        double weight = 1.0;  // how much it counted, by what came of it
     };
     std::vector<Memory> memories;  // its most recent experiences, newest last
     int gpu = -1;  // its brain's handle on the GPUs, when the world thinks there
@@ -808,7 +821,10 @@ private:
     bool room_for_seedling(Cell cell) const;  // the cell is free, and plants don't crowd it
     void sprout(Dna dna, Cell cell, int generation);
     void settle(Bitzkey& agent);
-    void learn(Bitzkey& agent, double target, bool replay = false);
+    // Learn from its own last choice; its `outcome` (what came of it, before the future's worth) sets how much it counts.
+    void learn(Bitzkey& agent, double target, double outcome, bool replay = false);
+    // Going further costs: GO_EFFORT of a turn's burn for each cell past the first, however it moves.
+    static void effort(Bitzkey& agent, int cells) { agent.hunger += agent.burn * GO_EFFORT * std::max(0, cells - 1); }
     // The nearest grass in sight, but none in a row further from its home temperature than here.
     std::optional<Cell> nearest_grass(const Bitzkey& agent, int sight) const;
     Bitzkey* nearest_carrion(const Bitzkey& agent, int sight) const;

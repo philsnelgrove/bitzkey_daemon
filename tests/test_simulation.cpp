@@ -1166,7 +1166,7 @@ TEST_CASE("starving is recorded and its body handled however it comes") {
     CHECK((grazer.last_action == "starved" && grazer.died_turn == 1 && simulation.deaths() == deaths + 1));
     CHECK(grazer.meat == 0);  // a starved body leaves nothing to eat
     CHECK(grazer.brain == nullptr);
-    CHECK(herd_mate.seen_failure > 0);  // its herd saw it fail
+    CHECK(herd_mate.seen_failure == 0);  // a slow death: no choice of its own to see fail
 
     const double seed_cost = SEED_COST;
     SEED_COST = 100;
@@ -1387,4 +1387,125 @@ TEST_CASE("old age brings feebleness, and its health shrinks to match") {
     simulation.take_turn();
     CHECK(old.feeble);
     CHECK(old.health <= old.max_health);
+}
+
+TEST_CASE("a heading pleases the curious only if it moved") {
+    Simulation simulation = world();
+    Bitzkey& walker = simulation.add_agent(encode_dna(Species::Grazer, {{"curiosity", 7}}), 5, 0);
+    simulation.index_cells();
+    Simulation::Situation nothing;
+    simulation.act(walker, WalkNorth, nothing);  // the map's edge
+    CHECK((walker.y == 0 && walker.reward == 0.0));
+    simulation.act(walker, WalkSouth, nothing);
+    CHECK((walker.y == 1 && walker.reward == doctest::Approx(CURIOSITY_JOY)));
+}
+
+TEST_CASE("an alert pleases only when a herd-mate takes it in") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"trust", 7}, {"empathy", 7}, {"patience", 7}, {"sight", 3}});
+    Bitzkey& lookout = simulation.add_agent(dna, 5, 5);
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 9, 9);
+    simulation.index_cells();
+    simulation.alert(lookout, hunter);  // no one to tell
+    CHECK(lookout.reward == 0.0);
+    Bitzkey& mate = simulation.add_agent(dna, 5, 6);
+    simulation.index_cells();
+    simulation.alert(lookout, hunter);
+    CHECK((lookout.reward == ALERT_JOY && mate.alarm == hunter.identifier));
+}
+
+TEST_CASE("learning weights make success memorable, not failure") {
+    CHECK((lesson_weight(Hunt, 0.3) == KILL_FOOD_LEARNING && lesson_weight(Hunt, -0.3) == 1.0));
+    CHECK((lesson_weight(Eat, 0.3) == PLANT_FOOD_LEARNING && lesson_weight(Eat, -0.3) == 1.0));
+    CHECK(lesson_weight(Rest, 0.3) == 1.0);
+}
+
+TEST_CASE("a slow death is not blamed on the last choice, nor seen by the herd") {
+    for (const auto& [cause, blamed] : std::vector<std::pair<std::string, bool>>{{"starved", false}, {"froze", false}, {"old age", false}, {"exhausted", true}}) {
+        Simulation simulation = world();
+        const Dna dna = encode_dna(Species::Grazer, {{"intellect", 7}, {"empathy", 7}});
+        Bitzkey& dying = simulation.add_agent(dna, 5, 5);
+        Bitzkey& herd_mate = simulation.add_agent(dna, 6, 5);
+        simulation.index_cells();
+        simulation.think(dying);
+        dying.reward = 0.0;
+        dying.last_wellbeing = simulation.wellbeing(dying);
+        simulation.die(dying, cause);
+        CHECK((herd_mate.seen_failure > 0) == blamed);
+    }
+}
+
+TEST_CASE("growing out of infancy or into old age is no lesson") {
+    FEEBLE_YOUTH = 0.1;
+    for (const bool infant : {true, false}) {
+        Simulation simulation = world();
+        Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+        simulation.add_agent(encode_dna(Species::Predator), 10, 10);
+        animal.age = infant ? static_cast<int>(std::lround(0.1 * animal.lifespan)) - 1 : static_cast<int>(AGEING * animal.lifespan);
+        animal.grow();
+        const bool feeble = animal.feeble;
+        animal.health = 0.8 * animal.max_health;
+        animal.last_wellbeing = simulation.wellbeing(animal);
+        simulation.take_turn();
+        CHECK(animal.feeble != feeble);
+        // Only the turn's own hunger and healing move its wellbeing; its health's share jumping with its full health does not.
+        CHECK(std::abs(simulation.wellbeing(animal) - animal.last_wellbeing) < 0.05);
+    }
+}
+
+TEST_CASE("every way of moving pays for the distance") {
+    Simulation simulation = world();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"speed", 7}}), 1, 5);
+    Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer), 9, 5);
+    simulation.index_cells();
+    hunter.hunger = 10;
+    Simulation::Situation toward;
+    toward.herd_middle = Cell{prey.x, prey.y};
+    simulation.act(hunter, Herd, toward);  // four cells, at its speed
+    CHECK(hunter.x == 5);
+    CHECK(hunter.hunger == doctest::Approx(10 + hunter.burn * GO_EFFORT * 3));  // every cell past the first
+    prey.hunger = 10;
+    Simulation::Situation away;
+    away.hunter = &hunter;
+    simulation.act(prey, Flee, away);
+    CHECK(prey.hunger == doctest::Approx(10 + prey.burn * GO_EFFORT * std::max(0, prey.steps - 1)));
+}
+
+TEST_CASE("defending is damped by tolerance, as attacking is") {
+    Simulation simulation = world();
+    std::vector<double> joys;
+    for (const int tolerance : {0, 7}) {
+        const int y = 2 + 3 * tolerance / 7;
+        Bitzkey& defender = simulation.add_agent(encode_dna(Species::Omnivore, {{"aggression", 7}, {"tolerance", tolerance}, {"size", 7}}), 2, y);
+        Bitzkey& assailant = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 3, y);
+        simulation.index_cells();
+        simulation.defend(defender, assailant);
+        joys.push_back(defender.reward);
+    }
+    CHECK(joys[1] == doctest::Approx(joys[0] * 0.25));
+}
+
+TEST_CASE("omnivores live alone, in neither herd nor pack, and miss none") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Omnivore, {{"empathy", 7}, {"patience", 7}});
+    Bitzkey& first = simulation.add_agent(dna, 5, 5);
+    Bitzkey& second = simulation.add_agent(dna, 6, 5);
+    const Dna grazer = encode_dna(Species::Grazer, {{"empathy", 7}, {"patience", 7}});
+    Bitzkey& one = simulation.add_agent(grazer, 2, 9);
+    Bitzkey& other = simulation.add_agent(grazer, 3, 9);
+    simulation.index_cells();
+    CHECK_FALSE(simulation.herd_mate(first, second));
+    CHECK_FALSE(simulation.society(first, second));
+    CHECK(simulation.herd_mate(one, other));  // grazers still herd
+    Simulation::Situation lonely = simulation.sense(first).situation;
+    lonely.herd = false;
+    lonely.herd_near = 0;
+    const double loneliness = HERD_LONELINESS;
+    HERD_LONELINESS = 1.0;
+    const double alone = simulation.comfort(first, lonely);
+    SOLITARY_OMNIVORES = 0;
+    CHECK(simulation.herd_mate(first, second));  // the rule off: they herd again
+    CHECK(simulation.comfort(first, lonely) < alone);  // and miss their herd
+    SOLITARY_OMNIVORES = 1;
+    HERD_LONELINESS = loneliness;
 }

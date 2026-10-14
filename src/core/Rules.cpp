@@ -186,6 +186,7 @@ std::vector<Rule> make_rules() {
         {"HERD_SPREAD", "Herding", "Herd spread", "how far from the herd's middle a fearless animal is content", 0, 12, 1, true, &HERD_SPREAD},
         {"HERD_JOY", "Herding", "Herd joy", "pleasure of being among three or more herd-mates", 0.0, 5.0, 0.05, false, &HERD_JOY},
         {"HERD_LONELINESS", "Herding", "Herd loneliness", "unease at having no herd-mate in range", 0.0, 5.0, 0.05, false, &HERD_LONELINESS},
+        {"SOLITARY_OMNIVORES", "Herding", "Solitary omnivores", "1: omnivores live alone, in neither herd nor pack; 0: they herd with their own kind", 0, 1, 1, true, &SOLITARY_OMNIVORES},
         {"HERD_SAFETY", "Herding", "Herd safety", "how much three close herd-mates calm fear", 0.0, 1.0, 0.05, false, &HERD_SAFETY},
         {"HERD_DEFEND_JOY", "Herding", "Herd defence joy", "pleasure of striking back at a herd-mate's attacker", 0.0, 5.0, 0.05, false, &HERD_DEFEND_JOY},
         {"GRASS_MEAL", "Food", "Grass meal", "hunger a tuft of grass sates", 0, 200, 1, true, &GRASS_MEAL},

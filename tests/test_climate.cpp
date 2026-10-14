@@ -515,7 +515,10 @@ TEST_CASE("animals sense the time of year as two clock hands a quarter apart") {
             const Simulation::Sensed sensed = simulation.sense(grazer);
             hands.emplace_back(sensed.senses[SenseTimeOfYearA], sensed.senses[SenseTimeOfYearB]);
         }
+        grazer.hunger = 0;  // kept fed and young the year round: it must outlive the test that holds it
+        grazer.age = 0;
         if (turn < 360) simulation.take_turn();
+        REQUIRE(grazer.alive());
     }
     CHECK(hands == std::vector<std::pair<double, double>>{{1.0, 0.5}, {0.5, 0.0}, {0.0, 0.5}, {0.5, 1.0}, {1.0, 0.5}});
 }
@@ -538,7 +541,7 @@ TEST_CASE("herd-mates in sight learn from a death and feel it, by empathy and in
     dying.has_last_senses = true;
     const Brain before = *witness.brain;
     dying.health = 0;
-    simulation.die(dying, "froze");
+    simulation.die(dying, "exhausted");  // a sudden death, its last choice's doing
     CHECK(*witness.brain == before);  // what the herd saw is learnt at the turn's end, with the rest
     simulation.learn_witnessed();
     Brain expected = before;

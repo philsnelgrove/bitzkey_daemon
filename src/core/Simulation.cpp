@@ -743,9 +743,13 @@ void Simulation::take_turn() {
     random_.shuffle(order);
     for (Bitzkey* agent : order) {
         if (!agent->alive()) continue;
+        const double full = agent->max_health, share_before = std::max(0.0, agent->health) / full;
         agent->age += 1;
         agent->grow();
         agent->health = std::min(agent->health, agent->max_health);  // growing old, it grows feeble
+        if (agent->max_health != full) {  // grown out of infancy, or into old age: the change in its health's share is no lesson
+            agent->last_wellbeing += std::max(0.0, agent->health) / agent->max_health - share_before;
+        }
         const bool plant = agent->species == Species::Plant;
         const double here = in_bounds(agent->x, agent->y) ? climate_[static_cast<std::size_t>(agent->y)] : Medium;
         const double steps = agent->climate_steps(here);
@@ -1049,32 +1053,33 @@ double choice_learning(int choice) {
     }
 }
 
-void Simulation::learn(Bitzkey& agent, double target, bool replay) {
+void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
     // and remembers this one. On the GPU, the lessons are queued, to be learnt in one batch.
     const double rate = learning_rate(agent);
     const std::size_t count = replay ? static_cast<std::size_t>(REPLAY_PER_INTELLECT * thinking_intellect(agent.inborn[Intellect], agent.species)) : 0;
     const std::size_t first = agent.memories.size() > count ? agent.memories.size() - count : 0;
+    const double weight = lesson_weight(agent.last_choice, outcome);
     if (gpu_) {
         if (rate > 0) {
             const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
-            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * choice_learning(agent.last_choice), true, decay);
+            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * weight, true, decay);
             for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
                 const Bitzkey::Memory& memory = agent.memories[index];
-                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * choice_learning(memory.choice), false, 0.0);
+                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
             }
         }
     } else {
-        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * choice_learning(agent.last_choice), discount(agent),
+        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent),
                                        agent.intelligence());
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
-            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * choice_learning(memory.choice));
+            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * memory.weight);
         }
     }
     if (!count) return;
-    agent.memories.push_back({agent.last_senses, agent.last_choice, target});
+    agent.memories.push_back({agent.last_senses, agent.last_choice, target, weight});
     if (agent.memories.size() > count) agent.memories.erase(agent.memories.begin(), agent.memories.end() - static_cast<std::ptrdiff_t>(count));
 }
 
@@ -1179,7 +1184,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         const std::vector<int>& options = plans[index].options;
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);
-        learn(agent, reward + discount(agent) * best, true);
+        learn(agent, reward + discount(agent) * best, reward, true);
         if (reward > 0) experience(agent, Lesson);  // a lesson learnt from a choice that turned out well
     }
     learn_queued();  // on the GPUs, every brain's lessons at once
@@ -1512,7 +1517,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double crowded = RIVAL_UNEASE * (1 - 0.5 * tolerance) * s.rivalry *
                            (1 + DOMINANCE_EASE * (1 - 2 * agent.feeling(Dominance)));  // the submissive feel it most
     double herding = HERD_JOY * instinct * herd_near;
-    if (!s.herd) herding -= HERD_LONELINESS * instinct;
+    if (!s.herd && !solitary(agent.species)) herding -= HERD_LONELINESS * instinct;  // a loner misses no herd
     herding *= 0.5 + agent.fearfulness();  // the fearful feel their herd, and its absence, most
     // Out of its home temperature, it is uneasy, the more so the further, and less if hardy to it.
     const double exposed = CLIMATE_UNEASE * s.exposure;
@@ -1531,9 +1536,12 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
                                         killer ? killer->species : Species::Plant, std::string(activity)};
     if (agent.brain && agent.has_last_senses) {
-        const double penalty = cause == "old age" ? 0.0 : DEATH_PENALTY;
-        if (!gpu_) learn(agent, agent.reward + wellbeing(agent) - agent.last_wellbeing - penalty);  // on the GPU, a brain about to go learns nothing that lasts
-        if (cause != "old age") witness(agent, -DEATH_PENALTY);  // its herd sees it fail
+        // A slow death (old age, starving or the cold or heat) is not its last choice's doing: the health it lost on
+        // the way has taught its lessons already.
+        const bool sudden = !slow_death(cause);
+        const double outcome = agent.reward + wellbeing(agent) - agent.last_wellbeing - (sudden ? DEATH_PENALTY : 0.0);
+        if (!gpu_) learn(agent, outcome, outcome);  // on the GPU, a brain about to go learns nothing that lasts
+        if (sudden) witness(agent, -DEATH_PENALTY);  // its herd sees it fail
     }
     agent.brain.reset();
     if (gpu_ && agent.gpu >= 0) {
@@ -1690,10 +1698,10 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             if (heading.walk) {
                 agent.hunger = std::max(0.0, agent.hunger - agent.burn * WALK_REST);  // burns less, but eases no hunger
             } else {
-                agent.hunger += agent.burn * GO_EFFORT * std::max(0, moved - 1);
+                effort(agent, moved);
                 exhausted(agent);
             }
-            agent.reward += CURIOSITY_JOY * agent.feeling(Curiosity);
+            if (moved) agent.reward += CURIOSITY_JOY * agent.feeling(Curiosity);  // setting off pleases the curious; walking into a wall doesn't
             agent.last_action = heading.went;
             break;
         }
@@ -1742,18 +1750,20 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
     // Its herd within its sight: a grazer alerts them to the hunter it sees, so they may flee it from further
     // than they would; a hunter to the fresh kill it sees, so they may come to feast on it. A herd-mate heeds
     // it only from TRUST_REACH times its trust times its own sight away, or nearer.
+    bool heeded = false;
     for (Bitzkey* other : nearby(agent, agent.sight)) {
         if (!herd_mate(agent, *other) ||
             distance(other->x, other->y, agent.x, agent.y) > TRUST_REACH * other->feeling(Trust) * other->sight) {
             continue;
         }
+        heeded = true;
         if (agent.species == Species::Grazer) {
             if (!other->alarm) other->alarm = about.identifier;
         } else {
             other->kill_alert = Cell{about.x, about.y};
         }
     }
-    agent.reward += ALERT_JOY;
+    if (heeded) agent.reward += ALERT_JOY;  // a pleasure only when a herd-mate took it in
     agent.last_action = "alerted";
 }
 
@@ -1883,7 +1893,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
         if (!agent.alive()) die(agent, "killed", &victim, "spines");  // its victim's spines
     }
     exhausted(agent);
-    if (agent.species == Species::Predator && agent.alive()) agent.reward += ATTACK_JOY;  // a blow it lived through
+    if (agent.species == Species::Predator && agent.alive() && blow > std::max(0.0, sting)) agent.reward += ATTACK_JOY;  // a blow that went its way
 }
 
 void Simulation::exhausted(Bitzkey& agent) {
@@ -1898,7 +1908,8 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;
     experience(assailant, Stung);
     if (agent.species != Species::Plant) {
-        agent.reward += FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * agent.feeling(Empathy));
+        agent.reward += FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * agent.feeling(Empathy)) *
+                        (1 - 0.75 * agent.feeling(Tolerance));  // as attacking is
         if (for_herd) agent.reward += HERD_DEFEND_JOY * agent.herd_instinct();
         agent.last_action = "defended";
         experience(agent, Defended);
@@ -2232,6 +2243,7 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
 
 void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
     if (steps < 0) steps = agent.steps;
+    int cells = 0;
     for (int taken = 0; taken < steps; ++taken) {
         bool moved;
         if (agent.x != x) {
@@ -2242,15 +2254,20 @@ void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
             break;
         }
         if (!moved) break;
+        ++cells;
     }
+    effort(agent, cells);
 }
 
 void Simulation::move_away(Bitzkey& agent, const Bitzkey& threat) {
+    int cells = 0;
     for (int taken = 0; taken < agent.steps; ++taken) {
         const int dx = agent.x >= threat.x ? 1 : -1;
         const int dy = agent.y >= threat.y ? 1 : -1;
         if (!step(agent, py_mod(agent.x + dx, width_), within(agent.y + dy))) break;
+        ++cells;
     }
+    effort(agent, cells);
 }
 
 bool Simulation::compatible(const Bitzkey& first, const Bitzkey& second) {
@@ -2289,7 +2306,7 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
         }
         const double heed = observer->feeling(Empathy) * observer->intelligence() *
                             (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
-        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * choice_learning(actor.last_choice)});  // learnt at the end
+        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
         observer->reward += SOCIAL_MOOD * heed * outcome;
         if (outcome > 0) observer->seen_success = 1.0;
         else observer->seen_failure = 1.0;
@@ -2297,12 +2314,12 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
 }
 
 bool Simulation::society(const Bitzkey& observer, const Bitzkey& actor) const {
-    return &observer != &actor && observer.species != Species::Plant && observer.species == actor.species &&
+    return &observer != &actor && !solitary(observer.species) && observer.species == actor.species &&
            (observer.species != Species::Predator || same_kind(observer, actor)) && willing(observer, actor);
 }
 
 bool Simulation::herd_mate(const Bitzkey& agent, const Bitzkey& other) const {
-    return &other != &agent && other.alive() && agent.species != Species::Plant && other.species == agent.species &&
+    return &other != &agent && other.alive() && !solitary(agent.species) && other.species == agent.species &&
            (agent.species != Species::Predator || same_kind(agent, other)) && willing(agent, other);
 }
 

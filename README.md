@@ -79,6 +79,7 @@ The page has the window app's screens, laid out the same way:
   - the import box, for pasting, loading a file, the catalog or the designer;
   - the advanced rules.
   Starting a new world replaces the running world for every viewer.
+- Omnivores live alone, in neither herd nor pack (the Solitary omnivores rule); grazers herd and predators run in packs.
 - **DEATH REPORT**, on the insights panel: every death back to the world's start, by cause and species, who killed whom, what the killers were doing (hunting, attacking, defending, browsing, uprooting, spines), and the ten deadliest killers. The graph's hover says what each killer was doing too.
 - **INSPECT BRAINS**, beside a selected Bitzkey's heading: pauses the world, for everyone, and shows its chance of choosing each action in each standard situation.
 - **ADVANCED**, in the footer. Pauses the world, for everyone, and opens its advanced rules; applied, the world plays by them from its next turn, and so do its restarts. Think on the GPU stays as the world started. The button is amber while the world plays by changed rules.
