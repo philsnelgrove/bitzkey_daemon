@@ -222,118 +222,20 @@ export function openSetup(app, onClose) {
   // ---- The advanced rules
 
   function openAdvanced() {
-    const values = Object.fromEntries(ruleList.map(rule => [rule.key, rule.key in rules ? rules[rule.key] : rule.default]));
-    const ruleInputs = new Map();
-    let focused = ruleList[0]?.key;
-    const lead = element('div', { class: 'lead' });
-    const advancedNote = element('div', { class: 'screen-note' });
-    const list = element('div', { class: 'scroll', style: { flex: '1' } });
-    const shown = (rule, value) => {  // up to six significant digits, no trailing zeros
-      const text = rule.integer ? String(Math.round(value)) : String(Number(value.toPrecision(6)));
-      return text;
-    };
-    const refresh = () => {
-      const changed = ruleList.filter(rule => values[rule.key] !== rule.default).length;
-      lead.textContent = `The rules the world plays by. ${changed} changed from the defaults; changed values show in amber.`;
-      for (const rule of ruleList) ruleInputs.get(rule.key).classList.toggle('changed', values[rule.key] !== rule.default);
-      const chosen = ruleList.find(rule => rule.key === focused);
-      advancedNote.textContent = chosen?.warning || 'UP/DOWN  choose   +/- adjust (SHIFT x10)   ENTER  apply   ESC  cancel';
-      advancedNote.classList.toggle('warn', Boolean(chosen?.warning));
-    };
-    const clamp = (rule, value) => Math.max(rule.minimum, Math.min(rule.maximum, rule.integer ? Math.round(value) : value));
-    const settleRule = rule => {
-      const input = ruleInputs.get(rule.key);
-      const typed = parseFloat(input.value);
-      if (!Number.isNaN(typed)) values[rule.key] = clamp(rule, typed);
-      input.value = shown(rule, values[rule.key]);
-      refresh();
-    };
-    let group = null;
-    for (const rule of ruleList) {
-      if (rule.group !== group) {
-        group = rule.group;
-        list.append(element('div', { class: 'group-heading' }, upper(group)));
-      }
-      const input = element('input', { inputmode: 'decimal', disabled: Boolean(rule.locked) });
-      input.value = shown(rule, values[rule.key]);
-      input.addEventListener('focus', () => { focused = rule.key; refresh(); });
-      input.addEventListener('blur', () => settleRule(rule));
-      input.addEventListener('input', () => {
-        input.value = input.value.replace(rule.integer ? (rule.minimum < 0 ? /[^0-9-]/g : /[^0-9]/g) : (rule.minimum < 0 ? /[^0-9.-]/g : /[^0-9.]/g), '').slice(0, 12);
-      });
-      ruleInputs.set(rule.key, input);
-      const warned = !rule.locked && rule.warning;
-      list.append(numberRow({
-        label: rule.label, input, locked: Boolean(rule.locked),
-        hint: rule.locked || (warned ? `WARNING  ${rule.hint}` : rule.hint),
-        hintClass: rule.locked ? 'lock' : warned ? 'warn' : '',
-        onStep: steps => {
-          focused = rule.key;
-          values[rule.key] = clamp(rule, Number((values[rule.key] + steps * rule.step).toFixed(9)));
-          input.value = shown(rule, values[rule.key]);
-          refresh();
-        },
-      }));
-    }
-    const advancedShade = screen('advanced', panel => {
-      panel.append(
-        element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY'), element('span', {}, 'NEW WORLD  /  ADVANCED RULES')),
-        element('div', { class: 'advanced-tools' },
-          element('button', { onclick: () => {
-            const rule = ruleList.find(r => r.key === focused);
-            if (!rule) return;
-            values[rule.key] = rule.default;
-            ruleInputs.get(rule.key).value = shown(rule, rule.default);
-            refresh();
-          } }, 'RESET'),
-          element('button', { onclick: () => {
-            for (const rule of ruleList) {
-              values[rule.key] = rule.default;
-              ruleInputs.get(rule.key).value = shown(rule, rule.default);
-            }
-            refresh();
-          } }, 'RESET ALL')),
-        element('div', { class: 'lead natural-law' }, "These are the settings for what might be called 'natural law'.  They have been carefully balanced to produce a world with fair chances for all.  Messing with any of them can produce unpredictable results.  Have fun!"),
-        lead, list,
-        element('div', { class: 'screen-foot' },
-          element('button', { onclick: closeAdvanced }, 'CANCEL'),
-          element('button', { class: 'primary', onclick: applyAdvanced }, 'APPLY')),
-        advancedNote);
+    openRules({
+      ruleList, changed: rules,
+      onApply: async values => {
+        const checked = await api('/api/rules/check', { rules: values });
+        if (checked.problems.length) return `${checked.problems[0]}.`;
+        rules = checked.changed;
+        showRulesCount();
+        const count = Object.keys(rules).length;
+        tell(`${count} advanced rule${count !== 1 ? 's' : ''} changed from the defaults.`, false);
+        return null;
+      },
     });
-    refresh();
-    async function applyAdvanced() {
-      for (const rule of ruleList) if (!rule.locked) settleRule(rule);
-      const checked = await api('/api/rules/check', { rules: values });
-      if (checked.problems.length) {
-        advancedNote.textContent = `${checked.problems[0]}.`;
-        advancedNote.classList.add('warn');
-        return;
-      }
-      rules = checked.changed;
-      showRulesCount();
-      const count = Object.keys(rules).length;
-      tell(`${count} advanced rule${count !== 1 ? 's' : ''} changed from the defaults.`, false);
-      closeAdvanced();
-    }
-    function onAdvancedKey(event) {
-      if (!onTop(advancedShade)) return;
-      if (event.key === 'Escape') { event.preventDefault(); closeAdvanced(); }
-      else if (event.key === 'Enter') { event.preventDefault(); applyAdvanced(); }
-      else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && event.target instanceof HTMLInputElement) {
-        event.preventDefault();
-        const all = [...ruleInputs.values()].filter(input => !input.disabled);
-        const next = all[(all.indexOf(event.target) + (event.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length];
-        next.focus();
-        next.select();
-        next.scrollIntoView({ block: 'nearest' });
-      }
-    }
-    document.addEventListener('keydown', onAdvancedKey);
-    function closeAdvanced() {
-      document.removeEventListener('keydown', onAdvancedKey);
-      advancedShade.remove();
-    }
   }
+
 
   // ---- The designer
 
@@ -496,6 +398,121 @@ export function openSetup(app, onClose) {
 // The catalog of favourite Bitzkeys. Opened from the setup panel, the Bitzkeys chosen go to `onImport`
 // with their records; opened to browse (no `onImport`), it only shows them, and can remove them.
 // `onClose` is told when it closes.
+// The advanced rules: every rule, by group, from `changed` (the rules changed from the defaults). `onApply` is given
+// every value and answers with a problem, or null once it has applied them. `running`: the rules of the world running
+// on the map, rather than of the next new world, so the rules a running world can't change are greyed out.
+export function openRules({ ruleList, changed, running = false, onApply, onClose = () => {} }) {
+  const values = Object.fromEntries(ruleList.map(rule => [rule.key, rule.key in changed ? changed[rule.key] : rule.default]));
+  const lockOf = rule => rule.locked || (running ? rule.world_locked : '');  // why it can't be changed here, if it can't
+  const ruleInputs = new Map();
+  let focused = ruleList[0]?.key;
+  const lead = element('div', { class: 'lead' });
+  const advancedNote = element('div', { class: 'screen-note' });
+  const list = element('div', { class: 'scroll', style: { flex: '1' } });
+  const shown = (rule, value) => {  // up to six significant digits, no trailing zeros
+    const text = rule.integer ? String(Math.round(value)) : String(Number(value.toPrecision(6)));
+    return text;
+  };
+  const refresh = () => {
+    const count = ruleList.filter(rule => values[rule.key] !== rule.default).length;
+    lead.textContent = `${running ? 'This world plays by these from its next turn.' : 'The rules the world plays by.'} ${count} changed from the defaults; changed values show in amber.`;
+    for (const rule of ruleList) ruleInputs.get(rule.key).classList.toggle('changed', values[rule.key] !== rule.default);
+    const chosen = ruleList.find(rule => rule.key === focused);
+    advancedNote.textContent = chosen?.warning || 'UP/DOWN  choose   +/- adjust (SHIFT x10)   ENTER  apply   ESC  cancel';
+    advancedNote.classList.toggle('warn', Boolean(chosen?.warning));
+  };
+  const clamp = (rule, value) => Math.max(rule.minimum, Math.min(rule.maximum, rule.integer ? Math.round(value) : value));
+  const settleRule = rule => {
+    const input = ruleInputs.get(rule.key);
+    const typed = parseFloat(input.value);
+    if (!Number.isNaN(typed)) values[rule.key] = clamp(rule, typed);
+    input.value = shown(rule, values[rule.key]);
+    refresh();
+  };
+  let group = null;
+  for (const rule of ruleList) {
+    if (rule.group !== group) {
+      group = rule.group;
+      list.append(element('div', { class: 'group-heading' }, upper(group)));
+    }
+    const input = element('input', { inputmode: 'decimal', disabled: Boolean(lockOf(rule)) });
+    input.value = shown(rule, values[rule.key]);
+    input.addEventListener('focus', () => { focused = rule.key; refresh(); });
+    input.addEventListener('blur', () => settleRule(rule));
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(rule.integer ? (rule.minimum < 0 ? /[^0-9-]/g : /[^0-9]/g) : (rule.minimum < 0 ? /[^0-9.-]/g : /[^0-9.]/g), '').slice(0, 12);
+    });
+    ruleInputs.set(rule.key, input);
+    const warned = !lockOf(rule) && rule.warning;
+    list.append(numberRow({
+      label: rule.label, input, locked: Boolean(lockOf(rule)),
+      hint: lockOf(rule) || (warned ? `WARNING  ${rule.hint}` : rule.hint),
+      hintClass: lockOf(rule) ? 'lock' : warned ? 'warn' : '',
+      onStep: steps => {
+        focused = rule.key;
+        values[rule.key] = clamp(rule, Number((values[rule.key] + steps * rule.step).toFixed(9)));
+        input.value = shown(rule, values[rule.key]);
+        refresh();
+      },
+    }));
+  }
+  const advancedShade = screen('advanced', panel => {
+    panel.append(
+      element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY'), element('span', {}, running ? 'THIS WORLD  /  ADVANCED RULES' : 'NEW WORLD  /  ADVANCED RULES')),
+      element('div', { class: 'advanced-tools' },
+        element('button', { onclick: () => {
+          const rule = ruleList.find(r => r.key === focused);
+          if (!rule) return;
+          values[rule.key] = rule.default;
+          ruleInputs.get(rule.key).value = shown(rule, rule.default);
+          refresh();
+        } }, 'RESET'),
+        element('button', { onclick: () => {
+          for (const rule of ruleList) {
+            values[rule.key] = rule.default;
+            ruleInputs.get(rule.key).value = shown(rule, rule.default);
+          }
+          refresh();
+        } }, 'RESET ALL')),
+      element('div', { class: 'lead natural-law' }, "These are the settings for what might be called 'natural law'.  They have been carefully balanced to produce a world with fair chances for all.  Messing with any of them can produce unpredictable results.  Have fun!"),
+      lead, list,
+      element('div', { class: 'screen-foot' },
+        element('button', { onclick: closeAdvanced }, 'CANCEL'),
+        element('button', { class: 'primary', onclick: applyAdvanced }, 'APPLY')),
+      advancedNote);
+  });
+  refresh();
+  async function applyAdvanced() {
+    for (const rule of ruleList) if (!lockOf(rule)) settleRule(rule);
+    const problem = await onApply(values);  // null once applied
+    if (problem) {
+      advancedNote.textContent = problem;
+      advancedNote.classList.add('warn');
+      return;
+    }
+    closeAdvanced();
+  }
+  function onAdvancedKey(event) {
+    if (!onTop(advancedShade)) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeAdvanced(); }
+    else if (event.key === 'Enter') { event.preventDefault(); applyAdvanced(); }
+    else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && event.target instanceof HTMLInputElement) {
+      event.preventDefault();
+      const all = [...ruleInputs.values()].filter(input => !input.disabled);
+      const next = all[(all.indexOf(event.target) + (event.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length];
+      next.focus();
+      next.select();
+      next.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', onAdvancedKey);
+  function closeAdvanced() {
+    document.removeEventListener('keydown', onAdvancedKey);
+    advancedShade.remove();
+    onClose();
+  }
+}
+
 export function openCatalog({ onImport = null, onClose = () => {} } = {}) {
   const browsing = !onImport;
   let entries = [], chosen = new Set(), picked = 0, anchor = 0, catalogNote = '';

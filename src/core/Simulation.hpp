@@ -327,6 +327,9 @@ struct Place {  // a place remembered, and the turn it happened there
 
 struct Bitzkey {
     Bitzkey(int identifier, Dna dna, int x, int y);
+    // Work out again what its genome makes of it under the rules as they now stand: its health pool,
+    // metabolism, stomach, burn, might, toughness, steps, diet, sight, lifespan, breeding cost and digestion.
+    void derive();
 
     int identifier;
     Dna dna;
@@ -504,6 +507,10 @@ public:
     }
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
+    // The advanced rules were changed while the world runs: work out afresh what the world settled from them as
+    // it began, the grass that grows back each turn and its climate bands, and what each Bitzkey's genome makes
+    // of it. Everything else reads the rules as it goes.
+    void rules_changed();
     // A row's temperature now, part way between two while the weather turns.
     double temperature(int y) const { return climate_[static_cast<std::size_t>(y)]; }
     // How well grass grows in a row: fully where it is medium, less the further it has turned from medium.
@@ -777,6 +784,7 @@ private:
     int plants_ = 0;
     std::vector<int> grass_;
     double grass_regrowth_;
+    int initial_grass_ = 0;  // what grows back each turn is a share of it
     std::vector<Seed> seeds_;
     std::vector<double> climate_;      // each row's temperature this turn
     std::vector<double> growth_;       // each row's share of medium, where grass grows

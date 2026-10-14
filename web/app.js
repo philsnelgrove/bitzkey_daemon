@@ -7,7 +7,7 @@ import { drawBitzkey, drawReticle, zoneColour, mapDotRadii, dotRadius, bitzkeyCa
          GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
-import { openSetup, openCatalog } from './setup.js';
+import { openSetup, openCatalog, openRules } from './setup.js';
 
 const MAP_ZOOM_STEP = 1.25;
 const MAP_ZOOM_MAX = 12;
@@ -196,6 +196,7 @@ function drawHeader() {
   $('status').style.color = state.playing ? 'var(--green)' : 'var(--amber)';
   $('speed').textContent = `SPEED ${state.speeds[state.speed]}`;
   $('play').innerHTML = state.playing ? '&#10074;&#10074;' : '&#9654;';
+  showRulesChanged(state.rules_changed ?? 0);
   const gpu = $('gpu');
   gpu.textContent = upper(state.gpu_status || '');
   gpu.className = `gpu ${state.on_gpu ? 'on' : 'off'}`;
@@ -851,6 +852,30 @@ function setup() {
 }
 
 // Look through the catalog, importing and exporting nothing. Over the graph, it returns there.
+// Pause, and change the rules this world plays by: applied, they hold from its next turn, and for its restarts.
+async function editRules() {
+  await control('pause');
+  const setup = await api('/api/setup');
+  const under = app.overlay;
+  app.overlay = { update() {} };
+  openRules({
+    ruleList: setup.rules, changed: setup.changed, running: true,
+    onApply: async values => {
+      const result = await api('/api/rules/world', { rules: values });
+      if (result.problems.length) return `${result.problems[0]}.`;
+      say(result.note);
+      showRulesChanged(Object.keys(result.changed).length);
+      return null;
+    },
+    onClose: () => { app.overlay = under; },
+  });
+}
+
+// The ADVANCED button shows amber while the world plays by changed rules.
+function showRulesChanged(count) {
+  $('advanced').classList.toggle('any', count > 0);
+}
+
 function browseCatalog() {
   const under = app.overlay;
   app.overlay = { update() {} };
@@ -900,6 +925,7 @@ $('show-files').onclick = showFiles;
 $('new-world').onclick = setup;
 $('export-all').onclick = openExportDialog;
 $('open-catalog').onclick = () => { if (!app.overlay) browseCatalog(); };
+$('advanced').onclick = () => { if (!app.overlay) editRules(); };
 $('message').textContent = HINT;
 
 window.bitzkey = app;  // for looking into from the browser's console

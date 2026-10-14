@@ -242,8 +242,9 @@ std::string lower(std::string text) {
 
 }  // namespace
 
-std::string locked(std::string_view key) {
+std::string locked(std::string_view key, bool running) {
     if (key == "USE_GPU" && !gpu::available()) return "No GPU with Vulkan was found on this computer, so the brains think on the CPU.";
+    if (key == "USE_GPU" && running) return "A running world keeps thinking where it started; this takes effect in a new world.";
     return {};
 }
 

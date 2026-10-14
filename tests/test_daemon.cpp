@@ -291,6 +291,19 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(post(client, "/api/import/check", {{"text", records["text"]}})["count"] == 1);
         CHECK_FALSE(post(client, "/api/import/check", {{"text", "nonsense"}})["ok"].get<bool>());
 
+        const Json changed = post(client, "/api/rules/world", {{"rules", {{"CORPSE_TURNS", 7}, {"GRASS_REGROWTH", 0.05}}}});
+        CHECK(changed["problems"].empty());
+        CHECK(changed["changed"].size() == 2);
+        CHECK(CORPSE_TURNS == 7);
+        {
+            auto lock = world.lock();
+            CHECK_FALSE(world.playing());  // it pauses for the change
+            CHECK(world.rules().size() == 2);  // and its restarts keep the rules
+        }
+        CHECK_FALSE(post(client, "/api/rules/world", {{"rules", {{"LITTER_RANGE.0", 9}, {"LITTER_RANGE.1", 2}}}})["problems"].empty());
+        post(client, "/api/rules/world", {{"rules", Json::object()}});
+        CHECK(CORPSE_TURNS == 30);
+
         const Json designed = post(client, "/api/design", {{"ring", "00000001"}, {"dot", "00000000"}, {"social", "0000ABCD"}});
         CHECK(designed["species"] == "grazer");
         CHECK(designed["record"]["social"] == "0000ABCD");

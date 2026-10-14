@@ -607,6 +607,29 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, result);
     }));
 
+    // The running world's advanced rules, changed on the map: it pauses and plays by them from its next turn.
+    // Where it thinks stays as it started.
+    server.Post("/api/rules/world", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        rules::Values values = rules::defaults();
+        const Json asked = given.value("rules", Json::object());
+        for (const auto& [key, value] : asked.items()) {
+            if (const rules::Rule* rule = rules::find(key); rule && value.is_number()) values[key] = rule->clamp(value.get<double>());
+        }
+        auto lock = world.lock();
+        values["USE_GPU"] = rules::current().at("USE_GPU");
+        if (const auto problems = rules::problems(values); !problems.empty()) {
+            reply(response, {{"problems", problems}});
+            return;
+        }
+        const rules::Values changed = rules::changed(values);
+        world.change_rules(changed);
+        reply(response, {{"problems", Json::array()},
+                         {"changed", changed},
+                         {"note", format("This world now plays by %zu rule%s changed from the defaults. Paused: SPACE plays on.",
+                                         changed.size(), changed.size() != 1 ? "s" : "")}});
+    }));
+
     server.Post("/api/import/check", guarded([](const httplib::Request& request, httplib::Response& response) {
         const Json given = body(request);
         const std::string text = given.value("text", std::string());

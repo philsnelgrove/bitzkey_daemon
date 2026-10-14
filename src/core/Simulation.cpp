@@ -237,6 +237,10 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
     species = static_cast<Species>(body[SpeciesTrait]);
     climate = decode_climate(dna_);
     mind = to_mind(inborn);
+    derive();
+}
+
+void Bitzkey::derive() {
     const double size = physique(Size);
     max_health = 60.0 + 90 * size;
     metabolism = METABOLISM[0] + (METABOLISM[1] - METABOLISM[0]) * size;
@@ -388,6 +392,7 @@ Simulation::Simulation(Settings settings)
     grass_.assign(area, 0);
     update_climate();
     const int initial_grass = static_cast<int>(py_round(static_cast<double>(width_ * height_) * settings.grass_density / 100));
+    initial_grass_ = initial_grass;
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
     const std::vector<int> sizes = group_sizes(settings.population);
@@ -587,13 +592,23 @@ void Simulation::record() {
     }
 }
 
+void Simulation::rules_changed() {
+    grass_regrowth_ = initial_grass_ * GRASS_REGROWTH;
+    band_of_row_.clear();  // the bands are worked out again as the cells are next indexed
+    update_climate();
+    for (auto& agent : agents_) agent->derive();
+}
+
 void Simulation::restore(const Snapshot& held) {
     turn_ = held.turn;
     deaths_ = held.deaths;
     next_identifier_ = held.next_identifier;
     for (auto& agent : agents_) departed_.push_back(std::move(agent));
     agents_.clear();
-    for (const Bitzkey& agent : held.agents) agents_.push_back(std::make_unique<Bitzkey>(agent));
+    for (const Bitzkey& agent : held.agents) {
+        agents_.push_back(std::make_unique<Bitzkey>(agent));
+        agents_.back()->derive();  // under the rules as they now stand, which may have changed since
+    }
     grass_ = held.grass;
     seeds_ = held.seeds;
     random_.setstate(held.random);

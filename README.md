@@ -81,6 +81,7 @@ The page has the window app's screens, laid out the same way:
   Starting a new world replaces the running world for every viewer.
 - **DEATH REPORT**, on the insights panel: every death so far, by cause and species.
 - **INSPECT BRAINS**, beside a selected Bitzkey's heading: pauses the world, for everyone, and shows its chance of choosing each action in each standard situation.
+- **ADVANCED**, in the footer. Pauses the world, for everyone, and opens its advanced rules; applied, the world plays by them from its next turn, and so do its restarts. Think on the GPU stays as the world started. The button is amber while the world plays by changed rules.
 - **OPEN CATALOG**, in the footer and on the colour graph. Looks through the catalog without importing or exporting anything; REMOVE still works.
 - **FILES.** Downloads exports the daemon has saved. Brain reports (B) open in a new tab.
 

@@ -124,7 +124,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 #message.note { color: var(--amber); }
 #footer .export, #footer #open-catalog { padding: 9px 16px; }
 #footer #open-catalog { margin-right: -14px; }
-#footer .export.any { background: var(--amber); color: var(--back); }
+#footer .export.any, #footer #advanced.any { background: var(--amber); color: var(--back); }
+#footer #advanced { padding: 9px 16px; margin-right: -14px; }
 
 .lost { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgb(120, 50, 40); color: #fff; padding: 8px 16px; border-radius: 5px; z-index: 50; }
 

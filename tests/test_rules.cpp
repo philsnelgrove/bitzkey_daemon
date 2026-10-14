@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+
 #include "core/Brain.hpp"
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
@@ -96,4 +98,26 @@ TEST_CASE("a world plays by the rules set when it runs") {
     const int usual = corpses_kept(40);
     rules::apply({{"CORPSE_TURNS", 1}});
     CHECK(corpses_kept(40) < usual);
+}
+
+TEST_CASE("a running world works out afresh what it settled from the rules as it began") {
+    Simulation simulation(Simulation::Settings{30, 30, 20, 3, 10});  // 90 tufts to start with
+    simulation.advance();
+    const Bitzkey& animal = **std::find_if(simulation.agents().begin(), simulation.agents().end(),
+                                           [](const auto& agent) { return agent->species != Species::Plant; });
+    const double metabolism = animal.metabolism;
+    rules::apply({{"GRASS_REGROWTH", 0.05}, {"ARCTIC_SHARE", 0.0}, {"METABOLISM.1", 0.1}});
+    simulation.rules_changed();
+    CHECK(simulation.grass_regrowth() == doctest::Approx(90 * 0.05));
+    CHECK(animal.metabolism < metabolism);  // what its genome makes of it, under the rules now
+    CHECK_FALSE(rules::locked("USE_GPU", true).empty());  // where a world thinks is set as it starts
+    const int identifier = animal.identifier;
+    const double now = animal.metabolism;
+    simulation.advance();
+    simulation.rewind();  // brought back from a turn recorded before the change, it still plays by the rules now
+    simulation.rewind();
+    const Bitzkey& again = **std::find_if(simulation.agents().begin(), simulation.agents().end(),
+                                          [&](const auto& agent) { return agent->identifier == identifier; });
+    CHECK(again.metabolism == now);
+    rules::apply({});
 }

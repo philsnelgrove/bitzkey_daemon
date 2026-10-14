@@ -65,6 +65,14 @@ void World::new_world(Simulation::Settings settings, rules::Values rules) {
 
 void World::restart() { new_world(settings_, rules_); }
 
+void World::change_rules(rules::Values rules) {
+    playing_ = false;
+    rules::apply(rules);
+    simulation_->rules_changed();
+    rules_ = std::move(rules);
+    ++version_;
+}
+
 void World::run() {
     using Clock = std::chrono::steady_clock;
     auto last_turn = Clock::now();

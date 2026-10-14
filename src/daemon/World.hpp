@@ -62,6 +62,8 @@ public:
     // A new world from these settings and advanced rules, replacing the present one.
     void new_world(Simulation::Settings settings, rules::Values rules);
     void restart();  // the same settings again
+    // Pause, and play by these advanced rules (changed from the defaults) from the next turn; its restarts keep them.
+    void change_rules(rules::Values rules);
     void touch() { ++version_; }  // something changed that viewers should fetch again
 
 private:

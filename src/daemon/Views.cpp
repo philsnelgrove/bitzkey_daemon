@@ -227,6 +227,7 @@ Json state(World& world) {
         {"ended", simulation.ended()},
         {"end_note", end_note(simulation)},
         {"speed", world.speed()},
+        {"rules_changed", world.rules().size()},  // how many of the advanced rules it plays by differ from the defaults
         {"speeds", SPEED_LABELS},
         {"gpu_status", simulation.gpu_status()},
         {"on_gpu", simulation.on_gpu()},
@@ -549,7 +550,8 @@ Json rules_form(const rules::Values& current) {
                         {"default", rules::defaults().at(rule.key)},
                         {"shown", rules::shown(rule, value)},
                         {"warning", std::string(rules::warning(rule.key))},
-                        {"locked", rules::locked(rule.key)}});
+                        {"locked", rules::locked(rule.key)},
+                        {"world_locked", rules::locked(rule.key, true)}});  // why a running world can't change it
     }
     return {{"rules", list}};
 }
