@@ -72,7 +72,7 @@ export function details(agent, { large = 0 } = {}) {
   panel.append(element('div', { class: 'mono health' }, `HEALTH  ${fixed(Math.max(0, agent.health), 1).padStart(5)} / ${fixed(agent.max_health, 0)}`));
   panel.append(bar(agent.health / agent.max_health, 'rgb(124,190,131)'));
   panel.append(element('div', { class: 'note' },
-    `AGE ${agent.age} / ~${fixed(agent.lifespan, 0)}    GENERATION ${agent.generation}    CHILDREN ${agent.children}`));
+    `AGE ${agent.age} / ~${fixed(agent.lifespan, 0)}${agent.feeble ? ' FEEBLE' : ''}    GENERATION ${agent.generation}    CHILDREN ${agent.children}`));
   let state = `LAST ACTION: ${upper(agent.last_action)}`;
   if (agent.alive === false) state += `     MEAT LEFT ${fixed(agent.meat, 0)}`;
   panel.append(element('div', { class: 'note' }, state));

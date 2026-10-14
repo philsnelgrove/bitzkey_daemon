@@ -28,7 +28,7 @@ int corpses_kept(int turns) {
 }  // namespace
 
 TEST_CASE("every default is within its rule and of its kind") {
-    CHECK(rules::all().size() == 205);
+    CHECK(rules::all().size() == 207);
     const rules::Rule& turns = *rules::find("HISTORY_TURNS");
     CHECK((rules::shown(turns, turns.maximum) == "ALL" && rules::shown(turns, 100) == "100"));  // its top keeps every turn
     CHECK(!rules::warning("HISTORY_MEMORY").empty());
@@ -106,7 +106,7 @@ TEST_CASE("a running world works out afresh what it settled from the rules as it
     const Bitzkey& animal = **std::find_if(simulation.agents().begin(), simulation.agents().end(),
                                            [](const auto& agent) { return agent->species != Species::Plant; });
     const double metabolism = animal.metabolism;
-    rules::apply({{"GRASS_REGROWTH", 0.05}, {"ARCTIC_SHARE", 0.0}, {"METABOLISM.1", 0.1}});
+    rules::apply({{"GRASS_REGROWTH", 0.05}, {"ARCTIC_SHARE", 0.0}, {"METABOLISM.1", 0.1}, {"FEEBLE_YOUTH", 0.0}});
     simulation.rules_changed();
     CHECK(simulation.grass_regrowth() == doctest::Approx(90 * 0.05));
     CHECK(animal.metabolism < metabolism);  // what its genome makes of it, under the rules now

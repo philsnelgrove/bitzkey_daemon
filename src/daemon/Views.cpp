@@ -320,6 +320,7 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
     result["health"] = agent.health;
     result["max_health"] = agent.max_health;
     result["age"] = agent.age;
+    result["feeble"] = agent.feeble;  // an infant, or old: its body and health at FEEBLE_SHARE
     result["generation"] = agent.generation;
     result["children"] = agent.children;
     result["last_action"] = std::string(agent.last_action);
@@ -341,7 +342,9 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
 }
 
 Json design(Dna dna) {
-    const Bitzkey sample(0, dna, 0, 0);
+    Bitzkey sample(0, dna, 0, 0);
+    sample.age = static_cast<int>(std::lround(sample.lifespan / 2));  // grown, not feeble
+    sample.grow();
     Json result = inspect(sample, false);
     std::vector<std::string> facts;
     if (sample.species == Species::Plant) {

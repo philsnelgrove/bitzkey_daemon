@@ -122,6 +122,7 @@ Bitzkey inspected(const Entry& entry) {
     agent.health = state.value("health", agent.max_health);
     agent.hunger = state.value("hunger", 0.0);
     agent.age = state.value("age", 0);
+    agent.grow();  // grown out of infancy, or into old age
     agent.generation = state.value("generation", 0);
     agent.children = state.value("children", 0);
     agent.last_action = kept_text(state.value("last_action", std::string("catalogued")));

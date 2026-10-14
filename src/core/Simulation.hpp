@@ -42,6 +42,10 @@ inline int CELL_SPACE = 10;
 inline double STARVING_DAMAGE = 0.1;
 // Meat lasts: the share of its fullness that is meat empties at this share of the usual rate.
 inline double MEAT_DIGESTION = 0.5;
+// Feeble: an animal in its infancy (the first FEEBLE_YOUTH of its lifespan) or its old age (past AGEING of it)
+// has every body trait, and its health, at FEEBLE_SHARE of its own.
+inline double FEEBLE_YOUTH = 0.1;
+inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
 // The history is kept in memory: the world at each of the latest HISTORY_TURNS turns, whole, so the map
@@ -422,8 +426,22 @@ struct Bitzkey {
     double grazing;   // share of the food in grass it gets
     double browsing;  // share of the food in plants
     int steps, sight;
+    // In its infancy, the first FEEBLE_YOUTH of its lifespan, or its old age, past AGEING of it, an animal is
+    // feeble: its body traits and health are at FEEBLE_SHARE. Plants never are. Kept up by derive().
+    bool feeble = false;
 
-    double physique(int trait) const { return share(body[trait]); }
+    // A body trait as it is now: its genes' value, or FEEBLE_SHARE of it while feeble.
+    int trait(int name) const {
+        return feeble && name != SpeciesTrait ? static_cast<int>(body[name] * FEEBLE_SHARE) : body[name];
+    }
+    double physique(int name) const { return share(trait(name)); }  // a body trait, as it is now, as a share of its range
+    // Whether it is feeble at its age: if that has changed, its body is worked out afresh.
+    void grow() {
+        if (feeble != feeble_at_age()) derive();
+    }
+    bool feeble_at_age() const {
+        return species != Species::Plant && (age < FEEBLE_YOUTH * lifespan || age > AGEING * lifespan);
+    }
     double feeling(int trait) const { return share(mind[trait]); }
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
     // PREDATOR_INTELLIGENCE times over, up to the full range.
@@ -458,7 +476,7 @@ struct Bitzkey {
         meat_fill = std::max(0.0, meat_fill - burned * meat_share * MEAT_DIGESTION);
         return burned * (1 - meat_share * (1 - MEAT_DIGESTION));
     }
-    int space() const { return 1 + body[Size]; }  // the spaces of a square it takes
+    int space() const { return 1 + trait(Size); }  // the spaces of a square it takes
     void heal(double amount) { health = std::min(max_health, health + max_health * amount * metabolism); }
     Brain& own_brain();  // the brain, made this animal's own before it changes
     // How many steps a temperature is from home.

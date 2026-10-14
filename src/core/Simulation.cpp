@@ -241,27 +241,29 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
 }
 
 void Bitzkey::derive() {
+    {  // plant or animal: it is its genes' body that counts, feeble or not
+        const double shortest = LIFESPAN_YEARS[0], middle = LIFESPAN_YEARS[1], longest = LIFESPAN_YEARS[2];
+        const double fastest = METABOLISM[0], slowest = METABOLISM[1];
+        const double genetic = fastest + (slowest - fastest) * share(body[Size]);
+        const double slowing = (fastest - genetic) / (fastest - slowest);  // 0 at the fastest metabolism, 1 the slowest
+        const double years = slowing <= 0.5 ? shortest + (middle - shortest) * (2 * slowing)
+                                            : middle + (longest - middle) * (2 * slowing - 1);
+        lifespan = years * YEAR_LENGTH;
+    }
+    feeble = feeble_at_age();
     const double size = physique(Size);
-    max_health = 60.0 + 90 * size;
+    max_health = (60.0 + 90 * size) * (feeble ? FEEBLE_SHARE : 1.0);
     metabolism = METABOLISM[0] + (METABOLISM[1] - METABOLISM[0]) * size;
     stomach = STOMACH[0] + (STOMACH[1] - STOMACH[0]) * size;
     burn = metabolism * (0.45 + 0.18 * physique(Strength) + 0.24 * physique(Speed) +
                          0.12 * (physique(Weapons) + physique(Armour)));
     might = (1 - SIZE_IN_MIGHT) * physique(Strength) + SIZE_IN_MIGHT * size;
     toughness = (1 - SIZE_IN_MIGHT) * physique(Armour) + SIZE_IN_MIGHT * size;
-    const int base_steps = 1 + body[Speed] * 3 / TRAIT_MAX;
+    const int base_steps = 1 + trait(Speed) * 3 / TRAIT_MAX;
     steps = species == Species::Grazer ? static_cast<int>(base_steps * GRAZER_SPEED + 0.5) : base_steps;
     grazing = GRAZING[static_cast<std::size_t>(species)];
     browsing = BROWSING[static_cast<std::size_t>(species)];
-    sight = 2 + SIGHT_PER_TRAIT * body[Sight];
-    {  // plant or animal
-        const double shortest = LIFESPAN_YEARS[0], middle = LIFESPAN_YEARS[1], longest = LIFESPAN_YEARS[2];
-        const double fastest = METABOLISM[0], slowest = METABOLISM[1];
-        const double slowing = (fastest - metabolism) / (fastest - slowest);  // 0 at the fastest metabolism, 1 the slowest
-        const double years = slowing <= 0.5 ? shortest + (middle - shortest) * (2 * slowing)
-                                            : middle + (longest - middle) * (2 * slowing - 1);
-        lifespan = years * YEAR_LENGTH;
-    }
+    sight = 2 + SIGHT_PER_TRAIT * trait(Sight);
     breeding_cost = (25 - 15 * physique(Fertility)) *
                     (species == Species::Omnivore || species == Species::Predator ? HUNTER_BREEDING_COST : 1.0);  // hunters pay less
     digestion = 0.2 + 0.8 * physique(Carrion);
@@ -741,6 +743,8 @@ void Simulation::take_turn() {
     for (Bitzkey* agent : order) {
         if (!agent->alive()) continue;
         agent->age += 1;
+        agent->grow();
+        agent->health = std::min(agent->health, agent->max_health);  // growing old, it grows feeble
         const bool plant = agent->species == Species::Plant;
         const double here = in_bounds(agent->x, agent->y) ? climate_[static_cast<std::size_t>(agent->y)] : Medium;
         const double steps = agent->climate_steps(here);
@@ -1399,7 +1403,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Flee] = s.hunter && (alarmed || distance(s.hunter->x, s.hunter->y, agent.x, agent.y) <=
                                                   flee_range(agent, view.close));
     available[Defend] = s.defend_target != nullptr &&  // a grazer only when strong enough
-                        (agent.species != Species::Grazer || agent.body[Strength] > GRAZER_DEFENCE_STRENGTH);
+                        (agent.species != Species::Grazer || agent.trait(Strength) > GRAZER_DEFENCE_STRENGTH);
     // The more fearful it is, the closer it keeps to the herd's middle, but not where the middle is
     // further from its home temperature than here.
     available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) >
@@ -1534,7 +1538,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     const double nourished = agent.species == Species::Plant ? 0.0 : std::max(0.0, 1 - agent.hunger / 100);
     agent.meat = (CARRION_MEAT + CARRION_MEAT_FOR_SIZE * agent.physique(Size)) * nourished * (cause == "killed" ? 0.5 : 1);
     agent.rot = agent.meat / std::max(1, CORPSE_TURNS - FRESH_KILL_TURNS);  // it rots once no longer fresh
-    agent.portions = agent.species == Species::Plant ? 0 : 1 + agent.body[Size];
+    agent.portions = agent.species == Species::Plant ? 0 : 1 + agent.trait(Size);
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
         ++kill_count_;
@@ -1965,8 +1969,8 @@ double Simulation::looming_health(const Bitzkey& animal) {
 
 void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     // The parent that chose to breed conceives the litter and carries it for its gestation.
-    const std::array<std::pair<int, int>, 2> parents = {std::pair{first.body[Litter], first.body[Size]},
-                                                        std::pair{second.body[Litter], second.body[Size]}};
+    const std::array<std::pair<int, int>, 2> parents = {std::pair{first.trait(Litter), first.trait(Size)},
+                                                        std::pair{second.trait(Litter), second.trait(Size)}};
     int litter = litter_size(parents);
     if (CROWDING_LIMIT) litter = std::max(1, static_cast<int>(litter * (1 - static_cast<double>(crowding(first, second, true)) / CROWDING_LIMIT) + 0.5));  // its own kind
     if (const double needed = food_needed(first); needed > 0) {  // litters follow food only while food limits breeding
@@ -2009,7 +2013,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         }
         first.womb.push_back({dna, mind, std::move(brain), given / litter, generation});
     }
-    first.due_turn = turn_ + gestation(first.body[Size]);
+    first.due_turn = turn_ + gestation(first.trait(Size));
     const std::array<Bitzkey*, 2> pair = {&first, &second};
     for (int index = 0; index < 2; ++index) {
         Bitzkey& parent = *pair[index];

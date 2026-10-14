@@ -1299,3 +1299,44 @@ TEST_CASE("meat lasts twice as long as plant food, and full hunger wears a tenth
     CHECK(lean.hunger <= 100);  // its hunger stops at full
     CHECK(lean.health < (1 - STARVING_DAMAGE / 2) * lean.max_health);
 }
+
+TEST_CASE("an infant has half its body and health, and grows out of it; plants are never feeble") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world();
+    Bitzkey& infant = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"speed", 6}, {"sight", 5}}), 5, 5);
+    const double lifespan = infant.lifespan;
+    CHECK(infant.feeble);
+    CHECK((infant.trait(Size) == 3 && infant.trait(Strength) == 3 && infant.trait(Speed) == 3 && infant.trait(Sight) == 2));
+    CHECK((infant.space() == 4 && infant.body[Size] == 7));  // its genes are as they were
+    CHECK(infant.max_health == doctest::Approx((60 + 90 * share(3)) * 0.5));
+    CHECK(infant.health == infant.max_health);  // born with the health of an infant
+    infant.age = static_cast<int>(std::lround(0.1 * lifespan));
+    infant.grow();
+    CHECK_FALSE(infant.feeble);
+    CHECK((infant.trait(Size) == 7 && infant.space() == 8 && infant.lifespan == lifespan));  // lifespan by its genes
+    CHECK(infant.max_health == doctest::Approx(150.0));
+    Bitzkey& seedling = simulation.add_agent(encode_dna(Species::Plant, {{"size", 6}, {"weapons", 6}}), 7, 7);
+    CHECK_FALSE(seedling.feeble);
+    CHECK(seedling.trait(Weapons) == 6);
+}
+
+TEST_CASE("old age brings feebleness, and its health shrinks to match") {
+    FEEBLE_YOUTH = 0.1;
+    const double ageing = AGEING;
+    Simulation simulation = world();
+    Bitzkey& old = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"armour", 5}}), 5, 5);
+    old.age = static_cast<int>(AGEING * old.lifespan) + 1;
+    old.grow();
+    CHECK(old.feeble);
+    CHECK(old.trait(Armour) == 2);
+    CHECK(old.max_health == doctest::Approx((60 + 90 * 3.0 / 7) * 0.5));
+    AGEING = 0.95;  // not yet old, by these rules
+    old.grow();
+    CHECK_FALSE(old.feeble);
+    old.health = old.max_health;
+    AGEING = ageing;
+    simulation.add_agent(encode_dna(Species::Predator), 10, 10);
+    simulation.take_turn();
+    CHECK(old.feeble);
+    CHECK(old.health <= old.max_health);
+}
