@@ -71,6 +71,7 @@ std::vector<Rule> make_rules() {
         {"PREDATOR_BREED_COOLDOWN", "Breeding", "Breeding cooldown, predators", "share of the usual rest after breeding for predators; 0: none", 0.0, 2.0, 0.05, false, &PREDATOR_BREED_COOLDOWN},
         {"PREDATOR_FOOD_NEEDED", "Breeding", "Food needed, predators", "meals each mouth needs nearby for a predator to breed; 0: no limit", 0.0, 20.0, 0.5, false, &PREDATOR_FOOD_NEEDED},
         {"PLANTS_PER_GRAZER", "Breeding", "Plants per grazer", "plants each grazer needs in its home climate band, shared among the grazers at home there, to breed; twice this for a full litter; 0: no limit", 0.0, 10.0, 0.05, false, &PLANTS_PER_GRAZER},
+        {"PREY_PER_PREDATOR", "Breeding", "Prey per predator", "grazers and omnivores each predator needs in its home climate band, shared among the predators at home there, to breed; twice this for a full litter; 0: no limit", 0.0, 20.0, 0.1, false, &PREY_PER_PREDATOR},
         {"PLANT_MEALS", "Breeding", "Plant meals", "meals a plant is worth to a full-efficiency browser", 0.0, 20.0, 0.5, false, &PLANT_MEALS},
         {"PREY_MEALS", "Breeding", "Prey meals", "meals a prey animal is worth", 0.0, 20.0, 0.5, false, &PREY_MEALS},
         {"SHARED_DIET", "Breeding", "Shared diet", "how much another species eating the same food counts as a mouth", 0.0, 1.0, 0.05, false, &SHARED_DIET},

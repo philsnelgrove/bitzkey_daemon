@@ -203,6 +203,9 @@ inline double PREDATOR_FOOD_NEEDED = 0.0;  // the same for predators: none, so t
 // Plants each grazer needs in its home band, the climate band of its home temperature nearest it, shared
 // among the grazers at home there, to breed; between this and twice this its litter shrinks. 0: no limit.
 inline double PLANTS_PER_GRAZER = 0.1;
+// The same for predators: the prey in its home band (the grazers and omnivores there, what it lives on), shared among
+// the predators at home there. Below this a predator doesn't breed; between this and twice this its litter shrinks.
+inline double PREY_PER_PREDATOR = 2.0;
 inline double PLANT_MEALS = 2.0;   // meals a plant is worth to a full-efficiency browser
 inline double PREY_MEALS = 10.0;  // meals a prey animal is worth: meat fills about ten times what grass does
 inline double SHARED_DIET = 0.5;
@@ -709,6 +712,13 @@ public:
     static double food_needed(const Bitzkey& agent);  // the meals a mouth it needs about it to breed; 0, none
     double food_supply(const Bitzkey& agent) const;
     double home_plants(const Bitzkey& grazer) const;  // the plants in its home band per grazer at home there, itself among them
+    double home_prey(const Bitzkey& predator) const;  // the prey in its home band per predator at home there, itself among them
+    // The food in its home band per mouth at home there: plants for a grazer, prey for a predator; 0 for an omnivore.
+    double home_food(const Bitzkey& agent) const;
+    static double home_food_needed(const Bitzkey& agent);  // PLANTS_PER_GRAZER, PREY_PER_PREDATOR, or none
+    // How well fed its home band is, as a sense: 1 at twice the food a mouth needs to breed, or more; 1 where no home
+    // food limits it, and 0 for an omnivore.
+    double home_food_sense(const Bitzkey& agent) const;
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;
@@ -810,6 +820,8 @@ private:
     std::vector<std::vector<int>> home_band_;  // by home temperature and row: the home band nearest
     std::vector<int> band_plants_;     // the plants in each band, and the grazers at home there,
     std::vector<int> band_grazers_;    // as the cells were last indexed
+    std::vector<int> band_prey_;       // the prey in each band, and the predators at home there, likewise
+    std::vector<int> band_predators_;
     void index_bands();
     std::vector<int> grass_rows_;      // the rows where grass grows at all
     std::vector<double> grass_reach_;  // their growth added up, row by row, for sowing

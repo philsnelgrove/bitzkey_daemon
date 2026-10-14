@@ -181,7 +181,7 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
 }
 
 TEST_CASE("hidden layers are 34 neurons wide, and a narrower saved brain loads widened, valuing alike") {
-    CHECK((HIDDEN_SIZE == 34 && INPUT_SIZE == 87));
+    CHECK((HIDDEN_SIZE == 34 && INPUT_SIZE == 88));
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;

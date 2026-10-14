@@ -1201,3 +1201,36 @@ TEST_CASE("breeding is the greatest pleasure, courting into reach the next, and 
     CHECK(cold.reward == doctest::Approx(3.0));
     CHECK(mate.reward == doctest::Approx(3.0));  // both parents
 }
+
+TEST_CASE("a predator's breeding follows the prey in its home band, which it senses") {
+    const double newborn_food = NEWBORN_FOOD, small_litters = SMALL_LITTERS, prey_per_predator = PREY_PER_PREDATOR;
+    NEWBORN_FOOD = 0;  // no limit from the energy given
+    SMALL_LITTERS = 1.0;
+    PREY_PER_PREDATOR = 1.5;
+    Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
+    const Dna dna = encode_dna(Species::Predator, {{"fertility", 7}, {"litter", 7}});  // at home in the temperate bands
+    Bitzkey& first = simulation.add_agent(dna, 15, 8);
+    Bitzkey& second = simulation.add_agent(dna, 15, 9);
+    simulation.add_agent(encode_dna(Species::Grazer), 3, 20);  // the southern temperate band: not its home band
+    simulation.add_agent(encode_dna(Species::Plant), 4, 7);   // no prey
+    simulation.index_cells();
+    auto offers_breed = [&] {
+        const auto options = simulation.sense(first).options;
+        return std::find(options.begin(), options.end(), Breed) != options.end();
+    };
+    CHECK(simulation.home_prey(first) == 0.0);
+    CHECK_FALSE(offers_breed());
+    CHECK(simulation.sense(first).senses[SenseHomeFood] == 0.0);
+    for (const int x : {2, 4, 6}) simulation.add_agent(encode_dna(x == 2 ? Species::Grazer : Species::Omnivore), x, 10);
+    simulation.index_cells();
+    CHECK(simulation.home_prey(first) == 1.5);  // three prey shared by two predators
+    CHECK(offers_breed());
+    CHECK(simulation.sense(first).senses[SenseHomeFood] == 0.5);
+    CHECK(simulation.sense(*simulation.agents()[5]).senses[SenseHomeFood] == 0.0);  // nothing for an omnivore
+    simulation.breed(first, second);
+    simulation.give_birth(first);
+    CHECK(simulation.agents().size() == 7 + 3);  // six young, halved: half the prey of a full litter
+    PREY_PER_PREDATOR = prey_per_predator;
+    SMALL_LITTERS = small_litters;
+    NEWBORN_FOOD = newborn_food;
+}

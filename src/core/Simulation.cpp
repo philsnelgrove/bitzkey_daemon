@@ -842,14 +842,21 @@ void Simulation::index_cells() {
     const std::size_t band_count = band_of_row_.empty() ? 0 : static_cast<std::size_t>(band_of_row_.back()) + 1;
     band_plants_.assign(band_count, 0);
     band_grazers_.assign(band_count, 0);
+    band_prey_.assign(band_count, 0);
+    band_predators_.assign(band_count, 0);
     for (const auto& agent : agents_) {
         if (!in_bounds(agent->x, agent->y)) continue;
         if (agent->alive()) {
             cell_at(agent->x, agent->y).push_back(agent.get());
             if (agent->species == Species::Plant) {
                 ++band_plants_[static_cast<std::size_t>(band_of_row_[static_cast<std::size_t>(agent->y)])];
-            } else if (agent->species == Species::Grazer) {
-                ++band_grazers_[static_cast<std::size_t>(home_band_[static_cast<std::size_t>(agent->climate.temperature)][static_cast<std::size_t>(agent->y)])];
+            } else {
+                const auto home = static_cast<std::size_t>(home_band_[static_cast<std::size_t>(agent->climate.temperature)][static_cast<std::size_t>(agent->y)]);
+                if (agent->species == Species::Grazer) ++band_grazers_[home];
+                else if (agent->species == Species::Predator) ++band_predators_[home];
+                if (agent->species == Species::Grazer || agent->species == Species::Omnivore) {  // what predators live on
+                    ++band_prey_[static_cast<std::size_t>(band_of_row_[static_cast<std::size_t>(agent->y)])];
+                }
             }
         } else if (fresh(*agent)) {
             if (agent->species != Species::Plant) {
@@ -862,6 +869,27 @@ void Simulation::index_cells() {
         }
     }
     departed_.clear();
+}
+
+double Simulation::home_prey(const Bitzkey& predator) const {
+    if (band_prey_.empty()) return 0.0;  // none before the cells are first indexed
+    const auto band = static_cast<std::size_t>(home_band_[static_cast<std::size_t>(predator.climate.temperature)][static_cast<std::size_t>(predator.y)]);
+    return static_cast<double>(band_prey_[band]) / std::max(1, band_predators_[band]);
+}
+
+double Simulation::home_food(const Bitzkey& agent) const {
+    if (agent.species == Species::Grazer) return home_plants(agent);
+    return agent.species == Species::Predator ? home_prey(agent) : 0.0;
+}
+
+double Simulation::home_food_needed(const Bitzkey& agent) {
+    return agent.species == Species::Grazer ? PLANTS_PER_GRAZER : agent.species == Species::Predator ? PREY_PER_PREDATOR : 0.0;
+}
+
+double Simulation::home_food_sense(const Bitzkey& agent) const {
+    if (agent.species != Species::Grazer && agent.species != Species::Predator) return 0.0;
+    const double needed = home_food_needed(agent);
+    return needed ? std::min(1.0, home_food(agent) / (2 * needed)) : 1.0;
 }
 
 double Simulation::home_plants(const Bitzkey& grazer) const {
@@ -1359,7 +1387,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Breed] = s.mate && agent.can_breed() && !s.nurseries.empty() && room() > 0 &&
                        (!CROWDING_LIMIT || crowding(agent, *s.mate, true) < CROWDING_LIMIT) &&  // its own kind crowds it
                        (!food_needed(agent) || food_supply(agent) >= food_needed(agent)) &&
-                       (!PLANTS_PER_GRAZER || agent.species != Species::Grazer || home_plants(agent) >= PLANTS_PER_GRAZER);
+                       home_food(agent) >= home_food_needed(agent);  // the food at home: plants, or prey
     available[Hunt] = s.quarry != nullptr;
     available[Attack] = s.prey != nullptr;
     // Only from a hunter close by, unless the herd raised the alarm.
@@ -1444,6 +1472,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         remembered(agent, agent.danger_memory) *
         std::max(0.0, closeness(agent, agent.danger_memory ? std::optional<Cell>(Cell{agent.danger_memory->x, agent.danger_memory->y})
                                                            : std::nullopt, sight));
+    senses[SenseHomeFood] = home_food_sense(agent);
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 
@@ -1934,8 +1963,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     if (const double needed = food_needed(first); needed > 0) {  // litters follow food only while food limits breeding
         litter = std::max(1, static_cast<int>(litter * std::min(1.0, food_supply(first) / (2 * needed)) + 0.5));
     }
-    if (PLANTS_PER_GRAZER && first.species == Species::Grazer) {  // a grazer's litters follow the plants in its home band
-        litter = std::max(1, static_cast<int>(litter * std::min(1.0, home_plants(first) / (2 * PLANTS_PER_GRAZER)) + 0.5));
+    if (const double needed = home_food_needed(first); needed > 0) {  // a grazer's litters follow the plants in its home band, a predator's the prey
+        litter = std::max(1, static_cast<int>(litter * std::min(1.0, home_food(first) / (2 * needed)) + 0.5));
     }
     const std::array<double, 2> costs = {first.breeding_cost, second.breeding_cost};
     const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
