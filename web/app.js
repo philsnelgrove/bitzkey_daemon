@@ -665,6 +665,11 @@ function insightsPanel(data) {
 
 // A table laid over the page: a title, a note, a header row and rows; ESC or CLOSE closes it.
 function showTable(title, note, header, rows) {
+  showTables(title, note, [{ header, rows }]);
+}
+
+// A report of several tables, each with its own heading (if any) and header row.
+function showTables(title, note, tables) {
   const close = () => {
     document.removeEventListener('keydown', onKey, true);
     shade.remove();
@@ -680,11 +685,12 @@ function showTable(title, note, header, rows) {
     element('div', { class: 'dialog report' },
       element('h2', {}, title),
       element('p', {}, note),
-      element('div', { class: 'report-body scroll' },
+      element('div', { class: 'report-body scroll' }, tables.map(({ heading, header, rows }) => [
+        heading ? element('h3', { class: 'report-heading' }, heading) : null,
         element('table', { class: 'report-table' },
           element('thead', {}, element('tr', {}, header.map(cell => element('th', {}, cell)))),
           element('tbody', {}, rows.map(row => element('tr', {}, row.map(cell =>
-            cell instanceof Node ? cell : element('td', {}, cell))))))),
+            cell instanceof Node ? cell : element('td', {}, cell))))))])),
       element('div', { class: 'dialog-buttons' }, element('button', { class: 'primary', onclick: close }, 'CLOSE'))));
   document.body.append(shade);
   document.addEventListener('keydown', onKey, true);
@@ -693,11 +699,23 @@ function showTable(title, note, header, rows) {
 async function openDeathReport() {
   try {
     const data = await api('/api/deaths');
-    const totals = data.species.map((_, index) => data.rows.reduce((sum, row) => sum + row.counts[index], 0));
-    const rows = data.rows.map(row => [row.cause, ...row.counts.map(String), String(row.total)]);
-    rows.push([element('td', { class: 'total' }, 'ALL'), ...[...totals, data.deaths].map(count => element('td', { class: 'total' }, String(count)))]);
-    showTable('Death report', `Every death in this world up to turn ${data.turn}: ${data.deaths} in all, by cause and species.`,
-              ['CAUSE', ...data.species.map(upper), 'ALL'], rows);
+    const header = first => [first, ...data.species.map(upper), 'ALL'];
+    const rows = list => list.map(row => [row.label, ...row.counts.map(String), String(row.total)]);
+    const causes = rows(data.causes);
+    causes.push([element('td', { class: 'total' }, 'ALL'), ...[...data.all, data.total].map(count => element('td', { class: 'total' }, String(count)))]);
+    const tables = [{ header: header('CAUSE'), rows: causes }];
+    if (data.kills) {
+      tables.push(
+        { heading: `Who killed whom: ${data.kills} killed, by the species of the dead (rows) and of their killers (columns)`,
+          header: header('THE DEAD'), rows: rows(data.whom) },
+        { heading: "What the killers were doing, by the killers' species", header: header('ACTIVITY'), rows: rows(data.activities) },
+        { heading: `The deadliest killers, ${data.deadliest.length} of ${data.killers}`, header: ['KILLER', 'SPECIES', 'KILLS', 'DOING'],
+          rows: data.deadliest.map(killer => [`#${pad3(killer.identifier)}`, killer.species, String(killer.kills),
+                                              killer.doing.map(([activity, count]) => `${activity} ${count}`).join(', ')]) });
+    }
+    showTables('Death report', `Every death in this world up to turn ${data.turn}: ${data.deaths} in all, by cause and species, ` +
+               'who killed whom and what the killers were doing, and the deadliest killers.' +
+               (data.kills ? '' : ' Nothing has killed anything yet.'), tables);
   } catch (error) {
     say(error.message);
   }

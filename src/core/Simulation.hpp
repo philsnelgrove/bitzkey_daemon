@@ -552,16 +552,12 @@ public:
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
     Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier)); }
-    // A death: its cause, and the identifier and species of what killed it, when something did.
-    struct DeathRecord {
-        std::string cause;
-        int killer = -1;
-        Species killer_species = Species::Plant;
-    };
+    using DeathRecord = Death;  // each death, by the dead Bitzkey's identifier, back to the world's start
     const DeathRecord* death_record(int identifier) const {
         const auto found = death_records_.find(identifier);
         return found == death_records_.end() ? nullptr : &found->second;
     }
+    std::vector<Death> deaths_so_far() const;  // every death from the world's start to the turn it is at, rewound or not
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
     // The advanced rules were changed while the world runs: work out afresh what the world settled from them as
@@ -680,8 +676,9 @@ public:
     // How much warmer than home a row feels, as a sense: 0.5 a step, from -1 (two or more steps too
     // cold) to 1 (two or more too hot).
     double warmth(const Bitzkey& agent, int y) const;
-    void die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer = nullptr);
-    void attack(Bitzkey& agent, Bitzkey& victim);
+    // Record a death, with what killed it and what the killer was doing.
+    void die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer = nullptr, std::string_view activity = {});
+    void attack(Bitzkey& agent, Bitzkey& victim, std::string_view activity = "attacking");  // a blow, hunting or attacking
     void defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd = false);
     void struck(Bitzkey& victim, const Bitzkey& striker);
     void exhausted(Bitzkey& agent);

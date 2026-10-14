@@ -273,3 +273,4 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .square-popup .square-row { color: #dce5d3; padding: 2px 6px; border-radius: 3px; cursor: pointer; white-space: pre; }
 .square-popup .square-row:hover { background: #2c3934; }
 .square-popup .square-row.chosen { color: #83cd8f; }
+.report-heading { margin: 16px 0 6px; font-size: 13px; color: #90aa97; font-weight: 600; }

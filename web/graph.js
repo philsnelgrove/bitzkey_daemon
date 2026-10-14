@@ -335,7 +335,7 @@ export function openGraph(app, onClose) {
     if (!hovered) return chosen;
     if (!hovered.alive) {
       let died = hovered.cause ? `died: ${hovered.cause}` : 'dead';
-      if (hovered.killer !== undefined) died += ` by #${pad3(hovered.killer)} ${hovered.killer_species}`;
+      if (hovered.killer !== undefined) died += ` by #${pad3(hovered.killer)} ${hovered.killer_species}, ${hovered.activity}`;
       return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  ${died}   ring ${hovered.ring}   dot ${hovered.dot}   social ${hovered.social}`;
     }
     return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  alive   ring ${hovered.ring}   dot ${hovered.dot}   social ${hovered.social}`;

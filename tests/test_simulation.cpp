@@ -419,13 +419,61 @@ TEST_CASE("deaths are counted by species and cause, and rewound") {
         return count;
     };
     CHECK(total() == world_now.deaths());
-    const auto lines = death_report_lines(world_now.death_causes());
+    const std::vector<Death> deaths = world_now.deaths_so_far();
+    CHECK(static_cast<int>(deaths.size()) == world_now.deaths());  // every death back to the start
+    const auto lines = death_report_lines(deaths);
     CHECK(lines.front().rfind("CAUSE", 0) == 0);
+    const auto starts = [&](std::string_view section) {
+        return std::find_if(lines.begin(), lines.end(), [&](const std::string& line) { return line.rfind(section, 0) == 0; });
+    };
+    CHECK(starts("ALL ")->ends_with(" " + std::to_string(world_now.deaths())));  // the total of totals
+    CHECK(starts("WHO KILLED WHOM") != lines.end());
+    CHECK(starts("THE DEADLIEST KILLERS") != lines.end());
+    int killings = 0, counted = 0;
+    for (const Death& death : deaths) killings += death.killer >= 0;
+    for (auto line = starts("WHAT THE KILLERS WERE DOING") + 2; line != lines.end() && !line->empty(); ++line) {
+        counted += std::stoi(line->substr(line->find_last_of(' ') + 1));
+    }
+    CHECK(counted == killings);
     const auto later = world_now.death_causes();
     world_now.seek(world_now.turn() - 20);
     CHECK(total() == world_now.deaths());
     while (world_now.turn() < world_now.frontier()) world_now.advance();
     CHECK(world_now.death_causes() == later);  // replayed, not counted twice
+    CHECK(static_cast<int>(world_now.deaths_so_far().size()) == world_now.deaths());
+    world_now.seek(world_now.turn() - 20);
+    CHECK(static_cast<int>(world_now.deaths_so_far().size()) == world_now.deaths());  // the report as it was then
+    world_now.deploy({}, 5, 5);  // a rewound world changed lets its future go, and the deaths in it
+    CHECK(world_now.deaths_so_far().size() == static_cast<std::size_t>(world_now.deaths()));
+}
+
+TEST_CASE("each death records its cause, its killer and what the killer was doing") {
+    Simulation simulation = world();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}}), 4, 4);
+    Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer, {{"weapons", 0}}), 4, 5);
+    Bitzkey& starved = simulation.add_agent(encode_dna(Species::Grazer), 9, 9);
+    simulation.index_cells();
+    prey.health = 0.1;
+    simulation.attack(hunter, prey, "hunting");
+    const Death* killed = simulation.death_record(prey.identifier);
+    REQUIRE(killed);
+    CHECK((killed->cause == "killed" && killed->species == Species::Grazer && killed->turn == simulation.turn()));
+    CHECK((killed->killer == hunter.identifier && killed->killer_species == Species::Predator && killed->activity == "hunting"));
+    simulation.die(starved, "starved");
+    CHECK((simulation.death_record(starved.identifier)->killer == -1 && simulation.death_record(starved.identifier)->activity.empty()));
+
+    Bitzkey& spiny = simulation.add_agent(encode_dna(Species::Grazer, {{"weapons", 7}, {"size", 7}}), 7, 2);
+    Bitzkey& reckless = simulation.add_agent(encode_dna(Species::Predator), 7, 3);
+    Bitzkey& defender = simulation.add_agent(encode_dna(Species::Grazer, {{"weapons", 7}, {"size", 7}, {"strength", 7}}), 2, 8);
+    Bitzkey& assailant = simulation.add_agent(encode_dna(Species::Omnivore), 2, 9);
+    simulation.index_cells();
+    reckless.health = 0.1;
+    simulation.attack(reckless, spiny);
+    CHECK((simulation.death_record(reckless.identifier)->killer == spiny.identifier &&
+           simulation.death_record(reckless.identifier)->activity == "spines"));
+    assailant.health = 0.1;
+    simulation.defend(defender, assailant);
+    CHECK(simulation.death_record(assailant.identifier)->activity == "defending");
 }
 
 TEST_CASE("a brain matrix shows each situation its species meets") {

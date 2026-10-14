@@ -251,6 +251,9 @@ TEST_CASE("the web API shows the world and steers it") {
 
         const Json deaths = get(client, "/api/deaths");
         CHECK(deaths["species"].size() == 4);
+        CHECK(deaths["total"] == deaths["deaths"]);  // every death back to the start
+        CHECK((deaths["all"].size() == 4 && deaths["causes"].is_array() && deaths["whom"].is_array() &&
+               deaths["activities"].is_array() && deaths["deadliest"].is_array()));
         const Json brain = get(client, "/api/brain/" + std::to_string(identifier));
         CHECK_FALSE(brain["rows"].empty());
         CHECK(client.Get("/api/brain/999999")->status == 404);

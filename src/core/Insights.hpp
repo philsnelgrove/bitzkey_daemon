@@ -66,11 +66,49 @@ private:
 // Probe every living brain with standard situations and summarise who prefers what.
 std::string brain_report(int turn, std::span<const Bitzkey* const> animals, const Insights& insights);
 
-// The two reports a viewer can open, each laid out as lines of text in a fixed-width font: every death so far, a
-// row for each cause (the most common first) and a column for each species, with the totals; and one animal's
-// brain probed with the standard situations its species can meet, its chance of choosing each action open to
-// it, with its temperament now, the likeliest marked * and an action not open shown as a dot.
-std::vector<std::string> death_report_lines(const std::array<std::map<std::string, int, std::less<>>, 4>& death_causes);
+// A death: its cause, the dead Bitzkey's species and the turn, and, when something killed it, the killer's
+// identifier and species and what the killer was doing (hunting, attacking, defending, browsing, uprooting, or
+// spines: struck, its spines killed its attacker).
+struct Death {
+    std::string cause;
+    Species species = Species::Plant;
+    int turn = 0;
+    int killer = -1;
+    Species killer_species = Species::Plant;
+    std::string activity;
+};
+constexpr int DEADLIEST = 10;  // the killers the death report names
+
+// The death report's figures, for drawing as tables. Each row counts deaths by species, in SPECIES order.
+struct DeathReport {
+    struct Row {
+        std::string label;
+        std::array<int, 4> counts{};
+        int total = 0;
+    };
+    struct Killer {
+        int identifier = -1;
+        Species species = Species::Plant;
+        int kills = 0;
+        std::vector<std::pair<std::string, int>> doing;  // its kills by what it was doing, the most first
+    };
+    std::vector<Row> causes;         // by the species of the dead, the most common cause first
+    Row all{"ALL"};                  // every death, by species
+    int kills = 0;                   // the deaths something killed
+    std::vector<Row> whom;           // the dead, by species (rows), by their killers' species (counts)
+    std::vector<Row> activities;     // what the killers were doing, the most common first, by the killers' species
+    int killers = 0;                 // how many Bitzkeys have killed
+    std::vector<Killer> deadliest;   // the DEADLIEST with the most kills
+};
+DeathReport death_report(const std::vector<Death>& deaths);
+
+// The two reports a viewer can open, each laid out as lines of text in a fixed-width font. Every death so far,
+// back to the world's start: a table of causes by the species of the dead, the most common first; who killed
+// whom, by the species of the dead and of their killers; what the killers were doing, by the killers' species;
+// and the deadliest killers, each with its kills by what it was doing. And one animal's brain probed with the
+// standard situations its species can meet, its chance of choosing each action open to it, with its temperament
+// now, the likeliest marked * and an action not open shown as a dot.
+std::vector<std::string> death_report_lines(const std::vector<Death>& deaths);
 struct BrainRow {
     std::string situation;
     std::vector<std::pair<int, double>> chances;  // (action, chance), for the actions open in it

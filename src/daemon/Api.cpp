@@ -217,27 +217,28 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, exemplars(world.simulation(), choices));
     }));
 
-    // Every death so far, by species and cause: a row for each cause, the most common first.
+    // Every death so far, back to the world's start: its causes by species, who killed whom, what the killers
+    // were doing, and the deadliest killers.
     server.Get("/api/deaths", guarded([&world](const httplib::Request&, httplib::Response& response) {
         auto lock = world.lock();
         const Simulation& simulation = world.simulation();
-        const auto& by_species = simulation.death_causes();
-        std::map<std::string, int> totals;
-        for (const auto& causes : by_species) {
-            for (const auto& [cause, count] : causes) totals[cause] += count;
+        const DeathReport report = death_report(simulation.deaths_so_far());
+        const auto rows = [](const std::vector<DeathReport::Row>& from) {
+            Json list = Json::array();
+            for (const DeathReport::Row& row : from) list.push_back({{"label", row.label}, {"counts", row.counts}, {"total", row.total}});
+            return list;
+        };
+        Json deadliest = Json::array();
+        for (const DeathReport::Killer& killer : report.deadliest) {
+            Json doing = Json::array();
+            for (const auto& [activity, count] : killer.doing) doing.push_back({activity, count});
+            deadliest.push_back({{"identifier", killer.identifier}, {"species", std::string(species_name(killer.species))},
+                                 {"kills", killer.kills}, {"doing", doing}});
         }
-        std::vector<std::pair<std::string, int>> ranked(totals.begin(), totals.end());
-        std::stable_sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
-        Json rows = Json::array();
-        for (const auto& [cause, total] : ranked) {
-            Json counts = Json::array();
-            for (const auto& causes : by_species) {
-                const auto found = causes.find(cause);
-                counts.push_back(found == causes.end() ? 0 : found->second);
-            }
-            rows.push_back({{"cause", cause}, {"counts", counts}, {"total", total}});
-        }
-        reply(response, {{"turn", simulation.turn()}, {"deaths", simulation.deaths()}, {"species", SPECIES}, {"rows", rows}});
+        reply(response, {{"turn", simulation.turn()}, {"deaths", simulation.deaths()}, {"species", SPECIES},
+                         {"causes", rows(report.causes)}, {"all", report.all.counts}, {"total", report.all.total},
+                         {"kills", report.kills}, {"whom", rows(report.whom)}, {"activities", rows(report.activities)},
+                         {"killers", report.killers}, {"deadliest", deadliest}});
     }));
 
     // One animal's brain probed with the standard situations: its chance of choosing each action open to it.
@@ -366,6 +367,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
             if (record->killer >= 0) {
                 result["killer"] = record->killer;
                 result["killer_species"] = std::string(species_name(record->killer_species));
+                result["activity"] = record->activity;  // what the killer was doing
             }
         }
         if (alive) {  // the dead show only their colour, and how they died

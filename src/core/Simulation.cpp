@@ -603,6 +603,7 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
             history_bytes_ -= history_.back().bytes;
             history_.pop_back();
         }
+        std::erase_if(death_records_, [&](const auto& entry) { return entry.second.turn > turn_; });  // deaths in the future let go
     }
     std::vector<Bitzkey*> deployed;
     for (const Imported& bitzkey : bitzkeys) {
@@ -1518,8 +1519,17 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     return company - dread - unease - crowded + herding - exposed;
 }
 
-void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer) {
-    death_records_[agent.identifier] = {std::string(cause), killer ? killer->identifier : -1, killer ? killer->species : Species::Plant};
+std::vector<Death> Simulation::deaths_so_far() const {
+    std::vector<Death> deaths;
+    for (const auto& [identifier, death] : death_records_) {
+        if (death.turn <= turn_) deaths.push_back(death);
+    }
+    return deaths;
+}
+
+void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer, std::string_view activity) {
+    death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
+                                        killer ? killer->species : Species::Plant, std::string(activity)};
     if (agent.brain && agent.has_last_senses) {
         const double penalty = cause == "old age" ? 0.0 : DEATH_PENALTY;
         if (!gpu_) learn(agent, agent.reward + wellbeing(agent) - agent.last_wellbeing - penalty);  // on the GPU, a brain about to go learns nothing that lasts
@@ -1630,7 +1640,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             move_toward(agent, quarry.x, quarry.y, agent.steps + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
             agent.last_action = "hunted";
             if (quarry.alive() && distance(quarry.x, quarry.y, agent.x, agent.y) <= 1) {
-                attack(agent, quarry);
+                attack(agent, quarry, "hunting");
                 if (agent.alive()) agent.last_action = "pounced";
             }
             break;
@@ -1705,7 +1715,7 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     plant.cooldown = PLANT_RECOVERY;
     agent.last_action = "browsed";
     if (!plant.alive()) {
-        die(plant, "eaten", &agent);
+        die(plant, "eaten", &agent, "browsing");
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);  // a plant can't flee, but an armed one strikes back
     }
@@ -1722,7 +1732,7 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     plant.cooldown = PLANT_RECOVERY;
     agent.last_action = "uprooted";
     if (!plant.alive()) {
-        die(plant, "uprooted", &agent);
+        die(plant, "uprooted", &agent, "uprooting");
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
     }
@@ -1821,7 +1831,7 @@ double Simulation::armed(const Bitzkey& animal) {
     return animal.physique(Weapons) * (share > 0 ? PREDATOR_WEAPONS * share : 1.0);
 }
 
-void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
+void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activity) {
     const double empathy = agent.feeling(Empathy);
     const double joy = FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * empathy) * (1 - 0.75 * agent.feeling(Tolerance));
     double blow = damage(agent, victim);
@@ -1864,13 +1874,13 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
             witness->reward -= pain * witness->feeling(Empathy) * kinship;
         }
     }
-    if (killed) die(victim, "killed", &agent);
+    if (killed) die(victim, "killed", &agent, activity);
 
     const double sting = 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness);
     if (sting > 0) {
         agent.health -= sting;
         experience(agent, Stung);
-        if (!agent.alive()) die(agent, "killed", &victim);  // its victim's spines
+        if (!agent.alive()) die(agent, "killed", &victim, "spines");  // its victim's spines
     }
     exhausted(agent);
     if (agent.species == Species::Predator && agent.alive()) agent.reward += ATTACK_JOY;  // a blow it lived through
@@ -1894,7 +1904,7 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
         experience(agent, Defended);
     }
     if (!assailant.alive()) {
-        die(assailant, "killed", &agent);
+        die(assailant, "killed", &agent, "defending");
     } else if (assailant.species != Species::Plant) {
         struck(assailant, agent);
     }
