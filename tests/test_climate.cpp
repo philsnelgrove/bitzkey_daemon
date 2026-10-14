@@ -204,6 +204,8 @@ TEST_CASE("starving out of its temperature is dying of exposure") {
     Bitzkey& away = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 20, 50);  // on the equator: too hot
     Bitzkey& at_home = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}}), 40, 50);
     away.hunger = at_home.hunger = 99.9;
+    away.health = 0.05 * away.max_health;  // wasting, each has a turn left
+    at_home.health = 0.05 * at_home.max_health;
     simulation.add_agent(encode_dna(Species::Predator), 90, 90);
     simulation.take_turn();
     CHECK((away.last_action == "overheated" && at_home.last_action == "starved"));

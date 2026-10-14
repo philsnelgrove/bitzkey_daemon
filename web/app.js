@@ -139,6 +139,7 @@ async function loadFrame() {
     app.frame = parseFrame(await binary('/api/frame'));
     forgetTheDead();
     drawMap();
+    showSquare();  // the list follows the square as Bitzkeys come and go
   } finally {
     frameLoading = false;
   }
@@ -445,9 +446,42 @@ map.addEventListener('mousedown', event => {
     event.preventDefault();
   }
 });
+// The square popup: moving the pointer over a map square lists the Bitzkeys stacked there, and the list stays
+// while the pointer is over it; clicking a name selects that Bitzkey.
+let square = null;
+const squarePanel = element('div', { class: 'square-popup', hidden: true });
+$('map-holder').append(squarePanel);
+
+function showSquare() {
+  const here = square && app.frame ? app.frame.agents.filter(agent => agent.alive && agent.x === square[0] && agent.y === square[1]) : [];
+  if (!here.length) {
+    squarePanel.hidden = true;
+    return;
+  }
+  const geometry = board();
+  const used = here.reduce((total, agent) => total + 1 + agent.size, 0);
+  squarePanel.replaceChildren(
+    element('div', { class: 'square-title' }, `SQUARE (${square[0]}, ${square[1]})   ${used}/${app.state?.cell_space ?? 10} SPACES`),
+    here.map(agent => element('div', {
+      class: agent.identifier === app.selectedId ? 'square-row chosen' : 'square-row',
+      onclick: () => { select(agent.identifier); showSquare(); },
+    }, `#${pad3(agent.identifier)}  ${upper(SPECIES[agent.species])}   size ${agent.size}  ·  ${1 + agent.size} spaces`)));
+  squarePanel.hidden = false;
+  const holder = $('map-holder');
+  let left = geometry.x + (square[0] + 1) * geometry.cell;  // touching the square, to reach it
+  if (left + squarePanel.offsetWidth > holder.clientWidth - 4) left = geometry.x + square[0] * geometry.cell - squarePanel.offsetWidth;
+  const top = Math.max(4, Math.min(holder.clientHeight - squarePanel.offsetHeight - 4, geometry.y + square[1] * geometry.cell));
+  squarePanel.style.left = `${left}px`;
+  squarePanel.style.top = `${top}px`;
+}
+
 window.addEventListener('mousemove', event => {
   if (!app.frame) return;
   const [x, y] = mousePoint(event);
+  if (!squarePanel.contains(event.target)) {
+    square = event.buttons === 0 && !deploying && event.target === map ? cellAt(x, y) : null;
+    showSquare();
+  }
   if (deploying && painted && event.buttons & 1) {  // painting: another group every DEPLOY_GROUP cells
     const cell = cellAt(x, y);
     if (cell && Math.max(Math.abs(cell[0] - painted[0]), Math.abs(cell[1] - painted[1])) >= DEPLOY_GROUP) deployAt(cell);

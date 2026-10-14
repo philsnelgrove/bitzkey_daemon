@@ -268,3 +268,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .report-table td.closed { color: var(--faint); }
 .report-table td.total { color: var(--text); border-top: 1px solid var(--line); }
 .report-table td.situation { color: var(--soft); }
+.square-popup { position: absolute; z-index: 5; min-width: 230px; padding: 4px; background: #1b2525; border: 1px solid #83cd8f; border-radius: 5px; font-size: 12px; }
+.square-popup .square-title { color: #90aa97; padding: 2px 6px 4px; white-space: pre; }
+.square-popup .square-row { color: #dce5d3; padding: 2px 6px; border-radius: 3px; cursor: pointer; white-space: pre; }
+.square-popup .square-row:hover { background: #2c3934; }
+.square-popup .square-row.chosen { color: #83cd8f; }

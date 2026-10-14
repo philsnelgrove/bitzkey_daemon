@@ -121,14 +121,14 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     CHECK_FALSE(first.can_breed());
     simulation.give_birth(first);
     CHECK((simulation.agents().size() == 14 && first.womb.empty() && !first.due_turn));
-    bool further = false;
+    int at_home = 0;
     for (std::size_t index = 2; index < simulation.agents().size(); ++index) {
         const Bitzkey& child = *simulation.agents()[index];
         const int reach = std::max(std::abs(child.x - first.x), std::abs(child.y - first.y));
-        CHECK((reach >= 1 && reach <= BIRTH_REACH && child.generation == 1));
-        further = further || reach == 2;
+        CHECK((reach <= BIRTH_REACH && child.generation == 1));
+        at_home += reach == 0;
     }
-    CHECK(further);  // more than the eight cells beside her
+    CHECK(at_home == 9);  // her own square first: nine more of the smallest fit beside her
     simulation.die(first, "killed");
     CLIMATE_DAMAGE = damage;
     NEWBORN_FOOD = newborn_food;
@@ -749,16 +749,15 @@ TEST_CASE("hunters switch away from prey that is scarce nearby") {
     SWITCH_SHARE = switch_share;
 }
 
-TEST_CASE("a blow that exhausts the striker kills it, and no body is left without a recorded death") {
+TEST_CASE("a blow that exhausts the striker leaves it starving, and no body is left without a recorded death") {
     Simulation simulation = world();
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 5, 5);
     Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 5, 6);
     simulation.index_cells();
     grazer.hunger = 99.9;
     simulation.defend(grazer, predator);
-    CHECK_FALSE(grazer.alive());
-    CHECK(grazer.died_turn == simulation.turn());
-    CHECK(grazer.last_action == "exhausted");
+    CHECK(grazer.alive());  // past full hunger, but alive: starving wears its health away
+    CHECK(grazer.hunger > 100);
 
     Simulation busy(Simulation::Settings{60, 60, 90, 1});
     for (int turn = 0; turn < 300; ++turn) busy.advance();
@@ -1112,7 +1111,8 @@ TEST_CASE("starving is recorded and its body handled however it comes") {
     herd_mate.x = grazer.x + 1;  // still alongside, wherever that took it
     herd_mate.y = grazer.y;
     simulation.index_cells();
-    grazer.hunger = 100.5;      // starved by something that recorded nothing
+    grazer.hunger = 100.5;      // starving, with a turn of health left
+    grazer.health = 0.05 * grazer.max_health;
     const int deaths = simulation.deaths();
     simulation.advance();
     CHECK((grazer.last_action == "starved" && grazer.died_turn == 1 && simulation.deaths() == deaths + 1));
@@ -1129,7 +1129,7 @@ TEST_CASE("starving is recorded and its body handled however it comes") {
         simulation.seed_plant(plant);
     }
     SEED_COST = seed_cost;
-    CHECK((plant.last_action == "seeded to death" && plant.died_turn == simulation.turn()));
+    CHECK((plant.alive() && plant.last_action == "seeded"));  // starving, not dead
 }
 
 TEST_CASE("a history folder an earlier version left behind is cleared away once stale") {
@@ -1233,4 +1233,69 @@ TEST_CASE("a predator's breeding follows the prey in its home band, which it sen
     PREY_PER_PREDATOR = prey_per_predator;
     SMALL_LITTERS = small_litters;
     NEWBORN_FOOD = newborn_food;
+}
+
+TEST_CASE("a square holds ten spaces, a full one stops steps and spawning, and young share a square while there is room") {
+    Simulation simulation = world();
+    Bitzkey& walker = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);  // four spaces
+    CHECK((CELL_SPACE == 10 && walker.space() == 4));
+    simulation.add_agent(encode_dna(Species::Plant, {{"size", 7}}), 6, 5);  // eight of the next square's ten
+    simulation.index_cells();
+    CHECK(simulation.room_in(Cell{6, 5}) == 2);
+    Simulation::Situation nothing;
+    simulation.act(walker, WalkEast, nothing);
+    CHECK((walker.x == 5 && walker.y == 5));  // stopped short of the full square
+    Bitzkey& small = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 0}}), 7, 5);
+    simulation.index_cells();
+    Simulation::Situation toward;
+    toward.herd_middle = Cell{6, 5};
+    simulation.act(small, Herd, toward);
+    CHECK((small.x == 6 && small.y == 5));  // one space: room enough, sharing the plant's square
+    CHECK(simulation.spot_near(Cell{6, 5}, 4) == Cell{6, 4});  // the nearest square with room
+
+    const double newborn_food = NEWBORN_FOOD, small_litters = SMALL_LITTERS, plants_per_grazer = PLANTS_PER_GRAZER;
+    NEWBORN_FOOD = 0;
+    SMALL_LITTERS = 1.0;
+    PLANTS_PER_GRAZER = 0;
+    Simulation births = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}, {"size", 1}});  // two spaces each: six young
+    Bitzkey& first = births.add_agent(dna, 5, 5);
+    Bitzkey& second = births.add_agent(dna, 5, 6);
+    births.index_cells();
+    births.breed(first, second);
+    births.give_birth(first);
+    int home = 0, north = 0;
+    for (std::size_t index = 2; index < births.agents().size(); ++index) {
+        home += births.agents()[index]->x == 5 && births.agents()[index]->y == 5;
+        north += births.agents()[index]->x == 5 && births.agents()[index]->y == 4;
+    }
+    CHECK((births.agents().size() == 8 && home == 4 && north == 2));  // 2 + 4 x 2 fills her square; the rest north of her
+    CHECK(births.room_in(Cell{5, 5}) == 0);
+    PLANTS_PER_GRAZER = plants_per_grazer;
+    SMALL_LITTERS = small_litters;
+    NEWBORN_FOOD = newborn_food;
+}
+
+TEST_CASE("meat lasts twice as long as plant food, and full hunger wears a tenth of its health away each turn") {
+    Simulation simulation = world();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 3, 5);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 8, 5);
+    hunter.hunger = grazer.hunger = 50;
+    hunter.nourish(40 * hunter.stomach, true);
+    grazer.nourish(40 * grazer.stomach);
+    CHECK((hunter.hunger == doctest::Approx(10) && hunter.meat_fill == doctest::Approx(40) && grazer.meat_fill == 0.0));
+    CHECK(hunter.digest(10) == doctest::Approx(10 * (1 - 40.0 / 90 * (1 - MEAT_DIGESTION))));  // its meat share at half the rate
+    CHECK(grazer.digest(10) == doctest::Approx(10));
+    hunter.meat_fill = 90;
+    hunter.hunger = 10;  // all its fullness meat: half the hunger a turn
+    CHECK(hunter.digest(10) == doctest::Approx(5));
+
+    Simulation starving = world();
+    Bitzkey& lean = starving.add_agent(encode_dna(Species::Grazer, {{"temperature", 1}}), 5, 3);  // medium: at home here
+    starving.add_agent(encode_dna(Species::Predator), 10, 10);
+    lean.hunger = 150;
+    starving.take_turn();
+    CHECK(lean.alive());
+    CHECK(lean.hunger <= 100);  // its hunger stops at full
+    CHECK(lean.health < (1 - STARVING_DAMAGE / 2) * lean.max_health);
 }

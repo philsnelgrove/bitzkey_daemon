@@ -82,6 +82,7 @@ The page has the window app's screens, laid out the same way:
 - **DEATH REPORT**, on the insights panel: every death so far, by cause and species.
 - **INSPECT BRAINS**, beside a selected Bitzkey's heading: pauses the world, for everyone, and shows its chance of choosing each action in each standard situation.
 - **ADVANCED**, in the footer. Pauses the world, for everyone, and opens its advanced rules; applied, the world plays by them from its next turn, and so do its restarts. Think on the GPU stays as the world started. The button is amber while the world plays by changed rules.
+- **Square popup**: hovering over a map square lists the Bitzkeys stacked in it (a square holds 10 spaces, each Bitzkey taking one plus its size); the list stays while the pointer is on it, and clicking a name selects that Bitzkey.
 - **DEPLOY**, in the catalog opened from the map. Closes it and turns the cursor into a target: each click on the map puts 5 of each Bitzkey chosen around that cell, and dragging paints a group every 5 cells, until a right-click or ESC. Everyone sees them join the shared world.
 - **OPEN CATALOG**, in the footer and on the colour graph. Looks through the catalog without importing or exporting anything; REMOVE still works.
 - **FILES.** Downloads exports the daemon has saved. Brain reports (B) open in a new tab.

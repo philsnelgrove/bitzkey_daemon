@@ -506,10 +506,13 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
         dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) |
                    static_cast<std::uint64_t>(zone_temperature(y, height_)) << TEMPERATURE_SHIFT;
     }
+    const int space = 1 + decode_body(dna)[Size];
     for (int member = 0; member < size; ++member) {
         const int dx = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
         const int dy = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-        add_agent(dna, x + dx, y + dy, brain ? std::make_shared<Brain>(*brain) : nullptr, mind);
+        if (const auto spot = spot_near(Cell{x + dx, y + dy}, space)) {  // only where there is room
+            add_agent(dna, spot->x, spot->y, brain ? std::make_shared<Brain>(*brain) : nullptr, mind);
+        }
     }
 }
 
@@ -601,11 +604,14 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
     }
     std::vector<Bitzkey*> deployed;
     for (const Imported& bitzkey : bitzkeys) {
+        const int space = 1 + decode_body(bitzkey.dna)[Size];
         for (int member = 0; member < DEPLOY_GROUP; ++member) {
-            const int cell_x = py_mod(x + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD)), width_);
-            const int cell_y = within(y + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD)));
-            deployed.push_back(&add_agent(bitzkey.dna, cell_x, cell_y, bitzkey.brain ? std::make_shared<Brain>(*bitzkey.brain) : nullptr,
-                                          bitzkey.mind));
+            const int cell_x = x + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+            const int cell_y = y + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+            if (const auto spot = spot_near(Cell{cell_x, cell_y}, space)) {  // only where there is room
+                deployed.push_back(&add_agent(bitzkey.dna, spot->x, spot->y, bitzkey.brain ? std::make_shared<Brain>(*bitzkey.brain) : nullptr,
+                                              bitzkey.mind));
+            }
         }
     }
     census_.forget_from(turn_);  // this turn again, as it now is
@@ -741,19 +747,18 @@ void Simulation::take_turn() {
         const bool hungrier = steps > 0 && (!plant || here < agent->climate.temperature);  // out of its temperature; a plant, too hot
         const double share = agent->exposure_share(here);  // less for the hardy
         // The extra food it needs rises with the weather's turning, to the full amount a step away.
-        agent->hunger += agent->burn * (hungrier ? 1 + (CLIMATE_HUNGER - 1) * share * std::min(1.0, steps) : 1.0);
+        const double burn = agent->burn * (hungrier ? 1 + (CLIMATE_HUNGER - 1) * share * std::min(1.0, steps) : 1.0);
+        agent->hunger = std::min(100.0, agent->hunger + agent->digest(burn));  // meat lasts; hunger stops at full
         if (agent->cooldown) agent->cooldown -= 1;
         if (agent->health < agent->max_health && agent->hunger < 65) agent->heal(0.005);
         // A tenth of its health a step, part steps in part; a plant takes one step in its stride, and is
         // hurt more and more as the weather turns toward a second, to full harm two away.
         const double felt = plant ? std::max(0.0, std::min(steps, 2 * (steps - 1))) : steps;
         if (felt > 0) agent->health -= CLIMATE_DAMAGE * felt * share * agent->max_health;
-        if (agent->hunger >= 100) {  // out of its temperature, it died of exposure
-            die(*agent, hungrier ? exposure(*agent, here) : "starved");
-            continue;
-        }
-        if (agent->health <= 0) {
-            die(*agent, exposure(*agent, here));
+        const bool starving = agent->hunger >= 100;
+        if (starving) agent->health -= STARVING_DAMAGE * agent->max_health;  // it wastes away
+        if (agent->health <= 0) {  // starving, and hungrier out of its temperature, it died of exposure
+            die(*agent, starving && !hungrier ? "starved" : exposure(*agent, here));
             continue;
         }
         if (dies_of_age(*agent)) {
@@ -1661,9 +1666,13 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case WalkWest: {
             const Heading& heading = HEADINGS[static_cast<std::size_t>(action - GoNorth)];
             const int cells = heading.walk ? 1 : agent.steps;
-            const int y = within(agent.y + heading.dy * cells);
-            const int moved = heading.dy ? std::abs(y - agent.y) : cells;  // north and south stop at the map's edge
-            move(agent, py_mod(agent.x + heading.dx * cells, width_), y);
+            int moved = 0;  // as far as it goes before the map's edge (north and south) or a full square
+            for (int step = 1; step <= cells; ++step) {
+                const int x = py_mod(agent.x + heading.dx * step, width_), y = agent.y + heading.dy * step;
+                if (y < 0 || y >= height_ || room_in(Cell{x, y}, &agent) < agent.space()) break;
+                moved = step;
+            }
+            if (moved) move(agent, py_mod(agent.x + heading.dx * moved, width_), agent.y + heading.dy * moved);
             if (heading.walk) {
                 agent.hunger = std::max(0.0, agent.hunger - agent.burn * WALK_REST);  // burns less, but eases no hunger
             } else {
@@ -1744,7 +1753,7 @@ void Simulation::scavenge(Bitzkey& agent, Bitzkey& corpse) {
     }
     const double bite = corpse.meat / corpse.portions;
     corpse.meat -= bite;
-    agent.nourish(bite * agent.digestion);
+    agent.nourish(bite * agent.digestion, true);
     agent.last_action = "scavenged";
     eat_portion(corpse);
 }
@@ -1758,7 +1767,7 @@ void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
         agent.last_action = "sought a kill";  // out of reach, or already eaten
         return;
     }
-    agent.nourish(FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * corpse.physique(Size)));
+    agent.nourish(FRESH_KILL_MEALS * (KILL_MEAL + KILL_MEAL_FOR_SIZE * corpse.physique(Size)), true);
     if (agent.species == Species::Predator) agent.reward += FEAST_JOY;
     corpse.meat -= corpse.meat / corpse.portions;
     agent.last_action = "feasted";
@@ -1819,7 +1828,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
         }
     }
     victim.health -= blow;
-    agent.nourish(5);
+    agent.nourish(5, true);
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;  // the harder the blow, the more it costs
     agent.reward += joy;
     agent.last_action = "attacked";
@@ -1835,7 +1844,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim) {
         }
     } else {
         const double meal = KILL_MEAL + KILL_MEAL_FOR_SIZE * victim.physique(Size);
-        agent.nourish(meal);
+        agent.nourish(meal, true);
         agent.reward += 2 * joy;
         witness(agent, meal / agent.stomach / 100);  // its pack sees it succeed: the fullness it gained
         if (rival_weight(agent, victim) > 0) {  // one fewer rival for the feeding ground
@@ -2050,31 +2059,71 @@ int Simulation::crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_
 }
 
 void Simulation::give_birth(Bitzkey& mother) {
-    const std::vector<Cell> cells = free_cells_near(mother);
-    const auto born = static_cast<std::size_t>(std::min({static_cast<double>(mother.womb.size()),
-                                                         static_cast<double>(cells.size()), std::max(0.0, room())}));
-    for (std::size_t index = 0; index < born; ++index) {
-        Bitzkey::Young& young = mother.womb[index];
-        Bitzkey& child = add_agent(young.dna, cells[index].x, cells[index].y, std::move(young.brain));
+    // In the squares nearest it with room for each, its own first and several to a square while there is room, as many
+    // as the population cap allows; the rest are lost.
+    int born = 0;
+    for (Bitzkey::Young& young : mother.womb) {
+        if (born >= room()) break;
+        const int space = 1 + decode_body(young.dna)[Size];
+        std::optional<Cell> found;
+        for (const Cell& cell : squares_near(mother)) {
+            if (room_in(cell) >= space) {
+                found = cell;
+                break;
+            }
+        }
+        if (!found) continue;  // no room left near it
+        Bitzkey& child = add_agent(young.dna, found->x, found->y, std::move(young.brain));
         child.mind = young.mind;
         child.hunger = std::max(0.0, 100 - young.energy / child.stomach);
         child.generation = young.generation;
         population_ += 1;
+        born += 1;
     }
     mother.womb.clear();
     mother.due_turn.reset();
 }
 
-std::vector<Cell> Simulation::free_cells_near(const Bitzkey& agent) const {
-    // The empty cells around an animal, up to BIRTH_REACH away and nearest first, where young can be born.
-    std::vector<Cell> cells;
+std::vector<Cell> Simulation::squares_near(const Bitzkey& agent) const {
+    std::vector<Cell> cells{Cell{agent.x, agent.y}};
     for (const Offset& offset : birth_offsets(BIRTH_REACH)) {
         if (agent.y + offset.dy < 0 || agent.y + offset.dy >= height_) continue;  // beyond the top or bottom of the map
-        const Cell cell{py_mod(agent.x + offset.dx, width_), agent.y + offset.dy};
-        const auto& list = cells_[static_cast<std::size_t>(cell.y) * width_ + cell.x];
-        if (std::none_of(list.begin(), list.end(), [](const Bitzkey* other) { return other->alive(); })) cells.push_back(cell);
+        cells.push_back(Cell{py_mod(agent.x + offset.dx, width_), agent.y + offset.dy});
     }
     return cells;
+}
+
+std::vector<Cell> Simulation::free_cells_near(const Bitzkey& agent) const {
+    std::vector<Cell> cells;
+    for (const Cell& cell : squares_near(agent)) {
+        if (room_in(cell) > 0) cells.push_back(cell);
+    }
+    return cells;
+}
+
+int Simulation::room_in(Cell cell, const Bitzkey* leaving) const {
+    int used = 0;
+    for (const Bitzkey* other : cells_[static_cast<std::size_t>(cell.y) * width_ + cell.x]) {
+        if (other->alive() && other != leaving) used += other->space();
+    }
+    return CELL_SPACE - used;
+}
+
+std::optional<Cell> Simulation::spot_near(Cell cell, int space) const {
+    const int x = py_mod(cell.x, width_), y = within(cell.y);
+    if (room_in(Cell{x, y}) >= space) return Cell{x, y};
+    for (const Offset& offset : birth_offsets(BIRTH_REACH)) {
+        if (y + offset.dy < 0 || y + offset.dy >= height_) continue;
+        const Cell near{py_mod(x + offset.dx, width_), y + offset.dy};
+        if (room_in(near) >= space) return near;
+    }
+    return std::nullopt;
+}
+
+bool Simulation::step(Bitzkey& agent, int x, int y) {
+    if ((x != agent.x || y != agent.y) && room_in(Cell{x, y}, &agent) < agent.space()) return false;  // full: it stops short
+    move(agent, x, y);
+    return true;
 }
 
 std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) const {
@@ -2169,20 +2218,24 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
 
 void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
     if (steps < 0) steps = agent.steps;
-    for (int step = 0; step < steps; ++step) {
+    for (int taken = 0; taken < steps; ++taken) {
+        bool moved;
         if (agent.x != x) {
-            move(agent, agent.x + (x > agent.x ? 1 : -1), agent.y);
+            moved = step(agent, agent.x + (x > agent.x ? 1 : -1), agent.y);
         } else if (agent.y != y) {
-            move(agent, agent.x, agent.y + (y > agent.y ? 1 : -1));
+            moved = step(agent, agent.x, agent.y + (y > agent.y ? 1 : -1));
+        } else {
+            break;
         }
+        if (!moved) break;
     }
 }
 
 void Simulation::move_away(Bitzkey& agent, const Bitzkey& threat) {
-    for (int step = 0; step < agent.steps; ++step) {
+    for (int taken = 0; taken < agent.steps; ++taken) {
         const int dx = agent.x >= threat.x ? 1 : -1;
         const int dy = agent.y >= threat.y ? 1 : -1;
-        move(agent, py_mod(agent.x + dx, width_), within(agent.y + dy));
+        if (!step(agent, py_mod(agent.x + dx, width_), within(agent.y + dy))) break;
     }
 }
 

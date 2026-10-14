@@ -35,6 +35,13 @@ constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
 inline int SPAWN_SPREAD = 2;
+// A square holds CELL_SPACE spaces, and every Bitzkey, plant or animal, takes 1 + its size of them. Bitzkeys share a
+// square, and meet there as they would alongside, but none is born, moves or spawns into one without room for it.
+inline int CELL_SPACE = 10;
+// Full hunger doesn't kill at once: a starving Bitzkey loses this share of its full health each turn.
+inline double STARVING_DAMAGE = 0.1;
+// Meat lasts: the share of its fullness that is meat empties at this share of the usual rate.
+inline double MEAT_DIGESTION = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
 // The history is kept in memory: the world at each of the latest HISTORY_TURNS turns, whole, so the map
@@ -373,6 +380,7 @@ struct Bitzkey {
     std::optional<Place> food_memory;    // where it last fed
     std::optional<Place> danger_memory;  // where it was last struck
     double meat = 0.0;                  // a corpse's meat left for scavengers
+    double meat_fill = 0.0;             // how much of its fullness is meat, which it digests more slowly
     double rot = 0.0;                   // meat lost to rot each turn
     int portions = 0;                   // a body's portions left to eat, feasting or scavenging: one for each size class
     std::vector<std::pair<int, int>> trail;  // the cells it passed through this turn, for the map
@@ -429,14 +437,28 @@ struct Bitzkey {
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
     bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_cost <= 100 - BREED_RESERVE; }
-    bool alive() const { return health > 0 && hunger < 100; }
-    void nourish(double food) { relieve(food / stomach); }
-    // Ease its hunger by an amount, eating, and take SATED_JOY's pleasure in what was eased.
-    void relieve(double amount) {
+    bool alive() const { return health > 0; }  // full hunger wears its health away (STARVING_DAMAGE) rather than killing
+    // Eat: the same food fills a small stomach more than a large one. Meat is kept track of, as it lasts longer.
+    void nourish(double food, bool is_meat = false) {
+        const double eased = relieve(food / stomach);
+        if (is_meat) meat_fill += eased;
+    }
+    // Ease its hunger by an amount, eating, and take SATED_JOY's pleasure in what was eased. Returns what was eased.
+    double relieve(double amount) {
         const double eased = std::min(hunger, amount);
         hunger -= eased;
         reward += SATED_JOY * eased / 100;
+        return eased;
     }
+    // The hunger a turn's burn brings: the share of its fullness that is meat empties at MEAT_DIGESTION of the rate.
+    double digest(double burned) {
+        const double fullness = 100 - hunger;
+        meat_fill = std::min(meat_fill, std::max(0.0, fullness));
+        const double meat_share = fullness > 0 ? meat_fill / fullness : 0.0;
+        meat_fill = std::max(0.0, meat_fill - burned * meat_share * MEAT_DIGESTION);
+        return burned * (1 - meat_share * (1 - MEAT_DIGESTION));
+    }
+    int space() const { return 1 + body[Size]; }  // the spaces of a square it takes
     void heal(double amount) { health = std::min(max_health, health + max_health * amount * metabolism); }
     Brain& own_brain();  // the brain, made this animal's own before it changes
     // How many steps a temperature is from home.
@@ -680,7 +702,12 @@ public:
     void experience(Bitzkey& agent, int event);
     std::vector<Bitzkey*> nearby(const Bitzkey& agent, int radius) const;
     std::vector<Bitzkey*> nearby_cell(Cell cell, int radius, const Bitzkey* except) const;
-    std::vector<Cell> free_cells_near(const Bitzkey& agent) const;
+    std::vector<Cell> free_cells_near(const Bitzkey& agent) const;  // squares near it, its own first, with any room
+    std::vector<Cell> squares_near(const Bitzkey& agent) const;     // its own square, then those around, nearest first
+    int room_in(Cell cell, const Bitzkey* leaving = nullptr) const;  // a square's free spaces, as though `leaving` were gone
+    // A square with room for a Bitzkey taking `space`: this one, or else the nearest within BIRTH_REACH.
+    std::optional<Cell> spot_near(Cell cell, int space) const;
+    bool step(Bitzkey& agent, int x, int y);  // a step into a square, if it has room; whether it took it
     std::pair<double, double> territory(const Bitzkey& hunter) const;
     struct HerdView {
         bool any = false;
