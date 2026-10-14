@@ -891,6 +891,13 @@ double Simulation::home_prey(const Bitzkey& predator) const {
     return static_cast<double>(band_prey_[band]) / std::max(1, band_predators_[band]);
 }
 
+bool Simulation::may_breed(const Bitzkey& agent, const Bitzkey& partner) const {
+    return agent.can_breed() && partner.can_breed() && room() > 0 &&
+           (!CROWDING_LIMIT || crowding(agent, partner, true) < CROWDING_LIMIT) &&  // its own kind crowds it
+           (!food_needed(agent) || food_supply(agent) >= food_needed(agent)) &&
+           (agent.species == Species::Predator || home_food(agent) >= home_food_needed(agent));
+}
+
 double Simulation::home_food(const Bitzkey& agent) const {
     if (agent.species == Species::Grazer) return home_plants(agent);
     return agent.species == Species::Predator ? home_prey(agent) : 0.0;
@@ -1398,12 +1405,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Browse] = s.flora != nullptr;
     available[Scavenge] = s.carrion != nullptr;
     available[Feast] = s.kill != nullptr;
-    available[Court] = s.suitor != nullptr;
-    available[Breed] = s.mate && agent.can_breed() && !s.nurseries.empty() && room() > 0 &&
-                       (!CROWDING_LIMIT || crowding(agent, *s.mate, true) < CROWDING_LIMIT) &&  // its own kind crowds it
-                       (!food_needed(agent) || food_supply(agent) >= food_needed(agent)) &&
-                       home_food(agent) >= home_food_needed(agent);  // the food at home: plants, or prey
-    available[Hunt] = s.quarry != nullptr;
+    // A pack keeps to its temperature as a herd does: a predator courts and hunts only toward a row no further from
+    // its home temperature than where it stands.
+    const bool pack = agent.species == Species::Predator;
+    const auto homeward = [&](int y) { return agent.climate_steps(temperature(y)) <= discomfort; };
+    available[Court] = s.suitor && may_breed(agent, *s.suitor) && (!pack || homeward(s.suitor->y));  // courting only a partner it could then breed with
+    available[Breed] = s.mate && !s.nurseries.empty() && may_breed(agent, *s.mate);
+    available[Hunt] = s.quarry != nullptr && (!pack || homeward(s.quarry->y));
     available[Attack] = s.prey != nullptr;
     // Only from a hunter close by, unless the herd raised the alarm.
     available[Flee] = s.hunter && (alarmed || distance(s.hunter->x, s.hunter->y, agent.x, agent.y) <=
@@ -1414,7 +1422,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     // further from its home temperature than here.
     available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) >
                                          HERD_SPREAD * (1 - agent.fearfulness()) &&
-                      agent.climate_steps(temperature(view.middle->y)) <= discomfort;
+                      homeward(view.middle->y);
     if (agent.species == Species::Grazer && agent.hunger >= UPROOT_HUNGER) {
         for (Bitzkey* other : neighbors) {
             if (other->species == Species::Plant) {
@@ -1628,8 +1636,8 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             Bitzkey& suitor = *s.suitor;
             move_toward(agent, suitor.x, suitor.y);
             agent.last_action = "courted";
-            if (suitor.alive() && suitor.can_breed() && agent.can_breed() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH) {
-                agent.reward += mating_joy(agent, COURT_JOY);  // courted into reach
+            if (suitor.alive() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH && may_breed(agent, suitor)) {
+                agent.reward += mating_joy(agent, COURT_JOY);  // courted into reach, to breed
             }
             break;
         }

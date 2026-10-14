@@ -769,6 +769,10 @@ public:
     double home_plants(const Bitzkey& grazer) const;  // the plants in its home band per grazer at home there, itself among them
     double home_prey(const Bitzkey& predator) const;  // the prey in its home band per predator at home there, itself among them
     // The food in its home band per mouth at home there: plants for a grazer, prey for a predator; 0 for an omnivore.
+    // Whether an animal may breed with a partner, all but being close enough and finding a nursery: both ready, room
+    // in the world, not crowded by its own kind, food enough about it where that limits breeding, and, for a grazer,
+    // plants enough in its home band. A predator's prey at home shrinks its litters instead.
+    bool may_breed(const Bitzkey& agent, const Bitzkey& partner) const;
     double home_food(const Bitzkey& agent) const;
     static double home_food_needed(const Bitzkey& agent);  // PLANTS_PER_GRAZER, PREY_PER_PREDATOR, or none
     // How well fed its home band is, as a sense: 1 at twice the food a mouth needs to breed, or more; 1 where no home

@@ -1267,7 +1267,7 @@ TEST_CASE("a predator's breeding follows the prey in its home band, which it sen
         return std::find(options.begin(), options.end(), Breed) != options.end();
     };
     CHECK(simulation.home_prey(first) == 0.0);
-    CHECK_FALSE(offers_breed());
+    CHECK(offers_breed());  // no prey at home shrinks its litters, but doesn't stop it breeding
     CHECK(simulation.sense(first).senses[SenseHomeFood] == 0.0);
     for (const int x : {2, 4, 6}) simulation.add_agent(encode_dna(x == 2 ? Species::Grazer : Species::Omnivore), x, 10);
     simulation.index_cells();
@@ -1508,4 +1508,46 @@ TEST_CASE("omnivores live alone, in neither herd nor pack, and miss none") {
     CHECK(simulation.comfort(first, lonely) < alone);  // and miss their herd
     SOLITARY_OMNIVORES = 1;
     HERD_LONELINESS = loneliness;
+}
+
+TEST_CASE("courting is open, and pays, only when breeding could follow") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"sight", 2}});
+    Bitzkey& agent = simulation.add_agent(dna, 2, 5);
+    simulation.add_agent(dna, 6, 5);
+    simulation.index_cells();
+    const double plants_per_grazer = PLANTS_PER_GRAZER;
+    const auto offers_court = [&] {
+        const auto options = simulation.sense(agent).options;
+        return std::find(options.begin(), options.end(), Court) != options.end();
+    };
+    PLANTS_PER_GRAZER = 1.0;  // no plants at home: breeding couldn't follow
+    CHECK_FALSE(offers_court());
+    PLANTS_PER_GRAZER = 0.0;
+    CHECK(offers_court());
+    Simulation::Sensed sensed = simulation.sense(agent);
+    simulation.act(agent, Court, sensed.situation);
+    CHECK(agent.reward > 0.5 * COURT_JOY);  // courted into reach, to breed
+    PLANTS_PER_GRAZER = plants_per_grazer;
+}
+
+TEST_CASE("a pack courts and hunts only toward its home temperature, as a herd herds") {
+    Simulation simulation(100, 100, 0, 3);  // cold rows 0-19, medium 20-39, hot 40-59
+    const Dna dna = encode_dna(Species::Predator, {{"sight", 7}, {"fertility", 7}, {"temperature", Hot}});
+    Bitzkey& predator = simulation.add_agent(dna, 50, 30);  // a step from home
+    Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer), 50, 42);
+    Bitzkey& partner = simulation.add_agent(dna, 52, 42);
+    simulation.index_cells();
+    const auto offers = [&](int action) {
+        const auto options = simulation.sense(predator).options;
+        return std::find(options.begin(), options.end(), action) != options.end();
+    };
+    CHECK((simulation.sense(predator).situation.quarry == &prey && simulation.sense(predator).situation.suitor == &partner));
+    CHECK(offers(Hunt));  // toward home: open
+    CHECK(offers(Court));
+    prey.y = partner.y = 18;  // off toward the cold: closed
+    simulation.index_cells();
+    CHECK((simulation.sense(predator).situation.quarry == &prey && simulation.sense(predator).situation.suitor == &partner));
+    CHECK_FALSE(offers(Hunt));
+    CHECK_FALSE(offers(Court));
 }
