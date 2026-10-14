@@ -125,12 +125,17 @@ std::string dumps(const ordered_json& value) {
     return out;
 }
 
-ordered_json bitzkey_record(const Bitzkey& agent) {
+ordered_json genome_record(Dna dna) {
     ordered_json record = ordered_json::object();
     record["version"] = GENOME_VERSION;
-    record["ring"] = hex_word(body_word(agent.dna));
-    record["dot"] = hex_word(mind_word(agent.dna));
-    record["social"] = hex_word(social_word(agent.dna));
+    record["ring"] = hex_word(body_word(dna));
+    record["dot"] = hex_word(mind_word(dna));
+    record["social"] = hex_word(social_word(dna));
+    return record;
+}
+
+ordered_json bitzkey_record(const Bitzkey& agent) {
+    ordered_json record = genome_record(agent.dna);
     if (agent.species != Species::Plant) {
         ordered_json mind = ordered_json::object();
         for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {

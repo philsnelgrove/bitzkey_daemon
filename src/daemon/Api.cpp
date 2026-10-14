@@ -91,14 +91,7 @@ GraphView graph_view(const Json& request, const Simulation& simulation) {
     return view;
 }
 
-nlohmann::ordered_json genome_only(Dna dna) {
-    nlohmann::ordered_json record = nlohmann::ordered_json::object();
-    record["version"] = GENOME_VERSION;
-    record["ring"] = hex_word(body_word(dna));
-    record["dot"] = hex_word(mind_word(dna));
-    record["social"] = hex_word(social_word(dna));
-    return record;
-}
+nlohmann::ordered_json genome_only(Dna dna) { return genome_record(dna); }
 
 std::unordered_map<int, const Bitzkey*> by_identifier(const Simulation& simulation) {
     std::unordered_map<int, const Bitzkey*> agents;

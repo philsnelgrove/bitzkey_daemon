@@ -369,8 +369,7 @@ Json design(Dna dna) {
         facts.push_back("At home where it is " + temperature + "." + hardy[static_cast<std::size_t>(hardiness)]);
     }
     result["facts"] = facts;
-    result["record"] = Json{{"version", GENOME_VERSION}, {"ring", hex_word(body_word(dna))}, {"dot", hex_word(mind_word(dna))},
-                            {"social", hex_word(social_word(dna))}};
+    result["record"] = Json::parse(dumps(genome_record(dna)));
     return result;
 }
 

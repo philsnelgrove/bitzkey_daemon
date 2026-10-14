@@ -57,3 +57,13 @@ TEST_CASE("version 1 temperament is rescaled from 0-15 to 0-7") {
     REQUIRE(imported.size() == 1);
     CHECK(*imported[0].mind->traits[Fear] == doctest::Approx(7.0));
 }
+
+TEST_CASE("a genome alone is written with all three words and imports back whole") {
+    const Dna dna = encode_dna(Species::Grazer, {{"fear", 3}, {"loyalty", 5}, {"neurodivergence", 9}});
+    const std::string text = dumps(genome_record(dna));
+    CHECK(text == "{\"version\": 3, \"ring\": \"" + hex_word(body_word(dna)) + "\", \"dot\": \"" + hex_word(mind_word(dna)) +
+                      "\", \"social\": \"" + hex_word(social_word(dna)) + "\"}");
+    const auto imported = import_bitzkeys(text);  // as a design pasted into the import list
+    REQUIRE(imported.size() == 1);
+    CHECK(imported[0].dna == dna);
+}

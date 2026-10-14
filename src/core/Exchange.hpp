@@ -43,6 +43,8 @@ struct Imported {
 // Python's json.dumps layout: ", " and ": " separators, Python float repr, keys in order.
 std::string dumps(const nlohmann::ordered_json& value);
 
+// A genome alone: {"version": 3, "ring": ..., "dot": ..., "social": ...}.
+nlohmann::ordered_json genome_record(Dna dna);
 nlohmann::ordered_json bitzkey_record(const Bitzkey& agent);
 std::string export_bitzkeys(std::span<const Bitzkey* const> agents);
 // One record as a JSON object; several as a JSON array, one record per line.
