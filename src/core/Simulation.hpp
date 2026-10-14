@@ -81,7 +81,12 @@ inline std::array<double, 2> STOMACH = {0.5, 2.0};
 inline double SIZE_IN_MIGHT = 0.5;
 inline double AGEING = 0.7;
 inline double DEATH_PENALTY = 2.0;
-inline double BREED_JOY = 1.0;
+// Breeding is the greatest pleasure there is, and courting a mate into reach the next: each at three quarters of its
+// full strength, and the rest by libido, so even the coldest animal learns to seek a mate. Courting is rewarded only
+// once it brings a ready, willing partner within MATE_REACH; neither costs anything when it fails.
+inline double BREED_JOY = 4.0;
+inline double COURT_JOY = 2.5;
+inline double LIBIDO_IN_JOY = 0.25;  // the share of those pleasures that libido sets
 inline double FIGHT_JOY = 0.5;
 inline double COMPANY_JOY = 0.1;
 inline double CURIOSITY_JOY = 0.15;
@@ -143,8 +148,14 @@ inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many t
                                          // an omnivore's gets half the bonus
 // Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
 // KILL_FOOD_LEARNING times as much, by any animal, and one to eat, forage, browse or uproot PLANT_FOOD_LEARNING.
+// Breeding and courting may be learnt from more than other choices, BREED_LEARNING and COURT_LEARNING times as much;
+// by default no more, as learning them harder unsettles the brain for all else (their pleasures teach them instead).
 inline double KILL_FOOD_LEARNING = 5.0;
 inline double PLANT_FOOD_LEARNING = 0.5;
+inline double BREED_LEARNING = 1.0;
+inline double COURT_LEARNING = 1.0;
+// How much more, or less, a choice is learnt from: for the food it seeks, or the mate.
+double choice_learning(int choice);
 // Primal fear: facing a hunter stronger than itself, an animal may be overcome, each turn, with a chance of
 // PRIMAL_FEAR times how lopsided the fight would be (predators PRIMAL_FEAR_PREDATORS as often, and less
 // the hungrier, none as they starve). While a
@@ -437,6 +448,8 @@ struct Bitzkey {
 };
 
 int litter_size(std::span<const std::pair<int, int>> parents);
+// A pleasure of mating as an animal feels it: LIBIDO_IN_JOY of it by its libido, the rest whatever it is.
+inline double mating_joy(const Bitzkey& agent, double joy) { return joy * (1 - LIBIDO_IN_JOY + LIBIDO_IN_JOY * agent.feeling(Libido)); }
 int gestation(int size);  // turns an animal of this body size carries its young
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.

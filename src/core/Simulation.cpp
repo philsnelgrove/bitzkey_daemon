@@ -1001,16 +1001,15 @@ static double learning_rate(const Bitzkey& agent) {
     return LEARNING_RATE * sharpness * (1 + LEARNING_BOOST * sharpness) * hunter;
 }
 
-namespace {
-// How much more, or less, a choice is learnt from for the food it seeks.
-double food_learning(int choice) {
+double choice_learning(int choice) {
     switch (choice) {
+        case Breed: return BREED_LEARNING;
+        case Court: return COURT_LEARNING;
         case Hunt: case Attack: case Feast: return KILL_FOOD_LEARNING;
         case Eat: case Forage: case Browse: case Uproot: return PLANT_FOOD_LEARNING;
         default: return 1.0;
     }
 }
-}  // namespace
 
 void Simulation::learn(Bitzkey& agent, double target, bool replay) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
@@ -1022,18 +1021,18 @@ void Simulation::learn(Bitzkey& agent, double target, bool replay) {
     if (gpu_) {
         if (rate > 0) {
             const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
-            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * food_learning(agent.last_choice), true, decay);
+            queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * choice_learning(agent.last_choice), true, decay);
             for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
                 const Bitzkey::Memory& memory = agent.memories[index];
-                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * food_learning(memory.choice), false, 0.0);
+                queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * choice_learning(memory.choice), false, 0.0);
             }
         }
     } else {
-        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * food_learning(agent.last_choice), discount(agent),
+        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * choice_learning(agent.last_choice), discount(agent),
                                        agent.intelligence());
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
-            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * food_learning(memory.choice));
+            agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * choice_learning(memory.choice));
         }
     }
     if (!count) return;
@@ -1569,10 +1568,15 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             agent.heal(0.015);
             agent.last_action = "rested";
             break;
-        case Court:
-            move_toward(agent, s.suitor->x, s.suitor->y);
+        case Court: {
+            Bitzkey& suitor = *s.suitor;
+            move_toward(agent, suitor.x, suitor.y);
             agent.last_action = "courted";
+            if (suitor.alive() && suitor.can_breed() && agent.can_breed() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH) {
+                agent.reward += mating_joy(agent, COURT_JOY);  // courted into reach
+            }
             break;
+        }
         case Breed: {
             Bitzkey& mate = *s.mate;
             if (!(mate.alive() && mate.can_breed() && agent.can_breed() && distance(mate.x, mate.y, agent.x, agent.y) <= MATE_REACH)) {
@@ -1975,7 +1979,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         const double rest = parent.species == Species::Predator ? PREDATOR_BREED_COOLDOWN : BREED_COOLDOWN;
         parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest));
         parent.children += litter;
-        parent.reward += BREED_JOY * parent.feeling(Libido);
+        parent.reward += mating_joy(parent, BREED_JOY);
         if (!parent.alive()) {
             die(parent, "bred to death");
         } else {
@@ -2189,7 +2193,7 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
         }
         const double heed = observer->feeling(Empathy) * observer->intelligence() *
                             (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
-        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * food_learning(actor.last_choice)});  // learnt at the end
+        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * choice_learning(actor.last_choice)});  // learnt at the end
         observer->reward += SOCIAL_MOOD * heed * outcome;
         if (outcome > 0) observer->seen_success = 1.0;
         else observer->seen_failure = 1.0;

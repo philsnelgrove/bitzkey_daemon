@@ -1172,3 +1172,32 @@ TEST_CASE("deploying puts five of each around a cell, with their brains and mind
     simulation.advance();
     CHECK(simulation.turn() == turn + 2);
 }
+
+TEST_CASE("breeding is the greatest pleasure, courting into reach the next, and failing costs nothing") {
+    CHECK((choice_learning(Breed) == BREED_LEARNING && choice_learning(Court) == COURT_LEARNING));
+    CHECK((BREED_LEARNING == 1.0 && COURT_LEARNING == 1.0 && KILL_FOOD_LEARNING == 5.0));
+    CHECK((BREED_JOY == 4.0 && COURT_JOY == 2.5 && LIBIDO_IN_JOY == 0.25));
+    Simulation simulation = world();
+    Bitzkey& cold = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 7}, {"libido", 0}}), 2, 2);
+    CHECK(mating_joy(cold, BREED_JOY) == doctest::Approx(3.0));  // three quarters of it even with no libido
+    CHECK(mating_joy(cold, COURT_JOY) == doctest::Approx(1.875));
+    CHECK(mating_joy(cold, COURT_JOY) > FEAST_JOY);  // the strongest pleasure besides
+    Bitzkey& mate = simulation.add_agent(cold.dna, 2, 8);  // six cells off: a predator closes two a step
+    simulation.index_cells();
+    Simulation::Sensed sensed = simulation.sense(cold);
+    simulation.act(cold, Court, sensed.situation);
+    CHECK(cold.reward == 0.0);  // not yet in reach: nothing, and nothing lost
+    while (std::abs(cold.y - mate.y) > 2) simulation.act(cold, Court, sensed.situation);
+    CHECK(cold.reward == doctest::Approx(1.875));
+
+    cold.reward = mate.reward = 0.0;
+    mate.cooldown = 3;  // it bred with another first
+    Simulation::Situation spurned;
+    spurned.mate = &mate;
+    simulation.act(cold, Breed, spurned);
+    CHECK((cold.last_action == "was spurned" && cold.reward == 0.0));
+    mate.cooldown = 0;
+    simulation.breed(cold, mate);
+    CHECK(cold.reward == doctest::Approx(3.0));
+    CHECK(mate.reward == doctest::Approx(3.0));  // both parents
+}
