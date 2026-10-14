@@ -99,6 +99,25 @@ inline double SOCIAL_LEARNING = 1.0;  // how fast it learns from what it sees, b
 inline double SOCIAL_MOOD = 0.3;      // how much what it sees moves its mood
 inline double SOCIAL_MEMORY = 0.8;    // the share of a seen success or failure it still senses a turn later
 inline double OTHER_KIND = 0.4;
+// The social background's traits. Loyalty: whenever it can herd, an animal values keeping to its herd this much
+// more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
+// a territory's crowding troubles the dominant less and the submissive more, by up to this share.
+inline double LOYALTY_PULL = 0.25;
+inline double DOMINANCE_EASE = 0.5;
+// Trust: how much more, or less, the most and least trusting take in what they see of their herd-mates, by
+// this share; and an alert reaches it from a herd-mate this many times its trust times its sight away.
+inline double TRUST_HEED = 0.5;
+inline double TRUST_REACH = 2.0;
+// Kinship: the most a herd-mate's or partner's social background may differ from its own, at full kinship and
+// no tolerance, is 1 less this; less kinship, or more tolerance, accepts more.
+inline double KINSHIP_SHUN = 0.8;
+// The mind's new traits. Memory: an animal remembers where it last fed, and where it was last struck, for up to
+// MEMORY_TURNS at the best memory, fewer the poorer. Resilience: the most resilient get over a herd-mate's failure
+// faster, and fear a bad experience less, by up to this share, the least resilient slower and more. Moodiness:
+// experience moves the moodiest temperament by up to this share more, the steadiest by this share less.
+inline int MEMORY_TURNS = 100;
+inline double RESILIENCE = 0.5;
+inline double MOODINESS = 0.5;
 inline double LEARNING_RATE = 0.045;
 // The clever learn faster. The learning rate rises with intellect, and on top of that by up to
 // LEARNING_BOOST times again at the highest; the least intelligent get no boost. And each turn an
@@ -169,6 +188,9 @@ inline double UPROOT_FOOD = 3.0;  // a starving grazer uproots a plant only with
 inline double BREED_COOLDOWN = 0.0;  // share of the usual rest after breeding, 20 turns for the least fertile to 5 for the most
 inline double PREDATOR_BREED_COOLDOWN = 0.5;  // the same for predators: a short rest
 inline double PREDATOR_FOOD_NEEDED = 0.0;  // the same for predators: none, so the food about them never stops them breeding
+// Plants each grazer needs in its home band, the climate band of its home temperature nearest it, shared
+// among the grazers at home there, to breed; between this and twice this its litter shrinks. 0: no limit.
+inline double PLANTS_PER_GRAZER = 0.1;
 inline double PLANT_MEALS = 2.0;   // meals a plant is worth to a full-efficiency browser
 inline double PREY_MEALS = 10.0;  // meals a prey animal is worth: meat fills about ten times what grass does
 inline double SHARED_DIET = 0.5;
@@ -299,6 +321,10 @@ struct Cell {
     bool operator==(const Cell&) const = default;
 };
 
+struct Place {  // a place remembered, and the turn it happened there
+    int x = 0, y = 0, turn = 0;
+};
+
 struct Bitzkey {
     Bitzkey(int identifier, Dna dna, int x, int y);
 
@@ -326,6 +352,8 @@ struct Bitzkey {
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     std::optional<int> herd_assailant;  // what struck a herd-mate close by, from alongside it
+    std::optional<Place> food_memory;    // where it last fed
+    std::optional<Place> danger_memory;  // where it was last struck
     double meat = 0.0;                  // a corpse's meat left for scavengers
     double rot = 0.0;                   // meat lost to rot each turn
     int portions = 0;                   // a body's portions left to eat, feasting or scavenging: one for each size class
@@ -348,7 +376,7 @@ struct Bitzkey {
     std::vector<Young> womb;      // the young it carries
     std::uintmax_t brain_bytes() const;  // the memory its brain, and those of the young it carries, take
     std::optional<int> due_turn;  // the turn they are born
-    Mind mind{};                        // current temperament, reshaped by experience
+    Mind mind{};                        // current temperament, mind and social traits, reshaped by experience
     // The last decision, kept until the next one so the brain can learn from how it turned out.
     bool has_last_senses = false;
     Senses last_senses{};
@@ -401,6 +429,7 @@ struct Bitzkey {
     double exposure_share(double here) const;
     Rgb dot_color() const { return color_from_word(mind_word(dna)); }
     Rgb ring_color() const { return color_from_word(body_word(dna)); }
+    Rgb social_color() const { return color_from_word(social_word(dna)); }
 };
 
 int litter_size(std::span<const std::pair<int, int>> parents);
@@ -531,6 +560,7 @@ public:
         Bitzkey* kill = nullptr;
         Bitzkey* flora = nullptr;
         Bitzkey* alert_to = nullptr;  // what it may alert its herd to
+        std::optional<Cell> revisit;  // where it last fed, to go back to
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
         int kin = 0;
@@ -571,7 +601,10 @@ public:
     };
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do
-    void act(Bitzkey& agent, int action, Situation& situation);
+    void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed
+    // How clearly it remembers a place: 1 the turn it happened, fading to nothing over MEMORY_TURNS times its
+    // memory; 0 when it has nothing to remember.
+    double remembered(const Bitzkey& agent, const std::optional<Place>& memory) const;
     double comfort(const Bitzkey& agent, const Situation& situation) const;
     double wellbeing(const Bitzkey& agent) const;
     // How much the future counts against the present: more for the patient.
@@ -650,6 +683,7 @@ public:
     static double diet_share(const Bitzkey& eater, const Bitzkey& other);
     static double food_needed(const Bitzkey& agent);  // the meals a mouth it needs about it to breed; 0, none
     double food_supply(const Bitzkey& agent) const;
+    double home_plants(const Bitzkey& grazer) const;  // the plants in its home band per grazer at home there, itself among them
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;
@@ -689,6 +723,7 @@ private:
     void spawn_group(Dna dna, int size, const std::shared_ptr<const Brain>& brain = nullptr,
                      const std::optional<PartialMind>& mind = std::nullopt, bool native = false,
                      const std::vector<int>& rows = {});
+    void perform(Bitzkey& agent, int action, Situation& situation);  // the action itself
     void record();
     void restore(const Snapshot& held);  // as a copy, so the history's stays as it was
     void take_census();
@@ -745,6 +780,11 @@ private:
     std::vector<Seed> seeds_;
     std::vector<double> climate_;      // each row's temperature this turn
     std::vector<double> growth_;       // each row's share of medium, where grass grows
+    std::vector<int> band_of_row_;     // the climate band each row lies in, top to bottom
+    std::vector<std::vector<int>> home_band_;  // by home temperature and row: the home band nearest
+    std::vector<int> band_plants_;     // the plants in each band, and the grazers at home there,
+    std::vector<int> band_grazers_;    // as the cells were last indexed
+    void index_bands();
     std::vector<int> grass_rows_;      // the rows where grass grows at all
     std::vector<double> grass_reach_;  // their growth added up, row by row, for sowing
     struct Witnessed {  // what a herd-mate saw this turn, to learn from at its end

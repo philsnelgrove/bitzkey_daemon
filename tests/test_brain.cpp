@@ -93,13 +93,14 @@ TEST_CASE("a brain is twice as deep as the inborn intellect, and at least two la
     CHECK(Brain::random(rng).depth() == MIN_DEPTH);
 }
 
-TEST_CASE("there is an input for each ring and dot trait, and none for which actions are open") {
+TEST_CASE("there is an input for each ring, dot and social trait, and none for which actions are open") {
     for (const auto action : ACTIONS) CHECK(sense_index("open_" + std::string(action)) == -1);  // which actions are open is not an input
-    for (const auto trait : MIND_TRAITS) CHECK(sense_index("inborn_" + std::string(trait)) >= 0);
+    for (const auto trait : TEMPERAMENT) CHECK((sense_index("inborn_" + std::string(trait)) >= 0 && sense_index(trait) >= 0));
     for (const auto trait : BODY_TRAITS) CHECK(sense_index(trait) >= 0);
     Senses senses{};
-    gene_senses(encode_dna(Species::Predator, {{"temperature", 2}, {"cold_tolerance", 1}, {"size", 7}, {"intellect", 7}}), senses);
-    CHECK((senses[SenseBody] == 1.0 && senses[SenseBody + Size] == 1.0 && senses[SenseInborn + Intellect] == 1.0));
+    gene_senses(encode_dna(Species::Predator, {{"temperature", 2}, {"cold_tolerance", 1}, {"size", 7}, {"intellect", 7}, {"trust", 7}}), senses);
+    CHECK((senses[SenseBody] == 1.0 && senses[SenseBody + Size] == 1.0 && senses[SenseInborn + Intellect] == 1.0 &&
+           senses[SenseInborn + Trust] == 1.0));
     CHECK((senses[SenseHomeTemperature] == doctest::Approx(2.0 / 3) && senses[SenseColdTolerance] == 1.0 &&
            senses[SenseHeatTolerance] == 0.0));
 }
@@ -180,7 +181,7 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
 }
 
 TEST_CASE("hidden layers are 34 neurons wide, and a narrower saved brain loads widened, valuing alike") {
-    CHECK((HIDDEN_SIZE == 34 && INPUT_SIZE == 71));
+    CHECK((HIDDEN_SIZE == 34 && INPUT_SIZE == 87));
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;

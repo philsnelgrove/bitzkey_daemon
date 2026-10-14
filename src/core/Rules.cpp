@@ -70,6 +70,7 @@ std::vector<Rule> make_rules() {
         {"BREED_COOLDOWN", "Breeding", "Breeding cooldown", "share of the usual rest after breeding (5 to 20 turns by fertility); 0: none", 0.0, 2.0, 0.05, false, &BREED_COOLDOWN},
         {"PREDATOR_BREED_COOLDOWN", "Breeding", "Breeding cooldown, predators", "share of the usual rest after breeding for predators; 0: none", 0.0, 2.0, 0.05, false, &PREDATOR_BREED_COOLDOWN},
         {"PREDATOR_FOOD_NEEDED", "Breeding", "Food needed, predators", "meals each mouth needs nearby for a predator to breed; 0: no limit", 0.0, 20.0, 0.5, false, &PREDATOR_FOOD_NEEDED},
+        {"PLANTS_PER_GRAZER", "Breeding", "Plants per grazer", "plants each grazer needs in its home climate band, shared among the grazers at home there, to breed; twice this for a full litter; 0: no limit", 0.0, 10.0, 0.05, false, &PLANTS_PER_GRAZER},
         {"PLANT_MEALS", "Breeding", "Plant meals", "meals a plant is worth to a full-efficiency browser", 0.0, 20.0, 0.5, false, &PLANT_MEALS},
         {"PREY_MEALS", "Breeding", "Prey meals", "meals a prey animal is worth", 0.0, 20.0, 0.5, false, &PREY_MEALS},
         {"SHARED_DIET", "Breeding", "Shared diet", "how much another species eating the same food counts as a mouth", 0.0, 1.0, 0.05, false, &SHARED_DIET},
@@ -91,6 +92,11 @@ std::vector<Rule> make_rules() {
         {"SOCIAL_LEARNING", "Society", "Social learning", "how much a herd-mate's success or failure seen teaches, by empathy and intellect", 0.0, 3.0, 0.05, false, &SOCIAL_LEARNING},
         {"SOCIAL_MOOD", "Society", "Social mood", "how much a herd-mate's success or failure seen moves the mood", 0.0, 3.0, 0.05, false, &SOCIAL_MOOD},
         {"SOCIAL_MEMORY", "Society", "Social memory", "share of a seen success or failure still sensed a turn later", 0.0, 1.0, 0.05, false, &SOCIAL_MEMORY},
+        {"LOYALTY_PULL", "Society", "Loyalty pull", "how much more an animal values keeping to its herd, times its loyalty", 0.0, 5.0, 0.05, false, &LOYALTY_PULL},
+        {"DOMINANCE_EASE", "Society", "Dominance ease", "share less a crowded territory troubles the most dominant, and more the most submissive", 0.0, 1.0, 0.05, false, &DOMINANCE_EASE},
+        {"TRUST_HEED", "Society", "Trust heed", "share more the most trusting take in what herd-mates do, and less the least", 0.0, 1.0, 0.05, false, &TRUST_HEED},
+        {"TRUST_REACH", "Society", "Trust reach", "times its trust times its sight away a herd-mate's alert is heeded", 0.0, 5.0, 0.25, false, &TRUST_REACH},
+        {"KINSHIP_SHUN", "Society", "Kinship shun", "at full kinship and no tolerance, a herd-mate's or partner's social background may differ by no more than 1 less this", 0.0, 1.0, 0.05, false, &KINSHIP_SHUN},
         {"LEARNING_RATE", "Mind", "Learning rate", "how fast a brain learns, at the highest intellect", 0.0, 0.5, 0.005, false, &LEARNING_RATE},
         {"TRACE_DECAY", "Mind", "Trace decay", "how far back a choice's outcome reaches earlier choices (lambda)", 0.0, 1.0, 0.05, false, &TRACE_DECAY},
         {"SMART_TRACE_DECAY", "Mind", "Trace decay, smartest", "trace decay at the highest intellect; the lowest keeps the one above", 0.0, 1.0, 0.01, false, &SMART_TRACE_DECAY},
@@ -103,6 +109,9 @@ std::vector<Rule> make_rules() {
         {"MUTATION", "Mind", "Brain mutation", "how much a newborn's brain varies from its parents'", 0.0, 1.0, 0.01, false, &MUTATION},
         {"HEADING_RELUCTANCE", "Mind", "Heading reluctance", "how much less a new brain values setting off in a direction", 0.0, 2.0, 0.05, false, &HEADING_RELUCTANCE},
         {"TEMPERAMENT_RELAPSE", "Mind", "Temperament relapse", "share of the gap back to the inborn value closed each turn", 0.0, 0.1, 0.001, false, &TEMPERAMENT_RELAPSE},
+        {"MEMORY_TURNS", "Mind", "Memory turns", "turns the best memory recalls where it last fed or was struck; fewer the poorer", 0, 1000, 10, true, &MEMORY_TURNS},
+        {"RESILIENCE", "Mind", "Resilience", "share faster the most resilient get over a seen failure, and less they fear a bad experience", 0.0, 1.0, 0.05, false, &RESILIENCE},
+        {"MOODINESS", "Mind", "Moodiness", "share more experience moves the moodiest temperament, and less the steadiest", 0.0, 1.0, 0.05, false, &MOODINESS},
         {"PANIC.0", "Mind", "Panic, unhurt", "chance a fully fearful animal breaks when struck, unhurt", 0.0, 1.0, 0.05, false, &PANIC[0]},
         {"PANIC.1", "Mind", "Panic, near death", "chance a fully fearful animal breaks when struck, near death", 0.0, 1.0, 0.05, false, &PANIC[1]},
         {"MATE_REACH", "Mind", "Mate reach", "steps within which a partner is close enough to breed with", 1, 5, 1, true, &MATE_REACH},
@@ -212,7 +221,7 @@ std::vector<Rule> make_rules() {
         std::string title = name;
         title[0] = static_cast<char>(title[0] - 'a' + 'A');
         for (Shift& shift : EXPERIENCES[event]) {
-            const std::string trait(MIND_TRAITS[static_cast<std::size_t>(shift.trait)]);
+            const std::string trait(TEMPERAMENT[static_cast<std::size_t>(shift.trait)]);
             rules.push_back({"EXPERIENCES." + std::string(EXPERIENCE_NAMES[event]) + "." + trait, "Experiences",
                              title + ": " + trait, "how " + name + " shifts " + trait + ", as a share of its range", -0.5,
                              0.5, 0.0005, false, &shift.change});

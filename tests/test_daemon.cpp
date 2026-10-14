@@ -172,9 +172,10 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         CHECK(read<std::uint32_t>(data, 12) == 1);
         const auto agents = read<std::uint32_t>(data, 16), trails = read<std::uint32_t>(data, 20);
         CHECK(agents == simulation.agents().size());
-        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 26 + trails * 8);
+        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 33 + trails * 8);
         const std::size_t first = 24 + 4 * 30 + 30 * 30;
         CHECK(read<std::uint32_t>(data, first) == static_cast<std::uint32_t>(simulation.agents()[0]->identifier));
+        CHECK(read<std::uint32_t>(data, first + 29) == social_word(simulation.agents()[0]->dna));  // its social background, last
     }
     std::filesystem::remove_all(folder);
 }
@@ -244,7 +245,8 @@ TEST_CASE("the web API shows the world and steers it") {
         const Json agent = get(client, "/api/agent/" + std::to_string(identifier));
         CHECK(agent["identifier"] == identifier);
         CHECK(agent["known"].get<bool>());
-        CHECK(agent["inborn"].size() == MIND_TRAIT_COUNT);
+        CHECK(agent["inborn"].size() == TEMPERAMENT_COUNT);
+        CHECK(agent["social"].get<std::string>().size() == 8);
         CHECK(client.Get("/api/agent/999999")->status == 404);
 
         const Json deaths = get(client, "/api/deaths");
@@ -256,6 +258,10 @@ TEST_CASE("the web API shows the world and steers it") {
         const Json cards = post(client, "/api/exemplars", Json::object());
         CHECK(cards.size() == 10);
         CHECK(cards[0]["title"] == "SMARTEST");
+        std::vector<std::string> titles;
+        for (const auto& card : cards) titles.push_back(card["title"].get<std::string>());
+        CHECK(titles == std::vector<std::string>{"SMARTEST", "LARGEST", "OLDEST", "MOST CHILDREN", "LATEST GENERATION", "STRONGEST",
+                                                 "FASTEST", "BEST ARMOURED", "MOST FERTILE", "BEST FED"});  // the defaults
         CHECK(get(client, "/api/insights")["behaviour"].size() == ACTION_COUNT);
 
         const Json records = post(client, "/api/records", {{"identifiers", {identifier}}});
@@ -285,8 +291,9 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(post(client, "/api/import/check", {{"text", records["text"]}})["count"] == 1);
         CHECK_FALSE(post(client, "/api/import/check", {{"text", "nonsense"}})["ok"].get<bool>());
 
-        const Json designed = post(client, "/api/design", {{"ring", "00000001"}, {"dot", "00000000"}});
+        const Json designed = post(client, "/api/design", {{"ring", "00000001"}, {"dot", "00000000"}, {"social", "0000ABCD"}});
         CHECK(designed["species"] == "grazer");
+        CHECK(designed["record"]["social"] == "0000ABCD");
         CHECK(designed["facts"].size() >= 6);
 
         Json settings = Json::object();

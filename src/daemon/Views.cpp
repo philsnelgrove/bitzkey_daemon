@@ -43,12 +43,16 @@ struct ExemplarStat {
     int index;
     bool lowest;
 };
-constexpr std::array<ExemplarStat, 43> EXEMPLAR_STATS = {{
+constexpr std::array<ExemplarStat, 50> EXEMPLAR_STATS = {{
     {"SMARTEST", StatKind::Mind, Intellect, false}, {"MOST AGGRESSIVE", StatKind::Mind, Aggression, false},
     {"MOST AMOROUS", StatKind::Mind, Libido, false}, {"MOST SOCIABLE", StatKind::Mind, Sociability, false},
     {"MOST CURIOUS", StatKind::Mind, Curiosity, false}, {"MOST FEARFUL", StatKind::Mind, Fear, false},
     {"GREATEST APPETITE", StatKind::Mind, Appetite, false}, {"MOST PATIENT", StatKind::Mind, Patience, false},
     {"MOST EMPATHETIC", StatKind::Mind, Empathy, false}, {"MOST TOLERANT", StatKind::Mind, Tolerance, false},
+    {"BEST MEMORY", StatKind::Mind, Memory, false}, {"MOST RESILIENT", StatKind::Mind, Resilience, false},
+    {"MOODIEST", StatKind::Mind, Moodiness, false}, {"MOST LOYAL", StatKind::Mind, Loyalty, false},
+    {"MOST DOMINANT", StatKind::Mind, Dominance, false}, {"MOST TRUSTING", StatKind::Mind, Trust, false},
+    {"MOST CLANNISH", StatKind::Mind, Kinship, false},
     {"SIMPLEST", StatKind::Mind, Intellect, true}, {"GENTLEST", StatKind::Mind, Aggression, true},
     {"BRAVEST", StatKind::Mind, Fear, true}, {"MOST SOLITARY", StatKind::Mind, Sociability, true},
     {"LARGEST", StatKind::Body, Size, false}, {"SMALLEST", StatKind::Body, Size, true},
@@ -89,7 +93,7 @@ double exemplar_value(const Bitzkey& agent, const ExemplarStat& stat) {
         case Herd: return agent.herd_instinct();
         default: {  // how far experience has moved its temperament from what it was born with
             std::vector<double> shifts;
-            for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
+            for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
                 shifts.push_back(std::abs(agent.mind[static_cast<std::size_t>(trait)] - agent.inborn[static_cast<std::size_t>(trait)]));
             }
             return py_sum(shifts);
@@ -101,7 +105,7 @@ std::string exemplar_text(const Bitzkey& agent, const ExemplarStat& stat) {
     const double value = exemplar_value(agent, stat);
     const int whole = static_cast<int>(value);
     switch (stat.kind) {
-        case StatKind::Mind: return std::string(MIND_TRAITS[static_cast<std::size_t>(stat.index)]) + " " + std::to_string(whole);
+        case StatKind::Mind: return std::string(TEMPERAMENT[static_cast<std::size_t>(stat.index)]) + " " + std::to_string(whole);
         case StatKind::Body: return std::string(BODY_TRAITS[static_cast<std::size_t>(stat.index)]) + " " + std::to_string(whole);
         case StatKind::Home: return std::string("home ") + HOMES[static_cast<std::size_t>(whole)];
         case StatKind::State: break;
@@ -239,7 +243,7 @@ std::string frame(const Simulation& simulation) {
         for (const auto& [x, y] : agent->trail) trail_cells += !(x == agent->x && y == agent->y);
     }
     std::string out;
-    out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 26 + trail_cells * 8);
+    out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 33 + trail_cells * 8);
     out += "BZF1";
     put<std::uint32_t>(out, static_cast<std::uint32_t>(width));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(height));
@@ -251,17 +255,21 @@ std::string frame(const Simulation& simulation) {
         for (int x = 0; x < width; ++x) out.push_back(simulation.grass_at(x, y) > 0 ? 1 : 0);
     }
     for (const auto& agent : agents) {
-        const Rgb dot = color_from_word(mind_word(agent->dna)), ring = color_from_word(body_word(agent->dna));
+        const Rgb dot = color_from_word(mind_word(agent->dna)), ring = color_from_word(body_word(agent->dna)),
+                  social = color_from_word(social_word(agent->dna));
         put<std::uint32_t>(out, static_cast<std::uint32_t>(agent->identifier));
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->x));
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->y));
-        for (const int channel : {dot.r, dot.g, dot.b, ring.r, ring.g, ring.b}) out.push_back(static_cast<char>(channel));
+        for (const int channel : {dot.r, dot.g, dot.b, ring.r, ring.g, ring.b, social.r, social.g, social.b}) {
+            out.push_back(static_cast<char>(channel));
+        }
         out.push_back(static_cast<char>(agent->species));
         out.push_back(static_cast<char>(agent->body[Size]));
         out.push_back(static_cast<char>(agent->alive() ? 1 : 0));
         out.push_back(static_cast<char>(static_cast<int>(py_round(255 * corpse_opacity(*agent, simulation.turn())))));
         put<std::uint32_t>(out, mind_word(agent->dna));
         put<std::uint32_t>(out, body_word(agent->dna));
+        put<std::uint32_t>(out, social_word(agent->dna));
     }
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& agent = *agents[index];
@@ -285,8 +293,11 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
         {"species_index", static_cast<int>(agent.species)},
         {"dot", hex_word(mind_word(agent.dna))},
         {"ring", hex_word(body_word(agent.dna))},
+        {"social", hex_word(social_word(agent.dna))},
         {"dot_rgb", rgb(color_from_word(mind_word(agent.dna)))},
         {"ring_rgb", rgb(color_from_word(body_word(agent.dna)))},
+        {"social_rgb", rgb(color_from_word(social_word(agent.dna)))},
+        {"neurodivergence", decode_neurodivergence(agent.dna)},
         {"inborn", agent.inborn},
         {"body", agent.body},
         {"burn", agent.burn},
@@ -357,7 +368,8 @@ Json design(Dna dna) {
         facts.push_back("At home where it is " + temperature + "." + hardy[static_cast<std::size_t>(hardiness)]);
     }
     result["facts"] = facts;
-    result["record"] = Json{{"version", GENOME_VERSION}, {"ring", hex_word(body_word(dna))}, {"dot", hex_word(mind_word(dna))}};
+    result["record"] = Json{{"version", GENOME_VERSION}, {"ring", hex_word(body_word(dna))}, {"dot", hex_word(mind_word(dna))},
+                            {"social", hex_word(social_word(dna))}};
     return result;
 }
 
@@ -395,6 +407,7 @@ Json exemplars(const Simulation& simulation, const std::vector<int>& choices) {
             card["size"] = best->body[Size];
             card["dot_rgb"] = rgb(color_from_word(mind_word(best->dna)));
             card["ring_rgb"] = rgb(color_from_word(body_word(best->dna)));
+            card["social_rgb"] = rgb(color_from_word(social_word(best->dna)));
             card["said"] = exemplar_text(*best, stat);
         } else {
             card["said"] = "none alive";
@@ -468,7 +481,7 @@ Json insights(const Simulation& simulation) {
     result["life"] = life;
 
     Json temperament = Json::array();
-    for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
+    for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
         Json values = Json::array();
         for (std::size_t index = 0; index < ANIMALS.size(); ++index) {
             const auto now = average(index, [trait](const Bitzkey& a) { return a.mind[static_cast<std::size_t>(trait)]; });
@@ -481,7 +494,7 @@ Json insights(const Simulation& simulation) {
             });
             values.push_back({{"value", format("%4.1f", *now)}, {"shift", std::abs(shift) < 0.25 ? 0 : shift > 0 ? 1 : -1}});
         }
-        temperament.push_back({{"trait", std::string(MIND_TRAITS[static_cast<std::size_t>(trait)])}, {"values", values}});
+        temperament.push_back({{"trait", std::string(TEMPERAMENT[static_cast<std::size_t>(trait)])}, {"values", values}});
     }
     result["temperament"] = temperament;
 

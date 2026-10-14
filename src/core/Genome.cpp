@@ -23,11 +23,26 @@ namespace {
 int trait_at(std::uint32_t word, int index, int bits = TRAIT_BITS) {
     return static_cast<int>((word >> (bits * index)) & ((1U << bits) - 1));
 }
+
+// Version 2's dot, in order.
+constexpr std::array<MindTrait, 10> V2_DOT = {Aggression, Libido, Sociability, Curiosity, Fear, Appetite, Patience,
+                                              Intellect, Empathy, Tolerance};
+
+// A genome from its ring, a temperament written into the dot and social background, and their other bits.
+Dna compose(std::uint32_t ring, const Traits& temperament, std::uint32_t dot_spare, std::uint32_t social_spare) {
+    std::uint32_t dot = dot_spare, social = social_spare;
+    for (int index = 0; index < DOT_TRAIT_COUNT; ++index) dot |= static_cast<std::uint32_t>(temperament[index]) << (TRAIT_BITS * index);
+    for (int index = 0; index < SOCIAL_TRAIT_COUNT; ++index) {
+        social |= static_cast<std::uint32_t>(temperament[DOT_TRAIT_COUNT + index]) << (TRAIT_BITS * index);
+    }
+    return {static_cast<std::uint64_t>(ring) << 32 | dot, social};
+}
 }  // namespace
 
-Traits decode_mind(Dna dna) {
+Traits decode_temperament(Dna dna) {
     Traits traits{};
-    for (int index = 0; index < MIND_TRAIT_COUNT; ++index) traits[index] = trait_at(mind_word(dna), index);
+    for (int index = 0; index < DOT_TRAIT_COUNT; ++index) traits[index] = trait_at(mind_word(dna), index);
+    for (int index = 0; index < SOCIAL_TRAIT_COUNT; ++index) traits[DOT_TRAIT_COUNT + index] = trait_at(social_word(dna), index);
     return traits;
 }
 
@@ -39,7 +54,7 @@ Body decode_body(Dna dna) {
 }
 
 Dna encode_dna(Species species, std::initializer_list<std::pair<std::string_view, int>> traits) {
-    Dna dna = static_cast<Dna>(species) << 32;
+    Dna dna{static_cast<std::uint64_t>(species) << 32};
     int temperature = V1_TEMPERATURE;
     for (const auto& [name, value] : traits) {
         if (name == "temperature") {
@@ -48,44 +63,60 @@ Dna encode_dna(Species species, std::initializer_list<std::pair<std::string_view
             continue;
         }
         if (name == "heat_tolerance" || name == "cold_tolerance") {
-            if (value) dna |= name == "heat_tolerance" ? HEAT_TOLERANCE : COLD_TOLERANCE;
+            if (value) dna.bits |= name == "heat_tolerance" ? HEAT_TOLERANCE : COLD_TOLERANCE;
+            continue;
+        }
+        if (name == "neurodivergence") {
+            if (value < 0 || value > NEURODIVERGENCE_MAX) {
+                throw std::invalid_argument("Neurodivergence runs from 0 to 15: " + std::to_string(value) + ".");
+            }
+            dna.social |= static_cast<std::uint32_t>(value) << NEURODIVERGENCE_SHIFT;
             continue;
         }
         if (value < 0 || value > TRAIT_MAX) {
             throw std::invalid_argument("Traits run from 0 to 7: " + std::string(name) + " " + std::to_string(value) + ".");
         }
         bool known = false;
-        for (int index = 0; index < MIND_TRAIT_COUNT; ++index) {
-            if (MIND_TRAITS[index] == name) {
-                dna |= static_cast<Dna>(value) << (TRAIT_BITS * index);
-                known = true;
-            }
+        for (int index = 0; index < TEMPERAMENT_COUNT; ++index) {
+            if (TEMPERAMENT[index] != name) continue;
+            if (index < DOT_TRAIT_COUNT) dna.bits |= static_cast<std::uint64_t>(value) << (TRAIT_BITS * index);
+            else dna.social |= static_cast<std::uint32_t>(value) << (TRAIT_BITS * (index - DOT_TRAIT_COUNT));
+            known = true;
         }
         for (int index = 1; index < BODY_TRAIT_COUNT; ++index) {
             if (BODY_TRAITS[index] == name) {
-                dna |= static_cast<Dna>(value) << (32 + TRAIT_BITS * index);
+                dna.bits |= static_cast<std::uint64_t>(value) << (32 + TRAIT_BITS * index);
                 known = true;
             }
         }
         if (!known) throw std::invalid_argument("Unknown traits: " + std::string(name) + ".");
     }
-    return dna | static_cast<Dna>(temperature) << TEMPERATURE_SHIFT;
+    dna.bits |= static_cast<std::uint64_t>(temperature) << TEMPERATURE_SHIFT;
+    return dna;
 }
 
-Dna convert_v1(Dna dna) {
-    // Version 1: the first eight traits of each word, four bits each. The traits it lacked start
-    // at defaults: empathy 0, tolerance 3, litter 0, carrion 0, a medium home temperature and
-    // neither tolerance.
+Dna convert_v1(std::uint64_t dna) {
+    // Version 1: the first eight traits of each word, four bits each, the dot's in version 2's order.
+    // The traits it lacked start at defaults: empathy 0, tolerance 3, litter 0, carrion 0, a medium
+    // home temperature and neither tolerance; and those version 2 lacked at theirs.
     const auto scaled = [](int value) { return static_cast<int>(py_round(static_cast<double>(value) * TRAIT_MAX / V1_MAX)); };
-    Dna result = static_cast<Dna>(trait_at(body_word(dna), 0, 4) % 4) << 32 | static_cast<Dna>(V1_TEMPERATURE) << TEMPERATURE_SHIFT;
-    for (int index = 0; index < 8; ++index) {
-        result |= static_cast<Dna>(scaled(trait_at(mind_word(dna), index, 4))) << (TRAIT_BITS * index);
-    }
-    result |= static_cast<Dna>(3) << (TRAIT_BITS * Tolerance);
-    for (int index = 1; index < 8; ++index) {
-        result |= static_cast<Dna>(scaled(trait_at(body_word(dna), index, 4))) << (32 + TRAIT_BITS * index);
-    }
-    return result;
+    const auto dot = static_cast<std::uint32_t>(dna & WORD), body = static_cast<std::uint32_t>(dna >> 32);
+    Traits temperament;
+    temperament.fill(V2_TRAIT_DEFAULT);
+    temperament[Empathy] = 0;
+    temperament[Tolerance] = 3;
+    for (int index = 0; index < 8; ++index) temperament[V2_DOT[index]] = scaled(trait_at(dot, index, 4));
+    std::uint32_t ring = static_cast<std::uint32_t>(trait_at(body, 0, 4) % 4) | static_cast<std::uint32_t>(V1_TEMPERATURE) << 30;
+    for (int index = 1; index < 8; ++index) ring |= static_cast<std::uint32_t>(scaled(trait_at(body, index, 4))) << (TRAIT_BITS * index);
+    return compose(ring, temperament, 0, 0);
+}
+
+Dna convert_v2(std::uint64_t dna) {
+    const auto dot = static_cast<std::uint32_t>(dna & WORD);
+    Traits temperament;
+    temperament.fill(V2_TRAIT_DEFAULT);
+    for (int index = 0; index < 10; ++index) temperament[V2_DOT[index]] = trait_at(dot, index);
+    return compose(static_cast<std::uint32_t>(dna >> 32), temperament, dot & SPARE_BITS, 0);
 }
 
 Rgb color_from_word(std::uint32_t word) {
@@ -106,24 +137,25 @@ double colour_difference(std::uint32_t first, std::uint32_t second) {
 }
 
 Dna make_dna(PyRandom& rng, std::optional<int> species) {
-    Dna dna = rng.getrandbits(64);
-    if (species) dna = (dna & ~(static_cast<Dna>(0x3) << 32)) | (static_cast<Dna>(*species % 4) << 32);
+    Dna dna{rng.getrandbits(64)};  // as Python draws 96 bits: the low words first
+    dna.social = static_cast<std::uint32_t>(rng.getrandbits(32));
+    if (species) dna.bits = (dna.bits & ~(std::uint64_t{0x3} << 32)) | (static_cast<std::uint64_t>(*species % 4) << 32);
     return dna;
 }
 
 Mind to_mind(const Traits& traits) {
     Mind mind{};
-    for (int index = 0; index < MIND_TRAIT_COUNT; ++index) mind[index] = traits[index];
+    for (int index = 0; index < TEMPERAMENT_COUNT; ++index) mind[index] = traits[index];
     return mind;
 }
 
 Mind inherit_mind(const Mind& first, const Mind& second, PyRandom& rng, double chance) {
     Mind mind{};
-    for (int index = 0; index < MIND_TRAIT_COUNT; ++index) mind[index] = (first[index] + second[index]) / 2;
+    for (int index = 0; index < TEMPERAMENT_COUNT; ++index) mind[index] = (first[index] + second[index]) / 2;
     static constexpr std::array<int, 2> steps = {-1, 1};
     for (int roll = 0; roll < MIND_MUTATION_ROLLS; ++roll) {
         if (rng.random() >= chance) continue;
-        const int trait = static_cast<int>(rng.randbelow(MIND_TRAIT_COUNT));
+        const int trait = static_cast<int>(rng.randbelow(TEMPERAMENT_COUNT));
         int step = rng.choice(steps);
         if (!(0 <= mind[trait] + step && mind[trait] + step <= TRAIT_MAX)) step = -step;
         mind[trait] = std::max(0.0, std::min(static_cast<double>(TRAIT_MAX), mind[trait] + step));
@@ -131,16 +163,26 @@ Mind inherit_mind(const Mind& first, const Mind& second, PyRandom& rng, double c
     return mind;
 }
 
-std::uint32_t write_mind(std::uint32_t spare, const Mind& mind, PyRandom& rng) {
-    std::uint32_t word = spare & SPARE_BITS;
-    for (int index = 0; index < MIND_TRAIT_COUNT; ++index) {
-        const double whole = std::floor(mind[index]);
-        const double fraction = mind[index] - whole;
+namespace {
+// A word for `count` traits of a temperament from `first`, each trait's fraction rounding up by chance.
+std::uint32_t write_traits(std::uint32_t word, const Mind& mind, int first, int count, PyRandom& rng) {
+    for (int index = 0; index < count; ++index) {
+        const double whole = std::floor(mind[first + index]);
+        const double fraction = mind[first + index] - whole;
         int value = static_cast<int>(whole) + ((fraction != 0.0 && rng.random() < fraction) ? 1 : 0);
         value = std::min(TRAIT_MAX, value);
         word |= static_cast<std::uint32_t>(value) << (TRAIT_BITS * index);
     }
     return word;
+}
+}  // namespace
+
+std::uint32_t write_mind(std::uint32_t spare, const Mind& mind, PyRandom& rng) {
+    return write_traits(spare & SPARE_BITS, mind, 0, DOT_TRAIT_COUNT, rng);
+}
+
+std::uint32_t write_social(std::uint32_t spare, const Mind& mind, PyRandom& rng) {
+    return write_traits(spare & SOCIAL_SPARE, mind, DOT_TRAIT_COUNT, SOCIAL_TRAIT_COUNT, rng);
 }
 
 Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind, double mind_chance,
@@ -152,10 +194,12 @@ Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind,
         if (bit < 2 && rng.random() < SPECIES_REROLL) bit = static_cast<int>(rng.randrange(32));  // the bits that set the species: often rolled afresh
         body ^= 1U << bit;
     }
-    const Mind start = mind ? *mind : inherit_mind(to_mind(decode_mind(first)), to_mind(decode_mind(second)), rng, mind_chance);
+    const Mind start = mind ? *mind : inherit_mind(to_mind(decode_temperament(first)), to_mind(decode_temperament(second)), rng, mind_chance);
     const std::array<Dna, 2> parents = {first, second};
     const std::uint32_t spare = mind_word(rng.choice(parents));
-    return (static_cast<Dna>(body) << 32) | write_mind(spare, start, rng);
+    const std::uint32_t social_spare = social_word(rng.choice(parents));
+    const std::uint32_t dot = write_mind(spare, start, rng);
+    return {(static_cast<std::uint64_t>(body) << 32) | dot, write_social(social_spare, start, rng)};
 }
 
 std::string hex_word(std::uint32_t word) {
@@ -167,14 +211,17 @@ std::string hex_word(std::uint32_t word) {
 int record_version(const nlohmann::json& record) {
     if (!record.contains("version")) return 1;
     const auto& version = record["version"];
-    if (version.is_number_integer() && (version.get<long long>() == 1 || version.get<long long>() == GENOME_VERSION)) {
+    if (version.is_number_integer() && version.get<long long>() >= 1 && version.get<long long>() <= GENOME_VERSION) {
         return static_cast<int>(version.get<long long>());
     }
-    throw std::invalid_argument("Genome version " + version.dump() + " is not one this Bitzkey knows (1 or 2).");
+    throw std::invalid_argument("Genome version " + version.dump() + " is not one this Bitzkey knows (1 to 3).");
 }
 
 namespace {
-std::uint32_t hex_part(const nlohmann::json& record, const char* part) {
+std::uint32_t hex_part(const nlohmann::json& record, const char* part, int version) {
+    if (!record.contains(part)) {
+        throw std::invalid_argument("A version " + std::to_string(version) + " genome needs \"" + part + "\".");
+    }
     const auto& value = record[part];
     std::string text = value.is_string() ? value.get<std::string>() : value.dump();
     std::string trimmed = text;
@@ -189,8 +236,11 @@ std::uint32_t hex_part(const nlohmann::json& record, const char* part) {
 }  // namespace
 
 Dna genome_from_record(const nlohmann::json& record) {
-    const Dna dna = (static_cast<Dna>(hex_part(record, "ring")) << 32) | hex_part(record, "dot");
-    return record_version(record) == 1 ? convert_v1(dna) : dna;
+    const int version = record_version(record);
+    const std::uint64_t dna = (static_cast<std::uint64_t>(hex_part(record, "ring", version)) << 32) | hex_part(record, "dot", version);
+    if (version == 1) return convert_v1(dna);
+    if (version == 2) return convert_v2(dna);
+    return {dna, hex_part(record, "social", version)};
 }
 
 }  // namespace bitzkey

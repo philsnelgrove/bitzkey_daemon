@@ -154,17 +154,18 @@ function parseFrame(view) {
   offset += width * height;
   const agents = new Array(count);
   const living = new Map();
-  for (let index = 0; index < count; ++index, offset += 26) {
+  for (let index = 0; index < count; ++index, offset += 33) {
     const agent = {
       identifier: view.getUint32(offset, true),
       x: view.getUint16(offset + 4, true),
       y: view.getUint16(offset + 6, true),
       dot: [view.getUint8(offset + 8), view.getUint8(offset + 9), view.getUint8(offset + 10)],
       ring: [view.getUint8(offset + 11), view.getUint8(offset + 12), view.getUint8(offset + 13)],
-      species: view.getUint8(offset + 14),
-      size: view.getUint8(offset + 15),
-      alive: view.getUint8(offset + 16) === 1,
-      opacity: view.getUint8(offset + 17) / 255,
+      social: [view.getUint8(offset + 14), view.getUint8(offset + 15), view.getUint8(offset + 16)],
+      species: view.getUint8(offset + 17),
+      size: view.getUint8(offset + 18),
+      alive: view.getUint8(offset + 19) === 1,
+      opacity: view.getUint8(offset + 20) / 255,
       trail: [],
     };
     agents[index] = agent;
@@ -530,7 +531,7 @@ function drawExemplars() {
       }
       const radius = Math.max(4, Math.min(16, Math.floor(card.clientHeight / 5)));
       body.replaceChildren(
-        bitzkeyCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, species: found.species_index }, radius),
+        bitzkeyCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius),
         element('div', { class: 'card-text' },
           element('span', { class: 'card-name' }, `#${pad3(found.identifier)}  ${found.species}`),
           element('span', { class: 'card-said' }, found.said)));

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <map>
@@ -23,6 +24,9 @@ Simulation world(int size = 12, int seed = 3) {
     simulation.clear_grass();
     return simulation;
 }
+
+// A genome with some of its dot and ring bits flipped, and of its social background.
+Dna flipped(Dna dna, std::uint64_t bits, std::uint32_t social = 0) { return {dna.bits ^ bits, dna.social ^ social}; }
 
 }  // namespace
 
@@ -101,6 +105,8 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     CLIMATE_DAMAGE = 0;
     const double newborn_food = NEWBORN_FOOD;
     NEWBORN_FOOD = 0;  // the full litter, whatever energy is given
+    const double plants_per_grazer = PLANTS_PER_GRAZER;
+    PLANTS_PER_GRAZER = 0;  // no plants about: breeding left to the rest
     Simulation simulation(Simulation::Settings{30, 30, 0, 3});
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});  // the smallest: ten turns, twelve young
     Bitzkey& first = simulation.add_agent(dna, 15, 15);
@@ -123,6 +129,7 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     simulation.die(first, "killed");
     CLIMATE_DAMAGE = damage;
     NEWBORN_FOOD = newborn_food;
+    PLANTS_PER_GRAZER = plants_per_grazer;
 }
 
 TEST_CASE("young die with the mother carrying them") {
@@ -150,13 +157,134 @@ TEST_CASE("size counts strongly in strength and toughness, and plants' thorns co
     CHECK(Simulation::damage(full, target) == doctest::Approx(15));
 }
 
+TEST_CASE("loyalty draws an animal to its herd") {
+    std::array<double, 2> odds{};
+    for (const int loyal : {0, 1}) {
+        Simulation simulation = world();
+        Bitzkey& loner = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 1}}), 2, 2);
+        simulation.add_agent(loner.dna, 6, 2);  // four cells off: far enough from its herd to herd
+        simulation.index_cells();
+        loner.mind[Loyalty] = 7.0 * loyal;
+        simulation.think(loner);
+        odds[static_cast<std::size_t>(loyal)] = loner.odds[Herd];
+    }
+    CHECK(odds[1] > odds[0]);
+}
+
+TEST_CASE("the most dominant willing partner is chosen, and crowding troubles the dominant less") {
+    Simulation simulation = world();
+    for (int x = 0; x < 12; ++x) {
+        for (int y = 0; y < 12; ++y) simulation.grass_cell(x, y) = 3;
+    }
+    Bitzkey& suitor = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    Bitzkey& first = simulation.add_agent(suitor.dna, 5, 6);
+    Bitzkey& second = simulation.add_agent(suitor.dna, 6, 5);
+    simulation.index_cells();
+    for (Bitzkey* dominant : {&first, &second}) {
+        first.mind[Dominance] = second.mind[Dominance] = 0.0;
+        dominant->mind[Dominance] = 7.0;
+        CHECK(simulation.sense(suitor).situation.mate == dominant);
+    }
+    Simulation::Situation crowded;
+    crowded.rivalry = 1.0;
+    std::array<double, 2> comfort{};
+    for (const int dominant : {0, 1}) {
+        suitor.mind[Dominance] = 7.0 * dominant;
+        comfort[static_cast<std::size_t>(dominant)] = simulation.comfort(suitor, crowded);
+    }
+    CHECK(comfort[0] == doctest::Approx(3 * comfort[1]));  // 1.5 times the unease, against half
+}
+
+TEST_CASE("trust sets how far off an alert is heeded and how much is taken in") {
+    Simulation simulation = world();
+    Bitzkey& lookout = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 2, 2);
+    Bitzkey& near = simulation.add_agent(lookout.dna, 3, 2);
+    Bitzkey& far = simulation.add_agent(lookout.dna, 2, 9);  // seven cells off
+    const Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 9, 9);
+    near.mind[Trust] = far.mind[Trust] = 1.0;  // heeds herd-mates up to twice its sight times 1/7 off: 6.6 cells
+    simulation.index_cells();
+    simulation.alert(lookout, hunter);
+    CHECK(near.alarm == hunter.identifier);
+    CHECK_FALSE(far.alarm.has_value());
+
+    const Dna bright = encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 7}, {"sight", 1}, {"trust", 7}});
+    Bitzkey& actor = simulation.add_agent(bright, 8, 2);
+    actor.has_last_senses = true;
+    Bitzkey& watcher = simulation.add_agent(bright, 8, 4);
+    simulation.index_cells();
+    simulation.witness(actor, -1.0);
+    CHECK(watcher.reward == doctest::Approx(-SOCIAL_MOOD * 1.5));  // half as much again
+}
+
+TEST_CASE("kinship shuns herd-mates and partners of another social background") {
+    Simulation simulation = world();
+    Bitzkey& clannish = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    const Bitzkey& stranger = simulation.add_agent(flipped(clannish.dna, 0, 0xFE000000U), 5, 6);  // its social background a quarter apart
+    clannish.mind[Kinship] = 7.0;
+    CHECK_FALSE(Simulation::willing(clannish, stranger));
+    CHECK_FALSE(simulation.herd_mate(clannish, stranger));
+    clannish.mind[Tolerance] = 7.0;  // tolerance widens it
+    CHECK(Simulation::willing(clannish, stranger));
+    clannish.mind[Tolerance] = clannish.mind[Kinship] = 0.0;
+    CHECK(Simulation::willing(clannish, stranger));
+}
+
+TEST_CASE("memory brings an animal back to where it fed and warns it where it was struck") {
+    Simulation simulation = world();
+    Bitzkey& eater = simulation.add_agent(encode_dna(Species::Grazer, {{"memory", 7}}), 5, 5);
+    simulation.grass_cell(5, 5) = 1;
+    simulation.index_cells();
+    Simulation::Situation nothing;
+    simulation.act(eater, Eat, nothing);
+    REQUIRE(eater.food_memory.has_value());
+    CHECK((eater.food_memory->x == 5 && eater.food_memory->y == 5 && eater.food_memory->turn == simulation.turn()));
+
+    Bitzkey& grazer = simulation.add_agent(eater.dna, 5, 9);
+    grazer.food_memory = Place{5, 5, simulation.turn() - 10};
+    simulation.index_cells();
+    Simulation::Sensed sensed = simulation.sense(grazer);
+    CHECK(sensed.senses[SenseFoodRemembered] == doctest::Approx(1 - 10.0 / MEMORY_TURNS));
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Revisit) != sensed.options.end());
+    simulation.act(grazer, Revisit, sensed.situation);
+    CHECK((grazer.x == 5 && grazer.y == 7 && grazer.last_action == "revisited"));
+    grazer.mind[Memory] = 0.0;  // no memory: nothing to go back to
+    sensed = simulation.sense(grazer);
+    CHECK(sensed.senses[SenseFoodRemembered] == 0.0);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Revisit) == sensed.options.end());
+
+    grazer.mind[Memory] = 7.0;
+    const Bitzkey& striker = simulation.add_agent(encode_dna(Species::Predator), 5, 8);
+    simulation.index_cells();
+    simulation.struck(grazer, striker);
+    CHECK(simulation.sense(grazer).senses[SenseDangerRemembered] == 1.0);
+}
+
+TEST_CASE("resilience eases fright and loss, and moodiness sets how far experience moves the mind") {
+    Simulation simulation = world();
+    Bitzkey& fragile = simulation.add_agent(encode_dna(Species::Grazer, {{"resilience", 0}}), 3, 3);
+    Bitzkey& hardy = simulation.add_agent(encode_dna(Species::Grazer, {{"resilience", 7}}), 8, 8);
+    for (Bitzkey* animal : {&fragile, &hardy}) {
+        simulation.experience(*animal, 3);  // wounded
+        animal->seen_failure = 1.0;
+    }
+    CHECK(fragile.mind[Fear] == doctest::Approx(3 * hardy.mind[Fear]));  // 1.5 times the fright, against half
+    simulation.take_turn();
+    CHECK(fragile.seen_failure == doctest::Approx(std::pow(SOCIAL_MEMORY, 0.5)));
+    CHECK(hardy.seen_failure == doctest::Approx(std::pow(SOCIAL_MEMORY, 1.5)));
+
+    Bitzkey& steady = simulation.add_agent(encode_dna(Species::Predator, {{"moodiness", 0}}), 3, 8);
+    Bitzkey& moody = simulation.add_agent(encode_dna(Species::Predator, {{"moodiness", 7}}), 8, 3);
+    for (Bitzkey* animal : {&steady, &moody}) simulation.experience(*animal, 0);  // a kill
+    CHECK(moody.mind[Aggression] == doctest::Approx(3 * steady.mind[Aggression]));
+}
+
 TEST_CASE("animals shun mates whose ring or dot differ too far, and tolerance widens that") {
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"size", 2}, {"fear", 3}});
     Bitzkey& animal = simulation.add_agent(dna, 1, 1);
-    const Bitzkey& close = simulation.add_agent(dna ^ (0x08ULL << 56) ^ 0x10, 2, 2);
-    const Bitzkey& ringed = simulation.add_agent(dna ^ (0x40ULL << 56), 3, 3);
-    Bitzkey& strange = simulation.add_agent(dna ^ (0xFFULL << 56) ^ 0xFF, 4, 4);
+    const Bitzkey& close = simulation.add_agent(flipped(dna, (0x08ULL << 56) ^ 0x10), 2, 2);
+    const Bitzkey& ringed = simulation.add_agent(flipped(dna, 0x40ULL << 56), 3, 3);
+    Bitzkey& strange = simulation.add_agent(flipped(dna, (0xFFULL << 56) ^ 0xFF), 4, 4);
     CHECK(Simulation::compatible(animal, close));
     CHECK_FALSE(Simulation::compatible(animal, ringed));
     animal.mind[Tolerance] = 7;
@@ -169,8 +297,8 @@ TEST_CASE("animals shun mates whose ring or dot differ too far, and tolerance wi
 TEST_CASE("predators hunt other kinds of predator only past their reluctance, and never their own") {
     Simulation simulation = world();
     Bitzkey& gentle = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 7}, {"tolerance", 7}, {"patience", 7}}), 1, 1);
-    const Bitzkey& kin = simulation.add_agent(gentle.dna ^ (0xFFULL << 56), 2, 1);       // 25% apart: its kind
-    const Bitzkey& stranger = simulation.add_agent(gentle.dna ^ (0xFFFFULL << 48), 3, 1);  // 50% apart
+    const Bitzkey& kin = simulation.add_agent(flipped(gentle.dna, 0xFFULL << 56), 2, 1);       // 25% apart: its kind
+    const Bitzkey& stranger = simulation.add_agent(flipped(gentle.dna, 0xFFFFULL << 48), 3, 1);  // 50% apart
     CHECK(Simulation::same_kind(gentle, kin));
     CHECK_FALSE(Simulation::same_kind(gentle, stranger));
     gentle.hunger = 30;
@@ -188,8 +316,8 @@ TEST_CASE("predators breed with their kind, and omnivores and predators prey on 
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Predator, {{"tolerance", 0}});
     const Bitzkey& first = simulation.add_agent(dna, 1, 1);
-    const Bitzkey& kin = simulation.add_agent(dna ^ (0xFFULL << 56), 2, 2);
-    const Bitzkey& stranger = simulation.add_agent(dna ^ (0xFFFFULL << 48), 3, 3);
+    const Bitzkey& kin = simulation.add_agent(flipped(dna, 0xFFULL << 56), 2, 2);
+    const Bitzkey& stranger = simulation.add_agent(flipped(dna, 0xFFFFULL << 48), 3, 3);
     CHECK(Simulation::willing(first, kin));
     CHECK_FALSE(Simulation::willing(first, stranger));
     const Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore), 4, 4);
@@ -248,7 +376,7 @@ TEST_CASE("species evolve along the chain, and plants stay plants") {
     }};
     for (const auto& [before, bit, after] : expected) {
         const Dna parent = encode_dna(before, {{"size", 3}});
-        const Dna child = evolved(parent, parent ^ (Dna{1} << (32 + bit)));
+        const Dna child = evolved(parent, flipped(parent, std::uint64_t{1} << (32 + bit)));
         CHECK(static_cast<Species>(decode_body(child)[SpeciesTrait]) == after);
         CHECK(decode_body(child)[Size] == 3);
     }
@@ -381,7 +509,7 @@ TEST_CASE("territory: the less empathetic tolerate fewer rivals, and only their 
     for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(callous.dna, x, 16);  // its pack
     simulation.index_cells();
     CHECK(simulation.territory(callous) == std::pair{0.0, 0.0});  // is no rival
-    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(encode_dna(Species::Predator) ^ (0xFFFFULL << 48), x, 14);  // another kind
+    for (const int x : {14, 16, 15, 13, 17, 12}) simulation.add_agent(flipped(encode_dna(Species::Predator), 0xFFFFULL << 48), x, 14);  // another kind
     simulation.index_cells();
     CHECK(simulation.territory(callous) == std::pair{1.0, 1.0});
 }
@@ -454,7 +582,7 @@ TEST_CASE("each species weighs the food it eats against the mouths sharing it") 
     CHECK(simulation.food_supply(grazer) == doctest::Approx(1.25 * (0.25 * 6 + 2) / (1 + 1 + 0.5)));
     CHECK(simulation.food_supply(omnivore) == doctest::Approx((0.5 * 0.25 * 6 + 0.75 * 2 + 2 * PREY_MEALS) / (1 + 0.5)));
     CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS));
-    simulation.add_agent(encode_dna(Species::Predator) ^ (0xFFFFULL << 48), 18, 16);  // a rival of another kind, not food
+    simulation.add_agent(flipped(encode_dna(Species::Predator), 0xFFFFULL << 48), 18, 16);  // a rival of another kind, not food
     simulation.index_cells();
     CHECK(simulation.food_supply(predator) == doctest::Approx(3 * PREY_MEALS / 2.0));
     simulation.add_agent(predator.dna, 18, 14);  // a pack-mate shares its kills, so counts as only part of a mouth
@@ -465,6 +593,8 @@ TEST_CASE("each species weighs the food it eats against the mouths sharing it") 
 TEST_CASE("parents conceive only as many young as they can feed, but always at least one") {
     const double newborn_food = NEWBORN_FOOD, small_litters = SMALL_LITTERS;
     SMALL_LITTERS = 1.0;  // the usual litters, without the small-body boost
+    const double plants_per_grazer = PLANTS_PER_GRAZER;
+    PLANTS_PER_GRAZER = 0;  // no plants about: breeding left to the rest
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
     for (const auto& [food, young] : {std::pair{5.0, 4}, std::pair{30.0, 1}}) {
         // six young by their traits, but 10% of a stomach from each parent feeds four at 5% each, and none at 30%
@@ -479,12 +609,44 @@ TEST_CASE("parents conceive only as many young as they can feed, but always at l
     }
     SMALL_LITTERS = small_litters;
     NEWBORN_FOOD = newborn_food;
+    PLANTS_PER_GRAZER = plants_per_grazer;
+}
+
+TEST_CASE("a grazer's breeding follows the plants in its home band") {
+    const double newborn_food = NEWBORN_FOOD, small_litters = SMALL_LITTERS, plants_per_grazer = PLANTS_PER_GRAZER;
+    NEWBORN_FOOD = 0;  // no limit from the energy given
+    SMALL_LITTERS = 1.0;
+    PLANTS_PER_GRAZER = 0.5;
+    Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});  // at home in the temperate bands
+    Bitzkey& first = simulation.add_agent(dna, 15, 8);
+    Bitzkey& second = simulation.add_agent(dna, 15, 9);
+    simulation.add_agent(encode_dna(Species::Plant), 3, 20);  // the southern temperate band: not its home band
+    simulation.index_cells();
+    auto offers_breed = [&] {
+        const auto options = simulation.sense(first).options;
+        return std::find(options.begin(), options.end(), Breed) != options.end();
+    };
+    CHECK(simulation.home_plants(first) == 0.0);
+    CHECK_FALSE(offers_breed());
+    simulation.add_agent(encode_dna(Species::Plant), 3, 7);
+    simulation.index_cells();
+    CHECK(simulation.home_plants(first) == 0.5);  // one plant shared by two grazers
+    CHECK(offers_breed());
+    simulation.breed(first, second);
+    simulation.give_birth(first);
+    CHECK(simulation.agents().size() == 4 + 3);  // six young, halved: half the plants of a full litter
+    PLANTS_PER_GRAZER = plants_per_grazer;
+    SMALL_LITTERS = small_litters;
+    NEWBORN_FOOD = newborn_food;
 }
 
 TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
     const double food_needed = FOOD_NEEDED, newborn_food = NEWBORN_FOOD;
     FOOD_NEEDED = 3.0;  // food limiting breeding, as it may be set to
     NEWBORN_FOOD = 0.0;  // no limit from the energy given
+    const double plants_per_grazer = PLANTS_PER_GRAZER;
+    PLANTS_PER_GRAZER = 0;  // no plants about: breeding left to the rest
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
     Bitzkey& first = simulation.add_agent(dna, 5, 5);
@@ -508,6 +670,7 @@ TEST_CASE("scarce food stops breeding, and plenty allows full litters") {
     CHECK(simulation.agents().size() == 2 + 6);
     FOOD_NEEDED = food_needed;
     NEWBORN_FOOD = newborn_food;
+    PLANTS_PER_GRAZER = plants_per_grazer;
 }
 
 TEST_CASE("a distant hunter is watched but not fled, and a herd flees only hunters closer still") {

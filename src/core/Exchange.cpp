@@ -65,8 +65,8 @@ PartialMind mind_from_record(const json& value, int version) {
     if (!value.is_object()) throw std::invalid_argument("\"mind\" must map trait names to numbers.");
     const double scale = version == 1 ? static_cast<double>(TRAIT_MAX) / V1_MAX : 1.0;
     PartialMind mind;
-    for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
-        const std::string name(MIND_TRAITS[trait]);
+    for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
+        const std::string name(TEMPERAMENT[trait]);
         if (!value.contains(name)) continue;
         const auto& item = value[name];
         double number;
@@ -130,10 +130,11 @@ ordered_json bitzkey_record(const Bitzkey& agent) {
     record["version"] = GENOME_VERSION;
     record["ring"] = hex_word(body_word(agent.dna));
     record["dot"] = hex_word(mind_word(agent.dna));
+    record["social"] = hex_word(social_word(agent.dna));
     if (agent.species != Species::Plant) {
         ordered_json mind = ordered_json::object();
-        for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
-            mind[std::string(MIND_TRAITS[trait])] = py_round(agent.mind[trait], MIND_DIGITS);
+        for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
+            mind[std::string(TEMPERAMENT[trait])] = py_round(agent.mind[trait], MIND_DIGITS);
         }
         record["mind"] = std::move(mind);
     }

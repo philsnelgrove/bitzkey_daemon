@@ -29,7 +29,7 @@ constexpr int MIND_DIGITS = 3;  // decimal places kept for exported temperament
 
 // Saved traits only; any missing start at the genes.
 struct PartialMind {
-    std::array<std::optional<double>, MIND_TRAIT_COUNT> traits;
+    std::array<std::optional<double>, TEMPERAMENT_COUNT> traits;
     bool operator==(const PartialMind&) const = default;
 };
 

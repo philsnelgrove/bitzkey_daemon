@@ -38,7 +38,8 @@ Json design(Dna dna);
 
 // The statistics an exemplar card can show, and the ten cards' defaults.
 Json exemplar_stats();
-constexpr std::array<int, 10> DEFAULT_EXEMPLARS = {0, 14, 27, 29, 30, 16, 19, 17, 22, 31};
+// SMARTEST, LARGEST, OLDEST, MOST CHILDREN, LATEST GENERATION; STRONGEST, FASTEST, BEST ARMOURED, MOST FERTILE, BEST FED
+constexpr std::array<int, 10> DEFAULT_EXEMPLARS = {0, 21, 34, 36, 37, 23, 26, 24, 29, 38};
 // The living animal that stands out most by each statistic chosen.
 Json exemplars(const Simulation& simulation, const std::vector<int>& choices);
 

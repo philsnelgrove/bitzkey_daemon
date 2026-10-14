@@ -43,7 +43,7 @@ TEST_CASE("a catalog entry keeps the brain, the temperament and what the inspect
     for (int action = 0; action < ACTION_COUNT; ++action) {
         CHECK(rebuilt.brain->values(senses)[action] == doctest::Approx(animal.brain->values(senses)[action]).epsilon(1e-5));
     }
-    for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) CHECK(rebuilt.mind[trait] == doctest::Approx(animal.mind[trait]).epsilon(1e-3));
+    for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) CHECK(rebuilt.mind[trait] == doctest::Approx(animal.mind[trait]).epsilon(1e-3));
     CHECK((rebuilt.identifier == animal.identifier && rebuilt.age == animal.age && rebuilt.generation == animal.generation &&
            rebuilt.last_action == animal.last_action && rebuilt.odds_offered == animal.odds_offered));
     CHECK(rebuilt.health == doctest::Approx(animal.health).epsilon(1e-3));

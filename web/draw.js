@@ -18,7 +18,8 @@ export const EXPORTING = [205, 120, 30];
 export const SPECIES = ['plant', 'grazer', 'omnivore', 'predator'];
 export const TEMPERATURES = ['hot', 'medium', 'cold', 'very cold'];
 export const TEMPERATURE_COLOURS = [[238, 160, 110], [175, 192, 172], [140, 185, 230], [200, 225, 250]];
-export const MIND_TRAITS = ['aggression', 'libido', 'sociability', 'curiosity', 'fear', 'appetite', 'patience', 'intellect', 'empathy', 'tolerance'];
+export const MIND_TRAITS = ['aggression', 'libido', 'curiosity', 'fear', 'appetite', 'patience', 'intellect', 'memory', 'resilience', 'moodiness'];
+export const SOCIAL_TRAITS = ['sociability', 'empathy', 'tolerance', 'loyalty', 'dominance', 'trust', 'kinship'];
 export const BODY_TRAITS = ['species', 'size', 'strength', 'armour', 'weapons', 'speed', 'sight', 'fertility', 'litter', 'carrion'];
 
 export const css = ([r, g, b], alpha = 1) => alpha >= 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
@@ -111,17 +112,18 @@ export function drawIcon(ctx, species, cx, cy, half, colour) {
   ctx.fill('nonzero');
 }
 
-// One Bitzkey: `look` holds dot (rgb), ring (rgb) and species. A dead one is dimmed and crossed in
-// red; with `opacity` below 1, all of it is that faint, as a corpse fades.
+// One Bitzkey: `look` holds dot (rgb), ring (rgb), social (rgb, the background behind its icon) and
+// species. A dead one is dimmed and crossed in red; with `opacity` below 1, all of it is that faint,
+// as a corpse fades.
 export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, alive = true, opacity = 1) {
   if (opacity <= 0) return;
   ctx.save();
   ctx.globalAlpha *= opacity;
-  let dot = look.dot, ring = look.ring, outline = OUTLINE;
-  if (!alive) [dot, ring, outline] = [dot, ring, outline].map(c => c.map(v => Math.floor(v / 3)));
+  let dot = look.dot, ring = look.ring, outline = OUTLINE, social = look.social || [0, 0, 0];
+  if (!alive) [dot, ring, outline, social] = [dot, ring, outline, social].map(c => c.map(v => Math.floor(v / 3)));
   circle(ctx, x, y, radius + ringWidth, css(ring));
   if (radius >= ICON_MIN_RADIUS) {
-    circle(ctx, x, y, radius, '#000');
+    circle(ctx, x, y, radius, css(social));
     iconPath(ctx, look.species, x, y, radius * 0.8);
     ctx.lineJoin = 'round';
     ctx.lineWidth = 2 * Math.max(1, ringWidth / RING_WIDTH);

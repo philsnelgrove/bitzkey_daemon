@@ -33,6 +33,9 @@ std::string format(const char* pattern, auto... values) {
     return buffer;
 }
 
+// A genome as a browser's export list keeps it, to know a Bitzkey is still the one it listed.
+std::string dna_key(Dna dna) { return format("%08X%016llX", dna.social, static_cast<unsigned long long>(dna.bits)); }
+
 std::string plural(std::size_t count, const char* word = "Bitzkey") {
     return std::to_string(count) + " " + word + (count != 1 ? "s" : "");
 }
@@ -81,7 +84,7 @@ GraphView graph_view(const Json& request, const Simulation& simulation) {
     view.last = std::max(view.first, std::min(frontier, request.value("last", frontier)));
     view.bars = std::max(1, std::min(2000, request.value("bars", 180)));
     view.height = std::max(1, std::min(2000, request.value("height", 400)));
-    view.dot = request.value("dot", false);
+    view.part = std::max(0, std::min(2, request.value("part", request.value("dot", false) ? 1 : 0)));
     view.sort = std::max(0, std::min(sort_count() - 1, request.value("sort", 0)));
     view.zoom = std::max(1.0, std::min(32.0, request.value("zoom", 1.0)));
     view.floor = std::max(0.0, std::min(1 - 1 / view.zoom, request.value("floor", 0.0)));
@@ -93,6 +96,7 @@ nlohmann::ordered_json genome_only(Dna dna) {
     record["version"] = GENOME_VERSION;
     record["ring"] = hex_word(body_word(dna));
     record["dot"] = hex_word(mind_word(dna));
+    record["social"] = hex_word(social_word(dna));
     return record;
 }
 
@@ -129,7 +133,7 @@ std::pair<std::vector<nlohmann::ordered_json>, int> listed_records(const Simulat
         const int identifier = entry.value("identifier", -1);
         const std::string dna = entry.value("dna", std::string());
         const auto found = agents.find(identifier);
-        if (found != agents.end() && found->second->alive() && format("%016llX", static_cast<unsigned long long>(found->second->dna)) == dna) {
+        if (found != agents.end() && found->second->alive() && dna_key(found->second->dna) == dna) {
             records.push_back(bitzkey_record(*found->second));
         } else if (entry.contains("saved") && entry["saved"].is_object()) {
             records.push_back(nlohmann::ordered_json::parse(entry["saved"].dump()));
@@ -323,7 +327,8 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     server.Get("/api/graph/sorts", guarded([](const httplib::Request&, httplib::Response& response) {
         Json sorts = Json::array();
         for (int sort = 0; sort < sort_count(); ++sort) sorts.push_back(sort_label(sort));
-        reply(response, {{"sorts", sorts}, {"mind_traits", MIND_TRAIT_COUNT}, {"body_traits", BODY_TRAIT_COUNT - 1}});
+        reply(response, {{"sorts", sorts}, {"mind_traits", DOT_TRAIT_COUNT}, {"social_traits", SOCIAL_TRAIT_COUNT},
+                         {"body_traits", BODY_TRAIT_COUNT - 1}});
     }));
 
     server.Post("/api/graph", guarded([&world, graph](const httplib::Request& request, httplib::Response& response) {
@@ -361,6 +366,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                        {"alive", alive},
                        {"ring", hex_word(body_word(dna))},
                        {"dot", hex_word(mind_word(dna))},
+                       {"social", hex_word(social_word(dna))},
                        {"species", std::string(SPECIES[static_cast<std::size_t>(decode_body(dna)[SpeciesTrait])])}};
         if (const Simulation::DeathRecord* record = alive ? nullptr : simulation.death_record(identifier)) {  // how it died
             result["cause"] = record->cause;
@@ -398,7 +404,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                 records.push_back(bitzkey_record(*found->second));
                 dead += !found->second->alive();
                 listed.push_back({{"identifier", identifier},
-                                  {"dna", format("%016llX", static_cast<unsigned long long>(found->second->dna))},
+                                  {"dna", dna_key(found->second->dna)},
                                   {"saved", Json::parse(dumps(records.back()))}});
             } else if (!living_only && identifier >= 0 && identifier < simulation.next_identifier()) {
                 records.push_back(genome_only(simulation.lineage(identifier)));
@@ -535,7 +541,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                 const int identifier = entry.value("identifier", -1);
                 const auto found = agents.find(identifier);
                 if (found != agents.end() && found->second->alive() &&
-                    format("%016llX", static_cast<unsigned long long>(found->second->dna)) == entry.value("dna", std::string())) {
+                    dna_key(found->second->dna) == entry.value("dna", std::string())) {
                     entries.push_back(catalog::entry_for(*found->second, simulation.turn()));
                 } else if (entry.contains("saved") && entry["saved"].is_object()) {
                     catalog::Entry saved = catalog::Entry::parse(entry["saved"].dump());
@@ -628,18 +634,19 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         Dna dna = 0;
         if (given.value("random", false)) {
             PyRandom rng(fresh_seed());
-            dna = given.value("animal", false)
-                      ? (rng.getrandbits(64) & ~(static_cast<Dna>(0x3) << 32)) | (static_cast<Dna>(rng.randrange(1, 4)) << 32)
-                      : rng.getrandbits(64);
+            dna = Dna{rng.getrandbits(64), static_cast<std::uint32_t>(rng.getrandbits(32))};
+            if (given.value("animal", false)) {
+                dna.bits = (dna.bits & ~(std::uint64_t{0x3} << 32)) | (static_cast<std::uint64_t>(rng.randrange(1, 4)) << 32);
+            }
         } else {
             const auto word = [&](const char* key) {
                 const std::string text = given.value(key, std::string("0"));
                 if (text.empty() || text.size() > 8 || !std::all_of(text.begin(), text.end(), [](char c) { return std::isxdigit(static_cast<unsigned char>(c)); })) {
                     throw std::invalid_argument(std::string(key) + " must be up to 8 hex digits");
                 }
-                return static_cast<Dna>(std::stoul(text, nullptr, 16));
+                return static_cast<std::uint32_t>(std::stoul(text, nullptr, 16));
             };
-            dna = (word("ring") << 32) | word("dot");
+            dna = Dna{(static_cast<std::uint64_t>(word("ring")) << 32) | word("dot"), word("social")};
         }
         Json result = design(dna);
         result["record_text"] = dumps(nlohmann::ordered_json::parse(result["record"].dump()));

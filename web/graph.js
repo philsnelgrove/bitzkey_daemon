@@ -19,7 +19,7 @@ const LEFT = 64, RIGHT = 4, TOP = 20, TIMELINE = 24, GAP = 4;
 let sorts = null;
 
 export function openGraph(app, onClose) {
-  let dot = false, sort = 0;
+  let part = 0, sort = 0;  // whose colours: 0 the ring's, 1 the dot's, 2 the social background's
   let view = null, pinned = false;  // the turns shown when zoomed in, and whether that keeps to the latest
   let heightZoom = 1, floor = 0;    // how far zoomed into the height, and the share of the full height at the bottom
   let panning = null;               // a drag with the right or middle button: where, which, the view and floor then, moved
@@ -42,7 +42,7 @@ export function openGraph(app, onClose) {
       element('button', { onclick: () => app.exportIdentifiers([...app.selection], false) }, 'COPY'),
       element('button', { onclick: () => app.exportIdentifiers([...app.selection], true) }, 'SAVE')),
     element('div', { class: 'graph-sub' },
-      element('span', {}, 'Every Bitzkey alive over time, in its own colour.    TAB  ring / dot    C  copy    S  save    K  catalog    G or ESC  close'),
+      element('span', {}, 'Every Bitzkey alive over time, in its own colour.    TAB  ring / dot / social    C  copy    S  save    K  catalog    G or ESC  close'),
       note),
     element('div', { class: 'graph-canvas' }, canvas),
     element('div', { class: 'graph-bottom' }, describe,
@@ -142,7 +142,7 @@ export function openGraph(app, onClose) {
 
   function graphView() {
     const chart = chartRect(), [first, last] = window_();
-    return { first, last, bars: Math.max(1, Math.floor(chart.w / BAR_PIXELS)), height: Math.round(chart.h), dot, sort,
+    return { first, last, bars: Math.max(1, Math.floor(chart.w / BAR_PIXELS)), height: Math.round(chart.h), part, sort,
              zoom: heightZoom, floor };
   }
 
@@ -215,7 +215,7 @@ export function openGraph(app, onClose) {
     ctx.clearRect(0, 0, width, height);
     const chart = chartRect(), timeline = timelineRect();
     const s = state();
-    title.textContent = `COLOUR GRAPH  /  ${dot ? 'DOT / MIND' : 'RING / BODY'}`;
+    title.textContent = `COLOUR GRAPH  /  ${['RING / BODY', 'DOT / MIND', 'SOCIAL BACKGROUND'][part]}`;
     mapButton.hidden = !s.ended;
     ctx.fillStyle = 'rgb(30,40,40)';
     ctx.fillRect(chart.x, chart.y, chart.w, chart.h);
@@ -336,9 +336,9 @@ export function openGraph(app, onClose) {
     if (!hovered.alive) {
       let died = hovered.cause ? `died: ${hovered.cause}` : 'dead';
       if (hovered.killer !== undefined) died += ` by #${pad3(hovered.killer)} ${hovered.killer_species}`;
-      return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  ${died}   ring ${hovered.ring}   dot ${hovered.dot}`;
+      return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  ${died}   ring ${hovered.ring}   dot ${hovered.dot}   social ${hovered.social}`;
     }
-    return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  alive   ring ${hovered.ring}   dot ${hovered.dot}`;
+    return `${chosen}     |     #${pad3(hovered.identifier)}  ${hovered.species}  alive   ring ${hovered.ring}   dot ${hovered.dot}   social ${hovered.social}`;
   }
 
   function redraw() {
@@ -522,7 +522,7 @@ export function openGraph(app, onClose) {
     if (shades[shades.length - 1] !== shade) return;  // the catalog is open over it
     if (event.target instanceof HTMLSelectElement) return;
     const key = event.key.toLowerCase();
-    if (key === 'tab') { event.preventDefault(); dot = !dot; redraw(); }
+    if (key === 'tab') { event.preventDefault(); part = (part + 1) % 3; redraw(); }
     else if (key === 'c') app.exportIdentifiers([...app.selection], false);
     else if (key === 's') app.exportIdentifiers([...app.selection], true);
     else if (key === 'k') app.catalogIdentifiers([...app.selection]);

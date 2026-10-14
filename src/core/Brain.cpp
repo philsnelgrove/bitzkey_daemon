@@ -76,10 +76,10 @@ std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<
 }
 
 void gene_senses(Dna dna, Senses& senses) {
-    const Traits inborn = decode_mind(dna);
+    const Traits inborn = decode_temperament(dna);
     const Body body = decode_body(dna);
     const Climate climate = decode_climate(dna);
-    for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) senses[SenseInborn + trait] = share(inborn[trait]);
+    for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseInborn + trait] = share(inborn[trait]);
     senses[SenseBody] = body[SpeciesTrait] / static_cast<double>(SPECIES.size() - 1);
     for (int trait = 1; trait < BODY_TRAIT_COUNT; ++trait) senses[SenseBody + trait] = share(body[trait]);
     senses[SenseHomeTemperature] = climate.temperature / static_cast<double>(TEMPERATURES.size() - 1);

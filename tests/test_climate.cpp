@@ -519,6 +519,8 @@ TEST_CASE("animals sense the time of year as two clock hands a quarter apart") {
 }
 
 TEST_CASE("herd-mates in sight learn from a death and feel it, by empathy and intellect") {
+    const double trust_heed = TRUST_HEED;
+    TRUST_HEED = 0.0;  // trust aside
     Simulation simulation = world_at(240);
     simulation.add_agent(encode_dna(Species::Predator), 90, 90);  // far off
     const Dna bright = encode_dna(Species::Grazer, {{"empathy", 7}, {"intellect", 7}, {"sight", 1}});  // sees 5 cells
@@ -541,7 +543,9 @@ TEST_CASE("herd-mates in sight learn from a death and feel it, by empathy and in
     expected.learn(dying.last_senses, dying.last_choice, -DEATH_PENALTY, LEARNING_RATE);
     CHECK(*witness.brain == expected);
     CHECK((witness.reward == SOCIAL_MOOD * -DEATH_PENALTY && witness.seen_failure == 1.0));
-    for (const Bitzkey* unmoved : {&dull, &far, &stranger}) CHECK((unmoved->reward == 0.0 && unmoved->seen_failure == 0.0));
+    CHECK(dull.reward == 0.0);  // with no intellect, it sees it but takes nothing in
+    for (const Bitzkey* unmoved : {&far, &stranger}) CHECK((unmoved->reward == 0.0 && unmoved->seen_failure == 0.0));
+    TRUST_HEED = trust_heed;
 }
 
 TEST_CASE("a pack learns from a kill, and what it saw is an input that fades") {

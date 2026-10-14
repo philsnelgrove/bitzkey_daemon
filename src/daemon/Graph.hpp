@@ -25,7 +25,7 @@ struct GraphView {
     int first = 0, last = 0;  // the turns shown
     int bars = 1;             // how many bars they are drawn as
     int height = 1;           // the chart's height in pixels
-    bool dot = false;         // the dot's (mind's) colour, else the ring's
+    int part = 0;             // whose colours: 0 the ring's (body), 1 the dot's (mind), 2 the social background's
     int sort = 0;
     // Zoomed into the height, the chart shows 1 / zoom of it, from floor (a share of the top) up;
     // slices beyond it lie outside the chart.

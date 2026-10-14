@@ -20,7 +20,7 @@ constexpr std::array<Species, 3> ANIMALS = {Species::Grazer, Species::Omnivore, 
 constexpr double DECAY = 0.99;
 constexpr double MIN_SAMPLE = 5.0;
 // Insight traits: the mind traits, then the body traits after species.
-constexpr int INSIGHT_TRAIT_COUNT = MIND_TRAIT_COUNT + BODY_TRAIT_COUNT - 1;
+constexpr int INSIGHT_TRAIT_COUNT = TEMPERAMENT_COUNT + BODY_TRAIT_COUNT - 1;
 using Profile = std::array<double, INSIGHT_TRAIT_COUNT>;
 std::string_view insight_trait_name(int trait);
 

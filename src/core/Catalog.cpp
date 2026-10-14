@@ -115,7 +115,7 @@ Bitzkey inspected(const Entry& entry) {
     Bitzkey agent(state.value("identifier", 0), bitzkey.dna, 0, 0);
     if (bitzkey.brain) agent.brain = std::make_shared<Brain>(*bitzkey.brain);
     if (bitzkey.mind) {
-        for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
+        for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
             if (bitzkey.mind->traits[static_cast<std::size_t>(trait)]) agent.mind[trait] = *bitzkey.mind->traits[static_cast<std::size_t>(trait)];
         }
     }

@@ -73,7 +73,7 @@ Other options:
 The page has the window app's screens, laid out the same way:
 
 - **The map.** The world, with the exemplar cards on either side of it and the sidebar on the right. Each card's title is a menu of statistics.
-- **The colour graph** (G). It can travel back in time, zoom, sort, and pick Bitzkeys.
+- **The colour graph** (G). It can travel back in time, zoom, sort, and pick Bitzkeys, and Tab shows the ring (body), dot (mind) or social background colours.
 - **New world** (ESC or NEW WORLD). This opens:
   - the settings;
   - the import box, for pasting, loading a file, the catalog or the designer;

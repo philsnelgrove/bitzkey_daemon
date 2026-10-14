@@ -91,6 +91,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .details-head .details-name { flex: 1; font-size: 15px; color: rgb(238, 238, 220); }
 .details .label { font-size: 12px; color: var(--muted); white-space: pre; margin: 6px 0 2px; }
 .trait-columns { display: flex; gap: 18px; }
+.body-row { display: grid; grid-template-columns: repeat(3, 1fr); }
 .traits .same { color: var(--soft); }
 .traits .up { color: var(--green); }
 .traits .down { color: var(--amber); }
@@ -214,8 +215,10 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .designer .code-row span { font-size: 15px; color: var(--muted); }
 .designer .code-row input { width: 160px; height: 34px; font-size: 17px; padding: 0 12px; text-transform: uppercase; }
 .designer .facts { margin-top: 14px; font-size: 12px; color: rgb(187, 199, 181); line-height: 22px; }
-.designer .columns { flex: 1; display: flex; gap: 24px; }
-.designer .column { flex: 1; }
+.designer .columns { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 24px; }
+.designer .column { flex: 1 1 40%; }
+.designer .column.social { flex-basis: 100%; margin-top: 14px; }
+.designer .social-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, auto); grid-auto-flow: column; column-gap: 24px; }
 .designer .column h4 { font: 15px var(--sans); color: var(--text); margin: 0 0 10px; }
 .designer .field-row { flex-wrap: wrap; padding: 2px 8px 0 12px; margin-bottom: 4px; min-height: 0; }
 .designer .field-row button { width: 26px; height: 26px; }

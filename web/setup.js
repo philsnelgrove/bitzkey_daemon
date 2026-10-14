@@ -3,7 +3,7 @@
 // it replaces the daemon's world for everyone viewing it.
 
 import { api, element, dialog, remembered, remember, upper, plural } from './common.js';
-import { bitzkeyCanvas, dotRadius, SPECIES, TEMPERATURES, MIND_TRAITS, BODY_TRAITS } from './draw.js';
+import { bitzkeyCanvas, dotRadius, SPECIES, TEMPERATURES, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS } from './draw.js';
 import { details, look } from './inspector.js';
 
 const MAX_IMPORT_BYTES = 5_000_000;
@@ -338,31 +338,28 @@ export function openSetup(app, onClose) {
   // ---- The designer
 
   async function openDesigner() {
-    let ring = 0, dot = 0, sample = null;
+    // The three words: the ring, the dot and the social background.
+    const words = { ring: 0, dot: 0, social: 0 };
+    let sample = null;
+    const take = made => { for (const word of Object.keys(words)) words[word] = parseInt(made[word] || '0', 16) >>> 0; };
     const last = remembered('design', null);
-    if (last) {
-      ring = parseInt(last.ring, 16) >>> 0;
-      dot = parseInt(last.dot, 16) >>> 0;
-    } else {
-      const made = await api('/api/design', { random: true, animal: true });
-      ring = parseInt(made.ring, 16) >>> 0;
-      dot = parseInt(made.dot, 16) >>> 0;
-    }
+    if (last) take(last);
+    else take(await api('/api/design', { random: true, animal: true }));
     // Each field: which word, where its bits start, and how large it goes.
     const fields = [
       ...MIND_TRAITS.map((name, index) => ({ name, word: 'dot', shift: 3 * index, most: 7 })),
       { name: 'hardiness', word: 'dot', shift: 30, most: 3 },
       ...BODY_TRAITS.map((name, index) => ({ name, word: 'ring', shift: 3 * index, most: 7 })),
       { name: 'temperature', word: 'ring', shift: 30, most: 3 },
+      ...SOCIAL_TRAITS.map((name, index) => ({ name, word: 'social', shift: 3 * index, most: 7 })),
+      { name: 'neurodivergence', word: 'social', shift: 3 * SOCIAL_TRAITS.length, most: 15 },
     ];
-    const valueOf = field => ((field.word === 'dot' ? dot : ring) >>> field.shift) & field.most;
+    const valueOf = field => (words[field.word] >>> field.shift) & field.most;
     const setValue = (field, value) => {
       const clamped = Math.max(0, Math.min(field.most, value));
-      const word = field.word === 'dot' ? dot : ring;
-      const next = ((word & ~(field.most << field.shift)) | (clamped << field.shift)) >>> 0;
-      if (field.word === 'dot') dot = next;
-      else ring = next;
+      words[field.word] = ((words[field.word] & ~(field.most << field.shift)) | (clamped << field.shift)) >>> 0;
     };
+    const codes = () => ({ ring: hex(words.ring), dot: hex(words.dot), social: hex(words.social) });
     const hex = word => word.toString(16).toUpperCase().padStart(8, '0');
     const shownValue = (field, value) => {
       if (field.name === 'species') return `${SPECIES[value % 4]} ${value}`;
@@ -372,11 +369,14 @@ export function openSetup(app, onClose) {
     };
 
     const preview = element('div', { class: 'preview-box' });
-    const ringInput = element('input', { maxlength: 8, spellcheck: false });
-    const dotInput = element('input', { maxlength: 8, spellcheck: false });
+    const inputs = { ring: element('input', { maxlength: 8, spellcheck: false }), dot: element('input', { maxlength: 8, spellcheck: false }),
+                     social: element('input', { maxlength: 8, spellcheck: false }) };
     const facts = element('div', { class: 'facts' });
     const columns = [element('div', { class: 'column' }, element('h4', {}, 'MIND  /  INNER DOT')),
-                     element('div', { class: 'column' }, element('h4', {}, 'BODY  /  OUTER RING'))];
+                     element('div', { class: 'column' }, element('h4', {}, 'BODY  /  OUTER RING')),
+                     element('div', { class: 'column social' }, element('h4', {}, 'SOCIAL  /  BACKGROUND'))];
+    const socialGrid = element('div', { class: 'social-grid' });  // beneath the mind and body, in two columns
+    columns[2].append(socialGrid);
     const fieldRows = fields.map((field, index) => {
       const meter = element('div', {});
       const value = element('div', { class: 'value' });
@@ -401,7 +401,7 @@ export function openSetup(app, onClose) {
       });
       row.addEventListener('focus', () => row.classList.add('focused'));
       row.addEventListener('blur', () => row.classList.remove('focused'));
-      columns[field.word === 'dot' ? 0 : 1].append(row);
+      (field.word === 'social' ? socialGrid : columns[field.word === 'dot' ? 0 : 1]).append(row);
       return { row, meter, value, field };
     });
 
@@ -413,11 +413,10 @@ export function openSetup(app, onClose) {
         value.textContent = shownValue(field, current);
       }
       if (!fromCode) {
-        ringInput.value = hex(ring);
-        dotInput.value = hex(dot);
+        for (const word of Object.keys(words)) inputs[word].value = hex(words[word]);
       }
       const ticket = ++asked;
-      sample = await api('/api/design', { ring: hex(ring), dot: hex(dot) });
+      sample = await api('/api/design', codes());
       if (ticket !== asked) return;
       const size = sample.body[1];
       preview.replaceChildren(
@@ -425,34 +424,32 @@ export function openSetup(app, onClose) {
         element('div', { class: 'actual' }, 'actual size', bitzkeyCanvas(look(sample), dotRadius(size))));
       facts.replaceChildren(...sample.facts.map(line => element('div', {}, line)));
     }
-    for (const [input, word] of [[ringInput, 'ring'], [dotInput, 'dot']]) {
+    for (const [word, input] of Object.entries(inputs)) {
       input.addEventListener('input', () => {
         input.value = input.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase().slice(0, 8);
         if (input.value.length === 8) {
-          if (word === 'ring') ring = parseInt(input.value, 16) >>> 0;
-          else dot = parseInt(input.value, 16) >>> 0;
+          words[word] = parseInt(input.value, 16) >>> 0;
           update(true);
         }
       });
-      input.addEventListener('blur', () => { input.value = hex(word === 'ring' ? ring : dot); });
+      input.addEventListener('blur', () => { input.value = hex(words[word]); });
     }
 
     const designerShade = screen('designer', panel => {
       panel.append(
         element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY DESIGNER'), element('span', {}, 'NEW WORLD  /  DESIGN AN IMPORT')),
-        element('div', { class: 'lead' }, 'Every trait is part of the genome, so the dot and ring colours change with them.'),
+        element('div', { class: 'lead' }, 'Every trait is part of the genome, so the dot, ring and social background colours change with them.'),
         element('div', { class: 'designer-body' },
           element('div', { class: 'preview' }, preview,
-            element('div', { class: 'code-row' }, element('span', {}, 'RING / BODY'), ringInput),
-            element('div', { class: 'code-row' }, element('span', {}, 'DOT / MIND'), dotInput),
+            element('div', { class: 'code-row' }, element('span', {}, 'RING / BODY'), inputs.ring),
+            element('div', { class: 'code-row' }, element('span', {}, 'DOT / MIND'), inputs.dot),
+            element('div', { class: 'code-row' }, element('span', {}, 'SOCIAL'), inputs.social),
             facts),
           element('div', { class: 'columns' }, ...columns)),
         element('div', { class: 'screen-note' }, 'UP/DOWN  choose   LEFT/RIGHT  adjust (SHIFT x5)   type a value or hex code   ENTER  apply   ESC  cancel'),
         element('div', { class: 'screen-foot', style: { justifyContent: 'space-between' } },
           element('button', { onclick: async () => {
-            const made = await api('/api/design', { random: true });
-            ring = parseInt(made.ring, 16) >>> 0;
-            dot = parseInt(made.dot, 16) >>> 0;
+            take(await api('/api/design', { random: true }));
             update();
           } }, 'RANDOM'),
           element('span', { style: { display: 'flex', gap: '12px' } },
@@ -463,8 +460,8 @@ export function openSetup(app, onClose) {
     fieldRows[0].row.focus();
 
     async function applyDesign() {
-      const made = await api('/api/design', { ring: hex(ring), dot: hex(dot) });
-      remember('design', { ring: hex(ring), dot: hex(dot) });
+      const made = await api('/api/design', codes());
+      remember('design', codes());
       addImport(made.record_text);
       tell(`Added a designed ${made.species} to the import list.`, false);
       closeDesigner();

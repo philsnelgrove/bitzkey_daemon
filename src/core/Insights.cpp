@@ -17,7 +17,7 @@ constexpr std::size_t KEYS = 4 * GROUPS * LEVELS * ACTION_COUNT;
 }  // namespace
 
 std::string_view insight_trait_name(int trait) {
-    return trait < MIND_TRAIT_COUNT ? MIND_TRAITS[trait] : BODY_TRAITS[trait - MIND_TRAIT_COUNT + 1];
+    return trait < TEMPERAMENT_COUNT ? TEMPERAMENT[trait] : BODY_TRAITS[trait - TEMPERAMENT_COUNT + 1];
 }
 
 Level band(double value) {
@@ -244,7 +244,7 @@ std::string brain_report(int turn, std::span<const Bitzkey* const> animals, cons
             if (std::find(scenario.species.begin(), scenario.species.end(), animal->species) == scenario.species.end()) continue;
             Senses senses{};
             for (const auto& [sense, value] : scenario.situation) senses[sense] = value;
-            for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) senses[SenseMind + trait] = animal->feeling(trait);
+            for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = animal->feeling(trait);
             gene_senses(animal->dna, senses);
             Sample named{};
             for (const auto& [option, chance] : choice_odds(animal->brain->values(senses), options)) named[option] = chance;
@@ -303,7 +303,7 @@ std::string brain_report(int turn, std::span<const Bitzkey* const> animals, cons
     lines.emplace_back("");
     lines.emplace_back("Temperament shaped by experience (average shift from inborn values, 0..7 scale)");
     std::string header = "  " + std::string(10, ' ');
-    for (const auto trait : MIND_TRAITS) header += pad_left(std::string(trait.substr(0, 5)), 7);
+    for (const auto trait : TEMPERAMENT) header += pad_left(std::string(trait.substr(0, 5)), 7);
     lines.push_back(header);
     for (const Species species : ANIMALS) {
         std::vector<const Bitzkey*> members;
@@ -312,7 +312,7 @@ std::string brain_report(int turn, std::span<const Bitzkey* const> animals, cons
         }
         if (members.empty()) continue;
         std::string shifts;
-        for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) {
+        for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) {
             std::vector<double> values;
             for (const Bitzkey* animal : members) values.push_back(animal->mind[trait] - animal->inborn[trait]);
             std::snprintf(buffer, sizeof buffer, "%+7.2f", py_sum(values) / static_cast<double>(members.size()));
@@ -393,7 +393,7 @@ std::vector<BrainRow> brain_matrix(const Bitzkey& animal) {
         if (std::find(scenario.species.begin(), scenario.species.end(), animal.species) == scenario.species.end()) continue;
         Senses senses{};
         for (const auto& [sense, value] : scenario.situation) senses[sense] = value;
-        for (int trait = 0; trait < MIND_TRAIT_COUNT; ++trait) senses[SenseMind + trait] = animal.feeling(trait);
+        for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = animal.feeling(trait);
         gene_senses(animal.dna, senses);
         const std::vector<int> options(scenario.actions.begin(), scenario.actions.end());
         rows.push_back({scenario.title, choice_odds(animal.brain->values(senses), options)});

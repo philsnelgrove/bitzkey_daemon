@@ -1,13 +1,13 @@
-// A Bitzkey's details, as the window app's sidebar shows them: its colour words, its mind (inborn and
-// now) and body, its climate, and how it fares. A genome alone (`known` false) shows only what is born in it.
+// A Bitzkey's details, as the window app's sidebar shows them: its colour words, its mind and social
+// traits (inborn and now) and body, its climate, and how it fares. A genome alone (`known` false) shows only what is born in it.
 
 import { element, pad3, upper } from './common.js';
-import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, BODY_TRAITS, css } from './draw.js';
+import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css } from './draw.js';
 
 const SHORT = ['hot', 'medium', 'cold', 'v. cold'];
 
 export function look(agent) {
-  return { dot: agent.dot_rgb, ring: agent.ring_rgb, species: agent.species_index };
+  return { dot: agent.dot_rgb, ring: agent.ring_rgb, social: agent.social_rgb, species: agent.species_index };
 }
 
 function bar(value, colour) {
@@ -24,25 +24,32 @@ export function details(agent, { large = 0 } = {}) {
     bitzkeyCanvas(look(agent), radius, large ? Math.round(large / 4) : 2, agent.alive !== false || !known),
     element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}`),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
-  panel.append(element('div', { class: 'mono' }, `DOT / MIND   ${agent.dot}`));
-  panel.append(element('div', { class: 'mono' }, `RING / BODY  ${agent.ring}`));
-  const mind = element('div', { class: 'traits' }, element('div', { class: 'label mono small' }, known ? 'MIND      born   now' : 'MIND      born'));
-  for (let trait = 0; trait < MIND_TRAITS.length; ++trait) {
-    const born = agent.inborn[trait];
-    if (!known) {
-      mind.append(element('div', { class: 'mono small' }, `${MIND_TRAITS[trait].padEnd(11)}${String(born).padStart(3)}`));
-      continue;
-    }
-    const now = agent.mind[trait];
-    const shift = Math.abs(now - born) < 0.25 ? 'same' : now > born ? 'up' : 'down';
-    mind.append(element('div', { class: `mono small ${shift}` }, `${MIND_TRAITS[trait].padEnd(11)}${String(born).padStart(3)}${fixed(now, 1).padStart(6)}`));
-  }
+  panel.append(element('div', { class: 'mono small' }, `DOT ${agent.dot} RING ${agent.ring} SOCIAL ${agent.social}`));
+  // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
+  const temperament = (heading, names, first) => {
+    const column = element('div', { class: 'traits' }, element('div', { class: 'label mono small' }, `${heading.padEnd(10)}born${known ? ' now' : ''}`));
+    names.forEach((name, index) => {
+      const born = agent.inborn[first + index];
+      if (!known) {
+        column.append(element('div', { class: 'mono small' }, `${name.padEnd(11)}${String(born).padStart(2)}`));
+        return;
+      }
+      const now = agent.mind[first + index];
+      const shift = Math.abs(now - born) < 0.25 ? 'same' : now > born ? 'up' : 'down';
+      column.append(element('div', { class: `mono small ${shift}` }, `${name.padEnd(11)}${String(born).padStart(2)}${fixed(now, 1).padStart(5)}`));
+    });
+    return column;
+  };
+  const social = temperament('SOCIAL', SOCIAL_TRAITS, MIND_TRAITS.length);
+  social.append(element('div', { class: 'mono small same' }, `${'neurodiv.'.padEnd(11)}${String(agent.neurodivergence).padStart(2)}`));
+  panel.append(element('div', { class: 'trait-columns' }, temperament('MIND', MIND_TRAITS, 0), social));
   const body = element('div', { class: 'traits' }, element('div', { class: 'label' }, 'BODY'));
-  for (let trait = 1; trait < BODY_TRAITS.length; ++trait) {
-    body.append(element('div', { class: 'mono small same' }, `${BODY_TRAITS[trait].padEnd(9)}${String(agent.body[trait]).padStart(3)}`));
+  const cells = BODY_TRAITS.slice(1).map((name, index) => `${name.padEnd(10)}${String(agent.body[index + 1]).padStart(2)}`);
+  cells.push(`${'burn'.padEnd(7)}${fixed(agent.burn, 2).padStart(5)}`);
+  for (let row = 0; row < cells.length; row += 3) {
+    body.append(element('div', { class: 'mono small same body-row' }, ...cells.slice(row, row + 3).map(cell => element('span', {}, cell))));
   }
-  body.append(element('div', { class: 'mono small same' }, `${'burn'.padEnd(7)}${fixed(agent.burn, 2).padStart(5)}`));
-  panel.append(element('div', { class: 'trait-columns' }, mind, body));
+  panel.append(body);
 
   const climate = element('div', { class: 'climate' });
   climate.append(element('span', { style: { color: css(TEMPERATURE_COLOURS[agent.home]) } }, `HOME ${upper(TEMPERATURES[agent.home])}`));

@@ -59,16 +59,19 @@ enum Sense : int {
     SenseWarmth,           // here
     SenseWarmthNorth,      // at the edge of its sight to the north, or the map's edge if nearer
     SenseWarmthSouth,      // and to the south
-    SenseMind,             // then its current temperament, each trait 0..7 scaled to 0..1
+    SenseFoodRemembered,   // 1 just after it fed somewhere, fading as its memory lets the place go; 0 when forgotten
+    SenseDangerRemembered, // 1 at the place it was last struck, while it remembers it, falling to 0 beyond sight
+    SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert };
-constexpr int ACTION_COUNT = 23;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert, Revisit };
+constexpr int ACTION_COUNT = 24;
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
-    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west", "alert"};
-constexpr int SenseInborn = SenseMind + MIND_TRAIT_COUNT;  // then its dot's traits, as born, 0..1
-constexpr int SenseBody = SenseInborn + MIND_TRAIT_COUNT;  // then its ring's traits, 0..1 (species 0 plant to 1 predator)
+    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west", "alert",
+    "revisit"};
+constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
+constexpr int SenseBody = SenseInborn + TEMPERAMENT_COUNT;  // then its ring's traits, 0..1 (species 0 plant to 1 predator)
 constexpr int SenseHomeTemperature = SenseBody + BODY_TRAIT_COUNT;  // then its climate genes: home 0 hot to 1 very cold,
 constexpr int SenseHeatTolerance = SenseHomeTemperature + 1;        // and the tolerance flags, 0 or 1
 constexpr int SenseColdTolerance = SenseHeatTolerance + 1;
@@ -79,10 +82,12 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "threat_closeness", "kin_near", "others_near", "carrion_closeness", "kill_closeness", "plant_closeness",
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
-    "warmth_north", "warmth_south", "aggression", "libido", "sociability", "curiosity",
-    "fear", "appetite", "patience", "intellect", "empathy", "tolerance", "inborn_aggression",
-    "inborn_libido", "inborn_sociability", "inborn_curiosity", "inborn_fear", "inborn_appetite",
-    "inborn_patience", "inborn_intellect", "inborn_empathy", "inborn_tolerance", "species", "size", "strength",
+    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "aggression", "libido", "curiosity",
+    "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
+    "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
+    "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
+    "inborn_moodiness", "inborn_sociability", "inborn_empathy", "inborn_tolerance", "inborn_loyalty",
+    "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
     "heat_tolerance", "cold_tolerance"};
 int action_index(std::string_view name);  // -1 when unknown
@@ -107,7 +112,7 @@ using Values = std::array<double, ACTION_COUNT>;
 
 // How many hidden layers a brain has, by its owner's inborn intellect.
 inline int depth_for(int intellect) { return std::max(MIN_DEPTH, 2 * intellect); }
-// Fill in the inputs for a genome's traits, ring and dot, and its climate genes.
+// Fill in the inputs for a genome's traits, ring, dot and social background, and its climate genes.
 void gene_senses(Dna dna, Senses& senses);
 
 // Softmax over the available actions' values, in the options' order.

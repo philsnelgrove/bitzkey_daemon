@@ -20,8 +20,11 @@ constexpr double FUTURE_DIM = 0.55;  // how far turns after the present fade, on
 constexpr Rgb BACKGROUND{30, 40, 40};
 constexpr Rgb GUIDE{54, 68, 62};
 constexpr std::array<std::string_view, 3> CLIMATE_SORTS = {"temperature", "heat tolerance", "cold tolerance"};
-constexpr int SORT_COUNT = 1 + MIND_TRAIT_COUNT + BODY_TRAIT_COUNT - 1 + 3;
+constexpr int SORT_COUNT = 1 + TEMPERAMENT_COUNT + BODY_TRAIT_COUNT - 1 + 3;
 constexpr int FIRST_CLIMATE_SORT = SORT_COUNT - static_cast<int>(CLIMATE_SORTS.size());
+
+// The genome's word for a part: 0 the ring, 1 the dot, 2 the social background.
+std::uint32_t word_of(Dna dna, int part) { return part == 0 ? body_word(dna) : part == 1 ? mind_word(dna) : social_word(dna); }
 
 Rgb faded(Rgb colour, double amount) {
     const auto channel = [amount](int value, int back) { return static_cast<int>(py_round(value + (back - value) * amount)); };
@@ -34,8 +37,8 @@ int sort_value(Dna dna, int sort) {
         const Climate climate = decode_climate(dna);
         return sort == FIRST_CLIMATE_SORT ? climate.temperature : sort == FIRST_CLIMATE_SORT + 1 ? climate.heat : climate.cold;
     }
-    if (sort <= MIND_TRAIT_COUNT) return decode_mind(dna)[static_cast<std::size_t>(sort - 1)];
-    return decode_body(dna)[static_cast<std::size_t>(sort - MIND_TRAIT_COUNT)];
+    if (sort <= TEMPERAMENT_COUNT) return decode_temperament(dna)[static_cast<std::size_t>(sort - 1)];
+    return decode_body(dna)[static_cast<std::size_t>(sort - TEMPERAMENT_COUNT)];
 }
 
 template <typename T>
@@ -62,8 +65,8 @@ std::string sort_label(int sort) {
     std::string name;
     if (sort == 0) return "Colour value";
     if (sort >= FIRST_CLIMATE_SORT) name = CLIMATE_SORTS[static_cast<std::size_t>(sort - FIRST_CLIMATE_SORT)];
-    else if (sort <= MIND_TRAIT_COUNT) name = MIND_TRAITS[static_cast<std::size_t>(sort - 1)];
-    else name = BODY_TRAITS[static_cast<std::size_t>(sort - MIND_TRAIT_COUNT)];
+    else if (sort <= TEMPERAMENT_COUNT) name = TEMPERAMENT[static_cast<std::size_t>(sort - 1)];
+    else name = BODY_TRAITS[static_cast<std::size_t>(sort - TEMPERAMENT_COUNT)];
     name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
     return name;
 }
@@ -75,7 +78,7 @@ void Graph::build(const Simulation& simulation, const GraphView& view) {
     // being remembered by their colour alone, beneath them.
     const std::vector<long long> key = {simulation.turn(), simulation.frontier(), static_cast<long long>(simulation.census().snapshots().size()),
                                         static_cast<long long>(simulation.agents().size()), simulation.deaths(), simulation.next_identifier(),
-                                        view.dot, view.sort, view.first, view.last, view.bars,
+                                        view.part, view.sort, view.first, view.last, view.bars,
                                         static_cast<long long>(reinterpret_cast<std::uintptr_t>(&simulation))};
     if (key == key_) return;
     key_ = key;
@@ -92,7 +95,7 @@ void Graph::build(const Simulation& simulation, const GraphView& view) {
         auto found = order.find(identifier);
         if (found == order.end()) {
             const Dna dna = simulation.lineage(identifier);
-            const std::uint32_t word = view.dot ? mind_word(dna) : body_word(dna);
+            const std::uint32_t word = word_of(dna, view.part);
             const auto [group, hue, value] = colour_order(color_from_word(word));
             const int trait = view.sort == 0 ? 0 : alive_.contains(identifier) ? sort_value(dna, view.sort) : -1;
             found = order.emplace(identifier, Key{decode_body(dna)[SpeciesTrait], trait, group, hue, value, word, identifier}).first;
@@ -153,7 +156,7 @@ std::string Graph::image(const Simulation& simulation, const GraphView& view, co
             auto found = colours.find(identifier);
             if (found == colours.end()) {
                 const Dna dna = simulation.lineage(identifier);
-                found = colours.emplace(identifier, color_from_word(view.dot ? mind_word(dna) : body_word(dna))).first;
+                found = colours.emplace(identifier, color_from_word(word_of(dna, view.part))).first;
             }
             Rgb colour = found->second;
             if (choosing && !selection.contains(identifier)) colour = faded(colour, DIM);

@@ -20,7 +20,8 @@ TEST_CASE("an exported animal carries its genome, temperament and brain, in Pyth
     Bitzkey& animal = world.add_agent(encode_dna(Species::Grazer, {{"fear", 3}}), 2, 2);
     animal.mind[Fear] = 3.14159;
     const std::string text = dumps(bitzkey_record(animal));
-    CHECK(text.rfind("{\"version\": 2, \"ring\": \"", 0) == 0);
+    CHECK(text.rfind("{\"version\": 3, \"ring\": \"", 0) == 0);
+    CHECK(text.find("\"social\": \"" + hex_word(social_word(animal.dna)) + "\", \"mind\"") != std::string::npos);
     CHECK(text.find("\"fear\": 3.142") != std::string::npos);
     CHECK(text.find("\"brain\": {\"senses\": [\"hunger\"") != std::string::npos);
 
