@@ -1905,7 +1905,8 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     }
     if (killed) die(victim, "killed", &agent, activity);
 
-    const double sting = 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness);
+    const double sting = victim.species == Species::Omnivore ? 0.0  // an omnivore's weapons are for fighting, not spines
+                                                             : 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness);
     if (sting > 0) {
         agent.health -= sting;
         experience(agent, Stung);

@@ -1608,3 +1608,16 @@ TEST_CASE("an omnivore's litters follow the plants and prey at home, half each")
     PLANTS_PER_GRAZER = plants;
     PREY_PER_PREDATOR = prey;
 }
+
+TEST_CASE("an omnivore has no spines, but an armed grazer does") {
+    Simulation simulation = world();
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"weapons", 7}, {"size", 7}}), 2, 2);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"weapons", 7}, {"size", 7}, {"strength", 7}}), 8, 8);
+    Bitzkey& first = simulation.add_agent(encode_dna(Species::Predator), 2, 3);
+    Bitzkey& second = simulation.add_agent(encode_dna(Species::Predator), 8, 9);
+    simulation.index_cells();
+    simulation.attack(first, omnivore);
+    simulation.attack(second, grazer);
+    CHECK(first.health == first.max_health);  // struck an omnivore: unstung
+    CHECK(second.health < second.max_health);  // struck a well-armed grazer: stung
+}
