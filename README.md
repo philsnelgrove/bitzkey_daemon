@@ -86,6 +86,7 @@ The page has the window app's screens, laid out the same way:
 - **Square popup**: hovering over a map square lists the Bitzkeys stacked in it (a square holds 10 spaces, each Bitzkey taking one plus its size); the list stays while the pointer is on it, and clicking a name selects that Bitzkey.
 - **DEPLOY**, in the catalog opened from the map. Closes it and turns the cursor into a target: each click on the map puts 5 of each Bitzkey chosen around that cell, and dragging paints a group every 5 cells, until a right-click or ESC. Everyone sees them join the shared world.
 - **OPEN CATALOG**, in the footer and on the colour graph. Looks through the catalog without importing or exporting anything; REMOVE still works, and DESIGNER opens the designer on the entry picked, a design applied joining the catalog as a new entry (its genome alone).
+- **Selected Bitzkeys** wear a target's sights on the map, swelling to twice their size and back every two seconds, paused or not.
 - **Colour graph popup**: hovering a slice shows the Bitzkey's details, the dead's as far as they are known: their genome, and how and when they died.
 - **FILES.** Downloads exports the daemon has saved. Brain reports (B) open in a new tab.
 

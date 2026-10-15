@@ -334,7 +334,7 @@ function drawMap() {
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
-      drawReticle(ctx, px, py, radius + RING_WIDTH + 3);
+      drawReticle(ctx, px, py, (radius + RING_WIDTH + 3) * reticlePulse());
     }
     if (exporting.has(agent.identifier)) {
       ctx.strokeStyle = css(EXPORTING);
@@ -962,6 +962,14 @@ function stopDeploying() {
   map.style.cursor = '';
   say('Deploying stopped.');
 }
+
+// The selected Bitzkeys' sights swell to twice their size and back every RETICLE_PULSE_MS, paused or not: while any
+// is selected, the map redraws a few times a second to show it.
+const RETICLE_PULSE_MS = 2000;
+const reticlePulse = () => 1.5 - 0.5 * Math.cos(2 * Math.PI * performance.now() / RETICLE_PULSE_MS);
+setInterval(() => {
+  if (app.frame && !document.hidden && (app.selectedId !== null || app.selection.size)) drawMap();
+}, 66);
 
 function cellAt(x, y) {
   const geometry = board();
