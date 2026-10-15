@@ -73,6 +73,7 @@ std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
 inline int CORPSE_TURNS = 30;
+inline double CORPSE_PLANT = 0.1;  // chance an animal's body that rots away entirely leaves the seed of a new plant where it lay
 inline double BREED_RESERVE = 0;
 inline double MATE_RING_DIFFERENCE = 0.05;
 inline double MATE_DOT_DIFFERENCE = 0.20;
@@ -727,6 +728,7 @@ public:
     void eat_portion(Bitzkey& corpse);  // a portion of a body eaten: once the last is, the body is gone at the turn's end
     bool fresh(const Bitzkey& corpse) const;  // still a fresh kill, not yet carrion
     Bitzkey* nearest_kill(const Bitzkey& agent, int sight) const;  // of something it lives on
+    void seed_corpse(const Bitzkey& corpse);  // a body rotted away leaves the seed of a new plant where it lay
     void wither_grass();
     void sow(int tufts);
     void experience(Bitzkey& agent, int event);

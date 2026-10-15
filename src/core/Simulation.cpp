@@ -805,6 +805,12 @@ void Simulation::take_turn() {
         // no longer fresh by next turn: it rots
         if (agent->died_turn && turn_ - *agent->died_turn >= FRESH_KILL_TURNS) agent->meat = std::max(0.0, agent->meat - agent->rot);
     }
+    for (const auto& agent : agents_) {  // bodies rotted away, not eaten to the last portion, may feed a new plant
+        if (agent->died_turn && turn_ - *agent->died_turn >= CORPSE_TURNS && agent->species != Species::Plant && agent->portions > 0 &&
+            CORPSE_PLANT && random_.random() < CORPSE_PLANT) {
+            seed_corpse(*agent);
+        }
+    }
     for (auto& agent : agents_) {
         if (agent->died_turn && turn_ - *agent->died_turn >= CORPSE_TURNS) departed_.push_back(std::move(agent));
     }
@@ -955,6 +961,14 @@ void Simulation::seed_plant(Bitzkey& plant) {
     plant.last_action = "seeded";
     if (!plant.alive()) die(plant, "seeded to death");  // it spent the last of its food on the seed
     seeds_.push_back({cell.x, cell.y, dna, plant.generation + 1, turn_});  // it lies PLANT_GESTATION turns before it can sprout
+}
+
+void Simulation::seed_corpse(const Bitzkey& corpse) {
+    // A random plant genome, at home in the temperature where the body lay; it sprouts as any seed does.
+    Dna dna = make_dna(random_, static_cast<int>(Species::Plant));
+    dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) |
+               static_cast<std::uint64_t>(zone_temperature(corpse.y, height_)) << TEMPERATURE_SHIFT;
+    seeds_.push_back({corpse.x, corpse.y, dna, 0, turn_});
 }
 
 void Simulation::wither_grass() {

@@ -35,6 +35,7 @@ std::vector<Rule> make_rules() {
         {"GRASS_REGROWTH", "World", "Grass regrowth", "share of the starting grass that grows back each turn", 0.0, 0.1, 0.001, false, &GRASS_REGROWTH},
         {"CORPSE_FERTILITY", "World", "Corpse fertility", "grass grows this many times as fast on and around a corpse", 1, 10, 1, true, &CORPSE_FERTILITY},
         {"CORPSE_TURNS", "World", "Corpse turns", "turns a corpse lasts while its meat rots away", 1, 500, 5, true, &CORPSE_TURNS},
+        {"CORPSE_PLANT", "World", "Corpse plant", "chance an animal's body that rots away entirely leaves the seed of a new plant", 0.0, 1.0, 0.05, false, &CORPSE_PLANT},
         {"CELL_SPACE", "World", "Square space", "spaces in a square; a Bitzkey takes 1 + its size, and none is born, moves or spawns into a square without room", 1, 80, 1, true, &CELL_SPACE},
         {"SPAWN_SPREAD", "World", "Spawn spread", "a starting group appears within this many cells of its centre", 0, 4, 1, true, &SPAWN_SPREAD},
         {"USE_GPU", "World", "Think on the GPU", "C++ only: 1 thinks and learns on every GPU found, in floats, with no rewinding; 0 on the CPU, exactly", 0, 1, 1, true, &USE_GPU},

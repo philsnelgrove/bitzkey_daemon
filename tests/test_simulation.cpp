@@ -1621,3 +1621,27 @@ TEST_CASE("an omnivore has no spines, but an armed grazer does") {
     CHECK(first.health == first.max_health);  // struck an omnivore: unstung
     CHECK(second.health < second.max_health);  // struck a well-armed grazer: stung
 }
+
+TEST_CASE("a body rotted away leaves the seed of a plant, at home where it lay") {
+    const double corpse_plant = CORPSE_PLANT;
+    CORPSE_PLANT = 1.0;  // every body that rots away
+    Simulation simulation = world(30);
+    Bitzkey& rotted = simulation.add_agent(encode_dna(Species::Grazer), 5, 8);
+    Bitzkey& eaten = simulation.add_agent(encode_dna(Species::Grazer), 9, 8);
+    simulation.add_agent(encode_dna(Species::Predator), 25, 25);
+    simulation.index_cells();
+    simulation.die(rotted, "starved");
+    simulation.die(eaten, "killed");
+    rotted.died_turn = eaten.died_turn = simulation.turn() + 1 - CORPSE_TURNS;  // both gone by the coming turn's end
+    eaten.portions = 0;  // eaten to the last portion: nothing left to rot
+    simulation.take_turn();
+    std::vector<Simulation::Seed> seeds;
+    for (const Simulation::Seed& seed : simulation.seeds()) {
+        if ((seed.x == 5 || seed.x == 9) && seed.y == 8) seeds.push_back(seed);
+    }
+    REQUIRE(seeds.size() == 1);
+    CHECK(seeds[0].x == 5);
+    CHECK(decode_body(seeds[0].dna)[SpeciesTrait] == static_cast<int>(Species::Plant));
+    CHECK(decode_climate(seeds[0].dna).temperature == zone_temperature(8, 30));  // at home where it lay
+    CORPSE_PLANT = corpse_plant;
+}
