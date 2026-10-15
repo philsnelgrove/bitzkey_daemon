@@ -1749,7 +1749,7 @@ TEST_CASE("hunters need their food, full litters need four times it, and the las
     const int rare_prey = RARE_PREY;
     FULL_LITTER_FOOD = 4.0;
     PREDATOR_FULL_LITTER_FOOD = 8.0;
-    RARE_PREY = 10;
+    RARE_PREY = 200;
     PREY_PER_PREDATOR = 1.0;
     Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
     const Dna dna = encode_dna(Species::Predator, {{"fertility", 7}, {"litter", 7}, {"sight", 3}});  // at home in the temperate bands
@@ -1769,7 +1769,8 @@ TEST_CASE("hunters need their food, full litters need four times it, and the las
     CHECK(offers_breed());
     for (Bitzkey* grazer : far) grazer->health = 0;  // the prey dying out: only the two at home left
     simulation.index_cells();
-    CHECK_FALSE(offers_breed());  // under ten of its prey alive: it spares them
+    CHECK(first.population == 2);  // it knows its own numbers
+    CHECK_FALSE(offers_breed());  // prey under twice its own numbers: it spares them
     FULL_LITTER_FOOD = full;
     RARE_PREY = rare_prey;
     PREY_PER_PREDATOR = prey_need;
@@ -1801,20 +1802,20 @@ TEST_CASE("a glut of predators turns them on other kinds, then their own") {
 
 TEST_CASE("predators turn on other kinds, then their own, as their prey die out") {
     const int rare_prey = RARE_PREY;
-    RARE_PREY = 10;
+    RARE_PREY = 500;  // three predators: rare under 15 prey, famine from 30
     Simulation simulation = world(30);
     Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 7}, {"tolerance", 7}, {"patience", 7}}), 5, 5);  // loath to
     Bitzkey& kin = simulation.add_agent(hunter.dna, 5, 6);
     Bitzkey& other = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"armour", 7}, {"weapons", 7}, {"speed", 7}, {"sight", 7}}),
                                           6, 5);
     std::vector<Bitzkey*> prey;
-    for (int x = 0; x < 20; ++x) prey.push_back(&simulation.add_agent(encode_dna(Species::Grazer), x % 25, 20 + x / 25));
+    for (int x = 0; x < 30; ++x) prey.push_back(&simulation.add_agent(encode_dna(Species::Grazer), x % 25, 20 + x / 25));
     hunter.hunger = 50;
     struct Step {
         int alive;
         bool other_prey, kin_prey;
     };
-    for (const Step& step : {Step{20, false, false}, Step{10, true, false}, Step{0, true, true}}) {  // twice Rare prey, it, none
+    for (const Step& step : {Step{30, false, false}, Step{15, true, false}, Step{0, true, true}}) {  // twice Rare prey, it, none
         for (std::size_t index = static_cast<std::size_t>(step.alive); index < prey.size(); ++index) prey[index]->health = 0;
         simulation.index_cells();
         CHECK(Simulation::is_prey(hunter, other) == step.other_prey);

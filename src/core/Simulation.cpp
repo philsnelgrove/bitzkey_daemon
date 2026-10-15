@@ -900,11 +900,12 @@ void Simulation::index_cells() {
     }
     const int predators = living_[static_cast<std::size_t>(Species::Predator)];
     double glut = PREDATOR_GLUT > 0 ? std::max(0.0, static_cast<double>(predators - PREDATOR_GLUT) / PREDATOR_GLUT) : 0.0;
-    const int famine_line = 2 * RARE_PREY;  // and prey dying out: from twice RARE_PREY, other kinds by RARE_PREY, its own by none
+    const double famine_line = 2.0 * RARE_PREY / 100 * predators;  // and prey dying out: from twice the rare line, other kinds by it, its own by none
     const int prey = living_[static_cast<std::size_t>(Species::Grazer)] + living_[static_cast<std::size_t>(Species::Omnivore)];
     if (famine_line > 0) glut = std::max(glut, std::min(2.0, 2.0 * (famine_line - prey) / famine_line));
     for (const auto& agent : agents_) {  // a scarce species breeds more cheaply; a glut of predators turns them on one another
         if (agent->alive() && agent->species != Species::Plant) {
+            agent->population = living_[static_cast<std::size_t>(agent->species)];
             agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)], agent->species);
             if (agent->species == Species::Predator) agent->glut = glut;
         }
@@ -927,8 +928,9 @@ bool Simulation::may_breed(const Bitzkey& agent, const Bitzkey& partner) const {
 
 bool Simulation::prey_rare(const Bitzkey& agent) const {
     const auto count = [&](Species species) { return living_[static_cast<std::size_t>(species)]; };
-    if (agent.species == Species::Predator) return count(Species::Grazer) + count(Species::Omnivore) < RARE_PREY;
-    if (agent.species == Species::Omnivore) return count(Species::Grazer) + count(Species::Predator) < RARE_PREY;
+    const double line = static_cast<double>(RARE_PREY) / 100 * agent.population;
+    if (agent.species == Species::Predator) return count(Species::Grazer) + count(Species::Omnivore) < line;
+    if (agent.species == Species::Omnivore) return count(Species::Grazer) + count(Species::Predator) < line;
     return false;
 }
 

@@ -165,13 +165,13 @@ inline int SCARCE_POPULATION = 100;
 inline int RARE_POPULATION = 10;
 inline double RARE_BREEDING_COST = 1.0 / 3;
 inline double FULL_LITTER_FOOD = 4.0;  // a full litter needs this many times the home food a mouth needs to breed; at the need, 1/this
-inline int RARE_PREY = 500;            // a hunter doesn't breed while fewer of its prey species (all together) live, sparing the last
+inline int RARE_PREY = 50;             // a hunter doesn't breed while its prey species (all together) number under this percentage of its own
 inline int GRAZER_SCARCE_POPULATION = 300;          // grazers' cheap breeding begins below this many,
 inline double GRAZER_RARE_BREEDING_COST = 1.0 / 9;  // and falls to this share of the usual cost at RARE_POPULATION or fewer
 inline double PREDATOR_FULL_LITTER_FOOD = 8.0;      // a predator's full litter needs this many times the prey a predator needs to breed
 // Predators glutting the world turn on one another: above PREDATOR_GLUT alive, their reluctance to hunt other kinds of
 // predator wears away, to none at twice it; past that their own kind become prey too, fully at three times it. So do
-// predators whose prey are dying out: below twice RARE_PREY of them alive, other kinds, to none at RARE_PREY; below
+// predators whose prey are dying out: below twice the rare-prey line, other kinds, to none at it; below
 // that, their own kind too, fully with none left.
 inline int PREDATOR_GLUT = 600;
 // The share of the usual breeding cost a species of this many living pays: all of it at SCARCE_POPULATION or more,
@@ -434,6 +434,7 @@ struct Bitzkey {
     std::optional<Place> danger_memory;  // where it was last struck
     double meat = 0.0;                  // a corpse's meat left for scavengers
     double meat_fill = 0.0;             // how much of its fullness is meat, which it digests more slowly
+    int population = 0;                 // how many of its species live, as of the turn's start: its awareness of its own numbers
     double cost_share = 1.0;            // the share of its breeding cost its species' scarcity leaves it, as of the turn's start
     double glut = 0.0;                  // for a predator, what drives it to hunt other predators: 1 for other kinds fully, 2 its own kind
     double rot = 0.0;                   // meat lost to rot each turn
@@ -844,7 +845,7 @@ public:
     // Whether its home band holds the food a mouth needs to breed: plants for a grazer, prey for a predator, both
     // together, half each, for an omnivore.
     bool well_fed(const Bitzkey& agent) const { return home_fed(agent) >= 1 / full_litter(agent); }
-    // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY living) that it spares them
+    // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY percent of its own species' numbers) that it spares them
     // by not breeding.
     bool prey_rare(const Bitzkey& agent) const;
     // A grown animal feeds the hungriest infant of its kind within NURSING_REACH: a turn's burn of food, so the infant
