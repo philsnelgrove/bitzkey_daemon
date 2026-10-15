@@ -1693,3 +1693,38 @@ TEST_CASE("a carrion-eater scales into a coward, and away from hunting") {
     CARRION_AVERSION = aversion;
     CHECK(odds[1] < odds[0]);  // it naturally shies from hunting
 }
+
+TEST_CASE("a scarce species breeds more cheaply, down to a third when rare") {
+    RARE_BREEDING_COST = 1.0 / 3;
+    CHECK((scarcity_share(100) == 1.0 && scarcity_share(250) == 1.0));
+    CHECK((scarcity_share(10) == 1.0 / 3 && scarcity_share(3) == 1.0 / 3));
+    CHECK(scarcity_share(55) == doctest::Approx(2.0 / 3));  // halfway
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"fertility", 0}}), 2, 2);
+    const double usual = grazer.breeding_price();
+    simulation.index_cells();  // one grazer: rare
+    CHECK(grazer.breeding_price() == doctest::Approx(usual / 3));
+    for (int x = 0; x < 10; ++x) {
+        for (int y = 1; y <= 10; ++y) {
+            if (!(x == 2 && y == 2)) simulation.add_agent(encode_dna(Species::Grazer), x, y);
+        }
+    }
+    simulation.index_cells();  // a hundred: common again
+    CHECK(grazer.breeding_price() == usual);
+}
+
+TEST_CASE("a predator is an infant half as long") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world();
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 2, 2);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 8, 8);
+    for (Bitzkey* animal : {&predator, &grazer}) {
+        animal->age = static_cast<int>(0.07 * animal->lifespan);  // past a predator's 5%, within the usual 10%
+        animal->grow();
+    }
+    CHECK_FALSE(predator.feeble);
+    CHECK(grazer.feeble);
+    predator.age = static_cast<int>(0.04 * predator.lifespan);
+    predator.grow();
+    CHECK(predator.feeble);
+}

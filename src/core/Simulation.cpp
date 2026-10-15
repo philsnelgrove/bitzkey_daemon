@@ -893,6 +893,13 @@ void Simulation::index_cells() {
             ++carrion_count_;
         }
     }
+    std::array<int, 4> living{};  // a scarce species breeds more cheaply
+    for (const auto& agent : agents_) {
+        if (agent->alive()) ++living[static_cast<std::size_t>(agent->species)];
+    }
+    for (const auto& agent : agents_) {
+        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living[static_cast<std::size_t>(agent->species)]);
+    }
     departed_.clear();
 }
 
@@ -2042,7 +2049,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     }
     // A grazer's litters follow the plants in its home band, a predator's the prey, an omnivore's both, half each.
     litter = std::max(1, static_cast<int>(litter * home_fed(first) + 0.5));
-    const std::array<double, 2> costs = {first.breeding_cost, second.breeding_cost};
+    const std::array<double, 2> costs = {first.breeding_price(), second.breeding_price()};
     const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
                                          std::min(costs[1], std::max(0.0, 100 - second.hunger)) * second.stomach};
     const double given = py_sum(gifts);

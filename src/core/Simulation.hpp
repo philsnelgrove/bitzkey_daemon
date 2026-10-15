@@ -45,6 +45,7 @@ inline double MEAT_DIGESTION = 0.5;
 // Feeble: an animal in its infancy (the first FEEBLE_YOUTH of its lifespan) or its old age (past AGEING of it)
 // has every body trait, and its health, at FEEBLE_SHARE of its own.
 inline double FEEBLE_YOUTH = 0.1;
+inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
@@ -155,6 +156,17 @@ inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
 inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
 inline double GRAZER_BREEDING_COST = 0.5;   // share of the usual breeding cost a grazer pays
 inline double PREDATOR_STING = 0.5;         // share of a victim's spines a predator striking it takes
+// A species grown scarce breeds more cheaply: below SCARCE_POPULATION living, its breeding cost falls evenly, to
+// RARE_BREEDING_COST of the usual at RARE_POPULATION or fewer.
+inline int SCARCE_POPULATION = 100;
+inline int RARE_POPULATION = 10;
+inline double RARE_BREEDING_COST = 1.0 / 3;
+// The share of the usual breeding cost a species of this many living pays.
+inline double scarcity_share(int population) {
+    if (population >= SCARCE_POPULATION) return 1.0;
+    if (population <= RARE_POPULATION || SCARCE_POPULATION <= RARE_POPULATION) return RARE_BREEDING_COST;
+    return RARE_BREEDING_COST + (1 - RARE_BREEDING_COST) * (population - RARE_POPULATION) / (SCARCE_POPULATION - RARE_POPULATION);
+}
 inline double NEWBORN_FOOD = 5.0;     // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
 constexpr double BREEDING_COST_MOST = 25.0;  // the hunger the least fertile pay to breed: the most a parent could give its young
 inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this many mouths each on its food, sharing kills
@@ -404,6 +416,7 @@ struct Bitzkey {
     std::optional<Place> danger_memory;  // where it was last struck
     double meat = 0.0;                  // a corpse's meat left for scavengers
     double meat_fill = 0.0;             // how much of its fullness is meat, which it digests more slowly
+    double cost_share = 1.0;            // the share of its breeding cost its species' scarcity leaves it, as of the turn's start
     double rot = 0.0;                   // meat lost to rot each turn
     int portions = 0;                   // a body's portions left to eat, feasting or scavenging: one for each size class
     std::vector<std::pair<int, int>> trail;  // the cells it passed through this turn, for the map
@@ -460,7 +473,8 @@ struct Bitzkey {
         if (feeble != feeble_at_age()) derive();
     }
     bool feeble_at_age() const {
-        return species != Species::Plant && (age < FEEBLE_YOUTH * lifespan || age > AGEING * lifespan);
+        const double infancy = FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0);  // a predator's is shorter
+        return species != Species::Plant && (age < infancy * lifespan || age > AGEING * lifespan);
     }
     double feeling(int trait) const { return share(mind[trait]); }
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
@@ -476,7 +490,8 @@ struct Bitzkey {
     double scavenger() const { return std::max(0.0, 2 * physique(Carrion) - 1); }
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
-    bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_cost <= 100 - BREED_RESERVE; }
+    bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_price() <= 100 - BREED_RESERVE; }
+    double breeding_price() const { return breeding_cost * cost_share; }  // what it pays to breed now, its species' scarcity counted
     bool alive() const { return health > 0; }  // full hunger wears its health away (STARVING_DAMAGE) rather than killing
     // Eat: the same food fills a small stomach more than a large one. Meat is kept track of, as it lasts longer.
     void nourish(double food, bool is_meat = false) {

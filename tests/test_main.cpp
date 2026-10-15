@@ -4,12 +4,14 @@
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
 
-// Grown bodies: a Bitzkey made at age 0 isn't feeble in the tests, unless a test says so.
+// Grown bodies: a Bitzkey made at age 0 isn't feeble in the tests, and a test's few Bitzkeys breed at the usual cost,
+// unless a test says so.
 struct Grown : doctest::IReporter {
     explicit Grown(const doctest::ContextOptions&) {}
     void test_case_start(const doctest::TestCaseData&) override {
         bitzkey::rules::defaults();  // the defaults, taken before the change
         bitzkey::FEEBLE_YOUTH = 0.0;
+        bitzkey::RARE_BREEDING_COST = 1.0;  // the few Bitzkeys of a test breed at the usual cost, unless a test says so
     }
     void report_query(const doctest::QueryData&) override {}
     void test_run_start() override {}
