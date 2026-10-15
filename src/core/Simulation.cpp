@@ -791,6 +791,7 @@ void Simulation::take_turn() {
         agent->seen_success *= SOCIAL_MEMORY;
         agent->seen_failure *= std::pow(SOCIAL_MEMORY, 1 + RESILIENCE * (2 * agent->feeling(Resilience) - 1));  // got over sooner
         settle(*agent);
+        nurse(*agent);
         if (agent->hunger >= 80) experience(*agent, Starving);
         thinkers.push_back(agent);
     }
@@ -985,6 +986,23 @@ void Simulation::seed_plant(Bitzkey& plant) {
     plant.last_action = "seeded";
     if (!plant.alive()) die(plant, "seeded to death");  // it spent the last of its food on the seed
     seeds_.push_back({cell.x, cell.y, dna, plant.generation + 1, turn_});  // it lies PLANT_GESTATION turns before it can sprout
+}
+
+void Simulation::nurse(Bitzkey& agent) {
+    if (agent.species == Species::Plant || agent.infant() || !agent.alive()) return;
+    Bitzkey* infant = nullptr;
+    for (Bitzkey* other : nearby(agent, NURSING_REACH)) {
+        if (other != &agent && other->alive() && other->species == agent.species && other->infant() && other->hunger > 0 &&
+            (!infant || other->hunger > infant->hunger)) {
+            infant = other;
+        }
+    }
+    if (!infant) return;
+    const double fed = std::min(infant->hunger, infant->burn);
+    const double cost = fed * infant->stomach / agent.stomach;
+    if (agent.hunger + cost >= NURSING_LIMIT) return;
+    agent.hunger += cost;
+    infant->hunger -= fed;
 }
 
 void Simulation::seed_corpse(const Bitzkey& corpse) {
@@ -1286,6 +1304,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         valued[Hunt] -= CARRION_AVERSION * scavenger;      // and its aversion to killing for itself
         valued[Attack] -= CARRION_AVERSION * scavenger;
         valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
+        if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
         const auto odds = choice_odds(valued, options);
         double roll = random_.random();
         int choice = options.back();
@@ -1472,9 +1491,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                         (agent.species != Species::Grazer || agent.trait(Strength) > GRAZER_DEFENCE_STRENGTH);
     // The more fearful it is, the closer it keeps to the herd's middle, but not where the middle is
     // further from its home temperature than here.
-    available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) >
-                                         HERD_SPREAD * (1 - agent.fearfulness()) &&
-                      homeward(view.middle->y);
+    const double spread = agent.infant() ? 1.0 : HERD_SPREAD * (1 - agent.fearfulness());  // an infant wants to be right among them
+    available[Herd] = view.middle && distance(view.middle->x, view.middle->y, agent.x, agent.y) > spread && homeward(view.middle->y);
     if (agent.species == Species::Grazer && agent.hunger >= UPROOT_HUNGER) {
         for (Bitzkey* other : neighbors) {
             if (other->species == Species::Plant) {
@@ -2064,10 +2082,6 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     }
     // A grazer's litters follow the plants in its home band, a predator's the prey, an omnivore's both, half each.
     litter = std::max(1, static_cast<int>(litter * home_fed(first) + 0.5));
-    const std::array<double, 2> costs = {first.breeding_price(), second.breeding_price()};
-    const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
-                                         std::min(costs[1], std::max(0.0, 100 - second.hunger)) * second.stomach};
-    const double given = py_sum(gifts);
     if (NEWBORN_FOOD) {  // only as many young as the parents could feed, rather than many born starving
         // What the parents could give, BREEDING_COST_MOST of each stomach (or what each has left), whatever they pay:
         // neither a fertile parent's cheap breeding nor a hunter's halved cost shrinks its litters.
@@ -2078,6 +2092,13 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         litter = std::max(1, std::min(litter, static_cast<int>(could_give / (NEWBORN_FOOD * stomach))));
     }
     litter = static_cast<int>(std::max(1.0, std::min(static_cast<double>(litter), room())));
+    // Each parent pays its breeding cost, and at least its half of what its young need, NEWBORN_FOOD of a stomach each,
+    // so a large litter costs what it is worth rather than being born starving.
+    const std::array<double, 2> costs = {std::max(first.breeding_price(), litter * NEWBORN_FOOD / 2),
+                                         std::max(second.breeding_price(), litter * NEWBORN_FOOD / 2)};
+    const std::array<double, 2> gifts = {std::min(costs[0], std::max(0.0, 100 - first.hunger)) * first.stomach,
+                                         std::min(costs[1], std::max(0.0, 100 - second.hunger)) * second.stomach};
+    const double given = py_sum(gifts);
     const int generation = std::max(first.generation, second.generation) + 1;
     Bitzkey* couple[] = {&first, &second};
     sync(couple);  // their brains as they now are, to inherit from
@@ -2388,7 +2409,7 @@ bool Simulation::society(const Bitzkey& observer, const Bitzkey& actor) const {
 }
 
 bool Simulation::herd_mate(const Bitzkey& agent, const Bitzkey& other) const {
-    return &other != &agent && other.alive() && !solitary(agent.species) && other.species == agent.species &&
+    return &other != &agent && other.alive() && (!solitary(agent.species) || agent.infant()) && other.species == agent.species &&
            (agent.species != Species::Predator || same_kind(agent, other)) && willing(agent, other);
 }
 

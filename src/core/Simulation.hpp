@@ -126,6 +126,9 @@ inline double OTHER_KIND = 0.4;
 // more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
 // a territory's crowding troubles the dominant less and the submissive more, by up to this share.
 inline double LOYALTY_PULL = 0.25;
+inline double INFANT_HERDING = 1.0;  // how much more an infant values keeping to its kind, and it herds once a cell from their middle
+inline int NURSING_REACH = 2;        // each turn, a grown animal feeds the hungriest infant of its kind this close, a turn's burn of food,
+inline int NURSING_LIMIT = 80;       // while it stays below this hunger itself
 inline double DOMINANCE_EASE = 0.5;
 // Trust: how much more, or less, the most and least trusting take in what they see of their herd-mates, by
 // this share; and an alert reaches it from a herd-mate this many times its trust times its sight away.
@@ -488,6 +491,10 @@ struct Bitzkey {
     void grow() {
         if (feeble != feeble_at_age()) derive();
     }
+    // Whether it is an animal in its infancy: the first FEEBLE_YOUTH of its lifespan, a predator's PREDATOR_INFANCY as long.
+    bool infant() const {
+        return species != Species::Plant && age < FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0) * lifespan;
+    }
     bool feeble_at_age() const {
         const double infancy = FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0);  // a predator's is shorter
         return species != Species::Plant && (age < infancy * lifespan || age > AGEING * lifespan);
@@ -840,6 +847,9 @@ public:
     // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY living) that it spares them
     // by not breeding.
     bool prey_rare(const Bitzkey& agent) const;
+    // A grown animal feeds the hungriest infant of its kind within NURSING_REACH: a turn's burn of food, so the infant
+    // grows no hungrier, paid from its own stomach, while it stays below NURSING_LIMIT hunger itself.
+    void nurse(Bitzkey& agent);
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;

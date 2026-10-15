@@ -1822,3 +1822,74 @@ TEST_CASE("predators turn on other kinds, then their own, as their prey die out"
     }
     RARE_PREY = rare_prey;
 }
+
+TEST_CASE("parents pay at least what their young need") {
+    FEEBLE_YOUTH = 0.1;
+    const double small_litters = SMALL_LITTERS, plants = PLANTS_PER_GRAZER;
+    SMALL_LITTERS = 1.0;
+    PLANTS_PER_GRAZER = 0.0;
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}, {"size", 4}});
+    Bitzkey& first = simulation.add_agent(dna, 5, 5);
+    Bitzkey& second = simulation.add_agent(dna, 5, 6);
+    for (Bitzkey* parent : {&first, &second}) {
+        parent->age = static_cast<int>(std::lround(parent->lifespan / 2));  // grown
+        parent->grow();
+    }
+    simulation.index_cells();
+    const double cheap = first.breeding_price();
+    simulation.breed(first, second);
+    const auto litter = static_cast<double>(first.womb.size());
+    CHECK(litter * NEWBORN_FOOD / 2 > cheap);  // a litter needs more than breeding costs them
+    CHECK(first.hunger == doctest::Approx(litter * NEWBORN_FOOD / 2));  // so each paid its half of the young's food
+    for (const Bitzkey::Young& young : first.womb) CHECK(young.energy / first.stomach == doctest::Approx(NEWBORN_FOOD));
+    SMALL_LITTERS = small_litters;
+    PLANTS_PER_GRAZER = plants;
+}
+
+TEST_CASE("a grown animal feeds the hungriest infant of its kind close by") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world();
+    Bitzkey& adult = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 5, 5);
+    adult.age = static_cast<int>(std::lround(adult.lifespan / 2));
+    adult.grow();
+    Bitzkey& hungry = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 6, 5);
+    Bitzkey& fed = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 5, 6);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 4}}), 4, 5);  // another species: not its to feed
+    Bitzkey& far = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 10, 10);
+    simulation.index_cells();
+    CHECK((hungry.infant() && fed.infant() && stranger.infant() && far.infant() && !adult.infant()));
+    hungry.hunger = 60;
+    fed.hunger = 20;
+    stranger.hunger = 90;
+    far.hunger = 99;
+    adult.hunger = 10;
+    simulation.nurse(adult);
+    CHECK(hungry.hunger == doctest::Approx(60 - hungry.burn));  // the hungriest close by, a turn's burn
+    CHECK((fed.hunger == 20 && stranger.hunger == 90 && far.hunger == 99));
+    CHECK(adult.hunger == doctest::Approx(10 + hungry.burn * hungry.stomach / adult.stomach));  // from its own stomach
+    adult.hunger = NURSING_LIMIT - 0.01;  // too hungry itself
+    simulation.nurse(adult);
+    CHECK(hungry.hunger == doctest::Approx(60 - hungry.burn));
+    simulation.nurse(hungry);  // an infant feeds no one
+    CHECK(fed.hunger == 20);
+}
+
+TEST_CASE("an infant keeps close to its kind, even a loner's") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Omnivore, {{"empathy", 7}, {"patience", 7}, {"sight", 3}});
+    Bitzkey& infant = simulation.add_agent(dna, 2, 5);
+    std::vector<Bitzkey*> grown;
+    for (const int x : {4, 5}) {
+        Bitzkey& adult = simulation.add_agent(dna, x, 5);
+        adult.age = static_cast<int>(std::lround(adult.lifespan / 2));
+        adult.grow();
+        grown.push_back(&adult);
+    }
+    simulation.index_cells();
+    CHECK(simulation.herd_mate(infant, *grown[0]));  // a solitary omnivore's infant herds with its kind
+    CHECK_FALSE(simulation.herd_mate(*grown[0], *grown[1]));  // though grown omnivores still don't
+    const auto options = simulation.sense(infant).options;
+    CHECK(std::find(options.begin(), options.end(), Herd) != options.end());  // two cells off their middle: it herds
+}
