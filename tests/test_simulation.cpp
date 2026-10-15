@@ -1645,3 +1645,23 @@ TEST_CASE("a body rotted away leaves the seed of a plant, at home where it lay")
     CHECK(decode_climate(seeds[0].dna).temperature == zone_temperature(8, 30));  // at home where it lay
     CORPSE_PLANT = corpse_plant;
 }
+
+TEST_CASE("grazers breed at half the cost, and predators take spines half as hard") {
+    Simulation simulation = world();
+    CHECK((GRAZER_BREEDING_COST == 0.5 && PREDATOR_STING == 0.5));
+    CHECK(simulation.add_agent(encode_dna(Species::Grazer, {{"fertility", 0}}), 2, 2).breeding_cost == 25 * GRAZER_BREEDING_COST);
+    CHECK(simulation.add_agent(encode_dna(Species::Predator, {{"fertility", 0}}), 4, 4).breeding_cost == 25 * HUNTER_BREEDING_COST);
+    const double sting = PREDATOR_STING;
+    std::vector<double> stung;
+    for (const auto& [share, x] : {std::pair{1.0, 2}, std::pair{sting, 8}}) {  // the same blow, its spines taken in full, then half as hard
+        Bitzkey& spiny = simulation.add_agent(encode_dna(Species::Grazer, {{"weapons", 7}, {"size", 7}, {"strength", 7}}), x, 8);
+        Bitzkey& striker = simulation.add_agent(encode_dna(Species::Predator), x, 9);
+        simulation.index_cells();
+        PREDATOR_STING = share;
+        simulation.attack(striker, spiny);
+        stung.push_back(striker.max_health - striker.health);
+    }
+    PREDATOR_STING = sting;
+    CHECK(stung[0] > 0);
+    CHECK(stung[1] == doctest::Approx(stung[0] * 0.5));
+}

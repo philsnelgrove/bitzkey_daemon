@@ -265,7 +265,9 @@ void Bitzkey::derive() {
     browsing = BROWSING[static_cast<std::size_t>(species)];
     sight = 2 + SIGHT_PER_TRAIT * trait(Sight);
     breeding_cost = (BREEDING_COST_MOST - 15 * physique(Fertility)) *
-                    (species == Species::Omnivore || species == Species::Predator ? HUNTER_BREEDING_COST : 1.0);  // hunters pay less
+                    (species == Species::Omnivore || species == Species::Predator ? HUNTER_BREEDING_COST
+                     : species == Species::Grazer                                  ? GRAZER_BREEDING_COST
+                                                                                   : 1.0);  // hunters and grazers pay less
     digestion = 0.2 + 0.8 * physique(Carrion);
 }
 
@@ -1919,8 +1921,9 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     }
     if (killed) die(victim, "killed", &agent, activity);
 
-    const double sting = victim.species == Species::Omnivore ? 0.0  // an omnivore's weapons are for fighting, not spines
-                                                             : 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness);
+    const double sting = (victim.species == Species::Omnivore ? 0.0  // an omnivore's weapons are for fighting, not spines
+                                                              : 4.5 * armed(victim) * defence_share(victim) * (1 - 0.6 * agent.toughness)) *
+                         (agent.species == Species::Predator ? PREDATOR_STING : 1.0);  // a predator takes spines half as hard
     if (sting > 0) {
         agent.health -= sting;
         experience(agent, Stung);
