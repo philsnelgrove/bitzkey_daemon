@@ -1774,3 +1774,27 @@ TEST_CASE("hunters need their food, full litters need four times it, and the las
     RARE_PREY = rare_prey;
     PREY_PER_PREDATOR = prey_need;
 }
+
+TEST_CASE("a glut of predators turns them on other kinds, then their own") {
+    const int glut = PREDATOR_GLUT;
+    PREDATOR_GLUT = 3;  // a glut of three predators, for a small world
+    Simulation simulation = world();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"empathy", 7}, {"tolerance", 7}, {"patience", 7}}), 5, 5);  // loath to
+    Bitzkey& kin = simulation.add_agent(hunter.dna, 5, 6);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}, {"strength", 7}, {"armour", 7}, {"weapons", 7}, {"speed", 7}, {"sight", 7}}),
+                                          6, 5);  // another kind: its ring far apart
+    CHECK_FALSE(Simulation::same_kind(hunter, other));
+    hunter.hunger = 50;
+    struct Step {
+        int count;
+        bool other_prey, kin_prey;
+    };
+    for (const Step& step : {Step{3, false, false}, Step{6, true, false}, Step{8, true, true}}) {  // at it, twice it, past it
+        for (const auto& extra : simulation.agents()) if (extra->identifier > 2) extra->health = 0;
+        for (int x = 0; x < step.count - 3; ++x) simulation.add_agent(encode_dna(Species::Predator), x, 10);
+        simulation.index_cells();
+        CHECK(Simulation::is_prey(hunter, other) == step.other_prey);
+        CHECK(Simulation::is_prey(hunter, kin) == step.kin_prey);
+    }
+    PREDATOR_GLUT = glut;
+}

@@ -166,6 +166,9 @@ inline int RARE_PREY = 10;             // a hunter doesn't breed while fewer of 
 inline int GRAZER_SCARCE_POPULATION = 300;          // grazers' cheap breeding begins below this many,
 inline double GRAZER_RARE_BREEDING_COST = 1.0 / 9;  // and falls to this share of the usual cost at RARE_POPULATION or fewer
 inline double PREDATOR_FULL_LITTER_FOOD = 8.0;      // a predator's full litter needs this many times the prey a predator needs to breed
+// Predators glutting the world turn on one another: above PREDATOR_GLUT alive, their reluctance to hunt other kinds of
+// predator wears away, to none at twice it; past that their own kind become prey too, fully at three times it.
+inline int PREDATOR_GLUT = 600;
 // The share of the usual breeding cost a species of this many living pays: all of it at SCARCE_POPULATION or more,
 // falling evenly to RARE_BREEDING_COST at RARE_POPULATION or fewer; for grazers, from GRAZER_SCARCE_POPULATION to
 // GRAZER_RARE_BREEDING_COST.
@@ -427,6 +430,7 @@ struct Bitzkey {
     double meat = 0.0;                  // a corpse's meat left for scavengers
     double meat_fill = 0.0;             // how much of its fullness is meat, which it digests more slowly
     double cost_share = 1.0;            // the share of its breeding cost its species' scarcity leaves it, as of the turn's start
+    double glut = 0.0;                  // for a predator, how far predators glut the world past PREDATOR_GLUT, in multiples of it
     double rot = 0.0;                   // meat lost to rot each turn
     int portions = 0;                   // a body's portions left to eat, feasting or scavenging: one for each size class
     std::vector<std::pair<int, int>> trail;  // the cells it passed through this turn, for the map

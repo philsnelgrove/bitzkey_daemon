@@ -897,8 +897,13 @@ void Simulation::index_cells() {
     for (const auto& agent : agents_) {
         if (agent->alive()) ++living_[static_cast<std::size_t>(agent->species)];
     }
-    for (const auto& agent : agents_) {  // a scarce species breeds more cheaply
-        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)], agent->species);
+    const int predators = living_[static_cast<std::size_t>(Species::Predator)];
+    const double glut = PREDATOR_GLUT > 0 ? std::max(0.0, static_cast<double>(predators - PREDATOR_GLUT) / PREDATOR_GLUT) : 0.0;
+    for (const auto& agent : agents_) {  // a scarce species breeds more cheaply; a glut of predators turns them on one another
+        if (agent->alive() && agent->species != Species::Plant) {
+            agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)], agent->species);
+            if (agent->species == Species::Predator) agent->glut = glut;
+        }
     }
     departed_.clear();
 }
@@ -2533,10 +2538,15 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (hunter.species != Species::Predator) return false;
     if (other.species == Species::Grazer) return hunter.hunts_grazers;
     if (other.species == Species::Omnivore) return hunter.hunts_omnivores && would_win(hunter, other);  // only one it would beat
-    if (other.species != Species::Predator || same_kind(hunter, other)) return false;  // never its own kind
-    // Other kinds of predator only when hungry past its reluctance, which a territory overcrowded
-    // with predators wears away.
-    return hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry);
+    if (other.species != Species::Predator) return false;
+    // Other kinds of predator only when hungry past its reluctance, which a territory overcrowded with predators
+    // wears away, and so does a world glutted with them; its own kind only once that glut is twice as deep.
+    const double reluctance = cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry);
+    if (same_kind(hunter, other)) {
+        const double own = std::min(1.0, std::max(0.0, hunter.glut - 1));
+        return own > 0 && hunter.hunger / 100 > reluctance * (1 - own);
+    }
+    return hunter.hunger / 100 > reluctance * (1 - std::min(1.0, hunter.glut));
 }
 
 }  // namespace bitzkey

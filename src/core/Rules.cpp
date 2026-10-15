@@ -138,6 +138,7 @@ std::vector<Rule> make_rules() {
         {"RARE_BREEDING_COST", "Mind", "Rare breeding cost", "share of the usual breeding cost a rare species pays", 0.0, 1.0, 0.05, false, &RARE_BREEDING_COST},
         {"FULL_LITTER_FOOD", "Mind", "Full litter food", "times the home food a mouth needs to breed that a full litter needs", 1.0, 10.0, 0.5, false, &FULL_LITTER_FOOD},
         {"PREDATOR_FULL_LITTER_FOOD", "Mind", "Predator full litter", "times the prey a predator needs to breed that its full litter needs", 1.0, 20.0, 0.5, false, &PREDATOR_FULL_LITTER_FOOD},
+        {"PREDATOR_GLUT", "Mind", "Predator glut", "above this many predators alive, they turn on other kinds, fully at twice it, and their own kind past that", 0, 5000, 10, true, &PREDATOR_GLUT},
         {"GRAZER_SCARCE_POPULATION", "Mind", "Grazer scarce population", "below this many living, grazers' breeding cost begins to fall", 1, 3000, 10, true, &GRAZER_SCARCE_POPULATION},
         {"GRAZER_RARE_BREEDING_COST", "Mind", "Grazer rare breeding cost", "share of the usual breeding cost rare grazers pay", 0.0, 1.0, 0.01, false, &GRAZER_RARE_BREEDING_COST},
         {"RARE_PREY", "Mind", "Rare prey", "a hunter doesn't breed while fewer of its prey species, all together, live", 0, 1000, 1, true, &RARE_PREY},
