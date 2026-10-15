@@ -893,12 +893,12 @@ void Simulation::index_cells() {
             ++carrion_count_;
         }
     }
-    std::array<int, 4> living{};  // a scarce species breeds more cheaply
+    living_.fill(0);
     for (const auto& agent : agents_) {
-        if (agent->alive()) ++living[static_cast<std::size_t>(agent->species)];
+        if (agent->alive()) ++living_[static_cast<std::size_t>(agent->species)];
     }
-    for (const auto& agent : agents_) {
-        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living[static_cast<std::size_t>(agent->species)]);
+    for (const auto& agent : agents_) {  // a scarce species breeds more cheaply
+        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)]);
     }
     departed_.clear();
 }
@@ -913,7 +913,14 @@ bool Simulation::may_breed(const Bitzkey& agent, const Bitzkey& partner) const {
     return agent.can_breed() && partner.can_breed() && room() > 0 &&
            (!CROWDING_LIMIT || crowding(agent, partner, true) < CROWDING_LIMIT) &&  // its own kind crowds it
            (!food_needed(agent) || food_supply(agent) >= food_needed(agent)) &&
-           (agent.species == Species::Predator || home_food(agent) >= home_food_needed(agent));
+           well_fed(agent) && !prey_rare(agent);
+}
+
+bool Simulation::prey_rare(const Bitzkey& agent) const {
+    const auto count = [&](Species species) { return living_[static_cast<std::size_t>(species)]; };
+    if (agent.species == Species::Predator) return count(Species::Grazer) + count(Species::Omnivore) < RARE_PREY;
+    if (agent.species == Species::Omnivore) return count(Species::Grazer) + count(Species::Predator) < RARE_PREY;
+    return false;
 }
 
 double Simulation::home_food(const Bitzkey& agent) const {

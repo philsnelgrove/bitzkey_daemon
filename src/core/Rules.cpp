@@ -136,6 +136,8 @@ std::vector<Rule> make_rules() {
         {"SCARCE_POPULATION", "Mind", "Scarce population", "below this many living, a species' breeding cost begins to fall", 1, 2000, 10, true, &SCARCE_POPULATION},
         {"RARE_POPULATION", "Mind", "Rare population", "at this many living or fewer, a species pays the rare breeding cost", 0, 1000, 1, true, &RARE_POPULATION},
         {"RARE_BREEDING_COST", "Mind", "Rare breeding cost", "share of the usual breeding cost a rare species pays", 0.0, 1.0, 0.05, false, &RARE_BREEDING_COST},
+        {"FULL_LITTER_FOOD", "Mind", "Full litter food", "times the home food a mouth needs to breed that a full litter needs", 1.0, 10.0, 0.5, false, &FULL_LITTER_FOOD},
+        {"RARE_PREY", "Mind", "Rare prey", "a hunter doesn't breed while fewer of its prey species, all together, live", 0, 1000, 1, true, &RARE_PREY},
         {"PREDATOR_STING", "Mind", "Predator sting", "share of a victim's spines a predator striking it takes", 0.0, 1.0, 0.05, false, &PREDATOR_STING},
         {"NEWBORN_FOOD", "Mind", "Newborn food", "food, as a share of a stomach, each young must start with: parents conceive no more young than they can give this; 0: no limit", 0.0, 100.0, 5.0, false, &NEWBORN_FOOD},
         {"PACK_MOUTHS", "Mind", "Pack mouths", "mouths each pack-mate counts as on a hunter's food, sharing its kills", 0.0, 1.0, 0.05, false, &PACK_MOUTHS},

@@ -12,6 +12,8 @@ struct Grown : doctest::IReporter {
         bitzkey::rules::defaults();  // the defaults, taken before the change
         bitzkey::FEEBLE_YOUTH = 0.0;
         bitzkey::RARE_BREEDING_COST = 1.0;  // the few Bitzkeys of a test breed at the usual cost, unless a test says so
+        bitzkey::RARE_PREY = 0;  // a test's lone hunters may breed with no prey alive
+        bitzkey::FULL_LITTER_FOOD = 2.0;  // and full litters at twice the need, as the older tests' figures assume
     }
     void report_query(const doctest::QueryData&) override {}
     void test_run_start() override {}

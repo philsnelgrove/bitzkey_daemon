@@ -1228,6 +1228,11 @@ TEST_CASE("deploying puts five of each around a cell, with their brains and mind
 }
 
 TEST_CASE("breeding is the greatest pleasure, courting into reach the next, and failing costs nothing") {
+    struct PreyAside {  // the prey at home aside, put back however the test ends
+        double was = PREY_PER_PREDATOR;
+        PreyAside() { PREY_PER_PREDATOR = 0.0; }
+        ~PreyAside() { PREY_PER_PREDATOR = was; }
+    } prey_aside;
     CHECK((choice_learning(Breed) == BREED_LEARNING && choice_learning(Court) == COURT_LEARNING));
     CHECK((BREED_LEARNING == 1.0 && COURT_LEARNING == 1.0 && KILL_FOOD_LEARNING == 5.0));
     CHECK((BREED_JOY == 4.0 && COURT_JOY == 2.5 && LIBIDO_IN_JOY == 0.25));
@@ -1273,7 +1278,7 @@ TEST_CASE("a predator's breeding follows the prey in its home band, which it sen
         return std::find(options.begin(), options.end(), Breed) != options.end();
     };
     CHECK(simulation.home_prey(first) == 0.0);
-    CHECK(offers_breed());  // no prey at home shrinks its litters, but doesn't stop it breeding
+    CHECK_FALSE(offers_breed());  // no prey at home: a hunter, like a grazer, doesn't breed below its need
     CHECK(simulation.sense(first).senses[SenseHomeFood] == 0.0);
     for (const int x : {2, 4, 6}) simulation.add_agent(encode_dna(x == 2 ? Species::Grazer : Species::Omnivore), x, 10);
     simulation.index_cells();
@@ -1539,6 +1544,11 @@ TEST_CASE("courting is open, and pays, only when breeding could follow") {
 }
 
 TEST_CASE("a pack courts and hunts only toward its home temperature, as a herd herds") {
+    struct PreyAside {  // the prey at home aside, put back however the test ends
+        double was = PREY_PER_PREDATOR;
+        PreyAside() { PREY_PER_PREDATOR = 0.0; }
+        ~PreyAside() { PREY_PER_PREDATOR = was; }
+    } prey_aside;
     Simulation simulation(100, 100, 0, 3);  // cold rows 0-19, medium 20-39, hot 40-59
     const Dna dna = encode_dna(Species::Predator, {{"sight", 7}, {"fertility", 7}, {"temperature", Hot}});
     Bitzkey& predator = simulation.add_agent(dna, 50, 30);  // a step from home
@@ -1727,4 +1737,34 @@ TEST_CASE("a predator is an infant half as long") {
     predator.age = static_cast<int>(0.04 * predator.lifespan);
     predator.grow();
     CHECK(predator.feeble);
+}
+
+TEST_CASE("hunters need their food, full litters need four times it, and the last prey are spared") {
+    const double full = FULL_LITTER_FOOD, prey_need = PREY_PER_PREDATOR;
+    const int rare_prey = RARE_PREY;
+    FULL_LITTER_FOOD = 4.0;
+    RARE_PREY = 10;
+    PREY_PER_PREDATOR = 1.0;
+    Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
+    const Dna dna = encode_dna(Species::Predator, {{"fertility", 7}, {"litter", 7}, {"sight", 3}});  // at home in the temperate bands
+    Bitzkey& first = simulation.add_agent(dna, 15, 8);
+    simulation.add_agent(dna, 15, 9);
+    std::vector<Bitzkey*> far;
+    for (int x = 0; x < 12; ++x) far.push_back(&simulation.add_agent(encode_dna(Species::Grazer), x, 26));  // twelve prey alive, none at home
+    simulation.index_cells();
+    const auto offers_breed = [&] {
+        const auto options = simulation.sense(first).options;
+        return std::find(options.begin(), options.end(), Breed) != options.end();
+    };
+    CHECK_FALSE(offers_breed());  // below its need at home: no breeding, as for a grazer
+    for (const int x : {2, 4}) simulation.add_agent(encode_dna(Species::Grazer), x, 10);  // two prey at home for two predators: just its need
+    simulation.index_cells();
+    CHECK(simulation.home_fed(first) == 0.25);  // a quarter of a full litter at the need
+    CHECK(offers_breed());
+    for (Bitzkey* grazer : far) grazer->health = 0;  // the prey dying out: only the two at home left
+    simulation.index_cells();
+    CHECK_FALSE(offers_breed());  // under ten of its prey alive: it spares them
+    FULL_LITTER_FOOD = full;
+    RARE_PREY = rare_prey;
+    PREY_PER_PREDATOR = prey_need;
 }

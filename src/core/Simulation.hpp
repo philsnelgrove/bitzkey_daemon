@@ -161,6 +161,8 @@ inline double PREDATOR_STING = 0.5;         // share of a victim's spines a pred
 inline int SCARCE_POPULATION = 100;
 inline int RARE_POPULATION = 10;
 inline double RARE_BREEDING_COST = 1.0 / 3;
+inline double FULL_LITTER_FOOD = 4.0;  // a full litter needs this many times the home food a mouth needs to breed; at the need, 1/this
+inline int RARE_PREY = 10;             // a hunter doesn't breed while fewer of its prey species (all together) live, sparing the last
 // The share of the usual breeding cost a species of this many living pays.
 inline double scarcity_share(int population) {
     if (population >= SCARCE_POPULATION) return 1.0;
@@ -809,7 +811,13 @@ public:
     // (grazers and predators) would give a predator, each per omnivore at home there.
     double home_fed(const Bitzkey& agent) const;
     // The share of a full litter `food` a mouth feeds where `needed` is the least to breed: full at twice it.
-    static double fed_share(double food, double needed) { return needed ? std::min(1.0, food / (2 * needed)) : 1.0; }
+    static double fed_share(double food, double needed) { return needed ? std::min(1.0, food / (FULL_LITTER_FOOD * needed)) : 1.0; }
+    // Whether its home band holds the food a mouth needs to breed: plants for a grazer, prey for a predator, both
+    // together, half each, for an omnivore.
+    bool well_fed(const Bitzkey& agent) const { return home_fed(agent) >= 1 / FULL_LITTER_FOOD; }
+    // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY living) that it spares them
+    // by not breeding.
+    bool prey_rare(const Bitzkey& agent) const;
     double plant_yield(const Bitzkey& plant) const;  // the share of its food a plant gives: less out of its temperature
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;
@@ -918,6 +926,7 @@ private:
     std::vector<int> band_predators_;
     std::vector<int> band_omnivores_;       // the omnivores at home in each band, and what they hunt there:
     std::vector<int> band_omnivore_prey_;   // grazers and predators
+    std::array<int, 4> living_{};           // the living of each species, as the cells were last indexed
     void index_bands();
     std::vector<int> grass_rows_;      // the rows where grass grows at all
     std::vector<double> grass_reach_;  // their growth added up, row by row, for sowing
