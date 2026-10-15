@@ -1665,3 +1665,31 @@ TEST_CASE("grazers breed at half the cost, and predators take spines half as har
     CHECK(stung[0] > 0);
     CHECK(stung[1] == doctest::Approx(stung[0] * 0.5));
 }
+
+TEST_CASE("a carrion-eater scales into a coward, and away from hunting") {
+    Simulation simulation = world();
+    Bitzkey& scavenger = simulation.add_agent(encode_dna(Species::Grazer, {{"carrion", 7}, {"fear", 0}}), 2, 2);  // fearless, but a carrion-eater
+    Bitzkey& middling = simulation.add_agent(encode_dna(Species::Grazer, {{"carrion", 3}, {"fear", 0}}), 8, 8);
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Predator), 2, 3);
+    simulation.index_cells();
+    CHECK((scavenger.scavenger() == 1.0 && middling.scavenger() == 0.0));
+    simulation.struck(scavenger, striker);
+    simulation.struck(middling, striker);
+    CHECK(scavenger.panicked);  // always breaks, like an omnivore
+    CHECK_FALSE(middling.panicked);
+    const double aversion = CARRION_AVERSION;
+    std::vector<double> odds;
+    for (const double level : {0.0, 1.0}) {  // the same world twice, without and with the aversion
+        CARRION_AVERSION = level;
+        Simulation again = world();
+        Bitzkey& hunter = again.add_agent(encode_dna(Species::Predator, {{"carrion", 7}, {"sight", 3}}), 5, 5);
+        again.add_agent(encode_dna(Species::Grazer), 5, 8);
+        again.index_cells();
+        const auto sensed = again.sense(hunter);
+        REQUIRE(std::find(sensed.options.begin(), sensed.options.end(), Hunt) != sensed.options.end());
+        again.think(hunter);
+        odds.push_back(hunter.odds[Hunt]);
+    }
+    CARRION_AVERSION = aversion;
+    CHECK(odds[1] < odds[0]);  // it naturally shies from hunting
+}

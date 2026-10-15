@@ -1259,7 +1259,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             const bool can = std::find(options.begin(), options.end(), Breed) != options.end();
             valued[can ? Breed : Court] += call;
         }
-        valued[Scavenge] += CARRION_CRAVING * std::max(0.0, 2 * agent.physique(Carrion) - 1);  // a carrion-eater's craving
+        const double scavenger = agent.scavenger();
+        valued[Scavenge] += CARRION_CRAVING * scavenger;  // a carrion-eater's craving
+        valued[Hunt] -= CARRION_AVERSION * scavenger;      // and its aversion to killing for itself
+        valued[Attack] -= CARRION_AVERSION * scavenger;
         valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
         const auto odds = choice_odds(valued, options);
         double roll = random_.random();
@@ -1975,7 +1978,9 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     const double hurt = 1 - std::max(0.0, victim.health) / victim.max_health;
     const double steadied = 1 - HERD_SAFETY * victim.herd_instinct() * std::min(3, herd_near) / 3;
     const bool coward = victim.species == Species::Omnivore && COWARDLY_OMNIVORES != 0;  // an omnivore struck always breaks
-    if (coward || random_.random() < victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied) {
+    const double chance = std::max(victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied,
+                                   CARRION_COWARDICE * victim.scavenger());  // and a carrion-eater, the more so the more it is one
+    if (coward || random_.random() < chance) {
         victim.panicked = true;
         experience(victim, Panicked);
     }

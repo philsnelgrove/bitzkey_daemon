@@ -161,6 +161,8 @@ inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this man
 inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
 inline double CARRION_CRAVING = 1.0;  // how much more an animal values scavenging carrion it sees, at the highest
                                       // carrion trait; nothing up to the middle of the trait's range
+inline double CARRION_AVERSION = 1.0;   // how much less a carrion-eater values hunting and attacking, at the highest carrion trait, likewise
+inline double CARRION_COWARDICE = 1.0;  // a carrion-eater's least chance of breaking when struck, at the highest carrion trait, likewise
 inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hunter, for a grazer; to a kill, for a hunter
 inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
 inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
@@ -470,6 +472,8 @@ struct Bitzkey {
     // as it starves; any other animal feels them all.
     double unafraid() const { return species == Species::Predator ? std::max(0.0, 1 - hunger / 100) : 1.0; }
     double herd_instinct() const { return std::min(feeling(Empathy), feeling(Patience)); }
+    // How much a carrion-eater it is: 0 up to the middle of its carrion trait's range, rising to 1 at the top.
+    double scavenger() const { return std::max(0.0, 2 * physique(Carrion) - 1); }
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
     bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_cost <= 100 - BREED_RESERVE; }
