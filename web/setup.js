@@ -66,7 +66,7 @@ export function openSetup(app, onClose) {
       element('div', { class: 'scroll' }, rows,
         element('div', { class: 'import-head' }, element('span', {}, 'IMPORT BITZKEYS'),
           element('button', { onclick: openSetupCatalog }, 'FROM CATALOG'),
-          element('button', { onclick: openDesigner }, 'DESIGN'),
+          element('button', { onclick: openSetupDesigner }, 'DESIGN'),
           element('button', { onclick: () => fileInput.click() }, 'LOAD FILE'),
           element('button', { onclick: () => { importBox.value = ''; checkImport(); } }, 'CLEAR')),
         importBox, importStatus, fileInput),
@@ -237,147 +237,17 @@ export function openSetup(app, onClose) {
   }
 
 
-  // ---- The designer
+  // ---- The designer, its design joining the import list
 
-  async function openDesigner() {
-    // The three words: the ring, the dot and the social background.
-    const words = { ring: 0, dot: 0, social: 0 };
-    let sample = null;
-    const take = made => { for (const word of Object.keys(words)) words[word] = parseInt(made[word] || '0', 16) >>> 0; };
-    const last = remembered('design', null);
-    if (last) take(last);
-    else take(await api('/api/design', { random: true, animal: true }));
-    // Each field: which word, where its bits start, and how large it goes.
-    const fields = [
-      ...MIND_TRAITS.map((name, index) => ({ name, word: 'dot', shift: 3 * index, most: 7 })),
-      { name: 'hardiness', word: 'dot', shift: 30, most: 3 },
-      ...BODY_TRAITS.map((name, index) => ({ name, word: 'ring', shift: 3 * index, most: 7 })),
-      { name: 'temperature', word: 'ring', shift: 30, most: 3 },
-      ...SOCIAL_TRAITS.map((name, index) => ({ name, word: 'social', shift: 3 * index, most: 7 })),
-      { name: 'neurodivergence', word: 'social', shift: 3 * SOCIAL_TRAITS.length, most: 15 },
-    ];
-    const valueOf = field => (words[field.word] >>> field.shift) & field.most;
-    const setValue = (field, value) => {
-      const clamped = Math.max(0, Math.min(field.most, value));
-      words[field.word] = ((words[field.word] & ~(field.most << field.shift)) | (clamped << field.shift)) >>> 0;
-    };
-    const codes = () => ({ ring: hex(words.ring), dot: hex(words.dot), social: hex(words.social) });
-    const hex = word => word.toString(16).toUpperCase().padStart(8, '0');
-    const shownValue = (field, value) => {
-      if (field.name === 'species') return `${SPECIES[value % 4]} ${value}`;
-      if (field.name === 'temperature') return TEMPERATURES[value];
-      if (field.name === 'hardiness') return ['none', 'heat', 'cold', 'both'][value];
-      return String(value);
-    };
-
-    const preview = element('div', { class: 'preview-box' });
-    const inputs = { ring: element('input', { maxlength: 8, spellcheck: false }), dot: element('input', { maxlength: 8, spellcheck: false }),
-                     social: element('input', { maxlength: 8, spellcheck: false }) };
-    const facts = element('div', { class: 'facts' });
-    const columns = [element('div', { class: 'column' }, element('h4', {}, 'MIND  /  INNER DOT')),
-                     element('div', { class: 'column' }, element('h4', {}, 'BODY  /  OUTER RING')),
-                     element('div', { class: 'column social' }, element('h4', {}, 'SOCIAL  /  BACKGROUND'))];
-    const socialGrid = element('div', { class: 'social-grid' });  // beneath the mind and body, in two columns
-    columns[2].append(socialGrid);
-    const fieldRows = fields.map((field, index) => {
-      const meter = element('div', {});
-      const value = element('div', { class: 'value' });
-      const row = element('div', { class: 'field-row', tabindex: 0 },
-        element('div', { class: 'field-text' }, element('div', { class: 'field-label', style: { textTransform: 'none' } }, field.name)),
-        element('button', { tabindex: -1, onclick: event => { setValue(field, valueOf(field) - (event.shiftKey ? 5 : 1)); update(); } }, '-'),
-        value,
-        element('button', { tabindex: -1, onclick: event => { setValue(field, valueOf(field) + (event.shiftKey ? 5 : 1)); update(); } }, '+'),
-        element('div', { class: 'meter' }, meter));
-      row.addEventListener('keydown', event => {
-        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-          event.preventDefault();
-          setValue(field, valueOf(field) + (event.shiftKey ? 5 : 1) * (event.key === 'ArrowRight' ? 1 : -1));
-          update();
-        } else if (/^[0-9]$/.test(event.key)) {
-          setValue(field, Number(event.key));
-          update();
-        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-          event.preventDefault();
-          fieldRows[(index + (event.key === 'ArrowDown' ? 1 : fieldRows.length - 1)) % fieldRows.length].row.focus();
-        }
-      });
-      row.addEventListener('focus', () => row.classList.add('focused'));
-      row.addEventListener('blur', () => row.classList.remove('focused'));
-      (field.word === 'social' ? socialGrid : columns[field.word === 'dot' ? 0 : 1]).append(row);
-      return { row, meter, value, field };
+  function openSetupDesigner() {
+    openDesigner({
+      subtitle: 'NEW WORLD  /  DESIGN AN IMPORT',
+      async onApply(made, codes) {
+        remember('design', codes);
+        addImport(made.record_text);
+        tell(`Added a designed ${made.species} to the import list.`, false);
+      },
     });
-
-    let asked = 0;
-    async function update(fromCode = false) {
-      for (const { meter, value, field } of fieldRows) {
-        const current = valueOf(field);
-        meter.style.width = `${current / field.most * 100}%`;
-        value.textContent = shownValue(field, current);
-      }
-      if (!fromCode) {
-        for (const word of Object.keys(words)) inputs[word].value = hex(words[word]);
-      }
-      const ticket = ++asked;
-      sample = await api('/api/design', codes());
-      if (ticket !== asked) return;
-      const size = sample.body[1];
-      preview.replaceChildren(
-        bitzkeyCanvas(look(sample), 16 * dotRadius(size), 16 * 2),
-        element('div', { class: 'actual' }, 'actual size', bitzkeyCanvas(look(sample), dotRadius(size))));
-      facts.replaceChildren(...sample.facts.map(line => element('div', {}, line)));
-    }
-    for (const [word, input] of Object.entries(inputs)) {
-      input.addEventListener('input', () => {
-        input.value = input.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase().slice(0, 8);
-        if (input.value.length === 8) {
-          words[word] = parseInt(input.value, 16) >>> 0;
-          update(true);
-        }
-      });
-      input.addEventListener('blur', () => { input.value = hex(words[word]); });
-    }
-
-    const designerShade = screen('designer', panel => {
-      panel.append(
-        element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY DESIGNER'), element('span', {}, 'NEW WORLD  /  DESIGN AN IMPORT')),
-        element('div', { class: 'lead' }, 'Every trait is part of the genome, so the dot, ring and social background colours change with them.'),
-        element('div', { class: 'designer-body' },
-          element('div', { class: 'preview' }, preview,
-            element('div', { class: 'code-row' }, element('span', {}, 'RING / BODY'), inputs.ring),
-            element('div', { class: 'code-row' }, element('span', {}, 'DOT / MIND'), inputs.dot),
-            element('div', { class: 'code-row' }, element('span', {}, 'SOCIAL'), inputs.social),
-            facts),
-          element('div', { class: 'columns' }, ...columns)),
-        element('div', { class: 'screen-note' }, 'UP/DOWN  choose   LEFT/RIGHT  adjust (SHIFT x5)   type a value or hex code   ENTER  apply   ESC  cancel'),
-        element('div', { class: 'screen-foot', style: { justifyContent: 'space-between' } },
-          element('button', { onclick: async () => {
-            take(await api('/api/design', { random: true }));
-            update();
-          } }, 'RANDOM'),
-          element('span', { style: { display: 'flex', gap: '12px' } },
-            element('button', { onclick: closeDesigner }, 'CANCEL'),
-            element('button', { class: 'primary', onclick: applyDesign }, 'APPLY'))));
-    });
-    update();
-    fieldRows[0].row.focus();
-
-    async function applyDesign() {
-      const made = await api('/api/design', codes());
-      remember('design', codes());
-      addImport(made.record_text);
-      tell(`Added a designed ${made.species} to the import list.`, false);
-      closeDesigner();
-    }
-    function onDesignerKey(event) {
-      if (!onTop(designerShade)) return;
-      if (event.key === 'Escape') { event.preventDefault(); closeDesigner(); }
-      else if (event.key === 'Enter') { event.preventDefault(); applyDesign(); }
-    }
-    document.addEventListener('keydown', onDesignerKey);
-    function closeDesigner() {
-      document.removeEventListener('keydown', onDesignerKey);
-      designerShade.remove();
-    }
   }
 
   // ---- The catalog
@@ -393,6 +263,147 @@ export function openSetup(app, onClose) {
   }
 
   return { update() {}, close };
+}
+
+// The designer: every trait of a genome, its look and its facts. It opens on `start` (the three words, as hex), or the last
+// design applied, or a random animal; APPLY hands the design (as /api/design gives it) and its words to `onApply`.
+export async function openDesigner({ start = null, subtitle = 'DESIGN A BITZKEY', onApply = async () => {} } = {}) {
+  // The three words: the ring, the dot and the social background.
+  const words = { ring: 0, dot: 0, social: 0 };
+  let sample = null;
+  const take = made => { for (const word of Object.keys(words)) words[word] = parseInt(made[word] || '0', 16) >>> 0; };
+  const last = start ?? remembered('design', null);
+  if (last) take(last);
+  else take(await api('/api/design', { random: true, animal: true }));
+  // Each field: which word, where its bits start, and how large it goes.
+  const fields = [
+    ...MIND_TRAITS.map((name, index) => ({ name, word: 'dot', shift: 3 * index, most: 7 })),
+    { name: 'hardiness', word: 'dot', shift: 30, most: 3 },
+    ...BODY_TRAITS.map((name, index) => ({ name, word: 'ring', shift: 3 * index, most: 7 })),
+    { name: 'temperature', word: 'ring', shift: 30, most: 3 },
+    ...SOCIAL_TRAITS.map((name, index) => ({ name, word: 'social', shift: 3 * index, most: 7 })),
+    { name: 'neurodivergence', word: 'social', shift: 3 * SOCIAL_TRAITS.length, most: 15 },
+  ];
+  const valueOf = field => (words[field.word] >>> field.shift) & field.most;
+  const setValue = (field, value) => {
+    const clamped = Math.max(0, Math.min(field.most, value));
+    words[field.word] = ((words[field.word] & ~(field.most << field.shift)) | (clamped << field.shift)) >>> 0;
+  };
+  const codes = () => ({ ring: hex(words.ring), dot: hex(words.dot), social: hex(words.social) });
+  const hex = word => word.toString(16).toUpperCase().padStart(8, '0');
+  const shownValue = (field, value) => {
+    if (field.name === 'species') return `${SPECIES[value % 4]} ${value}`;
+    if (field.name === 'temperature') return TEMPERATURES[value];
+    if (field.name === 'hardiness') return ['none', 'heat', 'cold', 'both'][value];
+    return String(value);
+  };
+
+  const preview = element('div', { class: 'preview-box' });
+  const inputs = { ring: element('input', { maxlength: 8, spellcheck: false }), dot: element('input', { maxlength: 8, spellcheck: false }),
+                   social: element('input', { maxlength: 8, spellcheck: false }) };
+  const facts = element('div', { class: 'facts' });
+  const columns = [element('div', { class: 'column' }, element('h4', {}, 'MIND  /  INNER DOT')),
+                   element('div', { class: 'column' }, element('h4', {}, 'BODY  /  OUTER RING')),
+                   element('div', { class: 'column social' }, element('h4', {}, 'SOCIAL  /  BACKGROUND'))];
+  const socialGrid = element('div', { class: 'social-grid' });  // beneath the mind and body, in two columns
+  columns[2].append(socialGrid);
+  const fieldRows = fields.map((field, index) => {
+    const meter = element('div', {});
+    const value = element('div', { class: 'value' });
+    const row = element('div', { class: 'field-row', tabindex: 0 },
+      element('div', { class: 'field-text' }, element('div', { class: 'field-label', style: { textTransform: 'none' } }, field.name)),
+      element('button', { tabindex: -1, onclick: event => { setValue(field, valueOf(field) - (event.shiftKey ? 5 : 1)); update(); } }, '-'),
+      value,
+      element('button', { tabindex: -1, onclick: event => { setValue(field, valueOf(field) + (event.shiftKey ? 5 : 1)); update(); } }, '+'),
+      element('div', { class: 'meter' }, meter));
+    row.addEventListener('keydown', event => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setValue(field, valueOf(field) + (event.shiftKey ? 5 : 1) * (event.key === 'ArrowRight' ? 1 : -1));
+        update();
+      } else if (/^[0-9]$/.test(event.key)) {
+        setValue(field, Number(event.key));
+        update();
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        fieldRows[(index + (event.key === 'ArrowDown' ? 1 : fieldRows.length - 1)) % fieldRows.length].row.focus();
+      }
+    });
+    row.addEventListener('focus', () => row.classList.add('focused'));
+    row.addEventListener('blur', () => row.classList.remove('focused'));
+    (field.word === 'social' ? socialGrid : columns[field.word === 'dot' ? 0 : 1]).append(row);
+    return { row, meter, value, field };
+  });
+
+  let asked = 0;
+  async function update(fromCode = false) {
+    for (const { meter, value, field } of fieldRows) {
+      const current = valueOf(field);
+      meter.style.width = `${current / field.most * 100}%`;
+      value.textContent = shownValue(field, current);
+    }
+    if (!fromCode) {
+      for (const word of Object.keys(words)) inputs[word].value = hex(words[word]);
+    }
+    const ticket = ++asked;
+    sample = await api('/api/design', codes());
+    if (ticket !== asked) return;
+    const size = sample.body[1];
+    preview.replaceChildren(
+      bitzkeyCanvas(look(sample), 16 * dotRadius(size), 16 * 2),
+      element('div', { class: 'actual' }, 'actual size', bitzkeyCanvas(look(sample), dotRadius(size))));
+    facts.replaceChildren(...sample.facts.map(line => element('div', {}, line)));
+  }
+  for (const [word, input] of Object.entries(inputs)) {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase().slice(0, 8);
+      if (input.value.length === 8) {
+        words[word] = parseInt(input.value, 16) >>> 0;
+        update(true);
+      }
+    });
+    input.addEventListener('blur', () => { input.value = hex(words[word]); });
+  }
+
+  const designerShade = screen('designer', panel => {
+    panel.append(
+      element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY DESIGNER'), element('span', {}, subtitle)),
+      element('div', { class: 'lead' }, 'Every trait is part of the genome, so the dot, ring and social background colours change with them.'),
+      element('div', { class: 'designer-body' },
+        element('div', { class: 'preview' }, preview,
+          element('div', { class: 'code-row' }, element('span', {}, 'RING / BODY'), inputs.ring),
+          element('div', { class: 'code-row' }, element('span', {}, 'DOT / MIND'), inputs.dot),
+          element('div', { class: 'code-row' }, element('span', {}, 'SOCIAL'), inputs.social),
+          facts),
+        element('div', { class: 'columns' }, ...columns)),
+      element('div', { class: 'screen-note' }, 'UP/DOWN  choose   LEFT/RIGHT  adjust (SHIFT x5)   type a value or hex code   ENTER  apply   ESC  cancel'),
+      element('div', { class: 'screen-foot', style: { justifyContent: 'space-between' } },
+        element('button', { onclick: async () => {
+          take(await api('/api/design', { random: true }));
+          update();
+        } }, 'RANDOM'),
+        element('span', { style: { display: 'flex', gap: '12px' } },
+          element('button', { onclick: closeDesigner }, 'CANCEL'),
+          element('button', { class: 'primary', onclick: applyDesign }, 'APPLY'))));
+  });
+  update();
+  fieldRows[0].row.focus();
+
+  async function applyDesign() {
+    const made = await api('/api/design', codes());
+    await onApply(made, codes());
+    closeDesigner();
+  }
+  function onDesignerKey(event) {
+    if (!onTop(designerShade)) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeDesigner(); }
+    else if (event.key === 'Enter') { event.preventDefault(); applyDesign(); }
+  }
+  document.addEventListener('keydown', onDesignerKey);
+  function closeDesigner() {
+    document.removeEventListener('keydown', onDesignerKey);
+    designerShade.remove();
+  }
 }
 
 // The catalog of favourite Bitzkeys. Opened from the setup panel, the Bitzkeys chosen go to `onImport`
@@ -522,6 +533,7 @@ export function openCatalog({ onImport = null, onDeploy = null, onClose = () => 
   const hint = element('span', { class: 'catalog-hint' });
   const importButton = element('button', { class: 'primary', onclick: importChosen }, 'ADD TO IMPORT');
   const removeButton = element('button', { onclick: askToRemove }, 'REMOVE');
+  const designButton = element('button', { onclick: designEntry }, 'DESIGNER');
 
   async function load() {
     const loaded = await api('/api/catalog');
@@ -593,6 +605,26 @@ export function openCatalog({ onImport = null, onDeploy = null, onClose = () => 
     await load();
   }
 
+  // The designer, on the entry picked (or the last design if the catalog is empty); a design applied joins the
+  // catalog as a new entry, its genome alone, and is picked.
+  function designEntry() {
+    const agent = entries[picked]?.details;
+    openDesigner({
+      start: agent ? { ring: agent.ring, dot: agent.dot, social: agent.social } : null,
+      subtitle: 'CATALOG  /  DESIGN AN ENTRY',
+      async onApply(made, codes) {
+        try {
+          catalogNote = (await api('/api/catalog/design', codes)).note;
+        } catch (error) {
+          catalogNote = error.message;
+        }
+        picked = entries.length;  // the new entry, last
+        chosen = new Set([picked]);
+        await load();
+      },
+    });
+  }
+
   async function importChosen() {
     if (!chosen.size) return;
     if (browsing) {  // DEPLOY: onto the running world
@@ -612,7 +644,7 @@ export function openCatalog({ onImport = null, onDeploy = null, onClose = () => 
       element('div', { class: 'lead' }, browsing ? 'Each one kept as it was when catalogued, its trained brain and all.'
                                                  : 'Each one kept as it was when catalogued, its trained brain and all. Choose those to import.'),
       element('div', { class: 'catalog-body' }, list, side),
-      element('div', { class: 'catalog-foot' }, removeButton, hint, browsing && !onDeploy ? null : importButton,
+      element('div', { class: 'catalog-foot' }, removeButton, designButton, hint, browsing && !onDeploy ? null : importButton,
         element('button', { onclick: closeCatalog }, 'CLOSE')));
   });
   function onCatalogKey(event) {

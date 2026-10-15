@@ -64,7 +64,7 @@ export function details(agent, { large = 0 } = {}) {
 
   if (!known) {
     panel.append(element('div', { class: 'note' }, `LIFESPAN ~${fixed(agent.lifespan, 0)}`));
-    panel.append(element('div', { class: 'faint' }, 'Not in the world at this turn: only its genome is known.'));
+    panel.append(element('div', { class: 'faint' }, agent.note || 'Not in the world at this turn: only its genome is known.'));
     return panel;
   }
   panel.append(element('div', { class: 'mono hunger' }, `HUNGER  ${fixed(Math.min(100, agent.hunger), 1).padStart(5)}%`));

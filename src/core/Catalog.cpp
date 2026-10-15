@@ -31,6 +31,15 @@ std::string name_of(const std::filesystem::path& path) { return path.filename().
 
 }  // namespace
 
+Entry design_entry(Dna dna) {
+    Entry record = genome_record(dna);
+    Entry state = Entry::object();
+    state["designed"] = true;
+    state["added"] = now_text();
+    record["catalog"] = state;
+    return record;
+}
+
 Entry entry_for(const Bitzkey& agent, int turn) {
     Entry record = bitzkey_record(agent);
     Entry state = Entry::object();
@@ -146,7 +155,7 @@ std::string describe(const Entry& entry) {
         std::snprintf(name, sizeof name, "#%03d ", state["identifier"].get<int>());
         parts.push_back(name + species);
     } else {
-        parts.push_back(species);
+        parts.push_back(state.contains("designed") && state["designed"].get<bool>() ? "designed " + species : species);
     }
     if (state.contains("turn")) parts.push_back("turn " + std::to_string(state["turn"].get<int>()));
     if (state.contains("added")) parts.push_back(state["added"].get<std::string>());

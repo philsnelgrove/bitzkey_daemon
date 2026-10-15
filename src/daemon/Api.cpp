@@ -152,6 +152,17 @@ std::uint64_t fresh_seed() {
     return (static_cast<std::uint64_t>(device()) << 32) | device();
 }
 
+// How a dead Bitzkey died, as far as it is known: the turn, the cause, and what killed it, doing what.
+std::string death_note(const Simulation& simulation, int identifier) {
+    const Simulation::DeathRecord* death = simulation.death_record(identifier);
+    if (!death) return "Dead: only its genome is known.";
+    std::string killer;
+    if (death->killer >= 0) {
+        killer = format(" by #%03d %s, %s", death->killer, std::string(species_name(death->killer_species)).c_str(), death->activity.c_str());
+    }
+    return format("Died at turn %d: %s%s.", death->turn, death->cause.c_str(), killer.c_str());
+}
+
 }  // namespace
 
 void install_routes(httplib::Server& server, World& world, const std::filesystem::path& web_dir) {
@@ -370,10 +381,16 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                 result["activity"] = record->activity;  // what the killer was doing
             }
         }
-        if (alive) {  // the dead show only their colour, and how they died
+        if (alive) {
             for (const Bitzkey* agent : simulation.living()) {
                 if (agent->identifier == identifier) result["details"] = inspect(*agent, true, simulation.temperature(agent->y));
             }
+        } else {  // the dead: what the genome fixes, and how it died
+            Bitzkey remembered(identifier, dna, 0, 0);
+            remembered.age = static_cast<int>(std::lround(remembered.lifespan / 2));  // grown, not feeble: its genome's body
+            remembered.grow();
+            result["details"] = inspect(remembered, false);
+            result["details"]["note"] = death_note(simulation, identifier);
         }
         reply(response, result);
     }));
@@ -565,6 +582,23 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
             return;
         }
         reply(response, {{"note", add_to_catalog(world.paths().catalog, entries, what, skipped)}});
+    }));
+
+    // A design from the designer, added to the catalog as a new entry: its genome alone, no brain.
+    server.Post("/api/catalog/design", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        const auto word = [&](const char* key) {
+            const std::string text = given.value(key, std::string("0"));
+            if (text.empty() || text.size() > 8 ||
+                !std::all_of(text.begin(), text.end(), [](char c) { return std::isxdigit(static_cast<unsigned char>(c)); })) {
+                throw std::invalid_argument(std::string(key) + " must be up to 8 hex digits");
+            }
+            return static_cast<std::uint32_t>(std::stoul(text, nullptr, 16));
+        };
+        const Dna dna{(static_cast<std::uint64_t>(word("ring")) << 32) | word("dot"), word("social")};
+        auto lock = world.lock();
+        catalog::add({catalog::design_entry(dna)}, world.paths().catalog);
+        reply(response, {{"note", "Designed and added to the catalog."}});
     }));
 
     server.Post("/api/catalog/remove", guarded([&world](const httplib::Request& request, httplib::Response& response) {

@@ -289,6 +289,13 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(client.Post("/api/deploy", Json{{"indexes", {0}}, {"x", -1}, {"y", 3}}.dump(), "application/json")->status == 400);
         post(client, "/api/catalog/remove", {{"indexes", {0}}});
         CHECK(get(client, "/api/catalog")["entries"].empty());
+        // A design from the designer joins the catalog as a genome alone.
+        CHECK(post(client, "/api/catalog/design", {{"ring", "00000021"}, {"dot", "0"}, {"social", "0"}})["note"] == "Designed and added to the catalog.");
+        const Json with_design = get(client, "/api/catalog");
+        REQUIRE(with_design["entries"].size() == 1);
+        CHECK(with_design["entries"][0]["line"].get<std::string>().rfind("designed ", 0) == 0);
+        CHECK(client.Post("/api/catalog/design", Json{{"ring", "nothex"}}.dump(), "application/json")->status == 400);
+        post(client, "/api/catalog/remove", {{"indexes", {0}}});
 
         const Json report = post(client, "/api/report", Json::object());
         CHECK(std::filesystem::exists(folder / "reports" / report["name"].get<std::string>()));

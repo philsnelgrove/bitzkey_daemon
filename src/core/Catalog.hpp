@@ -22,6 +22,7 @@ constexpr int STATE_DIGITS = 3;  // decimal places kept for hunger, health and c
 using Entry = nlohmann::ordered_json;
 
 Entry entry_for(const Bitzkey& agent, int turn);  // an animal as it is now, its brain among it
+Entry design_entry(Dna dna);  // a design: its genome alone, no brain, marked as designed
 
 // The catalogued entries, oldest first; none if there is no catalog yet. Throws
 // std::invalid_argument if the file can't be read as a catalog.
