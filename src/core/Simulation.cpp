@@ -898,7 +898,7 @@ void Simulation::index_cells() {
         if (agent->alive()) ++living_[static_cast<std::size_t>(agent->species)];
     }
     for (const auto& agent : agents_) {  // a scarce species breeds more cheaply
-        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)]);
+        if (agent->alive() && agent->species != Species::Plant) agent->cost_share = scarcity_share(living_[static_cast<std::size_t>(agent->species)], agent->species);
     }
     departed_.clear();
 }
@@ -943,7 +943,7 @@ double Simulation::home_fed(const Bitzkey& agent) const {
                0.5 * fed_share(band_omnivore_prey_[band] / mouths, PREY_PER_PREDATOR);
     }
     if (agent.species == Species::Plant) return 0.0;
-    return fed_share(home_food(agent), home_food_needed(agent));
+    return fed_share(home_food(agent), home_food_needed(agent), full_litter(agent));
 }
 
 double Simulation::home_plants(const Bitzkey& grazer) const {

@@ -1704,23 +1704,28 @@ TEST_CASE("a carrion-eater scales into a coward, and away from hunting") {
     CHECK(odds[1] < odds[0]);  // it naturally shies from hunting
 }
 
-TEST_CASE("a scarce species breeds more cheaply, down to a third when rare") {
+TEST_CASE("a scarce species breeds more cheaply, down to a third when rare, and grazers to a ninth") {
     RARE_BREEDING_COST = 1.0 / 3;
+    GRAZER_RARE_BREEDING_COST = 1.0 / 9;
     CHECK((scarcity_share(100) == 1.0 && scarcity_share(250) == 1.0));
     CHECK((scarcity_share(10) == 1.0 / 3 && scarcity_share(3) == 1.0 / 3));
     CHECK(scarcity_share(55) == doctest::Approx(2.0 / 3));  // halfway
+    CHECK((scarcity_share(300, Species::Grazer) == 1.0 && scarcity_share(10, Species::Grazer) == 1.0 / 9));  // grazers' from 300
+    CHECK(scarcity_share(155, Species::Grazer) == doctest::Approx(1.0 / 9 + (8.0 / 9) * 145 / 290));
     Simulation simulation = world();
-    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"fertility", 0}}), 2, 2);
-    const double usual = grazer.breeding_price();
-    simulation.index_cells();  // one grazer: rare
-    CHECK(grazer.breeding_price() == doctest::Approx(usual / 3));
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"fertility", 0}}), 2, 2);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"fertility", 0}}), 8, 8);
+    const double usual = omnivore.breeding_price(), usual_grazer = grazer.breeding_price();
+    simulation.index_cells();  // one of each: rare
+    CHECK(omnivore.breeding_price() == doctest::Approx(usual / 3));
+    CHECK(grazer.breeding_price() == doctest::Approx(usual_grazer / 9));
     for (int x = 0; x < 10; ++x) {
         for (int y = 1; y <= 10; ++y) {
-            if (!(x == 2 && y == 2)) simulation.add_agent(encode_dna(Species::Grazer), x, y);
+            if (!(x == 2 && y == 2)) simulation.add_agent(encode_dna(Species::Omnivore), x, y);
         }
     }
-    simulation.index_cells();  // a hundred: common again
-    CHECK(grazer.breeding_price() == usual);
+    simulation.index_cells();  // a hundred omnivores: common again
+    CHECK(omnivore.breeding_price() == usual);
 }
 
 TEST_CASE("a predator is an infant half as long") {
@@ -1743,6 +1748,7 @@ TEST_CASE("hunters need their food, full litters need four times it, and the las
     const double full = FULL_LITTER_FOOD, prey_need = PREY_PER_PREDATOR;
     const int rare_prey = RARE_PREY;
     FULL_LITTER_FOOD = 4.0;
+    PREDATOR_FULL_LITTER_FOOD = 8.0;
     RARE_PREY = 10;
     PREY_PER_PREDATOR = 1.0;
     Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
@@ -1759,7 +1765,7 @@ TEST_CASE("hunters need their food, full litters need four times it, and the las
     CHECK_FALSE(offers_breed());  // below its need at home: no breeding, as for a grazer
     for (const int x : {2, 4}) simulation.add_agent(encode_dna(Species::Grazer), x, 10);  // two prey at home for two predators: just its need
     simulation.index_cells();
-    CHECK(simulation.home_fed(first) == 0.25);  // a quarter of a full litter at the need
+    CHECK(simulation.home_fed(first) == 0.125);  // an eighth of a predator's full litter at the need
     CHECK(offers_breed());
     for (Bitzkey* grazer : far) grazer->health = 0;  // the prey dying out: only the two at home left
     simulation.index_cells();

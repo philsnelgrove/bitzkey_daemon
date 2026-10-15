@@ -163,11 +163,19 @@ inline int RARE_POPULATION = 10;
 inline double RARE_BREEDING_COST = 1.0 / 3;
 inline double FULL_LITTER_FOOD = 4.0;  // a full litter needs this many times the home food a mouth needs to breed; at the need, 1/this
 inline int RARE_PREY = 10;             // a hunter doesn't breed while fewer of its prey species (all together) live, sparing the last
-// The share of the usual breeding cost a species of this many living pays.
-inline double scarcity_share(int population) {
-    if (population >= SCARCE_POPULATION) return 1.0;
-    if (population <= RARE_POPULATION || SCARCE_POPULATION <= RARE_POPULATION) return RARE_BREEDING_COST;
-    return RARE_BREEDING_COST + (1 - RARE_BREEDING_COST) * (population - RARE_POPULATION) / (SCARCE_POPULATION - RARE_POPULATION);
+inline int GRAZER_SCARCE_POPULATION = 300;          // grazers' cheap breeding begins below this many,
+inline double GRAZER_RARE_BREEDING_COST = 1.0 / 9;  // and falls to this share of the usual cost at RARE_POPULATION or fewer
+inline double PREDATOR_FULL_LITTER_FOOD = 8.0;      // a predator's full litter needs this many times the prey a predator needs to breed
+// The share of the usual breeding cost a species of this many living pays: all of it at SCARCE_POPULATION or more,
+// falling evenly to RARE_BREEDING_COST at RARE_POPULATION or fewer; for grazers, from GRAZER_SCARCE_POPULATION to
+// GRAZER_RARE_BREEDING_COST.
+inline double scarcity_share(int population, Species species = Species::Plant) {
+    const bool grazer = species == Species::Grazer;
+    const int scarce = grazer ? GRAZER_SCARCE_POPULATION : SCARCE_POPULATION;
+    const double rare_cost = grazer ? GRAZER_RARE_BREEDING_COST : RARE_BREEDING_COST;
+    if (population >= scarce) return 1.0;
+    if (population <= RARE_POPULATION || scarce <= RARE_POPULATION) return rare_cost;
+    return rare_cost + (1 - rare_cost) * (population - RARE_POPULATION) / (scarce - RARE_POPULATION);
 }
 inline double NEWBORN_FOOD = 5.0;     // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
 constexpr double BREEDING_COST_MOST = 25.0;  // the hunger the least fertile pay to breed: the most a parent could give its young
@@ -811,10 +819,18 @@ public:
     // (grazers and predators) would give a predator, each per omnivore at home there.
     double home_fed(const Bitzkey& agent) const;
     // The share of a full litter `food` a mouth feeds where `needed` is the least to breed: full at twice it.
-    static double fed_share(double food, double needed) { return needed ? std::min(1.0, food / (FULL_LITTER_FOOD * needed)) : 1.0; }
+    // The share of a full litter `food` a mouth feeds where `needed` is the least to breed: full at `full` times it.
+    static double fed_share(double food, double needed, double full = 0.0) {
+        return needed ? std::min(1.0, food / ((full ? full : FULL_LITTER_FOOD) * needed)) : 1.0;
+    }
+    // How many times the home food it needs to breed a full litter needs: PREDATOR_FULL_LITTER_FOOD for a predator,
+    // FULL_LITTER_FOOD for any other.
+    static double full_litter(const Bitzkey& agent) {
+        return agent.species == Species::Predator ? PREDATOR_FULL_LITTER_FOOD : FULL_LITTER_FOOD;
+    }
     // Whether its home band holds the food a mouth needs to breed: plants for a grazer, prey for a predator, both
     // together, half each, for an omnivore.
-    bool well_fed(const Bitzkey& agent) const { return home_fed(agent) >= 1 / FULL_LITTER_FOOD; }
+    bool well_fed(const Bitzkey& agent) const { return home_fed(agent) >= 1 / full_litter(agent); }
     // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY living) that it spares them
     // by not breeding.
     bool prey_rare(const Bitzkey& agent) const;
