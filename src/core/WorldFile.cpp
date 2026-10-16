@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <map>
+#include <ostream>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -85,14 +87,14 @@ struct Numbers {
     json senses(const Senses& senses) { return add(senses); }
 };
 
-// The numbers part, as it is read back.
+// The numbers part, as it is read back, where it lies in the file.
 struct Reader {
-    const double* numbers;
+    const char* numbers;
     std::size_t count;
 
-    const double* take(std::size_t at, std::size_t wanted) const {
+    const char* take(std::size_t at, std::size_t wanted) const {
         if (at + wanted > count) throw std::runtime_error("The world file's numbers are cut short.");
-        return numbers + at;
+        return numbers + at * sizeof(double);
     }
     void read_layers(std::size_t& at, int depth, std::vector<Layer>& layers, Brain::OutputWeights& output_weights,
                      std::array<double, ACTION_COUNT>& output_biases) const {
@@ -101,8 +103,8 @@ struct Reader {
             Layer layer;
             layer.reads = index == 0 ? INPUT_SIZE : HIDDEN_SIZE;
             const std::size_t size = static_cast<std::size_t>(HIDDEN_SIZE) * layer.reads;
-            const double* weights = take(at, size);
-            layer.weights.assign(weights, weights + size);
+            layer.weights.resize(size);
+            std::memcpy(layer.weights.data(), take(at, size), sizeof(double) * size);
             at += size;
             std::memcpy(layer.biases.data(), take(at, HIDDEN_SIZE), sizeof(double) * HIDDEN_SIZE);
             at += HIDDEN_SIZE;
@@ -134,6 +136,25 @@ struct Reader {
         return senses;
     }
 };
+
+// The whole-numbers part, as it is read back.
+struct Whole {
+    const char* ints;
+    std::size_t count;
+
+    std::int32_t operator[](std::size_t at) const {
+        if (at >= count) throw std::runtime_error("The world file's whole numbers are cut short.");
+        std::int32_t value;
+        std::memcpy(&value, ints + at * sizeof value, sizeof value);
+        return value;
+    }
+    std::uint32_t word(std::size_t at) const { return static_cast<std::uint32_t>((*this)[at]); }
+};
+
+template <class T>
+void put(std::ostream& out, const T& value) {
+    out.write(reinterpret_cast<const char*>(&value), sizeof value);
+}
 
 json mind_record(const Mind& mind) { return json(std::vector<double>(mind.begin(), mind.end())); }
 
@@ -274,8 +295,15 @@ json names(auto&& list) {
 }  // namespace
 
 std::string WorldFile::bytes(Simulation& simulation) {
+    std::ostringstream out(std::ios::binary);
+    write(simulation, out);
+    return std::move(out).str();
+}
+
+void WorldFile::write(Simulation& simulation, std::ostream& out) {
     simulation.sync_brains();
     Numbers numbers;
+    std::vector<std::int32_t> ints;  // the census and lineage; the deaths follow, written as they go
     const PyRandom::State& random = simulation.random_.getstate();
     json grass = json::array();
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
@@ -296,21 +324,31 @@ std::string WorldFile::bytes(Simulation& simulation) {
                             std::string(ACTIONS[entry.action]), entry.offered, entry.chosen});
     }
     json snapshots = json::array();
-    for (const Census::Snapshot& snapshot : simulation.census_.snapshots()) snapshots.push_back({snapshot.turn, snapshot.identifiers});
-    json lineage = json::array();
-    for (const Dna& dna : simulation.lineage_) lineage.push_back(genome_text(dna));
-    json death_records = json::array();
-    std::vector<std::pair<int, const Death*>> deaths;  // by identifier, the same however the records are kept
-    for (const auto& [identifier, death] : simulation.death_records_) deaths.emplace_back(identifier, &death);
-    std::sort(deaths.begin(), deaths.end());
-    for (const auto& [identifier, held] : deaths) {
-        const Death& death = *held;
-        const bool killed = death.killer >= 0;
-        death_records.push_back({identifier, death.cause, std::string(species_name(death.species)), death.turn,
-                                 killed ? json(death.killer) : json(nullptr),
-                                 killed ? json(std::string(species_name(death.killer_species))) : json(nullptr),
-                                 death.activity.empty() ? json(nullptr) : json(death.activity)});
+    for (const Census::Snapshot& snapshot : simulation.census_.snapshots()) {
+        snapshots.push_back({snapshot.turn, ints.size(), snapshot.identifiers.size()});
+        ints.insert(ints.end(), snapshot.identifiers.begin(), snapshot.identifiers.end());
     }
+    const std::size_t lineage_at = ints.size();
+    for (const Dna& dna : simulation.lineage_) {
+        ints.push_back(static_cast<std::int32_t>(dna.social));
+        ints.push_back(static_cast<std::int32_t>(static_cast<std::uint32_t>(dna.bits >> 32)));
+        ints.push_back(static_cast<std::int32_t>(static_cast<std::uint32_t>(dna.bits)));
+    }
+    std::vector<int> dead;  // by identifier, the same however the records are kept
+    dead.reserve(simulation.death_records_.size());
+    std::vector<std::string> strings;  // the causes and doings, each once
+    std::map<std::string, int, std::less<>> string_at;
+    const auto code = [&](const std::string& text) {
+        const auto [found, added] = string_at.try_emplace(text, static_cast<int>(strings.size()));
+        if (added) strings.push_back(text);
+        return found->second;
+    };
+    for (const auto& [identifier, death] : simulation.death_records_) {
+        dead.push_back(identifier);
+        code(death.cause);
+        if (!death.activity.empty()) code(death.activity);
+    }
+    std::sort(dead.begin(), dead.end());
     json agents = json::array();
     for (const auto& agent : simulation.agents_) agents.push_back(agent_record(*agent, numbers));
     json rules = json::object();
@@ -329,37 +367,68 @@ std::string WorldFile::bytes(Simulation& simulation) {
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
         {"grass", std::move(grass)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
-        {"lineage", std::move(lineage)}, {"death_records", std::move(death_records)}, {"agents", std::move(agents)},
+        {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}}},
+        {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
+        {"agents", std::move(agents)},
     };
     const std::string text = record.dump();
-    std::string data(WORLD_MAGIC);
-    const std::uint64_t length = text.size();
-    data.append(reinterpret_cast<const char*>(&length), sizeof length);
-    data += text;
-    data.append(reinterpret_cast<const char*>(numbers.values.data()), numbers.values.size() * sizeof(double));
-    return data;
+    out.write(WORLD_MAGIC.data(), static_cast<std::streamsize>(WORLD_MAGIC.size()));
+    put(out, static_cast<std::uint64_t>(text.size()));
+    out.write(text.data(), static_cast<std::streamsize>(text.size()));
+    put(out, static_cast<std::uint64_t>(numbers.values.size()));
+    out.write(reinterpret_cast<const char*>(numbers.values.data()), static_cast<std::streamsize>(numbers.values.size() * sizeof(double)));
+    put(out, static_cast<std::uint64_t>(ints.size() + 7 * dead.size()));
+    out.write(reinterpret_cast<const char*>(ints.data()), static_cast<std::streamsize>(ints.size() * sizeof(std::int32_t)));
+    std::vector<std::int32_t> rows;  // the deaths, a few thousand at a time
+    rows.reserve(7 * 4096);
+    for (std::size_t index = 0; index < dead.size(); ++index) {
+        const Death& death = simulation.death_records_.at(dead[index]);
+        const bool killed = death.killer >= 0;
+        rows.insert(rows.end(), {dead[index], code(death.cause), static_cast<std::int32_t>(death.species), death.turn, killed ? death.killer : -1,
+                                 killed ? static_cast<std::int32_t>(death.killer_species) : -1, death.activity.empty() ? -1 : code(death.activity)});
+        if (rows.size() >= 7 * 4096 || index + 1 == dead.size()) {
+            out.write(reinterpret_cast<const char*>(rows.data()), static_cast<std::streamsize>(rows.size() * sizeof(std::int32_t)));
+            rows.clear();
+        }
+    }
 }
 
 std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
-    if (!data.starts_with(WORLD_MAGIC)) throw std::runtime_error("This isn't a Bitzkey world file.");
-    const std::size_t start = WORLD_MAGIC.size() + sizeof(std::uint64_t);
-    if (data.size() < start) throw std::runtime_error("The world file is cut short.");
-    std::uint64_t length = 0;
-    std::memcpy(&length, data.data() + WORLD_MAGIC.size(), sizeof length);
-    if (data.size() < start + length || (data.size() - start - length) % sizeof(double)) {
-        throw std::runtime_error("The world file is cut short.");
+    const bool first_format = data.starts_with(WORLD_MAGIC_1);
+    if (!first_format && !data.starts_with(WORLD_MAGIC)) throw std::runtime_error("This isn't a Bitzkey world file.");
+    const auto cut_short = [] { return std::runtime_error("The world file is cut short."); };
+    std::size_t at = WORLD_MAGIC.size();
+    const auto count_at = [&](std::size_t width) {  // a count, then the room for that many values `width` bytes each
+        if (data.size() < at + sizeof(std::uint64_t)) throw cut_short();
+        std::uint64_t count = 0;
+        std::memcpy(&count, data.data() + at, sizeof count);
+        at += sizeof count;
+        if (count > (data.size() - at) / width) throw cut_short();
+        return static_cast<std::size_t>(count);
+    };
+    const std::size_t length = count_at(1);
+    const std::string_view text = data.substr(at, length);
+    at += length;
+    Reader reader{nullptr, 0};
+    Whole whole{nullptr, 0};
+    if (first_format) {  // the numbers run to the end
+        if ((data.size() - at) % sizeof(double)) throw cut_short();
+        reader = {data.data() + at, (data.size() - at) / sizeof(double)};
+    } else {
+        reader.count = count_at(sizeof(double));
+        reader.numbers = data.data() + at;
+        at += reader.count * sizeof(double);
+        whole.count = count_at(sizeof(std::int32_t));
+        whole.ints = data.data() + at;
     }
     json record;
     try {
-        record = json::parse(data.substr(start, length));
+        record = json::parse(text);
     } catch (const json::exception& error) {
         throw std::runtime_error(std::string("The world file is damaged (") + error.what() + ").");
     }
-    std::vector<double> numbers((data.size() - start - length) / sizeof(double));
-    std::memcpy(numbers.data(), data.data() + start + length, numbers.size() * sizeof(double));
-    const Reader reader{numbers.data(), numbers.size()};
     try {
-        if (record.value("format", 0) != WORLD_FORMAT) {
+        if (record.value("format", 0) != (first_format ? 1 : WORLD_FORMAT)) {
             throw std::runtime_error("This world file is format " + record.value("format", json(nullptr)).dump() + "; this version reads format " +
                                      std::to_string(WORLD_FORMAT) + ".");
         }
@@ -429,20 +498,60 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         }
         std::vector<Census::Snapshot> snapshots;
         for (const json& snapshot : record.at("census").at("snapshots")) {
-            snapshots.push_back({snapshot.at(0).get<int>(), snapshot.at(1).get<std::vector<int>>()});
+            Census::Snapshot made_snapshot{snapshot.at(0).get<int>(), {}};
+            if (first_format) {
+                made_snapshot.identifiers = snapshot.at(1).get<std::vector<int>>();
+            } else {
+                const std::size_t first = snapshot.at(1).get<std::size_t>(), count = snapshot.at(2).get<std::size_t>();
+                made_snapshot.identifiers.reserve(count);
+                for (std::size_t index = 0; index < count; ++index) made_snapshot.identifiers.push_back(whole[first + index]);
+            }
+            snapshots.push_back(std::move(made_snapshot));
         }
         world.census_.restore(record.at("census").at("stride").get<int>(), std::move(snapshots));
         world.lineage_.clear();
-        for (const json& dna : record.at("lineage")) world.lineage_.push_back(genome_from(dna));
         world.death_records_.clear();
-        for (const json& death : record.at("death_records")) {
-            Death made_death{death.at(1).get<std::string>(), species_named(death.at(2).get<std::string>()), death.at(3).get<int>()};
-            if (!death.at(4).is_null()) {
-                made_death.killer = death.at(4).get<int>();
-                made_death.killer_species = species_named(death.at(5).get<std::string>());
+        if (first_format) {
+            for (const json& dna : record.at("lineage")) world.lineage_.push_back(genome_from(dna));
+            for (const json& death : record.at("death_records")) {
+                Death made_death{death.at(1).get<std::string>(), species_named(death.at(2).get<std::string>()), death.at(3).get<int>()};
+                if (!death.at(4).is_null()) {
+                    made_death.killer = death.at(4).get<int>();
+                    made_death.killer_species = species_named(death.at(5).get<std::string>());
+                }
+                if (!death.at(6).is_null()) made_death.activity = death.at(6).get<std::string>();
+                world.death_records_[death.at(0).get<int>()] = std::move(made_death);
             }
-            if (!death.at(6).is_null()) made_death.activity = death.at(6).get<std::string>();
-            world.death_records_[death.at(0).get<int>()] = std::move(made_death);
+        } else {
+            const std::size_t lineage_at = record.at("lineage").at("at").get<std::size_t>();
+            const std::size_t lineage_count = record.at("lineage").at("count").get<std::size_t>();
+            world.lineage_.reserve(lineage_count);
+            for (std::size_t index = 0; index < lineage_count; ++index) {
+                const std::size_t place = lineage_at + 3 * index;
+                world.lineage_.push_back(Dna((static_cast<std::uint64_t>(whole.word(place + 1)) << 32) | whole.word(place + 2), whole.word(place)));
+            }
+            const std::vector<std::string> strings = record.at("death_strings").get<std::vector<std::string>>();
+            const auto string_at = [&](std::int32_t index) {
+                if (index < 0 || static_cast<std::size_t>(index) >= strings.size()) throw std::runtime_error("The world file's deaths are damaged.");
+                return strings[static_cast<std::size_t>(index)];
+            };
+            const auto species_at = [](std::int32_t index) {
+                if (index < 0 || index >= static_cast<std::int32_t>(SPECIES.size())) throw std::runtime_error("The world file's deaths are damaged.");
+                return static_cast<Species>(index);
+            };
+            const std::size_t deaths_at = record.at("death_records").at("at").get<std::size_t>();
+            const std::size_t deaths_count = record.at("death_records").at("count").get<std::size_t>();
+            world.death_records_.reserve(deaths_count);
+            for (std::size_t index = 0; index < deaths_count; ++index) {
+                const std::size_t place = deaths_at + 7 * index;
+                Death made_death{string_at(whole[place + 1]), species_at(whole[place + 2]), whole[place + 3]};
+                if (whole[place + 4] >= 0) {
+                    made_death.killer = whole[place + 4];
+                    made_death.killer_species = species_at(whole[place + 5]);
+                }
+                if (whole[place + 6] >= 0) made_death.activity = string_at(whole[place + 6]);
+                world.death_records_[whole[place]] = std::move(made_death);
+            }
         }
         world.agents_.clear();
         for (const json& agent : record.at("agents")) {
@@ -470,19 +579,20 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
 }
 
 void WorldFile::save(Simulation& simulation, const std::filesystem::path& path) {
-    const std::string data = bytes(simulation);
     std::ofstream file(path, std::ios::binary);
-    if (!file || !file.write(data.data(), static_cast<std::streamsize>(data.size()))) {
-        throw std::runtime_error("couldn't write it");
-    }
+    if (!file) throw std::runtime_error("couldn't write it");
+    write(simulation, file);
+    file.close();
+    if (!file) throw std::runtime_error("couldn't write it all; is the disk full?");
 }
 
 std::unique_ptr<Simulation> WorldFile::load(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary);
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file) throw std::runtime_error("can't open it");
-    std::stringstream data;
-    data << file.rdbuf();
-    return from_bytes(data.str());
+    std::string data(static_cast<std::size_t>(file.tellg()), '\0');  // read once, straight in
+    file.seekg(0);
+    if (!file.read(data.data(), static_cast<std::streamsize>(data.size()))) throw std::runtime_error("can't read it");
+    return from_bytes(data);
 }
 
 }  // namespace bitzkey
