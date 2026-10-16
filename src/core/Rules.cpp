@@ -190,6 +190,7 @@ std::vector<Rule> make_rules() {
         {"FLEE_RANGE", "Fighting", "Flee range", "a hunter is only worth fleeing within this many steps, unless alarmed", 0, 12, 1, true, &FLEE_RANGE},
         {"HERD_VIGILANCE", "Fighting", "Herd vigilance", "how far a close herd shrinks that range", 0.0, 1.0, 0.05, false, &HERD_VIGILANCE},
         {"SWITCH_SHARE", "Fighting", "Prey switching", "a prey is hunted while it is at least this share of the food", 0.0, 1.0, 0.05, false, &SWITCH_SHARE},
+        {"OMNIVORE_PREDATOR_FOOD", "Fighting", "Omnivores' last resort", "an omnivore hunts predators only while no more grazers, plants and grassy cells than this are near", 0, 100, 1, true, &OMNIVORE_PREDATOR_FOOD},
         {"TERRITORY_RAMP", "Territory", "Territory ramp", "rivals past the limit that bring rivalry to its full strength", 1, 20, 1, true, &TERRITORY_RAMP},
         {"RIVAL_UNEASE", "Territory", "Rival unease", "discomfort of a fully overcrowded territory", 0.0, 5.0, 0.05, false, &RIVAL_UNEASE},
         {"PACK_RIVALRY", "Territory", "Pack rivalry", "how much a predator's pack-mates count as rivals crowding its territory", 0.0, 1.0, 0.05, false, &PACK_RIVALRY},

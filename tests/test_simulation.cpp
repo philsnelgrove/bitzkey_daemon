@@ -1212,8 +1212,8 @@ TEST_CASE("deploying puts five of each around a cell, with their brains and mind
     CHECK((DEPLOY_GROUP == 5 && deployed.size() == 10 && simulation.agents().size() == before + 10));
     for (const Bitzkey* agent : deployed) {
         CHECK(agent->dna == animal.dna);
-        CHECK(std::min(std::abs(agent->x - 10), 30 - std::abs(agent->x - 10)) <= SPAWN_SPREAD);
-        CHECK((agent->y >= 0 && agent->y <= 1 + SPAWN_SPREAD));
+        CHECK(std::min(std::abs(agent->x - 10), 30 - std::abs(agent->x - 10)) <= SPAWN_SPREAD + BIRTH_REACH);  // the nearest room to its spot
+        CHECK((agent->y >= 0 && agent->y <= 1 + SPAWN_SPREAD + BIRTH_REACH));
         CHECK((agent->brain != deployed.front()->brain || agent == deployed.front()));  // each its own copy
         CHECK(agent->mind[Fear] == doctest::Approx(animal.mind[Fear]).epsilon(1e-3));
     }
@@ -1893,4 +1893,46 @@ TEST_CASE("an infant keeps close to its kind, even a loner's") {
     CHECK_FALSE(simulation.herd_mate(*grown[0], *grown[1]));  // though grown omnivores still don't
     const auto options = simulation.sense(infant).options;
     CHECK(std::find(options.begin(), options.end(), Herd) != options.end());  // two cells off their middle: it herds
+}
+
+TEST_CASE("an omnivore hunts predators only with no other food near") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world(20);
+    simulation.clear_grass();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 10, 10);
+    hunter.age = static_cast<int>(std::lround(hunter.lifespan / 2));
+    hunter.grow();
+    Bitzkey& target = simulation.add_agent(encode_dna(Species::Predator, {{"size", 0}}), 11, 10);
+    target.age = static_cast<int>(std::lround(target.lifespan / 2));  // grown: no infant to guard
+    target.grow();
+    simulation.index_cells();
+    simulation.survey(hunter);
+    CHECK(Simulation::is_prey(hunter, target));  // nothing else to eat: a predator will do
+    simulation.grass_cell(13, 10) = 1;  // a grassy cell near
+    simulation.survey(hunter);
+    CHECK_FALSE(Simulation::is_prey(hunter, target));
+    simulation.grass_cell(13, 10) = 0;
+    simulation.add_agent(encode_dna(Species::Plant), 10, 14);  // or a plant
+    simulation.index_cells();
+    simulation.survey(hunter);
+    CHECK_FALSE(Simulation::is_prey(hunter, target));
+}
+
+TEST_CASE("a grown predator guards the infants of its kind") {
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world(20);
+    simulation.clear_grass();
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"strength", 7}, {"weapons", 7}}), 10, 10);
+    hunter.age = static_cast<int>(std::lround(hunter.lifespan / 2));
+    hunter.grow();
+    Bitzkey& infant = simulation.add_agent(encode_dna(Species::Predator, {{"size", 0}}), 11, 10);
+    simulation.index_cells();
+    simulation.survey(hunter);
+    CHECK((infant.infant() && !infant.guarded && Simulation::is_prey(hunter, infant)));  // alone: prey
+    Bitzkey& parent = simulation.add_agent(infant.dna, 12, 11);
+    parent.age = static_cast<int>(std::lround(parent.lifespan / 2));
+    parent.grow();
+    simulation.index_cells();
+    CHECK((infant.guarded && !parent.guarded));
+    CHECK_FALSE(Simulation::is_prey(hunter, infant));  // guarded: prey to no one
 }

@@ -28,7 +28,7 @@ namespace bitzkey {
 constexpr int GRID_SIZE = 100;
 constexpr int INITIAL_POPULATION = 90;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
-inline double GRASS_REGROWTH = 0.016;  // share of the starting grass that grows back each turn
+inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
@@ -185,7 +185,7 @@ inline double scarcity_share(int population, Species species = Species::Plant) {
     if (population <= RARE_POPULATION || scarce <= RARE_POPULATION) return rare_cost;
     return rare_cost + (1 - rare_cost) * (population - RARE_POPULATION) / (scarce - RARE_POPULATION);
 }
-inline double NEWBORN_FOOD = 5.0;     // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
+inline double NEWBORN_FOOD = 15.0;    // parents conceive only as many young as can each start with this much of a stomach of food; 0: no limit
 constexpr double BREEDING_COST_MOST = 25.0;  // the hunger the least fertile pay to breed: the most a parent could give its young
 inline double PACK_MOUTHS = 0.5;      // a hunter's pack-mates count as this many mouths each on its food, sharing kills
 inline double BLOODLUST = 1.0;        // how much more a predator values feasting whenever it sees a fresh kill
@@ -273,6 +273,9 @@ inline double SHARED_DIET = 0.5;
 // of the food it weighs within FORAGE_RADIUS (for omnivores, grazers against plants; for predators,
 // grazers against omnivores), so a scarce prey is left alone to recover.
 inline double SWITCH_SHARE = 0.5;    // a prey is hunted while it is at least this share of the food
+inline int OMNIVORE_PREDATOR_FOOD = 0;  // an omnivore hunts predators only while no more of its other food (grazers, plants and
+                                        // grassy cells) is within FORAGE_RADIUS; a predator's infant with a grown one of its kind
+                                        // within NURSING_REACH is guarded, and no prey to anyone
 inline double STRIKE_EFFORT = 0.2;
 inline double STRIKE_FORCE = 3.5;  // the best-armed, mightiest predator kills the largest, best-armoured grazer in three
 inline double GRAZER_DEFENCE_WEAPONS = 0.5;    // share of its weapons a grazer brings to defence: striking back, and its spines
@@ -324,7 +327,7 @@ inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its ye
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
-inline double CLIMATE_DAMAGE = 0.02;   // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
+inline double CLIMATE_DAMAGE = 0.01;   // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
 inline int GRASS_DIEBACK = 20;     // where it isn't medium, a cell's grass loses a tuft every this many turns
 // The weather turns in waves, one in each climate zone, all setting off together as the season turns,
@@ -425,6 +428,8 @@ struct Bitzkey {
     double own_rivalry = 0.0;           // the same, counting only its own species
     bool hunts_grazers = true;          // hunters: whether grazers were common enough to hunt
     bool hunts_omnivores = true;        // predators: the same for omnivores
+    bool hunts_predators = true;        // omnivores: whether its other food was scarce enough to hunt predators
+    bool guarded = false;               // a predator's infant: whether a grown one of its kind was close by as the turn began
     std::optional<int> alarm;           // what struck a herd-mate close by since it last acted, or it was alerted to
     std::optional<Cell> kill_alert;     // where a pack-mate alerted it to a fresh kill since it last acted
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
@@ -855,6 +860,7 @@ public:
     // The nearest cell straight up or down, within sight, where it would feel at home: north before south.
     std::optional<Cell> comfort_row(const Bitzkey& agent, int sight) const;
     std::pair<bool, bool> prey_switching(const Bitzkey& hunter) const;
+    int other_food(const Bitzkey& omnivore) const;  // its food besides predators within FORAGE_RADIUS: grazers, plants, grassy cells
     static double flee_range(const Bitzkey& agent, int herd_near);
     bool herd_mate(const Bitzkey& agent, const Bitzkey& other) const;
     // The herd-mates within sight of an animal's success (an outcome above 0) or failure learn from it

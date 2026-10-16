@@ -910,6 +910,17 @@ void Simulation::index_cells() {
             if (agent->species == Species::Predator) agent->glut = glut;
         }
     }
+    for (const auto& agent : agents_) {  // a predator's infant is guarded while a grown one of its kind is close by
+        if (!agent->alive() || agent->species != Species::Predator) continue;
+        agent->guarded = false;
+        if (!agent->infant()) continue;
+        for (const Bitzkey* other : nearby(*agent, NURSING_REACH)) {
+            if (other->species == Species::Predator && !other->infant() && same_kind(*agent, *other)) {
+                agent->guarded = true;
+                break;
+            }
+        }
+    }
     departed_.clear();
 }
 
@@ -1369,6 +1380,7 @@ void Simulation::survey(Bitzkey& agent) {
     if (agent.species == Species::Predator || agent.species == Species::Omnivore) {
         std::tie(agent.rivalry, agent.own_rivalry) = territory(agent);
         std::tie(agent.hunts_grazers, agent.hunts_omnivores) = prey_switching(agent);
+        if (agent.species == Species::Omnivore) agent.hunts_predators = other_food(agent) <= OMNIVORE_PREDATOR_FOOD;
     }
 }
 
@@ -2547,17 +2559,28 @@ std::pair<bool, bool> Simulation::prey_switching(const Bitzkey& hunter) const {
     return {common(grazers, grazers + plants), false};
 }
 
+int Simulation::other_food(const Bitzkey& omnivore) const {
+    int food = 0;
+    for (const Bitzkey* other : nearby(omnivore, FORAGE_RADIUS)) food += other->species == Species::Grazer || other->species == Species::Plant;
+    for (int dx = -FORAGE_RADIUS; dx <= FORAGE_RADIUS; ++dx) {
+        const int reach = FORAGE_RADIUS - std::abs(dx);
+        for (int dy = -reach; dy <= reach; ++dy) food += grass_at(omnivore.x + dx, omnivore.y + dy) > 0;
+    }
+    return food;
+}
+
 bool Simulation::would_win(const Bitzkey& agent, const Bitzkey& opponent) {
     return damage(agent, opponent) / std::max(1.0, opponent.health) >= damage(opponent, agent) / std::max(1.0, agent.health);
 }
 
 bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
+    if (other.guarded) return false;  // a predator's infant, guarded by a grown one of its kind
     if (hunter.species == Species::Omnivore) {
         // Grazers while they are common enough to switch to, and other omnivores only in an
         // overcrowded territory, once hungry past its reluctance as that rivalry wears it down.
         // Predators only when it would win, blow for blow.
         return (other.species == Species::Grazer && hunter.hunts_grazers) ||
-               (other.species == Species::Predator && would_win(hunter, other)) ||
+               (other.species == Species::Predator && hunter.hunts_predators && would_win(hunter, other)) ||
                (other.species == Species::Omnivore && hunter.own_rivalry > 0 &&
                 hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry));
     }
