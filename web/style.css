@@ -120,7 +120,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 /* The footer */
 #footer { display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 20px 0 22px; background: var(--panel); }
 #history { font-size: 12px; color: rgb(158, 181, 160); white-space: pre; min-width: 160px; }
-#message { flex: 1; font-size: 12px; color: rgb(187, 199, 181); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+#message { flex: 1; font-size: 12px; line-height: 15px; color: rgb(187, 199, 181); white-space: pre-wrap; overflow: hidden;
+            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }  /* two lines at most */
 #message.note { color: var(--amber); }
 #footer .export, #footer #open-catalog { padding: 9px 16px; }
 #footer #open-catalog { margin-right: -14px; }
