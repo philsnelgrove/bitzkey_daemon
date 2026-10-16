@@ -38,6 +38,29 @@ std::string group_label(Species species, std::optional<int> trait, Level level) 
 
 Insights::Insights() : offered_(KEYS, 0.0), chosen_(KEYS, 0.0) {}
 
+std::vector<Insights::Entry> Insights::entries() const {
+    std::vector<Entry> found;
+    for (int species = 0; species < 4; ++species) {
+        for (int group = 0; group < GROUPS; ++group) {
+            for (int level = 0; level < (group ? LEVELS : 1); ++level) {
+                for (int action = 0; action < ACTION_COUNT; ++action) {
+                    const std::size_t at = key(static_cast<Species>(species), group, level, action);
+                    if (offered_[at] == 0.0 && chosen_[at] == 0.0) continue;
+                    found.push_back({static_cast<Species>(species), group ? std::optional<int>(group - 1) : std::nullopt,
+                                     static_cast<Level>(level), action, offered_[at], chosen_[at]});
+                }
+            }
+        }
+    }
+    return found;
+}
+
+void Insights::set(Species species, std::optional<int> trait, Level level, int action, double offered, double chosen) {
+    const std::size_t at = key(species, trait ? 1 + *trait : 0, trait ? static_cast<int>(level) : 0, action);
+    offered_[at] = offered;
+    chosen_[at] = chosen;
+}
+
 std::size_t Insights::key(Species species, int group, int level, int action) {
     return ((static_cast<std::size_t>(species) * GROUPS + group) * LEVELS + level) * ACTION_COUNT + action;
 }

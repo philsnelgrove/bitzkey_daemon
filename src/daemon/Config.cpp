@@ -87,7 +87,7 @@ std::string usage() {
            "  --config FILE      read settings from FILE (key = value lines)\n"
            "  --host ADDRESS     listen on ADDRESS (default 0.0.0.0, every interface)\n"
            "  --port N           listen on port N (default 49152)\n"
-           "  --data-dir DIR     keep the catalog, exports and reports in DIR\n"
+           "  --data-dir DIR     keep the catalog, exports, reports and saved worlds in DIR\n"
            "  --gpu yes|no|auto  think on the GPU (default auto: where there is one)\n"
            "  --start-paused     start the first world paused\n"
            "  --web-dir DIR      serve the web interface from DIR rather than the built-in copy\n"

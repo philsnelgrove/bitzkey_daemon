@@ -15,6 +15,7 @@
 #include "core/Catalog.hpp"
 #include "core/Exchange.hpp"
 #include "core/Insights.hpp"
+#include "core/WorldFile.hpp"
 #include "daemon/Graph.hpp"
 #include "daemon/Views.hpp"
 #include "daemon/World.hpp"
@@ -512,6 +513,73 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         response.set_header("Content-Disposition", "attachment; filename=\"" + name + "\"");
         response.set_content(std::move(text), name.ends_with(".json") ? "application/json" : "text/plain; charset=utf-8");
+    }));
+
+    // ---- Saved worlds, kept in worlds/ for everyone using the daemon
+
+    server.Get("/api/worlds", guarded([&world](const httplib::Request&, httplib::Response& response) {
+        Json worlds = Json::array();
+        const auto folder = world.paths().worlds;
+        if (std::filesystem::is_directory(folder)) {
+            std::vector<std::pair<std::filesystem::file_time_type, std::filesystem::path>> found;
+            for (const auto& entry : std::filesystem::directory_iterator(folder)) {
+                if (entry.is_regular_file() && entry.path().extension() == WORLD_SUFFIX) found.emplace_back(entry.last_write_time(), entry.path());
+            }
+            std::sort(found.rbegin(), found.rend());  // the newest first
+            for (const auto& [time, path] : found) {
+                worlds.push_back({{"name", path.stem().string()}, {"size", std::filesystem::file_size(path)}});
+            }
+        }
+        reply(response, {{"worlds", worlds}});
+    }));
+
+    // The whole world, saved under a name of letters, digits, - and _, to load and carry on exactly as it would have.
+    server.Post("/api/world/save", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        const std::string name = given.value("name", std::string());
+        if (name.size() > 60 || !safe_name(name) || name.find('.') != std::string::npos) {
+            throw std::invalid_argument("Name the world with up to 60 letters, digits, - and _.");
+        }
+        const auto path = world.paths().worlds / (name + std::string(WORLD_SUFFIX));
+        if (std::filesystem::exists(path)) throw std::invalid_argument("A world named " + name + " is already saved; choose another name.");
+        std::string data;
+        int turn = 0;
+        {
+            auto lock = world.lock();
+            data = WorldFile::bytes(world.simulation());
+            turn = world.simulation().turn();
+        }
+        write_file(path, data);
+        reply(response, {{"note", format("Saved the world at turn %d as %s.", turn, name.c_str())}});
+    }));
+
+    // A saved world, deleted from worlds/ for everyone.
+    server.Post("/api/world/delete", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        const std::string name = given.value("name", std::string());
+        if (!safe_name(name) || !std::filesystem::remove(world.paths().worlds / (name + std::string(WORLD_SUFFIX)))) {
+            throw std::invalid_argument("No such world.");
+        }
+        reply(response, {{"note", "Deleted " + name + "."}});
+    }));
+
+    // A saved world, carried on in place of the present one, paused, for everyone viewing it.
+    server.Post("/api/world/load", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        const std::string name = given.value("name", std::string());
+        if (!safe_name(name)) throw std::invalid_argument("No such world.");
+        std::ifstream file(world.paths().worlds / (name + std::string(WORLD_SUFFIX)), std::ios::binary);
+        if (!file) throw std::invalid_argument("No such world.");
+        const std::string data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        auto lock = world.lock();  // its rules become the rules, so not while the world turns
+        try {
+            world.load_world(WorldFile::from_bytes(data));
+        } catch (const std::runtime_error& error) {
+            throw std::invalid_argument(std::string("Couldn't load ") + name + ": " + error.what());
+        }
+        Json result = state(world);
+        result["note"] = format("Loaded %s at turn %d. Paused: SPACE plays on.", name.c_str(), world.simulation().turn());
+        reply(response, result);
     }));
 
     server.Post("/api/report", guarded([&world](const httplib::Request&, httplib::Response& response) {

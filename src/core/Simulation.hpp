@@ -871,6 +871,7 @@ public:
     bool society(const Bitzkey& observer, const Bitzkey& actor) const;
 
 private:
+    friend struct WorldFile;  // which saves the world whole, and loads it back
     struct Snapshot {  // the world at a turn, whole
         int turn = 0;
         int deaths = 0;

@@ -11,7 +11,7 @@ constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed
 
 World::World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir)
     : simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)), playing_(playing) {
-    paths_ = {data_dir / "catalog.json", data_dir / "exports", data_dir / "reports"};
+    paths_ = {data_dir / "catalog.json", data_dir / "exports", data_dir / "reports", data_dir / "worlds"};
     std::filesystem::create_directories(data_dir);
     thread_ = std::thread([this] { run(); });
 }
@@ -64,6 +64,14 @@ void World::new_world(Simulation::Settings settings, rules::Values rules) {
 }
 
 void World::restart() { new_world(settings_, rules_); }
+
+void World::load_world(std::unique_ptr<Simulation> loaded) {
+    simulation_ = std::move(loaded);
+    rules_ = rules::changed(rules::current());  // the rules it brought, which its restarts keep
+    playing_ = false;
+    ++world_number_;
+    touch();
+}
 
 void World::change_rules(rules::Values rules) {
     playing_ = false;

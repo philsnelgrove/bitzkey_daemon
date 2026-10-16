@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 #include "core/Rules.hpp"
+#include "core/WorldFile.hpp"
 #include "daemon/Api.hpp"
 #include "daemon/Config.hpp"
 #include "daemon/Graph.hpp"
@@ -350,6 +351,56 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(page->status == 200);
         CHECK(page->body.find("<html") != std::string::npos);
         CHECK(client.Get("/no-such-file.js")->status == 404);
+    }
+    std::filesystem::remove_all(folder);
+}
+
+TEST_CASE("a world saved on the daemon loads back, to carry on exactly as it would have") {
+    rules::apply(rules::current());  // the tests' own settings, held within the rules' limits as loading holds them
+    const auto folder = scratch("worlds");
+    {
+    World world(small_world(), false, folder);
+    Served served(world);
+    auto client = served.client();
+    for (int turn = 0; turn < 20; ++turn) post(client, "/api/control", {{"action", "step"}});
+    const Json saved = post(client, "/api/world/save", {{"name", "twenty-turns"}});
+    CHECK(saved["note"] == "Saved the world at turn 20 as twenty-turns.");
+    const auto again = client.Post("/api/world/save", Json{{"name", "twenty-turns"}}.dump(), "application/json");
+    REQUIRE(again);
+    CHECK(again->status == 400);  // the name is taken
+    const auto bad = client.Post("/api/world/save", Json{{"name", "../escape"}}.dump(), "application/json");
+    REQUIRE(bad);
+    CHECK(bad->status == 400);
+    const Json listed = get(client, "/api/worlds");
+    REQUIRE(listed["worlds"].size() == 1);
+    CHECK(listed["worlds"][0]["name"] == "twenty-turns");
+    std::string at_twenty, at_thirty;
+    {
+        auto lock = world.lock();
+        at_twenty = WorldFile::bytes(world.simulation());
+    }
+    for (int turn = 0; turn < 10; ++turn) post(client, "/api/control", {{"action", "step"}});
+    {
+        auto lock = world.lock();
+        at_thirty = WorldFile::bytes(world.simulation());
+    }
+    const Json loaded = post(client, "/api/world/load", {{"name", "twenty-turns"}});
+    CHECK(loaded["turn"] == 20);
+    CHECK(loaded["playing"] == false);  // it waits, paused
+    {
+        auto lock = world.lock();
+        CHECK(WorldFile::bytes(world.simulation()) == at_twenty);
+    }
+    for (int turn = 0; turn < 10; ++turn) post(client, "/api/control", {{"action", "step"}});
+    {
+        auto lock = world.lock();
+        CHECK(WorldFile::bytes(world.simulation()) == at_thirty);  // carried on as before
+    }
+    CHECK(post(client, "/api/world/delete", {{"name", "twenty-turns"}})["note"] == "Deleted twenty-turns.");
+    CHECK(get(client, "/api/worlds")["worlds"].empty());
+    const auto gone = client.Post("/api/world/delete", Json{{"name", "twenty-turns"}}.dump(), "application/json");
+    REQUIRE(gone);
+    CHECK(gone->status == 400);
     }
     std::filesystem::remove_all(folder);
 }

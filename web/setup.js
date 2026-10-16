@@ -5,6 +5,7 @@
 import { api, element, dialog, remembered, remember, upper, plural } from './common.js';
 import { bitzkeyCanvas, dotRadius, SPECIES, TEMPERATURES, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS } from './draw.js';
 import { details, look } from './inspector.js';
+import { saveWorld, loadWorld } from './worlds.js';
 
 const MAX_IMPORT_BYTES = 5_000_000;
 
@@ -72,6 +73,8 @@ export function openSetup(app, onClose) {
         importBox, importStatus, fileInput),
       element('div', { class: 'screen-foot' },
         element('button', { onclick: () => close() }, 'CANCEL'),
+        element('button', { onclick: saveRunning, title: 'Save the world running now, to load and carry on later' }, 'SAVE WORLD'),
+        element('button', { onclick: loadSaved, title: 'Carry on a saved world in place of this one' }, 'LOAD WORLD'),
         element('button', { class: 'primary', onclick: start }, 'START')),
       note);
   });
@@ -175,6 +178,23 @@ export function openSetup(app, onClose) {
     } catch (error) {
       tell(error.message);
     }
+  }
+
+  // The world running now, saved before setting up another; and a saved world, carried on instead.
+  async function saveRunning() {
+    try {
+      const note = await saveWorld(app.state ? app.state.turn : 0);
+      if (note) tell(note, false);
+    } catch (error) {
+      tell(error.message);
+    }
+  }
+
+  async function loadSaved() {
+    const result = await loadWorld();
+    if (!result) return;
+    app.say(result.note);
+    close();
   }
 
   function onKey(event) {

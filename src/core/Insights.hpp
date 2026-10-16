@@ -53,6 +53,15 @@ public:
     Rate rate(int action, Species species, std::optional<int> trait = std::nullopt, Level level = Level::Low) const;
     std::vector<Extreme> extremes(int action, int count = 3, bool lowest = true) const;
     State snapshot() const { return {offered_, chosen_}; }
+    struct Entry {  // one group's counts for an action: the whole species (no trait), or a trait's level
+        Species species;
+        std::optional<int> trait;
+        Level level;
+        int action;
+        double offered, chosen;
+    };
+    std::vector<Entry> entries() const;  // every group and action counted, for saving a world
+    void set(Species species, std::optional<int> trait, Level level, int action, double offered, double chosen);
     void restore(const State& state) {
         offered_ = state.offered;
         chosen_ = state.chosen;

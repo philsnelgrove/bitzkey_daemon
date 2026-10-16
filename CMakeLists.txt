@@ -56,6 +56,7 @@ add_library(bitzkey_core STATIC
     src/core/Rules.cpp
     src/core/Catalog.cpp
     src/core/GpuBrains.cpp
+    src/core/WorldFile.cpp
 )
 target_include_directories(bitzkey_core PUBLIC src)
 target_link_libraries(bitzkey_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads PRIVATE Vulkan::Headers ${CMAKE_DL_LIBS})
@@ -102,6 +103,7 @@ add_executable(bitzkey_tests
     tests/test_climate.cpp
     tests/test_catalog.cpp
     tests/test_gpu.cpp
+    tests/test_worldfile.cpp
     tests/test_daemon.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp

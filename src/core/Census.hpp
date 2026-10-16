@@ -32,6 +32,11 @@ public:
     std::span<const int> at(int turn) const;
 
     const std::vector<Snapshot>& snapshots() const { return snapshots_; }
+    // As a saved world had it.
+    void restore(int stride, std::vector<Snapshot> snapshots) {
+        stride_ = stride;
+        snapshots_ = std::move(snapshots);
+    }
     int stride() const { return stride_; }
 
 private:

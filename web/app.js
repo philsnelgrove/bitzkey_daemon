@@ -8,6 +8,7 @@ import { drawBitzkey, drawReticle, zoneColour, mapDotRadii, dotRadius, bitzkeyCa
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
+import { saveWorld } from './worlds.js';
 
 const MAP_ZOOM_STEP = 1.25;
 const MAP_ZOOM_MAX = 12;
@@ -1036,6 +1037,15 @@ $('new-world').onclick = setup;
 $('export-all').onclick = openExportDialog;
 $('open-catalog').onclick = () => { if (!app.overlay) browseCatalog(); };
 $('advanced').onclick = () => { if (!app.overlay) editRules(); };
+$('save-world').onclick = async () => {
+  if (app.overlay || !app.state) return;
+  try {
+    const note = await saveWorld(app.state.turn);
+    if (note) say(note);
+  } catch (error) {
+    say(error.message);
+  }
+};
 $('message').textContent = HINT;
 
 window.bitzkey = app;  // for looking into from the browser's console

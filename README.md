@@ -43,7 +43,9 @@ The service runs as a user of its own and keeps its files in `/var/lib/bitzkey_d
 
 - the catalog, `catalog.json`;
 - saved exports, in `exports/`;
-- brain reports, in `reports/`.
+- brain reports, in `reports/`;
+- saved worlds, in `worlds/`. Brains are most of a world file, at about 120 KB an animal, so a busy world can take
+  hundreds of megabytes; delete old ones with DELETE in LOAD WORLD's list, or from here by hand.
 
 To think on the GPU it needs a Vulkan driver, which the NVIDIA and Mesa drivers include. It reaches the GPU through the `render` and `video` groups. Without a GPU it thinks on the CPU.
 
@@ -55,7 +57,7 @@ To think on the GPU it needs a Vulkan driver, which the NVIDIA and Mesa drivers 
 |---|---|---|---|
 | `host` | `--host` | `0.0.0.0` | Where it listens. `0.0.0.0` means every network interface; `127.0.0.1` means this machine alone. |
 | `port` | `--port` | `49152` | The port for the page. |
-| `data_dir` | `--data-dir` | see below | Where it keeps the catalog, exports and reports. |
+| `data_dir` | `--data-dir` | see below | Where it keeps the catalog, exports, reports and saved worlds. |
 | `gpu` | `--gpu` | `auto` | `yes`, `no`, or `auto` (use a GPU where there is one). |
 | `start_paused` | `--start-paused` | `no` | Start the first world paused. |
 | `web_dir` | `--web-dir` | built in | Serve the page from these files, for working on it. |
@@ -77,8 +79,14 @@ The page has the window app's screens, laid out the same way:
 - **New world** (ESC or NEW WORLD). This opens:
   - the settings;
   - the import box, for pasting, loading a file, the catalog or the designer;
-  - the advanced rules.
-  Starting a new world replaces the running world for every viewer.
+  - the advanced rules;
+  - SAVE WORLD, which saves the running world first, and LOAD WORLD, which carries on a saved world instead.
+  Starting a new world, or loading one, replaces the running world for every viewer.
+- **SAVE WORLD**, in the footer. Saves the whole world on the daemon under a name (letters, digits, - and _), for everyone
+  using it to load later from NEW WORLD. A loaded world comes back paused at the turn it was saved, with its own rules,
+  and plays on exactly as it would have. World files are the same as the window apps', in either version, so a world
+  saved here can be copied out of `worlds/` and loaded there, and back. DELETE, beside each world in LOAD WORLD's list,
+  deletes it for everyone, once confirmed.
 - Omnivores live alone, in neither herd nor pack (the Solitary omnivores rule), and are cowards that always flee when struck (Cowardly omnivores); grazers herd and predators run in packs, and predators are never overcome by primal fear.
 - **DEATH REPORT**, on the insights panel: every death back to the world's start, by cause and species, who killed whom, what the killers were doing (hunting, attacking, defending, browsing, uprooting, spines), and the ten deadliest killers. The graph's hover says what each killer was doing too.
 - **INSPECT BRAINS**, beside a selected Bitzkey's heading: pauses the world, for everyone, and shows its chance of choosing each action in each standard situation.

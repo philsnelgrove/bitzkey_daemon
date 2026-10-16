@@ -25,7 +25,7 @@ constexpr std::array<const char*, 5> SPEED_LABELS = {"1x", "2x", "4x", "8x", "MA
 class World {
 public:
     struct Paths {
-        std::filesystem::path catalog, exports, reports;
+        std::filesystem::path catalog, exports, reports, worlds;
     };
 
     World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir);
@@ -62,6 +62,9 @@ public:
     // A new world from these settings and advanced rules, replacing the present one.
     void new_world(Simulation::Settings settings, rules::Values rules);
     void restart();  // the same settings again
+    // Carry on this world, loaded from a file (its rules already applied), in place of the present one, paused;
+    // restarting it starts afresh by the settings.
+    void load_world(std::unique_ptr<Simulation> loaded);
     // Pause, and play by these advanced rules (changed from the defaults) from the next turn; its restarts keep them.
     void change_rules(rules::Values rules);
     void touch() { ++version_; }  // something changed that viewers should fetch again
