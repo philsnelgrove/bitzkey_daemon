@@ -165,3 +165,9 @@ With `--web-dir web`, edits to the page show up on a reload, without rebuilding.
 `src/core/`, `shaders/` and the core's tests are copied from `bitzkey-cpp` and should be kept in step with it. When the simulation changes there, copy those folders again. `src/core/shaders/*.spv.h` are compiled from `shaders/` by `tools/compile_shaders.ps1`, which needs the Vulkan SDK.
 
 The version is in `VERSION`.
+
+## Licence
+
+Copyright (C) 2026 Phil Snelgrove. Bitzkey is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License, version 3 or (at your option) any later version, as published by the Free
+Software Foundation. It is distributed in the hope that it will be useful, but without any warranty; see `LICENSE`.
