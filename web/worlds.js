@@ -87,7 +87,7 @@ export function loadWorld() {
       }, element('span', {}, world.name), element('span', {}, `${Math.ceil(world.size / 1048576)} MB`)),
       element('button', {
         class: 'delete', title: `Delete ${world.name}`, onclick: async () => {
-          const choice = await dialog(`Delete ${world.name}?`, ['It is deleted from the daemon for everyone, and can't be brought back.'],
+          const choice = await dialog(`Delete ${world.name}?`, ["It is deleted from the daemon for everyone, and can't be brought back."],
                                       [['keep', 'CANCEL'], ['delete', 'DELETE']], 'keep');
           if (choice !== 'delete') return;
           try {
