@@ -343,12 +343,13 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         if (added) strings.push_back(text);
         return found->second;
     };
-    for (const auto& [identifier, death] : simulation.death_records_) {
-        dead.push_back(identifier);
+    for (const auto& [identifier, death] : simulation.death_records_) dead.push_back(identifier);
+    std::sort(dead.begin(), dead.end());
+    for (const int identifier : dead) {  // in that order too, the same however the records are kept
+        const Death& death = simulation.death_records_.at(identifier);
         code(death.cause);
         if (!death.activity.empty()) code(death.activity);
     }
-    std::sort(dead.begin(), dead.end());
     json agents = json::array();
     for (const auto& agent : simulation.agents_) agents.push_back(agent_record(*agent, numbers));
     json rules = json::object();
