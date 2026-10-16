@@ -1,5 +1,11 @@
 # Bitzkey daemon
 
+The Bitzkey project was started years ago, to teach my best friend programming. He wanted to learn about Python and AI, so it seemed like a natural project. Since then, my friend has passed away. So I finished this to honour him. I open-sourced it for the same reason. So, Sam Bunn, wherever you are, may you live on through Bitzkeys!
+
+This is the large-scale Linux service: the C++ simulation running around the clock on a server, shown to everyone as a web page. For reading the code and researching how Bitzkeys work, see the [Python version](https://github.com/philsnelgrove/bitzkey), the code research option; to run worlds on your own Windows computer, the [desktop app](https://github.com/philsnelgrove/bitzkey_cpp), the local option.
+
+Download the package from the [latest release](https://github.com/philsnelgrove/bitzkey_daemon/releases/latest), unpack it on Ubuntu and run `sudo packaging/install.sh`, as described under Installing on Ubuntu below.
+
 Bitzkey runs here as a service on Ubuntu Linux. It is the simulation from the C++ Bitzkey (`bitzkey-cpp`), and its interface is a web page at **http://<server>:49152/**.
 
 There is one world, and everyone who opens the page sees and steers that same world. Each viewer's own choices stay in their browser:
