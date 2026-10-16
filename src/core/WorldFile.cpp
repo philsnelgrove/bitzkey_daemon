@@ -448,7 +448,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         for (const json& agent : record.at("agents")) {
             world.agents_.push_back(agent_from(agent, reader));
             Bitzkey& made_agent = *world.agents_.back();
-            if (world.gpu_ && made_agent.brain) made_agent.gpu = world.gpu_->attach(*made_agent.brain);
+            world.attach(made_agent);
         }
         world.update_climate();
         world.index_cells();

@@ -10,6 +10,8 @@
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
 
+#include <stdexcept>
+
 using namespace bitzkey;
 
 namespace {
@@ -122,4 +124,21 @@ TEST_CASE("think on the GPU is locked, greyed out, only where there is no GPU") 
     CHECK(rules::locked("USE_GPU").empty() == found);
     if (!found) CHECK_FALSE(why.empty());
     CHECK(rules::locked("TEMPERATURE").empty());  // every other rule can be changed
+}
+
+TEST_CASE("a world whose GPU fails thinks on the CPU from there, rather than stop") {
+    if (!gpu::available()) return;
+    const int was = USE_GPU;
+    USE_GPU = 1;
+    Simulation world(Simulation::Settings{30, 30, 40, 5});
+    USE_GPU = was;
+    REQUIRE(world.on_gpu());
+    for (int turn = 0; turn < 10; ++turn) world.advance();
+    world.leave_gpu(std::runtime_error("Vulkan: allocating GPU memory failed (-2)"));
+    CHECK_FALSE(world.on_gpu());
+    CHECK(world.gpu_status() == "thinking on the CPU: the GPU failed (Vulkan: allocating GPU memory failed (-2))");
+    for (int turn = 0; turn < 10; ++turn) world.advance();
+    CHECK(world.turn() == 20);
+    CHECK(world.rewind());  // it keeps a history again
+    CHECK(world.turn() == 19);
 }

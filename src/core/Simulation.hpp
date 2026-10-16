@@ -5,6 +5,7 @@
 #include <map>
 #include <cstdint>
 #include <deque>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -731,6 +732,9 @@ public:
     };
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do
+    // The GPUs failed (out of memory, most likely): every brain comes back from them, as far as it still can, and the
+    // world thinks on the CPU from here on, rather than stop. Its rewind history starts again with the next turn.
+    void leave_gpu(const std::exception& error);
     void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed
     // How clearly it remembers a place: 1 the turn it happened, fading to nothing over MEMORY_TURNS times its
     // memory; 0 when it has nothing to remember.
@@ -985,6 +989,8 @@ private:
                       double decay);
     void learn_queued();
     void sync(std::span<Bitzkey* const> agents);  // these brains back from the GPUs, each once a turn
+    // Put a brain on the GPUs, unless they have failed.
+    void attach(Bitzkey& agent);
     std::deque<Snapshot> history_;      // every turn kept, oldest first
     std::uintmax_t history_bytes_ = 0;  // the memory they take, near enough
     int frontier_ = 0;

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <exception>
 
 namespace bitzkey::daemon {
 
@@ -87,7 +89,7 @@ void World::run() {
     while (!stopping_) {
         while (waiting_ > 0 && !stopping_) std::this_thread::sleep_for(std::chrono::microseconds(200));  // viewers first
         bool busy = false;
-        {
+        try {
             std::lock_guard lock(mutex_);
             if (playing_ && !simulation_->ended()) {
                 const double interval = TURN_INTERVALS[static_cast<std::size_t>(speed_)];
@@ -109,6 +111,11 @@ void World::run() {
                     ++version_;
                 }
             }
+        } catch (const std::exception& error) {  // the world pauses, and the daemon keeps serving it, rather than stop
+            std::fprintf(stderr, "bitzkey_daemon: the world paused at turn %d: %s\n", simulation_->turn(), error.what());
+            std::lock_guard lock(mutex_);
+            playing_ = false;
+            ++version_;
         }
         if (!busy) std::this_thread::sleep_for(std::chrono::milliseconds(5));
         else std::this_thread::yield();

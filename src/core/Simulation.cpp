@@ -533,7 +533,7 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
         if (!brain) brain = std::make_shared<Brain>(Brain::random(random_, depth));
         else if (brain->depth() != depth) brain = std::make_shared<Brain>(brain->resized(depth));
         agent->brain = std::move(brain);
-        if (gpu_) agent->gpu = gpu_->attach(*agent->brain);
+        attach(*agent);
     }
     ++next_identifier_;
     if (lineage_.size() <= static_cast<std::size_t>(agent->identifier)) lineage_.resize(agent->identifier + 1);
@@ -1178,10 +1178,50 @@ void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int ac
 
 void Simulation::learn_queued() {
     if (gpu_ && !lessons_.empty()) {
-        gpu_->learn(lessons_);
+        try {
+            gpu_->learn(lessons_);
+        } catch (const std::runtime_error& error) {
+            leave_gpu(error);  // the lessons are lost with it
+        }
     }
     lessons_.clear();
     lesson_senses_.clear();
+}
+
+void Simulation::attach(Bitzkey& agent) {
+    if (!gpu_ || !agent.brain) return;
+    try {
+        agent.gpu = gpu_->attach(*agent.brain);
+    } catch (const std::runtime_error& error) {
+        agent.gpu = -1;
+        leave_gpu(error);
+    }
+}
+
+void Simulation::leave_gpu(const std::exception& error) {
+    if (!gpu_) return;
+    const auto engine = std::move(gpu_);  // gone at once, so nothing that follows calls back into it
+    std::vector<gpu::BrainEngine::Handle> handles;
+    std::vector<Brain*> into;
+    for (const auto& agent : agents_) {
+        if (agent->brain && agent->gpu >= 0) {
+            handles.push_back(agent->gpu);
+            into.push_back(&agent->own_brain());
+        }
+    }
+    try {
+        if (!handles.empty()) engine->download(handles, into);
+    } catch (const std::runtime_error&) {  // their CPU copies stand as they were last brought back
+    }
+    for (const auto& agent : agents_) {
+        agent->gpu = -1;
+        agent->synced = -1;
+    }
+    lessons_.clear();
+    lesson_senses_.clear();
+    history_.clear();  // a GPU world keeps no copies to rewind to; from the next turn it does
+    history_bytes_ = 0;
+    gpu_status_ = std::string("thinking on the CPU: the GPU failed (") + error.what() + ")";
 }
 
 void Simulation::sync(std::span<Bitzkey* const> agents) {
@@ -1195,7 +1235,12 @@ void Simulation::sync(std::span<Bitzkey* const> agents) {
             into.push_back(&agent->own_brain());
         }
     }
-    if (!handles.empty()) gpu_->download(handles, into);
+    if (handles.empty()) return;
+    try {
+        gpu_->download(handles, into);
+    } catch (const std::runtime_error& error) {
+        leave_gpu(error);
+    }
 }
 
 void Simulation::sync_brains() {
@@ -1208,7 +1253,12 @@ void Simulation::sync_brains() {
             into.push_back(&agent->own_brain());
         }
     }
-    if (!handles.empty()) gpu_->download(handles, into);
+    if (handles.empty()) return;
+    try {
+        gpu_->download(handles, into);
+    } catch (const std::runtime_error& error) {
+        leave_gpu(error);
+    }
 }
 
 bool Simulation::dies_of_age(Bitzkey& agent) {
@@ -1256,8 +1306,14 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             senses.push_back(plans[index].senses);
         }
         values.resize(agents.size());
-        gpu_->values(handles, senses, values);
-    } else {
+        try {
+            gpu_->values(handles, senses, values);
+        } catch (const std::runtime_error& error) {
+            leave_gpu(error);  // and this turn's thinking is done on the CPU, below
+            values.clear();
+        }
+    }
+    if (!gpu_) {
         for (std::size_t index = 0; index < agents.size(); ++index) values.push_back(agents[index]->brain->values(plans[index].senses));
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));

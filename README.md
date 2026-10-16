@@ -47,7 +47,10 @@ The service runs as a user of its own and keeps its files in `/var/lib/bitzkey_d
 - saved worlds, in `worlds/`. Brains are most of a world file, at about 120 KB an animal, so a busy world can take
   hundreds of megabytes; delete old ones with DELETE in LOAD WORLD's list, or from here by hand.
 
-To think on the GPU it needs a Vulkan driver, which the NVIDIA and Mesa drivers include. It reaches the GPU through the `render` and `video` groups. Without a GPU it thinks on the CPU.
+To think on the GPU it needs a Vulkan driver, which the NVIDIA and Mesa drivers include. It reaches the GPU through the `render` and `video` groups. Without a GPU it thinks on the CPU. If the GPU fails while the world runs, most often by running out of memory as a
+world grows (the integrated GPUs of older machines have little of their own), the world carries on thinking on the CPU
+and the header says why, rather than the daemon stopping. Any other failure of the world's thread pauses the world and
+is logged (`journalctl -u bitzkey`), and the daemon keeps serving it.
 
 ## Settings
 
