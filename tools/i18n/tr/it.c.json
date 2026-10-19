@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "Inverno a nord",
+"SOUTHERN WINTER": "Inverno a sud",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  scegli   pulsanti +/- regola (SHIFT x{#})   ENTER  avvia   ESC  annulla",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  vivo   anello {*}   punto {*}   sociale {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   anello {*}   punto {*}   sociale {*}",
+"died: {*}": "morto: {*}",
+"died: {*} by #{#} {*}, {*}": "morto: {*} da #{#} {*}, {*}",
+"dead": "morto",
+"{*}   turn {#}   {*}": "{*}   turno {#}   {*}",
+"{*}   turn {#}": "{*}   turno {#}",
+"designed {*}": "{*} progettato",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "erbivoro {#}",
+"predator {#}": "predatore {#}",
+"alerted": "ha allertato", "ate": "ha mangiato", "attacked": "ha attaccato", "browsed": "ha brucato", "browsing": "brucando",
+"courted": "ha corteggiato", "defended": "si è difeso", "defending": "difendendosi", "exhausted": "sfinito",
+"feasted": "ha banchettato", "foraged": "ha foraggiato", "froze": "morto di freddo", "herded": "si è radunato",
+"hunted": "ha cacciato", "hunting": "cacciando", "mated": "si è accoppiato", "missed": "ha mancato", "photosynthesized": "fotosintesi",
+"pounced": "è balzato", "rested": "ha riposato", "revisited": "è tornato", "scavenged": "si è nutrito di carogne", "seeded": "ha seminato",
+"spines": "spine", "uprooted": "sradicato", "uprooting": "sradicando", "withering": "appassimento",
+"wounded": "ferito", "overheated": "morto di caldo", "eaten": "mangiato", "attacking": "attaccando", "fled": "è fuggito"
+}

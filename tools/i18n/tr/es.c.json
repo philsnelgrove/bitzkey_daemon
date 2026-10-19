@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "Invierno en el norte",
+"SOUTHERN WINTER": "Invierno en el sur",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  elegir   botones +/- ajustar (SHIFT x{#})   ENTER  iniciar   ESC  cancelar",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  vivo   anillo {*}   punto {*}   social {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   anillo {*}   punto {*}   social {*}",
+"died: {*}": "murió: {*}",
+"died: {*} by #{#} {*}, {*}": "murió: {*} por #{#} {*}, {*}",
+"dead": "muerto",
+"{*}   turn {#}   {*}": "{*}   turno {#}   {*}",
+"{*}   turn {#}": "{*}   turno {#}",
+"designed {*}": "{*} diseñado",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "herbívoro {#}",
+"predator {#}": "depredador {#}",
+"alerted": "alertó", "ate": "comió", "attacked": "atacó", "browsed": "ramoneó", "browsing": "ramoneando",
+"courted": "cortejó", "defended": "se defendió", "defending": "defendiéndose", "exhausted": "agotado",
+"feasted": "se dio un festín", "foraged": "forrajeó", "froze": "murió de frío", "herded": "se agrupó",
+"hunted": "cazó", "hunting": "cazando", "mated": "se apareó", "missed": "falló", "photosynthesized": "fotosíntesis",
+"pounced": "se abalanzó", "rested": "descansó", "revisited": "volvió", "scavenged": "carroñeó", "seeded": "sembró",
+"spines": "espinas", "uprooted": "arrancado", "uprooting": "arrancando", "withering": "marchitándose",
+"wounded": "herido", "overheated": "murió de calor", "eaten": "comido", "attacking": "atacando", "fled": "huyó"
+}

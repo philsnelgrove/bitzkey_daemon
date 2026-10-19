@@ -35,7 +35,7 @@ export function element(tag, attributes = {}, ...children) {
     else if (key.startsWith('on')) made.addEventListener(key.slice(2), value);
     else if (value !== undefined && value !== null && value !== false) made.setAttribute(key, value === true ? '' : value);
   }
-  for (const child of children.flat()) {
+  for (const child of children.flat(Infinity)) {  // nested lists too: the death report's tables are two deep
     if (child === null || child === undefined || child === false) continue;
     made.append(child instanceof Node ? child : document.createTextNode(String(child)));
   }

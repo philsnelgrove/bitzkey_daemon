@@ -2,6 +2,7 @@
 // traits (inborn and now) and body, its climate, and how it fares. A genome alone (`known` false) shows only what is born in it.
 
 import { element, pad3, upper } from './common.js';
+import { tr } from './i18n.js';
 import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css } from './draw.js';
 
 const SHORT = ['hot', 'medium', 'cold', 'v. cold'];
@@ -16,6 +17,16 @@ function bar(value, colour) {
 
 const fixed = (value, digits) => Number(value).toFixed(digits);
 
+// The monospaced rows: each name is translated before it's padded, so the columns stay in line in
+// every language. Chinese and Japanese characters take two columns, and are counted so.
+function columns(text) {
+  let width = 0;
+  for (const character of text) width += /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(character) ? 2 : 1;
+  return width;
+}
+const pad = (text, width) => text + ' '.repeat(Math.max(1, width - columns(text)));
+const row = (cls, text) => element('div', { class: cls, 'data-no-translate': '' }, text);
+
 export function details(agent, { large = 0 } = {}) {
   const known = agent.known;
   const radius = large || dotRadius(agent.body[1], DOT_RADIUS_LARGEST);
@@ -27,27 +38,32 @@ export function details(agent, { large = 0 } = {}) {
   panel.append(element('div', { class: 'mono small' }, `DOT ${agent.dot} RING ${agent.ring} SOCIAL ${agent.social}`));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
   const temperament = (heading, names, first) => {
-    const column = element('div', { class: 'traits' }, element('div', { class: 'label mono small' }, `${heading.padEnd(10)}born${known ? ' now' : ''}`));
+    // As wide as the longest name in this language needs, and never narrower than the English.
+    const width = Math.max(11, ...names.map(name => columns(tr(name)) + 1), columns(tr('neurodiv.')) + 1);
+    const column = element('div', { class: 'traits' },
+      row('label mono small', `${pad(tr(heading), width - 1)}${tr('born')}${known ? ' ' + tr('now') : ''}`));
     names.forEach((name, index) => {
       const born = agent.inborn[first + index];
       if (!known) {
-        column.append(element('div', { class: 'mono small' }, `${name.padEnd(11)}${String(born).padStart(2)}`));
+        column.append(row('mono small', `${pad(tr(name), width)}${String(born).padStart(2)}`));
         return;
       }
       const now = agent.mind[first + index];
       const shift = Math.abs(now - born) < 0.25 ? 'same' : now > born ? 'up' : 'down';
-      column.append(element('div', { class: `mono small ${shift}` }, `${name.padEnd(11)}${String(born).padStart(2)}${fixed(now, 1).padStart(5)}`));
+      column.append(row(`mono small ${shift}`, `${pad(tr(name), width)}${String(born).padStart(2)}${fixed(now, 1).padStart(5)}`));
     });
+    column.width = width;
     return column;
   };
   const social = temperament('SOCIAL', SOCIAL_TRAITS, MIND_TRAITS.length);
-  social.append(element('div', { class: 'mono small same' }, `${'neurodiv.'.padEnd(11)}${String(agent.neurodivergence).padStart(2)}`));
+  social.append(row('mono small same', `${pad(tr('neurodiv.'), social.width)}${String(agent.neurodivergence).padStart(2)}`));
   panel.append(element('div', { class: 'trait-columns' }, temperament('MIND', MIND_TRAITS, 0), social));
   const body = element('div', { class: 'traits' }, element('div', { class: 'label' }, 'BODY'));
-  const cells = BODY_TRAITS.slice(1).map((name, index) => `${name.padEnd(10)}${String(agent.body[index + 1]).padStart(2)}`);
-  cells.push(`${'burn'.padEnd(7)}${fixed(agent.burn, 2).padStart(5)}`);
+  const bodyWidth = Math.max(10, ...BODY_TRAITS.slice(1).map(name => columns(tr(name)) + 1));
+  const cells = BODY_TRAITS.slice(1).map((name, index) => `${pad(tr(name), bodyWidth)}${String(agent.body[index + 1]).padStart(2)}`);
+  cells.push(`${pad(tr('burn'), 7)}${fixed(agent.burn, 2).padStart(5)}`);
   for (let row = 0; row < cells.length; row += 3) {
-    body.append(element('div', { class: 'mono small same body-row' }, ...cells.slice(row, row + 3).map(cell => element('span', {}, cell))));
+    body.append(element('div', { class: 'mono small same body-row', 'data-no-translate': '' }, ...cells.slice(row, row + 3).map(cell => element('span', {}, cell))));
   }
   panel.append(body);
 

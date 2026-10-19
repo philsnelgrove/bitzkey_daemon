@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "Winter im Norden",
+"SOUTHERN WINTER": "Winter im Süden",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  wählen   Tasten +/- anpassen (SHIFT x{#})   ENTER  starten   ESC  abbrechen",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  lebend   Ring {*}   Punkt {*}   sozial {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   Ring {*}   Punkt {*}   sozial {*}",
+"died: {*}": "gestorben: {*}",
+"died: {*} by #{#} {*}, {*}": "gestorben: {*} durch #{#} {*}, {*}",
+"dead": "tot",
+"{*}   turn {#}   {*}": "{*}   Runde {#}   {*}",
+"{*}   turn {#}": "{*}   Runde {#}",
+"designed {*}": "entworfener {*}",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "Grasfresser {#}",
+"predator {#}": "Raubtier {#}",
+"alerted": "hat gewarnt", "ate": "hat gefressen", "attacked": "hat angegriffen", "browsed": "hat geäst", "browsing": "beim Äsen",
+"courted": "hat geworben", "defended": "hat sich verteidigt", "defending": "beim Verteidigen", "exhausted": "erschöpft",
+"feasted": "hat geschmaust", "foraged": "hat Futter gesucht", "froze": "erfroren", "herded": "hat sich gesammelt",
+"hunted": "hat gejagt", "hunting": "beim Jagen", "mated": "hat sich gepaart", "missed": "hat verfehlt", "photosynthesized": "Photosynthese",
+"pounced": "hat zugeschlagen", "rested": "hat geruht", "revisited": "ist zurückgekehrt", "scavenged": "hat Aas gefressen", "seeded": "hat gesät",
+"spines": "Stacheln", "uprooted": "ausgerissen", "uprooting": "beim Ausreißen", "withering": "Welken",
+"wounded": "verwundet", "overheated": "an Hitze gestorben", "eaten": "gefressen", "attacking": "beim Angreifen", "fled": "ist geflohen"
+}

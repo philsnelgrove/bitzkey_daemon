@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "Зима на півночі",
+"SOUTHERN WINTER": "Зима на півдні",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  вибрати   кнопки +/- змінити (SHIFT x{#})   ENTER  старт   ESC  скасувати",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  живий   кільце {*}   точка {*}   соц. {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   кільце {*}   точка {*}   соц. {*}",
+"died: {*}": "загинув: {*}",
+"died: {*} by #{#} {*}, {*}": "загинув: {*} — #{#} {*}, {*}",
+"dead": "мертвий",
+"{*}   turn {#}   {*}": "{*}   хід {#}   {*}",
+"{*}   turn {#}": "{*}   хід {#}",
+"designed {*}": "створений {*}",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "травоїдний {#}",
+"predator {#}": "хижак {#}",
+"alerted": "попередив", "ate": "поїв", "attacked": "атакував", "browsed": "скуб", "browsing": "скубучи",
+"courted": "залицявся", "defended": "захищався", "defending": "захищаючись", "exhausted": "виснажений",
+"feasted": "бенкетував", "foraged": "шукав їжу", "froze": "замерз", "herded": "приєднався до стада",
+"hunted": "полював", "hunting": "полюючи", "mated": "спарувався", "missed": "схибив", "photosynthesized": "фотосинтез",
+"pounced": "стрибнув", "rested": "відпочивав", "revisited": "повернувся", "scavenged": "їв падло", "seeded": "посіяв",
+"spines": "шипи", "uprooted": "вирваний", "uprooting": "вириваючи", "withering": "в'янення",
+"wounded": "поранений", "overheated": "перегрівся", "eaten": "з'їдений", "attacking": "атакуючи", "fled": "утік"
+}

@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "חורף בצפון",
+"SOUTHERN WINTER": "חורף בדרום",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  בחירה   כפתורי +/- כוונון (SHIFT x{#})   ENTER  התחלה   ESC  ביטול",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  חי   טבעת {*}   נקודה {*}   חברתי {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   טבעת {*}   נקודה {*}   חברתי {*}",
+"died: {*}": "מת: {*}",
+"died: {*} by #{#} {*}, {*}": "מת: {*} בידי #{#} {*}, {*}",
+"dead": "מת",
+"{*}   turn {#}   {*}": "{*}   תור {#}   {*}",
+"{*}   turn {#}": "{*}   תור {#}",
+"designed {*}": "{*} מעוצב",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "אוכל עשב {#}",
+"predator {#}": "טורף {#}",
+"alerted": "הזעיק", "ate": "אכל", "attacked": "תקף", "browsed": "כרסם", "browsing": "בעת כרסום",
+"courted": "חיזר", "defended": "הגן", "defending": "בעת הגנה", "exhausted": "מותש",
+"feasted": "סעד", "foraged": "ליקט", "froze": "קפא", "herded": "הצטרף לעדר",
+"hunted": "צד", "hunting": "בעת ציד", "mated": "הזדווג", "missed": "החטיא", "photosynthesized": "פוטוסינתזה",
+"pounced": "זינק", "rested": "נח", "revisited": "חזר", "scavenged": "אכל נבלה", "seeded": "הפיץ זרעים",
+"spines": "קוצים", "uprooted": "נעקר", "uprooting": "בעת עקירה", "withering": "נבילה",
+"wounded": "פצוע", "overheated": "התחמם יתר על המידה", "eaten": "נאכל", "attacking": "בעת תקיפה", "fled": "ברח"
+}

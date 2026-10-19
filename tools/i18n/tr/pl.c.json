@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "Zima na północy",
+"SOUTHERN WINTER": "Zima na południu",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  wybierz   przyciski +/- zmień (SHIFT x{#})   ENTER  start   ESC  anuluj",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  żywy   pierścień {*}   punkt {*}   społ. {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   pierścień {*}   punkt {*}   społ. {*}",
+"died: {*}": "zginął: {*}",
+"died: {*} by #{#} {*}, {*}": "zginął: {*} przez #{#} {*}, {*}",
+"dead": "martwy",
+"{*}   turn {#}   {*}": "{*}   tura {#}   {*}",
+"{*}   turn {#}": "{*}   tura {#}",
+"designed {*}": "zaprojektowany {*}",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "roślinożerca {#}",
+"predator {#}": "drapieżnik {#}",
+"alerted": "ostrzegł", "ate": "zjadł", "attacked": "zaatakował", "browsed": "skubał", "browsing": "skubiąc",
+"courted": "zalecał się", "defended": "bronił się", "defending": "broniąc się", "exhausted": "wyczerpany",
+"feasted": "ucztował", "foraged": "żerował", "froze": "zamarzł", "herded": "dołączył do stada",
+"hunted": "polował", "hunting": "polując", "mated": "kopulował", "missed": "chybił", "photosynthesized": "fotosynteza",
+"pounced": "skoczył", "rested": "odpoczywał", "revisited": "wrócił", "scavenged": "jadł padlinę", "seeded": "wysiał",
+"spines": "kolce", "uprooted": "wyrwany", "uprooting": "wyrywając", "withering": "więdnięcie",
+"wounded": "ranny", "overheated": "przegrzał się", "eaten": "zjedzony", "attacking": "atakując", "fled": "uciekł"
+}

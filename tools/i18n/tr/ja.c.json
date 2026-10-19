@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "北の冬",
+"SOUTHERN WINTER": "南の冬",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  選択   +/- ボタンで調整（SHIFT x{#}）   ENTER  開始   ESC  キャンセル",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  生存   リング {*}   点 {*}   社会 {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   リング {*}   点 {*}   社会 {*}",
+"died: {*}": "死亡：{*}",
+"died: {*} by #{#} {*}, {*}": "死亡：{*}、#{#} {*} による、{*}",
+"dead": "死亡",
+"{*}   turn {#}   {*}": "{*}   ターン {#}   {*}",
+"{*}   turn {#}": "{*}   ターン {#}",
+"designed {*}": "デザインした{*}",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "草食動物 {#}",
+"predator {#}": "捕食者 {#}",
+"alerted": "警報した", "ate": "食べた", "attacked": "攻撃した", "browsed": "食んだ", "browsing": "食んでいる",
+"courted": "求愛した", "defended": "防御した", "defending": "防御中", "exhausted": "疲弊",
+"feasted": "むさぼった", "foraged": "採餌した", "froze": "凍死", "herded": "群れに合流",
+"hunted": "狩った", "hunting": "狩り中", "mated": "交尾した", "missed": "外した", "photosynthesized": "光合成",
+"pounced": "飛びかかった", "rested": "休んだ", "revisited": "戻った", "scavenged": "腐肉をあさった", "seeded": "種をまいた",
+"spines": "とげ", "uprooted": "引き抜かれた", "uprooting": "引き抜き中", "withering": "枯れかけ",
+"wounded": "負傷", "overheated": "熱死", "eaten": "食べられた", "attacking": "攻撃中", "fled": "逃げた"
+}

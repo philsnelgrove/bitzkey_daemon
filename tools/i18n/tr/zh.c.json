@@ -1,0 +1,23 @@
+{
+"NORTHERN WINTER": "北方冬季",
+"SOUTHERN WINTER": "南方冬季",
+"UP/DOWN  choose   +/- buttons adjust (SHIFT x{#})   ENTER  start   ESC  cancel": "UP/DOWN  选择   +/- 按钮调整（SHIFT x{#}）   ENTER  开始   ESC  取消",
+"{*}     |     #{#}  {*}  alive   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  存活   环 {*}   点 {*}   社会 {*}",
+"{*}     |     #{#}  {*}  {*}   ring {*}   dot {*}   social {*}": "{*}     |     #{#}  {*}  {*}   环 {*}   点 {*}   社会 {*}",
+"died: {*}": "死亡：{*}",
+"died: {*} by #{#} {*}, {*}": "死亡：{*}，凶手 #{#} {*}，{*}",
+"dead": "已死亡",
+"{*}   turn {#}   {*}": "{*}   第 {#} 回合   {*}",
+"{*}   turn {#}": "{*}   第 {#} 回合",
+"designed {*}": "设计的{*}",
+"{*}     {*}": "{*}     {*}",
+"grazer {#}": "食草动物 {#}",
+"predator {#}": "捕食者 {#}",
+"alerted": "发出警报", "ate": "进食", "attacked": "攻击", "browsed": "啃食", "browsing": "啃食中",
+"courted": "求偶", "defended": "防御", "defending": "防御中", "exhausted": "力竭",
+"feasted": "饱餐", "foraged": "觅食", "froze": "冻死", "herded": "归群",
+"hunted": "狩猎", "hunting": "狩猎中", "mated": "交配", "missed": "落空", "photosynthesized": "光合作用",
+"pounced": "扑击", "rested": "休息", "revisited": "重返", "scavenged": "食腐", "seeded": "播种",
+"spines": "尖刺", "uprooted": "被拔起", "uprooting": "拔起中", "withering": "枯萎",
+"wounded": "受伤", "overheated": "过热", "eaten": "被吃", "attacking": "攻击中", "fled": "逃跑"
+}

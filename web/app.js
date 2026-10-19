@@ -2,6 +2,7 @@
 // the window app. The world is the daemon's, shared by every viewer; what this viewer has selected,
 // its export list and its exemplar cards stay in this browser.
 
+import { startLanguages } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
          GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
@@ -9,6 +10,8 @@ import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
 import { saveWorld } from './worlds.js';
+
+await startLanguages();  // before anything is drawn, so it appears in the chosen language
 
 const MAP_ZOOM_STEP = 1.25;
 const MAP_ZOOM_MAX = 12;

@@ -47,6 +47,15 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 #header .gpu.off { color: var(--amber); }
 #header .speed { font-size: 12px; color: var(--muted); }
 #header .status { font-size: 15px; min-width: 70px; text-align: right; }
+#header .language {
+  font: 12px var(--sans); color: var(--text, rgb(229, 239, 220)); background: var(--back); border: 1px solid var(--line);
+  border-radius: 4px; padding: 4px 6px; cursor: pointer;
+}
+#header .language:hover { border-color: var(--frame); }
+/* Longer words in other languages: the header's buttons may wrap onto two rows rather than overflow. */
+#header .controls { flex-wrap: wrap; row-gap: 4px; }
+:lang(zh) body, :lang(ja) body, :lang(hi) body { font-family: var(--sans), "Noto Sans CJK SC", "Noto Sans JP", "Noto Sans Devanagari", "Nirmala UI", "Microsoft YaHei", "Yu Gothic", sans-serif; }
+:lang(he) body { font-family: var(--sans), "Noto Sans Hebrew", Arial, sans-serif; }
 
 /* The board and sidebar */
 #main { display: flex; height: calc(100% - 62px - 52px); }
