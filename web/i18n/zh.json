@@ -1282,5 +1282,9 @@
 "{#} a second": "每秒 {#}",
 "{#} cores, {#} MB": "{#} 个核心，{#} MB",
 "{#} cores, {#} MB, {*}": "{#} 个核心，{#} MB，{*}",
-"{#} ms": "{#} 毫秒"
+"{#} ms": "{#} 毫秒",
+"CHANGE": "更改",
+"It listens on that port already.": "它已经在监听该端口。",
+"Its port, if not {#}": "它的端口（如果不是 {#}）",
+"Now listening on port {#}; the main service follows.": "现在监听端口 {#}；主服务会跟随。"
 }

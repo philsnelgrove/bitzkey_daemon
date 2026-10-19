@@ -96,6 +96,7 @@ private:
         std::uint64_t session = 0;
         int failures = 0;
         bool fresh = false;  // just joined: the shares are to be evened out
+        bool moved = false;  // it listens on another port now, and is reached there
         std::chrono::steady_clock::time_point retry{};
         // The world's thread alone:
         std::unique_ptr<httplib::Client> client;

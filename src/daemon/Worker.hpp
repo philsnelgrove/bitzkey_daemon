@@ -39,6 +39,9 @@ public:
     void start(int port, const Resources& shared);
     void resume();  // as it was when the daemon last stopped, if a worker then
     void share(const Resources& shared);
+    // Listen on this port from now on. The main service is told, by the port it reaches this worker on, and follows;
+    // the old port is let go once it has. Throws std::invalid_argument if the port can't be had.
+    void move_to(int port);
     // Stop being a worker: its brains handed back to the main service first, for up to `wait`. With `forget`, worker
     // mode is turned off for good; without, the daemon is stopping, and is a worker again when it starts.
     void stop(bool forget, std::chrono::seconds wait = std::chrono::seconds(30));
@@ -47,9 +50,13 @@ public:
     static Json machine();  // what this computer has to share
 
 private:
-    void serve();
+    void serve(httplib::Server& server, int port);
     Json hello() const;
     void save() const;
+    // The ports it listens on, to worker-ports beside its settings, for bitzkey-worker-ports.sh to open in the firewall.
+    void write_ports() const;
+    void close_old();      // stop listening on the port moved from
+    void followed(int port);  // its main service reached it on this port: the old one, if any, is let go
     void noted();  // what is shown of the brains held, brought up to date: under both locks
 
     std::filesystem::path file_;
@@ -65,6 +72,11 @@ private:
     std::unique_ptr<Thinker> thinker_;
     std::unique_ptr<httplib::Server> server_;
     std::thread serving_;
+    std::mutex servers_;  // the old port's server, while the main service follows to the new
+    std::unique_ptr<httplib::Server> old_server_;
+    std::thread old_serving_;
+    std::atomic<int> old_port_{0};
+    std::thread closer_;
     std::thread stopping_thread_;
     // The main service it works for.
     std::string main_address_;

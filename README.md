@@ -148,9 +148,13 @@ The daemon pauses its world, and its page then shows only a gray panel. The pane
 - the shared cores, memory and GPUs, which can be changed at any time;
 - **STOP BEING A WORKER**.
 
-Worker mode lasts through restarts. The worker's port must be open to the main service: with `ufw`, run `sudo ufw allow 50000/tcp`. Several workers on one computer each need a port of their own.
+Worker mode lasts through restarts. Several workers on one computer each need a port of their own. The main service needs no open port for its workers: it connects out to each of them.
 
-**Adding workers.** On the main service, open **WORKERS** and add each worker by its IP address and port. You can also give a message to show on the worker's panel; a link in the message becomes clickable there. The list shows, for each worker:
+The worker's port must be open to the main service, and this is automatic where `install.sh` installed the daemon and `ufw` is active. The daemon can't change the firewall itself, as it runs with no privileges. Instead, it writes the ports it listens on to `worker-ports` in its data folder, and the systemd unit `bitzkey-worker-ports.path` runs `bitzkey-worker-ports` as root whenever that list changes. That script opens the listed ports in `ufw` and closes those it opened before. A port is therefore opened when worker mode turns on, and closed when it turns off for good. A home router in front of the worker still needs that port forwarded to it by hand.
+
+The port can be changed from the worker's panel at any time. The worker listens on both ports until its main service, told the new one, follows it there, and then lets the old one go. No brains are lost in the move.
+
+**Adding workers.** On the main service, open **WORKERS** and add each worker by its IP address. The port is 50000 unless you give another, either in the port box or after the address (`192.168.1.20:50001`). You can also give a message to show on the worker's panel; a link in the message becomes clickable there. The list shows, for each worker:
 
 - its state;
 - its ping time;

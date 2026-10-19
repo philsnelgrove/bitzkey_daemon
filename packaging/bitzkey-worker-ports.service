@@ -1,0 +1,7 @@
+# bitzkey-worker-ports.service — opens in ufw the ports a Bitzkey worker listens on, run by bitzkey-worker-ports.path
+[Unit]
+Description=Open a Bitzkey worker's ports in the firewall
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/bitzkey-worker-ports

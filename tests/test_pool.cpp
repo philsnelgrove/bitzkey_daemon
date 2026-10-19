@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <random>
 #include <thread>
 
@@ -276,6 +277,63 @@ TEST_CASE("a world thinks through its workers, keeps on when one fails, and take
         }
     }
     for (const auto& folder : {main_folder, first_folder, second_folder}) std::filesystem::remove_all(folder);
+}
+
+TEST_CASE("a worker moved to another port is followed there by its main service, and lets the old one go") {
+    const auto main_folder = folder_for("moving-main"), worker_folder = folder_for("moving-worker");
+    const auto ports_file = worker_folder / "worker-ports";
+    const auto listed = [&] {
+        std::ifstream in(ports_file);
+        std::string text;
+        std::getline(in, text);
+        return text;
+    };
+    Worker worker(worker_folder / "worker.json");
+    const int first_port = start_worker(worker);
+    CHECK(listed() == std::to_string(first_port));  // for the firewall
+    {
+        World world(busy_world(), false, main_folder);
+        {
+            auto lock = world.lock();
+            world.pool().add("127.0.0.1", first_port, "");
+            world.adopt_pool();
+        }
+        REQUIRE(await([&] { return worker_in(world, first_port)["state"] == "working"; }));
+        for (int turn = 0; turn < 5; ++turn) {
+            auto lock = world.lock();
+            world.step();
+        }
+        int second_port = 0;
+        for (int tries = 0; tries < 50 && !second_port; ++tries) {
+            const int port = first_port + 1 + tries;
+            try {
+                worker.move_to(port);
+                second_port = port;
+            } catch (const std::invalid_argument&) {
+            }
+        }
+        REQUIRE(second_port);
+        CHECK(listed() == std::to_string(second_port) + " " + std::to_string(first_port));  // both, while it is followed
+        REQUIRE(await([&] { return worker_in(world, second_port)["state"] == "working"; }));
+        CHECK(await([&] { return listed() == std::to_string(second_port); }));  // the old port let go
+        for (int turn = 0; turn < 5; ++turn) {
+            auto lock = world.lock();
+            world.step();
+        }
+        {
+            auto lock = world.lock();
+            CHECK(world.simulation().turn() == 10);
+            CHECK(world.pool().attached() == living_brains(world.simulation()));
+            CHECK(world.pool().list()["workers"][0]["brains"].get<int>() > 0);
+        }
+        World again(busy_world(), false, main_folder);  // the list kept the new port
+        auto lock = again.lock();
+        CHECK(again.pool().list()["workers"][0]["port"] == second_port);
+    }
+    worker.stop(true, std::chrono::seconds(0));
+    CHECK(listed().empty());  // closed again in the firewall
+    std::filesystem::remove_all(main_folder);
+    std::filesystem::remove_all(worker_folder);
 }
 
 TEST_CASE("worker mode is kept between runs, and turned off for good when cancelled") {

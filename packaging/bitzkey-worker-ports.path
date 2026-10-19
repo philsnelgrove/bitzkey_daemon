@@ -1,0 +1,10 @@
+# bitzkey-worker-ports.path — when the daemon's worker ports change, open them in the firewall (and close the old)
+[Unit]
+Description=Bitzkey worker ports, watched for the firewall
+
+[Path]
+PathChanged=/var/lib/bitzkey_daemon/worker-ports
+Unit=bitzkey-worker-ports.service
+
+[Install]
+WantedBy=multi-user.target

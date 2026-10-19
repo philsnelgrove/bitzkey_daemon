@@ -1282,5 +1282,9 @@
 "{#} a second": "毎秒 {#}",
 "{#} cores, {#} MB": "{#} コア、{#} MB",
 "{#} cores, {#} MB, {*}": "{#} コア、{#} MB、{*}",
-"{#} ms": "{#} ミリ秒"
+"{#} ms": "{#} ミリ秒",
+"CHANGE": "変更",
+"It listens on that port already.": "すでにそのポートで待ち受けています。",
+"Its port, if not {#}": "ポート（{#} 以外の場合）",
+"Now listening on port {#}; the main service follows.": "ポート {#} で待ち受けています。メインサービスが追従します。"
 }

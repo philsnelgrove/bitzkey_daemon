@@ -11,8 +11,9 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 if [[ "${1:-}" == "uninstall" ]]; then
-    systemctl disable --now bitzkey.service 2>/dev/null || true
+    systemctl disable --now bitzkey.service bitzkey-worker-ports.path 2>/dev/null || true
     rm -f /etc/systemd/system/bitzkey.service /usr/local/bin/bitzkey_daemon
+    rm -f /etc/systemd/system/bitzkey-worker-ports.path /etc/systemd/system/bitzkey-worker-ports.service /usr/local/libexec/bitzkey-worker-ports
     systemctl daemon-reload
     echo "Removed bitzkey_daemon. Its settings (/etc/bitzkey_daemon.conf) and data (/var/lib/bitzkey_daemon) are left."
     exit 0
@@ -35,7 +36,11 @@ sudo -u "$builder" ./build-linux/bitzkey_tests
 install -m 755 build-linux/bitzkey_daemon /usr/local/bin/bitzkey_daemon
 [[ -f /etc/bitzkey_daemon.conf ]] || install -m 644 packaging/bitzkey_daemon.conf /etc/bitzkey_daemon.conf
 install -m 644 packaging/bitzkey.service /etc/systemd/system/bitzkey.service
+# In worker mode, the port it listens on for its main service is opened in the firewall, and closed again after.
+install -D -m 755 packaging/bitzkey-worker-ports.sh /usr/local/libexec/bitzkey-worker-ports
+install -m 644 packaging/bitzkey-worker-ports.path packaging/bitzkey-worker-ports.service /etc/systemd/system/
 systemctl daemon-reload
+systemctl enable --now bitzkey-worker-ports.path
 systemctl enable bitzkey.service
 systemctl restart bitzkey.service
 

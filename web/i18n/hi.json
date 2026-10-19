@@ -1282,5 +1282,9 @@
 "{#} a second": "{#} प्रति सेकंड",
 "{#} cores, {#} MB": "{#} कोर, {#} MB",
 "{#} cores, {#} MB, {*}": "{#} कोर, {#} MB, {*}",
-"{#} ms": "{#} ms"
+"{#} ms": "{#} ms",
+"CHANGE": "बदलें",
+"It listens on that port already.": "यह पहले से उस पोर्ट पर सुन रहा है।",
+"Its port, if not {#}": "इसका पोर्ट, अगर {#} नहीं है",
+"Now listening on port {#}; the main service follows.": "अब पोर्ट {#} पर सुन रहा है; मुख्य सेवा पीछे आएगी।"
 }

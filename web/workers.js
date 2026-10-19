@@ -83,7 +83,9 @@ export function openWorkers(onClose) {
   const table = element('div', { class: 'report-body worker-table' });
   const problem = element('p', { class: 'bad' });
   const host = element('input', { class: 'worker-host', placeholder: 'IP address', spellcheck: false });
-  const port = numberBox(DEFAULT_PORT, 1, 65535);
+  const port = numberBox('', 1, 65535);  // empty: the default
+  port.placeholder = String(DEFAULT_PORT);
+  port.title = 'Its port, if not 50000';
   const message = element('input', { class: 'worker-message', maxlength: 1000, placeholder: "A message for the worker's page (optional); it can hold a link" });
   for (const box of [host, message]) box.addEventListener('keydown', event => event.stopPropagation());
   const checkpoint = numberBox(100, 1, 100000);
@@ -136,8 +138,11 @@ export function openWorkers(onClose) {
   };
 
   const add = async () => {
-    if (await act('/api/workers/add', { host: host.value.trim(), port: Number(port.value), message: message.value.trim() })) {
+    const given = { host: host.value.trim(), message: message.value.trim() };
+    if (port.value.trim()) given.port = Number(port.value);
+    if (await act('/api/workers/add', given)) {
       host.value = '';
+      port.value = '';
       message.value = '';
     }
   };
@@ -229,11 +234,22 @@ export async function showWorkerPanel() {
   const stopButton = element('button', { class: 'worker-stop' }, 'STOP BEING A WORKER');
   let controls = null;
   const sharing = element('div');
+  const portBox = numberBox(DEFAULT_PORT, 1, 65535);
+  const moving = element('div', { class: 'worker-shares' }, field('Port', element('span', { class: 'worker-add' }, portBox,
+    element('button', { onclick: async () => {
+      try {
+        await api('/api/worker/port', { port: Number(portBox.value) });
+        problem.textContent = `Now listening on port ${portBox.value}; the main service follows.`;
+      } catch (error) {
+        problem.textContent = error.message;
+      }
+    } }, 'CHANGE')), 'to listen on for the main service'));
   const panel = element('div', { class: 'worker-panel' },
     element('div', { class: 'worker-card' },
       element('div', { class: 'worker-title' }, 'WORKER'),
       lead, noteHolder, facts,
       element('div', { class: 'group-heading' }, 'Shared with the main service'),
+      moving,
       sharing,
       element('div', { class: 'dialog-buttons' },
         element('button', { onclick: async () => {
@@ -290,6 +306,7 @@ export async function showWorkerPanel() {
         element('div', {}, `Port ${worker.port}`));
       stopButton.disabled = worker.leaving;
       if (!controls) {
+        portBox.value = worker.port;
         controls = shareControls(machine, worker.shared);
         sharing.replaceChildren(controls.view);
       }

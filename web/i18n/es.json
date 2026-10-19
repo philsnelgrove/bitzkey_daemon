@@ -1282,5 +1282,9 @@
 "{#} a second": "{#} por segundo",
 "{#} cores, {#} MB": "{#} núcleos, {#} MB",
 "{#} cores, {#} MB, {*}": "{#} núcleos, {#} MB, {*}",
-"{#} ms": "{#} ms"
+"{#} ms": "{#} ms",
+"CHANGE": "Cambiar",
+"It listens on that port already.": "Ya escucha en ese puerto.",
+"Its port, if not {#}": "Su puerto, si no es {#}",
+"Now listening on port {#}; the main service follows.": "Ahora escucha en el puerto {#}; el servicio principal lo sigue."
 }

@@ -1282,5 +1282,9 @@
 "{#} a second": "{#} בשנייה",
 "{#} cores, {#} MB": "{#} ליבות, {#} MB",
 "{#} cores, {#} MB, {*}": "{#} ליבות, {#} MB, {*}",
-"{#} ms": "{#} ms"
+"{#} ms": "{#} ms",
+"CHANGE": "שנה",
+"It listens on that port already.": "הוא כבר מאזין בפורט הזה.",
+"Its port, if not {#}": "הפורט שלו, אם אינו {#}",
+"Now listening on port {#}; the main service follows.": "מאזין כעת בפורט {#}; השירות הראשי עוקב."
 }

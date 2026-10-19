@@ -260,11 +260,15 @@ void Pool::poll_one(const std::shared_ptr<Member>& member) {
     State state;
     std::uint64_t session;
     std::chrono::steady_clock::time_point retry;
+    std::string host;
+    int port;
     {
         std::lock_guard lock(mutex_);
         state = member->state;
         session = member->session;
         retry = member->retry;
+        host = member->host;
+        port = member->port;
     }
     const auto now = std::chrono::steady_clock::now();
     const auto take = [&](const nlohmann::json& info) {  // what a worker says of itself
@@ -274,7 +278,7 @@ void Pool::poll_one(const std::shared_ptr<Member>& member) {
         member->description = info.value("description", std::string());
         member->gpus = info.value("gpus", std::vector<std::string>());
     };
-    auto client = client_for(member->host, member->port, 5);
+    auto client = client_for(host, port, 5);
     if (state == State::Ready) {
         const auto start = std::chrono::steady_clock::now();
         const auto result = client->Get("/bitzkey/status?session=" + std::to_string(session));
@@ -293,6 +297,11 @@ void Pool::poll_one(const std::shared_ptr<Member>& member) {
         try {
             const auto info = nlohmann::json::parse(result->body);
             take(info);
+            const int moved_to = info.value("port", member->port);
+            if (moved_to != member->port && moved_to >= 1 && moved_to <= 65535) {  // it listens elsewhere now: followed there
+                member->port = moved_to;
+                member->moved = true;
+            }
             if (!info.value("known", false)) {
                 member->state = State::Lost;
                 member->error = "it restarted";
@@ -532,7 +541,10 @@ Batch Pool::batch_for(Member& member, const std::vector<std::size_t>& asks, std:
 
 Answer Pool::send(Member& member, const Batch& batch) {
     if (member.local) return thinker_->apply(batch);
-    if (!member.client) member.client = client_for(member.host, member.port, 120);
+    if (!member.client) {
+        std::lock_guard lock(mutex_);  // its port may change on the polling thread
+        member.client = client_for(member.host, member.port, 120);
+    }
     const auto result = member.client->Post("/bitzkey/batch", encode(batch), "application/octet-stream");
     if (!result || result->status != 200) throw std::runtime_error(error_of(result));
     return decode_answer(result->body);
@@ -682,12 +694,16 @@ void Pool::fail(Member& member, const std::string& why) {
 
 void Pool::release(Member& member) {
     std::uint64_t session;
+    std::string host;
+    int port;
     {
         std::lock_guard lock(mutex_);
         session = member.session;
+        host = member.host;
+        port = member.port;
     }
     if (!session || member.local) return;
-    auto client = client_for(member.host, member.port, 10);
+    auto client = client_for(host, port, 10);
     client->Post("/bitzkey/release", nlohmann::json{{"session", session}}.dump(), "application/json");
 }
 
@@ -769,9 +785,15 @@ void Pool::rebalance() {
 void Pool::tend(Simulation& simulation) {
     if (bound_ != &simulation) return;
     std::vector<Member*> lost, leaving;
+    bool moved = false;
     {
         std::lock_guard lock(mutex_);
         for (const auto& member : members_) {
+            if (member->moved) {  // its batches go to its new port
+                member->moved = false;
+                member->client.reset();
+                moved = true;
+            }
             if (member->state == State::Lost) lost.push_back(member.get());
             if (member->state == State::Leaving) leaving.push_back(member.get());
             if (member->fresh) {
@@ -788,6 +810,7 @@ void Pool::tend(Simulation& simulation) {
         }
         fail(*member, why);
     }
+    if (moved) save();
     for (Member* member : leaving) evacuate(*member);
     bool remote = false;
     for (const auto& member : members_) remote = remote || member->count;

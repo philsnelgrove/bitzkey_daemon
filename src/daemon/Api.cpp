@@ -187,7 +187,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     // A worker has no world to show or steer: only its own page answers.
     server.set_pre_routing_handler([&world](const httplib::Request& request, httplib::Response& response) {
-        static const std::set<std::string> open = {"/api/state", "/api/worker", "/api/worker/share", "/api/worker/stop", "/api/machine"};
+        static const std::set<std::string> open = {"/api/state", "/api/worker", "/api/worker/share", "/api/worker/port", "/api/worker/stop", "/api/machine"};
         if (!world.worker().on() || request.path.rfind("/api/", 0) != 0 || open.contains(request.path)) {
             return httplib::Server::HandlerResponse::Unhandled;
         }
@@ -226,8 +226,18 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         std::string host = given.value("host", std::string());
         host.erase(0, host.find_first_not_of(" \t"));
         host.erase(host.find_last_not_of(" \t") + 1);
+        // The port, if not given, is the default, or comes after the address: 192.168.1.20:50001.
+        int port = given.contains("port") && given["port"].is_number_integer() ? given["port"].get<int>() : DEFAULT_WORKER_PORT;
+        if (const auto colon = host.rfind(':'); colon != std::string::npos && host.find(':') == colon) {
+            const std::string digits = host.substr(colon + 1);
+            if (digits.empty() || digits.size() > 5 || !std::all_of(digits.begin(), digits.end(), [](char c) { return std::isdigit(static_cast<unsigned char>(c)); })) {
+                throw std::invalid_argument("A port is between 1 and 65535.");
+            }
+            port = std::stoi(digits);
+            host.erase(colon);
+        }
         auto lock = world.lock();
-        world.pool().add(host, given.value("port", DEFAULT_WORKER_PORT), given.value("message", std::string()));
+        world.pool().add(host, port, given.value("message", std::string()));
         world.adopt_pool();
         Json result = world.pool().list();
         result["note"] = "Added " + host + ": connecting.";
@@ -268,6 +278,11 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Post("/api/worker/share", guarded([&world, shared_resources](const httplib::Request& request, httplib::Response& response) {
         world.worker().share(shared_resources(body(request)));
+        reply(response, world.worker().status());
+    }));
+
+    server.Post("/api/worker/port", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        world.worker().move_to(body(request).value("port", DEFAULT_WORKER_PORT));
         reply(response, world.worker().status());
     }));
 

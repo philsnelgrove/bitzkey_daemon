@@ -42,6 +42,7 @@ Worker::Worker(std::filesystem::path file) : file_(std::move(file)) {}
 Worker::~Worker() {
     if (stopping_thread_.joinable()) stopping_thread_.join();
     stop(false, std::chrono::seconds(0));
+    if (closer_.joinable()) closer_.join();
 }
 
 Json Worker::machine() {
@@ -95,10 +96,75 @@ void Worker::start(int port, const Resources& shared) {
         noted();
     }
     server_ = std::move(server);
-    serve();
+    serve(*server_, port);
     serving_ = std::thread([this] { server_->listen_after_bind(); });
+    server_->wait_until_ready();  // listening before it can be stopped: a stop before then would be missed, and wait forever
     on_ = true;
     save();
+    write_ports();
+}
+
+void Worker::move_to(int port) {
+    if (!on_) throw std::invalid_argument("This daemon isn't a worker.");
+    if (port < 1 || port > 65535) throw std::invalid_argument("A port is between 1 and 65535.");
+    bool bound;
+    {
+        std::lock_guard lock(mutex_);
+        if (port == port_) throw std::invalid_argument("It listens on that port already.");
+        bound = session_ != 0;
+    }
+    auto server = std::make_unique<httplib::Server>();
+    if (!server->bind_to_port("0.0.0.0", port)) throw std::invalid_argument("Port " + std::to_string(port) + " can't be listened on: is it in use?");
+    serve(*server, port);
+    if (closer_.joinable()) closer_.join();
+    close_old();  // a port moved from before, and not yet let go
+    {
+        std::lock_guard lock(servers_);
+        old_server_ = std::move(server_);
+        old_serving_ = std::move(serving_);
+    }
+    server_ = std::move(server);
+    serving_ = std::thread([this] { server_->listen_after_bind(); });
+    server_->wait_until_ready();
+    {
+        std::lock_guard lock(mutex_);
+        old_port_ = port_;
+        port_ = port;
+    }
+    save();
+    write_ports();
+    if (!bound) close_old();  // no main service to wait for
+}
+
+void Worker::followed(int port) {
+    if (!old_port_ || port == old_port_) return;
+    std::lock_guard lock(servers_);
+    if (closer_.joinable() || !old_server_) return;
+    closer_ = std::thread([this] { close_old(); });
+}
+
+void Worker::close_old() {
+    std::unique_ptr<httplib::Server> server;
+    std::thread serving;
+    {
+        std::lock_guard lock(servers_);
+        server = std::move(old_server_);
+        serving = std::move(old_serving_);
+    }
+    if (server) server->stop();
+    if (serving.joinable()) serving.join();
+    if (old_port_.exchange(0)) write_ports();
+}
+
+void Worker::write_ports() const {
+    std::string ports;
+    if (on_) {
+        std::lock_guard lock(mutex_);
+        ports = std::to_string(port_);
+        if (old_port_) ports += " " + std::to_string(old_port_.load());
+    }
+    std::ofstream out(file_.parent_path() / "worker-ports");
+    out << ports << "\n";
 }
 
 void Worker::share(const Resources& shared) {
@@ -135,6 +201,8 @@ void Worker::stop(bool forget, std::chrono::seconds wait) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    if (closer_.joinable()) closer_.join();
+    close_old();
     server_->stop();
     if (serving_.joinable()) serving_.join();
     server_.reset();
@@ -149,7 +217,10 @@ void Worker::stop(bool forget, std::chrono::seconds wait) {
         noted();
     }
     on_ = false;
-    if (forget) save();
+    if (forget) {  // its port closed in the firewall; stopping with the daemon, it is kept for its return
+        save();
+        write_ports();
+    }
 }
 
 void Worker::stop_soon() {
@@ -171,7 +242,8 @@ Json Worker::hello() const {  // under mutex_
             {"description", description_},
             {"held", held_},
             {"leaving", leaving_},
-            {"main", main_address_}};
+            {"main", main_address_},
+            {"port", port_}};  // where it listens now: a main service reaching it on another follows it here
 }
 
 Json Worker::status() const {
@@ -187,8 +259,7 @@ Json Worker::status() const {
     return result;
 }
 
-void Worker::serve() {
-    httplib::Server& server = *server_;
+void Worker::serve(httplib::Server& server, int port) {
     server.set_payload_max_length(std::size_t{1} << 31);
 
     server.Get("/bitzkey/hello", [this](const httplib::Request&, httplib::Response& response) {
@@ -256,13 +327,17 @@ void Worker::serve() {
         }
     });
 
-    server.Get("/bitzkey/status", [this](const httplib::Request& request, httplib::Response& response) {
-        std::lock_guard lock(mutex_);
-        const bool known = session_ && request.has_param("session") && request.get_param_value("session") == std::to_string(session_);
-        if (known) contact_ = std::chrono::steady_clock::now();
-        Json result = hello();
-        result["known"] = known;
-        reply(response, result);
+    server.Get("/bitzkey/status", [this, port](const httplib::Request& request, httplib::Response& response) {
+        bool known;
+        {
+            std::lock_guard lock(mutex_);
+            known = session_ && request.has_param("session") && request.get_param_value("session") == std::to_string(session_);
+            if (known) contact_ = std::chrono::steady_clock::now();
+            Json result = hello();
+            result["known"] = known;
+            reply(response, result);
+        }
+        if (known) followed(port);
     });
 
     // The main service has taken back every brain (or is letting this worker go): all are let go here.
