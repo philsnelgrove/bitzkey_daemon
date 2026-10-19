@@ -735,6 +735,11 @@ public:
     // The GPUs failed (out of memory, most likely): every brain comes back from them, as far as it still can, and the
     // world thinks on the CPU from here on, rather than stop. Its rewind history starts again with the next turn.
     void leave_gpu(const std::exception& error);
+    // Think from here on with `engine`, or on the CPU without one: every living brain is brought back from the engine
+    // it is on, as it now is, and put on the new one. Its rewind history starts again with the next turn.
+    void use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::string status);
+    // The brain whose handle on the engine this is, as it was last brought back from it; none if no living brain's.
+    const Brain* engine_brain(int handle) const;
     void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed
     // How clearly it remembers a place: 1 the turn it happened, fading to nothing over MEMORY_TURNS times its
     // memory; 0 when it has nothing to remember.

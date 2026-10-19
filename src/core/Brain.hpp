@@ -172,6 +172,8 @@ public:
     // Lambda runs from TRACE_DECAY up to SMART_TRACE_DECAY with `sharpness`, its owner's intellect, 0 to 1.
     void learn_traced(const Senses& inputs, int action, double target, double learning_rate, double discount,
                       double sharpness = 0.0);
+    // The same, with the traces' decay (the discount times lambda) worked out already, as the GPUs are given it.
+    void learn_traced_by(const Senses& inputs, int action, double target, double learning_rate, double decay);
 
     nlohmann::ordered_json to_record() const;
     // Weights are matched to senses and actions by name; a brain saved with a single hidden

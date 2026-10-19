@@ -1224,6 +1224,31 @@ void Simulation::leave_gpu(const std::exception& error) {
     gpu_status_ = std::string("thinking on the CPU: the GPU failed (") + error.what() + ")";
 }
 
+void Simulation::use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::string status) {
+    learn_queued();  // what is waiting to be learnt, learnt where the brains are now
+    sync_brains();
+    const auto old = std::move(gpu_);
+    for (const auto& agent : agents_) {
+        agent->gpu = -1;
+        agent->synced = -1;
+    }
+    gpu_ = std::move(engine);
+    gpu_status_ = std::move(status);
+    for (const auto& agent : agents_) {
+        if (agent->alive()) attach(*agent);
+    }
+    history_.clear();
+    history_bytes_ = 0;
+    frontier_ = turn_;  // the turns ahead, rewound from, are let go with the history
+}
+
+const Brain* Simulation::engine_brain(int handle) const {
+    for (const auto& agent : agents_) {
+        if (agent->gpu == handle && agent->brain) return agent->brain.get();
+    }
+    return nullptr;
+}
+
 void Simulation::sync(std::span<Bitzkey* const> agents) {
     if (!gpu_) return;
     std::vector<gpu::BrainEngine::Handle> handles;

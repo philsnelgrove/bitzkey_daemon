@@ -10,6 +10,7 @@ import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
 import { saveWorld } from './worlds.js';
+import { openWorkers, showWorkerPanel } from './workers.js';
 
 await startLanguages();  // before anything is drawn, so it appears in the chosen language
 
@@ -110,10 +111,18 @@ function applyState(state) {
   drawHeader();
 }
 
+let workerMode = false;  // a worker shows only its own panel, and fetches nothing of a world
+
 async function poll(force = false) {
   try {
     const state = await api('/api/state');
     $('lost').hidden = true;
+    if (state.mode === 'worker') {
+      workerMode = true;
+      app.overlay = { update() {} };  // the keys steer nothing
+      showWorkerPanel();
+      return;
+    }
     applyState(state);
     const now = performance.now();
     if (force || (state.version !== shownVersion && now - lastFrame >= FRAME_MS)) {
@@ -133,7 +142,7 @@ async function poll(force = false) {
 
 async function loop() {
   await poll();
-  setTimeout(loop, POLL_MS);
+  if (!workerMode) setTimeout(loop, POLL_MS);
 }
 
 async function loadFrame() {
@@ -1036,6 +1045,11 @@ $('show-insights').onclick = toggleInsights;
 $('show-graph').onclick = graph;
 $('save-report').onclick = saveReport;
 $('show-files').onclick = showFiles;
+$('show-workers').onclick = () => {
+  if (app.overlay) return;
+  app.overlay = { update() {} };
+  openWorkers(() => { app.overlay = null; poll(true); });
+};
 $('new-world').onclick = setup;
 $('export-all').onclick = openExportDialog;
 $('open-catalog').onclick = () => { if (!app.overlay) browseCatalog(); };

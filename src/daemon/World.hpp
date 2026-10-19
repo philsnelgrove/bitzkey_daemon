@@ -15,6 +15,8 @@
 
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
+#include "daemon/Pool.hpp"
+#include "daemon/Worker.hpp"
 
 namespace bitzkey::daemon {
 
@@ -69,9 +71,17 @@ public:
     void change_rules(rules::Values rules);
     void touch() { ++version_; }  // something changed that viewers should fetch again
 
+    // The workers this main service shares its brains with, and worker mode, in which it thinks for another.
+    Pool& pool() { return *pool_; }
+    Worker& worker() { return *worker_; }
+    // Think through the pool while it has workers, and alone when it has none: after the list changes, or the world.
+    void adopt_pool();
+
 private:
     void run();
 
+    std::unique_ptr<Pool> pool_;      // first, so it outlasts the world that thinks through it
+    std::unique_ptr<Worker> worker_;
     std::mutex mutex_;
     std::atomic<int> waiting_{0};  // viewers waiting for the lock
     std::unique_ptr<Simulation> simulation_;

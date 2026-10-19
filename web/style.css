@@ -268,6 +268,41 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .files a span:last-child { color: var(--faint); }
 .keys { white-space: pre; }
 
+/* Workers */
+.worker-table { max-height: 40vh; overflow-x: hidden; }
+.worker-table .report-table { width: 100%; font: 12px var(--sans); }
+.worker-table .report-table th, .worker-table .report-table td { text-align: start; white-space: normal; vertical-align: top; padding: 4px 8px; }
+.worker-table .report-table th { font-size: 11px; color: var(--muted); }
+.worker-table .delete { padding: 2px 8px; font-size: 11px; }
+.worker-note { font: 11px var(--sans); color: var(--faint); white-space: normal; max-width: 260px; }
+.worker-on { color: var(--green); }
+.worker-off { color: var(--amber); }
+.worker-add { display: flex; align-items: center; gap: 8px; }
+.worker-add input { height: 30px; padding: 0 8px; }
+.worker-host { width: 180px; }
+.worker-message { flex: 1; min-width: 0; }
+.worker-number { width: 100px; height: 30px; padding: 0 8px; text-align: right; }
+.worker-hint { font-size: 12px; color: var(--faint); }
+.worker-shares { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.worker-field { display: flex; align-items: center; gap: 10px; }
+.worker-label { font-size: 13px; color: var(--soft); min-width: 110px; }
+.worker-gpu { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.worker-panel {
+  position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgb(88, 92, 92); overflow-y: auto;
+}
+.worker-card { width: min(640px, 100%); background: rgb(62, 66, 66); border: 1px solid rgb(120, 126, 126); border-radius: 8px; padding: 24px 28px; color: rgb(228, 230, 228); }
+.worker-card .group-heading { color: rgb(200, 204, 200); }
+.worker-language { float: inline-end; margin-inline-start: 12px; }
+.worker-language .language { font: 12px var(--sans); color: var(--text); background: rgb(52, 56, 56); border: 1px solid rgb(120, 126, 126); border-radius: 4px; padding: 4px 6px; }
+.worker-title { font: bold 26px var(--sans); letter-spacing: 2px; color: rgb(236, 238, 236); }
+.worker-lead { font-size: 15px; margin: 12px 0; }
+.worker-message-box { white-space: pre-wrap; font-size: 14px; background: rgb(52, 56, 56); border-radius: 5px; padding: 10px 12px; margin: 4px 0 12px; }
+.worker-message-box a { color: var(--green); }
+.worker-facts { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: rgb(200, 204, 200); }
+.worker-foot { display: flex; justify-content: center; margin-top: 18px; }
+.worker-stop { background: rgb(150, 70, 60); padding: 10px 22px; }
+
 /* The death report and a brain inspected */
 .panel-tools { display: flex; justify-content: flex-end; margin-bottom: -18px; }
 .panel-tools button, .heading-row button { padding: 4px 10px; font-size: 11px; }

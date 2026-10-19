@@ -28,6 +28,8 @@ struct DeviceInfo {
 // Whether this computer has a GPU the brains can think on, found once and remembered; `why` says why
 // not when it hasn't.
 bool available(std::string* why = nullptr);
+// Every GPU with Vulkan compute, discrete or integrated, in the order Vulkan lists them; none without Vulkan.
+std::vector<DeviceInfo> scan();
 
 class BrainEngine {
 public:
@@ -44,6 +46,8 @@ public:
 
     // None when there is no Vulkan, no GPU, or they are turned off; `why` then says which.
     static std::unique_ptr<BrainEngine> create(std::string* why = nullptr);
+    // On these GPUs alone, by their places in scan()'s list, whatever BITZKEY_GPU says.
+    static std::unique_ptr<BrainEngine> create_on(const std::vector<int>& chosen, std::string* why = nullptr);
     virtual ~BrainEngine() = default;
 
     virtual const std::vector<DeviceInfo>& devices() const = 0;

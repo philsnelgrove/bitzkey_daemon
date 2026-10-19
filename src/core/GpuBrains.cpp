@@ -168,31 +168,62 @@ static_assert(sizeof(GpuLesson) == 32);
 
 class VulkanEngine final : public BrainEngine {
 public:
-    explicit VulkanEngine(bool all_kinds) {
-        if (!vk_.load_library()) throw std::runtime_error("Vulkan isn't installed.");
+    // On the discrete GPUs, else the integrated; with `all_kinds`, both; or, given `only`, those of scan()'s list.
+    explicit VulkanEngine(bool all_kinds, const std::vector<int>* only = nullptr) {
+        start(vk_, instance_);
+        std::vector<VkPhysicalDevice> discrete, integrated, both;
+        for (VkPhysicalDevice device : list(vk_, instance_)) {
+            VkPhysicalDeviceProperties properties;
+            vk_.vkGetPhysicalDeviceProperties(device, &properties);
+            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) discrete.push_back(device);
+            else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) integrated.push_back(device);
+            else continue;
+            both.push_back(device);
+        }
+        std::vector<VkPhysicalDevice> chosen = discrete.empty() ? integrated : discrete;
+        if (all_kinds && !discrete.empty()) chosen.insert(chosen.end(), integrated.begin(), integrated.end());
+        if (only) {
+            chosen.clear();
+            for (const int index : *only) {
+                if (index >= 0 && static_cast<std::size_t>(index) < both.size()) chosen.push_back(both[static_cast<std::size_t>(index)]);
+            }
+        }
+        for (VkPhysicalDevice device : chosen) open(device);
+        if (gpus_.empty()) throw std::runtime_error("No GPU with Vulkan compute was found.");
+    }
+
+    // Vulkan loaded and an instance made for it.
+    static void start(Vulkan& vk, VkInstance& instance) {
+        if (!vk.load_library()) throw std::runtime_error("Vulkan isn't installed.");
         VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
         app.pApplicationName = "Bitzkey";
         app.apiVersion = VK_API_VERSION_1_1;
         VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         info.pApplicationInfo = &app;
-        check(vk_.vkCreateInstance(&info, nullptr, &instance_), "creating an instance");
-        vk_.load_instance(instance_);
+        check(vk.vkCreateInstance(&info, nullptr, &instance), "creating an instance");
+        vk.load_instance(instance);
+    }
 
+    static std::vector<VkPhysicalDevice> list(Vulkan& vk, VkInstance instance) {
         std::uint32_t count = 0;
-        check(vk_.vkEnumeratePhysicalDevices(instance_, &count, nullptr), "listing GPUs");
+        check(vk.vkEnumeratePhysicalDevices(instance, &count, nullptr), "listing GPUs");
         std::vector<VkPhysicalDevice> physical(count);
-        check(vk_.vkEnumeratePhysicalDevices(instance_, &count, physical.data()), "listing GPUs");
-        std::vector<VkPhysicalDevice> discrete, integrated;
-        for (VkPhysicalDevice device : physical) {
-            VkPhysicalDeviceProperties properties;
-            vk_.vkGetPhysicalDeviceProperties(device, &properties);
-            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) discrete.push_back(device);
-            else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) integrated.push_back(device);
+        check(vk.vkEnumeratePhysicalDevices(instance, &count, physical.data()), "listing GPUs");
+        return physical;
+    }
+
+    static DeviceInfo describe(Vulkan& vk, VkPhysicalDevice physical) {
+        VkPhysicalDeviceProperties properties;
+        vk.vkGetPhysicalDeviceProperties(physical, &properties);
+        VkPhysicalDeviceMemoryProperties memory{};
+        vk.vkGetPhysicalDeviceMemoryProperties(physical, &memory);
+        DeviceInfo described;
+        described.name = properties.deviceName;
+        described.discrete = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+        for (std::uint32_t heap = 0; heap < memory.memoryHeapCount; ++heap) {
+            if (memory.memoryHeaps[heap].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) described.memory += memory.memoryHeaps[heap].size;
         }
-        std::vector<VkPhysicalDevice> chosen = discrete.empty() ? integrated : discrete;
-        if (all_kinds && !discrete.empty()) chosen.insert(chosen.end(), integrated.begin(), integrated.end());
-        for (VkPhysicalDevice device : chosen) open(device);
-        if (gpus_.empty()) throw std::runtime_error("No GPU with Vulkan compute was found.");
+        return described;
     }
 
     ~VulkanEngine() override {
@@ -550,13 +581,7 @@ private:
         gpu->values = pipeline(*gpu, VALUES_SPIRV, sizeof(VALUES_SPIRV));
         gpu->learn = pipeline(*gpu, LEARN_SPIRV, sizeof(LEARN_SPIRV));
 
-        DeviceInfo described;
-        described.name = properties.deviceName;
-        described.discrete = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-        for (std::uint32_t heap = 0; heap < gpu->memory.memoryHeapCount; ++heap) {
-            if (gpu->memory.memoryHeaps[heap].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) described.memory += gpu->memory.memoryHeaps[heap].size;
-        }
-        infos_.push_back(described);
+        infos_.push_back(describe(vk_, physical));
         gpus_.push_back(std::move(gpu));
     }
 
@@ -781,6 +806,34 @@ std::unique_ptr<BrainEngine> BrainEngine::create(std::string* why) {
         if (why) *why = error.what();
         return nullptr;
     }
+}
+
+std::unique_ptr<BrainEngine> BrainEngine::create_on(const std::vector<int>& chosen, std::string* why) {
+    try {
+        return std::make_unique<VulkanEngine>(false, &chosen);
+    } catch (const std::exception& error) {
+        if (why) *why = error.what();
+        return nullptr;
+    }
+}
+
+std::vector<DeviceInfo> scan() {
+    std::vector<DeviceInfo> found;
+    try {
+        Vulkan vk;
+        VkInstance instance = VK_NULL_HANDLE;
+        VulkanEngine::start(vk, instance);
+        for (VkPhysicalDevice device : VulkanEngine::list(vk, instance)) {
+            VkPhysicalDeviceProperties properties;
+            vk.vkGetPhysicalDeviceProperties(device, &properties);
+            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+                found.push_back(VulkanEngine::describe(vk, device));
+            }
+        }
+        vk.vkDestroyInstance(instance, nullptr);
+    } catch (const std::exception&) {  // no Vulkan: no GPUs
+    }
+    return found;
 }
 
 }  // namespace bitzkey::gpu

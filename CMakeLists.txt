@@ -85,6 +85,9 @@ add_executable(bitzkey_daemon
     src/daemon/Api.cpp
     src/daemon/Views.cpp
     src/daemon/Graph.cpp
+    src/daemon/Brains.cpp
+    src/daemon/Pool.cpp
+    src/daemon/Worker.cpp
     "${BITZKEY_WEB_SOURCE}"
 )
 target_include_directories(bitzkey_daemon PRIVATE src)
@@ -105,11 +108,15 @@ add_executable(bitzkey_tests
     tests/test_gpu.cpp
     tests/test_worldfile.cpp
     tests/test_daemon.cpp
+    tests/test_pool.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp
     src/daemon/Api.cpp
     src/daemon/Views.cpp
     src/daemon/Graph.cpp
+    src/daemon/Brains.cpp
+    src/daemon/Pool.cpp
+    src/daemon/Worker.cpp
     "${BITZKEY_WEB_SOURCE}"
 )
 target_include_directories(bitzkey_tests PRIVATE src)

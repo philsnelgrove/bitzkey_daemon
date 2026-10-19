@@ -12,10 +12,34 @@ constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed
 }
 
 World::World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir)
-    : simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)), playing_(playing) {
+    : pool_(std::make_unique<Pool>(data_dir / "workers.json")), worker_(std::make_unique<Worker>(data_dir / "worker.json")),
+      simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)), playing_(playing) {
     paths_ = {data_dir / "catalog.json", data_dir / "exports", data_dir / "reports", data_dir / "worlds"};
     std::filesystem::create_directories(data_dir);
+    adopt_pool();
     thread_ = std::thread([this] { run(); });
+}
+
+void World::adopt_pool() {
+    if (pool_->active() && !pool_->bound()) {
+        auto engine = pool_->engine(*simulation_);
+        simulation_->use_engine(std::move(engine), pool_->status());
+    } else if (!pool_->active() && pool_->bound()) {  // thinking alone again, as a world begins
+        std::string why, status;
+        std::unique_ptr<gpu::BrainEngine> engine;
+        if (USE_GPU) {
+            engine = gpu::BrainEngine::create(&why);
+            if (engine) {
+                status = "thinking on";
+                for (const gpu::DeviceInfo& device : engine->devices()) status += " " + device.name + ";";
+                status.pop_back();
+            } else {
+                status = "thinking on the CPU: " + why;
+            }
+        }
+        simulation_->use_engine(std::move(engine), status);
+    }
+    touch();
 }
 
 World::~World() {
@@ -24,7 +48,7 @@ World::~World() {
 }
 
 void World::play(bool on) {
-    playing_ = on && !simulation_->ended();
+    playing_ = on && !simulation_->ended() && !worker_->on();
     touch();
 }
 
@@ -62,7 +86,7 @@ void World::new_world(Simulation::Settings settings, rules::Values rules) {
     rules_ = std::move(rules);
     playing_ = true;
     ++world_number_;
-    touch();
+    adopt_pool();
 }
 
 void World::restart() { new_world(settings_, rules_); }
@@ -72,7 +96,7 @@ void World::load_world(std::unique_ptr<Simulation> loaded) {
     rules_ = rules::changed(rules::current());  // the rules it brought, which its restarts keep
     playing_ = false;
     ++world_number_;
-    touch();
+    adopt_pool();
 }
 
 void World::change_rules(rules::Values rules) {
@@ -91,6 +115,8 @@ void World::run() {
         bool busy = false;
         try {
             std::lock_guard lock(mutex_);
+            if (worker_->on()) playing_ = false;  // a worker thinks for another's world, not its own
+            if (pool_->bound()) pool_->tend(*simulation_);
             if (playing_ && !simulation_->ended()) {
                 const double interval = TURN_INTERVALS[static_cast<std::size_t>(speed_)];
                 const auto now = Clock::now();

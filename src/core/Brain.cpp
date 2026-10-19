@@ -231,8 +231,11 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
 
 void Brain::learn_traced(const Senses& inputs, int action, double target, double learning_rate, double discount,
                          double sharpness) {
+    learn_traced_by(inputs, action, target, learning_rate, discount * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * sharpness));
+}
+
+void Brain::learn_traced_by(const Senses& inputs, int action, double target, double learning_rate, double decay) {
     if (learning_rate <= 0) return;
-    const double decay = discount * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * sharpness);
     if (!traces) {
         traces.emplace();
         for (const Layer& layer : layers) {

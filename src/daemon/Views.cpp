@@ -230,9 +230,11 @@ Json state(World& world) {
         {"speed", world.speed()},
         {"rules_changed", world.rules().size()},  // how many of the advanced rules it plays by differ from the defaults
         {"speeds", SPEED_LABELS},
-        {"gpu_status", simulation.gpu_status()},
+        {"gpu_status", world.pool().bound() ? world.pool().status() : simulation.gpu_status()},
         {"on_gpu", simulation.on_gpu()},
         {"rules_changed", world.rules().size()},
+        {"mode", "main"},
+        {"pooled", world.pool().bound()},  // its brains shared with workers
     };
     return result;
 }

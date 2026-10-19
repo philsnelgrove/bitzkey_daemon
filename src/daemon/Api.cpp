@@ -185,11 +185,95 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.set_payload_max_length(4 * MAX_IMPORT_BYTES);
 
+    // A worker has no world to show or steer: only its own page answers.
+    server.set_pre_routing_handler([&world](const httplib::Request& request, httplib::Response& response) {
+        static const std::set<std::string> open = {"/api/state", "/api/worker", "/api/worker/share", "/api/worker/stop", "/api/machine"};
+        if (!world.worker().on() || request.path.rfind("/api/", 0) != 0 || open.contains(request.path)) {
+            return httplib::Server::HandlerResponse::Unhandled;
+        }
+        fail(response, "This daemon is a worker, thinking for another's world.", 409);
+        return httplib::Server::HandlerResponse::Handled;
+    });
+
     // ---- The world as it is
 
     server.Get("/api/state", guarded([&world](const httplib::Request&, httplib::Response& response) {
+        if (world.worker().on()) {
+            reply(response, {{"mode", "worker"}, {"worker", world.worker().status()}});
+            return;
+        }
         auto lock = world.lock();
         reply(response, state(world));
+    }));
+
+    // ---- Workers: those this main service shares its brains with, and worker mode
+
+    const auto shared_resources = [](const Json& given) {
+        Resources shared;
+        shared.threads = given.value("threads", 1);
+        shared.memory = static_cast<std::uint64_t>(std::max(0.0, given.value("memory_mb", 0.0))) << 20;
+        shared.gpus = given.value("gpus", std::vector<int>());
+        return shared;
+    };
+
+    server.Get("/api/workers", guarded([&world](const httplib::Request&, httplib::Response& response) {
+        auto lock = world.lock();
+        reply(response, world.pool().list());
+    }));
+
+    server.Post("/api/workers/add", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        std::string host = given.value("host", std::string());
+        host.erase(0, host.find_first_not_of(" \t"));
+        host.erase(host.find_last_not_of(" \t") + 1);
+        auto lock = world.lock();
+        world.pool().add(host, given.value("port", DEFAULT_WORKER_PORT), given.value("message", std::string()));
+        world.adopt_pool();
+        Json result = world.pool().list();
+        result["note"] = "Added " + host + ": connecting.";
+        reply(response, result);
+    }));
+
+    server.Post("/api/workers/remove", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        const std::string host = given.value("host", std::string());
+        auto lock = world.lock();
+        world.pool().remove(host, given.value("port", DEFAULT_WORKER_PORT));
+        world.adopt_pool();
+        Json result = world.pool().list();
+        result["note"] = "Removed " + host + ", its brains brought back first.";
+        reply(response, result);
+    }));
+
+    server.Post("/api/workers/checkpoint", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        auto lock = world.lock();
+        world.pool().set_checkpoint(given.value("turns", DEFAULT_CHECKPOINT_TURNS));
+        reply(response, world.pool().list());
+    }));
+
+    server.Get("/api/machine", guarded([](const httplib::Request&, httplib::Response& response) { reply(response, Worker::machine()); }));
+
+    server.Get("/api/worker", guarded([&world](const httplib::Request&, httplib::Response& response) { reply(response, world.worker().status()); }));
+
+    server.Post("/api/worker/start", guarded([&world, shared_resources](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        auto lock = world.lock();
+        if (world.pool().active()) throw std::invalid_argument("This service has workers of its own: remove them first.");
+        world.play(false);
+        world.worker().start(given.value("port", DEFAULT_WORKER_PORT), shared_resources(given));
+        world.touch();
+        reply(response, world.worker().status());
+    }));
+
+    server.Post("/api/worker/share", guarded([&world, shared_resources](const httplib::Request& request, httplib::Response& response) {
+        world.worker().share(shared_resources(body(request)));
+        reply(response, world.worker().status());
+    }));
+
+    server.Post("/api/worker/stop", guarded([&world](const httplib::Request&, httplib::Response& response) {
+        world.worker().stop_soon();
+        reply(response, world.worker().status());
     }));
 
     server.Get("/api/frame", guarded([&world](const httplib::Request&, httplib::Response& response) {

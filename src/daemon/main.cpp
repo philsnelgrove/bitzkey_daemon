@@ -1,5 +1,6 @@
 // bitzkey_daemon: one Bitzkey world, run as a service, its interface served as a web page.
 
+#include <chrono>
 #include <csignal>
 #include <cstdio>
 #include <iostream>
@@ -59,9 +60,14 @@ int main(int argc, char** argv) {
             auto lock = world.lock();
             if (!world.simulation().gpu_status().empty()) std::cout << "  " << world.simulation().gpu_status() << std::endl;
         }
+        world.worker().resume();  // a worker when it last stopped: a worker again
         server.listen_after_bind();
         running = nullptr;
         std::cout << "bitzkey_daemon: stopping" << std::endl;
+        if (world.worker().on()) {  // its brains handed back to its main service first, while it waits
+            std::cout << "bitzkey_daemon: handing the brains back to the main service" << std::endl;
+            world.worker().stop(false, std::chrono::seconds(20));
+        }
     } catch (const std::exception& error) {
         std::cerr << "bitzkey_daemon: " << error.what() << "\n";
         return 1;

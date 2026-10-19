@@ -132,6 +132,56 @@ Browsers only give a page the clipboard over HTTPS or from the same machine. Ove
 
 The page gives up on any request the daemon hasn't answered within 10 seconds and shows the daemon as lost until it answers again, rather than freezing.
 
+## Workers
+
+One daemon can share its world's thinking with others. The daemon running the world is the main service. The others are **workers**: daemons in worker mode, which run no world of their own. Each worker holds some of the main service's brains, and decides and learns for them. Deciding and learning are most of a turn's work: on the CPU, learning alone takes about three quarters of it.
+
+**Becoming a worker.** On the computer that is to help, open its daemon's page, then **WORKERS** and **BECOME A WORKER...**. Choose:
+
+- the port to listen on for the main service (default 50000);
+- how many cores to share;
+- how much memory to share for brains;
+- which GPUs to share, if any.
+
+The daemon pauses its world, and its page then shows only a gray panel. The panel says it is a worker, gives the main service's IP address and its message, and holds:
+
+- the shared cores, memory and GPUs, which can be changed at any time;
+- **STOP BEING A WORKER**.
+
+Worker mode lasts through restarts. The worker's port must be open to the main service: with `ufw`, run `sudo ufw allow 50000/tcp`. Several workers on one computer each need a port of their own.
+
+**Adding workers.** On the main service, open **WORKERS** and add each worker by its IP address and port. You can also give a message to show on the worker's panel; a link in the message becomes clickable there. The list shows, for each worker:
+
+- its state;
+- its ping time;
+- what it shares;
+- its measured speed;
+- how many brains it holds.
+
+There can be any number of workers. When the first is added, the world starts thinking through the pool. As on the GPU, it then keeps no history to rewind. Its header shows how many workers are working.
+
+**How the brains are shared.** Each new brain goes to the worker with the most room for it for its speed, and the main service keeps a share itself. Each turn, every worker is sent one batch, all of them at once:
+
+1. the brains it is to take on;
+2. the lessons its brains are to learn;
+3. the senses to value.
+
+Its values come back in the same answer. A worker keeps the recent senses of each brain it holds, so a lesson replayed from a memory names those senses rather than sending them again.
+
+Every 100 turns (set under Checkpoints), the main service brings every brain back, and evens out the shares if a worker has joined or changed what it shares.
+
+**When workers stop.**
+
+- **A worker that fails:** its brains go to the others as they were at the last checkpoint, and the world carries on. A worker that misses three pings in a row, or that restarted without warning, counts as failed.
+- **A worker that stops gracefully:** its brains are handed back first, and the world turns on meanwhile. This applies to STOP BEING A WORKER, a `systemctl stop` or a restart.
+- **A worker you remove:** its brains are brought back first too.
+
+**Saving.** A world saved on the main service brings every brain back from its workers first, so the file holds them all.
+
+**Security.** A worker serves one main service at a time, and turns away any other while its own is still in touch. Like the page, the worker port has no password, so keep workers on a network you trust.
+
+Workers speak to the main service in a binary protocol over HTTP. A worker and its main service must run the same version of Bitzkey.
+
 ## Building for development
 
 On Linux:
@@ -165,6 +215,10 @@ With `--web-dir web`, edits to the page show up on a reload, without rebuilding.
 | `src/daemon/Graph.*` | The colour graph, drawn on the server, which can hold millions of slices |
 | `src/daemon/Api.*` | The HTTP routes |
 | `src/daemon/Config.*` | Settings from the file and the command line |
+| `src/daemon/Pool.*` | The main service's pool of workers: sharing brains out, polling, checkpoints, failures and hand-backs |
+| `src/daemon/Worker.*` | Worker mode: the port a worker listens on for its main service, and its settings |
+| `src/daemon/Brains.*` | The brains a worker holds, the batches it is sent, and brains on the CPU's threads |
+| `src/daemon/Wire.hpp` | The binary form brains, senses and values take between them |
 | `web/` | The page: plain HTML, CSS and JavaScript modules, built into the program |
 | `packaging/` | The systemd service, the sample settings and the install script |
 
