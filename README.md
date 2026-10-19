@@ -2,6 +2,10 @@
 
 The Bitzkey project was started years ago, to teach my best friend programming. He wanted to learn about Python and AI, so it seemed like a natural project. Since then, my friend has passed away. So I finished this to honour him. I open-sourced it for the same reason. So, Sam Bunn, wherever you are, may you live on through Bitzkeys!
 
+Bitzkeys is now multilingual.  The choice of languages was somewhat arbitrary since I speak none of them (well, a little French...).  If you'd like me to add a language, please leave a comment to that effect.
+
+Also, the desktop and daemon version of Bitzkey is now distributable, cross platform.  So if you happen to have extra computers just lying around, you can run them as Bitzkey workers and explore even larger worlds!
+
 This is the large-scale Linux service: the C++ simulation running around the clock on a server, shown to everyone as a web page. For reading the code and researching how Bitzkeys work, see the [Python version](https://github.com/philsnelgrove/bitzkey), the code research option; to run worlds on your own Windows computer, the [desktop app](https://github.com/philsnelgrove/bitzkey_cpp), the local option.
 
 Download the package from the [latest release](https://github.com/philsnelgrove/bitzkey_daemon/releases/latest), unpack it on Ubuntu and run `sudo packaging/install.sh`, as described under Installing on Ubuntu below.
