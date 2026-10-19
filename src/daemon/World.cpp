@@ -21,24 +21,7 @@ World::World(Simulation::Settings settings, bool playing, const std::filesystem:
 }
 
 void World::adopt_pool() {
-    if (pool_->active() && !pool_->bound()) {
-        auto engine = pool_->engine(*simulation_);
-        simulation_->use_engine(std::move(engine), pool_->status());
-    } else if (!pool_->active() && pool_->bound()) {  // thinking alone again, as a world begins
-        std::string why, status;
-        std::unique_ptr<gpu::BrainEngine> engine;
-        if (USE_GPU) {
-            engine = gpu::BrainEngine::create(&why);
-            if (engine) {
-                status = "thinking on";
-                for (const gpu::DeviceInfo& device : engine->devices()) status += " " + device.name + ";";
-                status.pop_back();
-            } else {
-                status = "thinking on the CPU: " + why;
-            }
-        }
-        simulation_->use_engine(std::move(engine), status);
-    }
+    pool_->adopt(*simulation_);
     touch();
 }
 

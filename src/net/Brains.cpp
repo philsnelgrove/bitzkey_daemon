@@ -1,4 +1,4 @@
-#include "daemon/Brains.hpp"
+#include "net/Brains.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -16,9 +16,9 @@
 #endif
 
 #include "core/PyRandom.hpp"
-#include "daemon/Wire.hpp"
+#include "net/Wire.hpp"
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 namespace {
 
@@ -421,4 +421,4 @@ void Thinker::measure() {
     for (const auto handle : handles) engine_->detach(handle);
 }
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net

@@ -1,11 +1,11 @@
-#include "daemon/Worker.hpp"
+#include "net/Worker.hpp"
 
 #include <cstdio>
 #include <fstream>
 
 #include <httplib.h>
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 namespace {
 
@@ -69,14 +69,16 @@ void Worker::resume() {
         shared.threads = saved.value("threads", 1);
         shared.memory = saved.value("memory", std::uint64_t{0});
         shared.gpus = saved.value("gpus", std::vector<int>());
-        start(saved.value("port", DEFAULT_WORKER_PORT), shared);
+        begin(saved.value("port", DEFAULT_WORKER_PORT), shared, false);  // its port is open already
         std::printf("bitzkey_daemon: a worker, listening for its main service on port %d\n", port_);
     } catch (const std::exception& error) {
         std::fprintf(stderr, "bitzkey_daemon: couldn't carry on as a worker: %s\n", error.what());
     }
 }
 
-void Worker::start(int port, const Resources& shared) {
+void Worker::start(int port, const Resources& shared) { begin(port, shared, true); }
+
+void Worker::begin(int port, const Resources& shared, bool tell) {
     if (on_) throw std::invalid_argument("This daemon is a worker already.");
     if (port < 1 || port > 65535) throw std::invalid_argument("A port is between 1 and 65535.");
     check(shared);
@@ -101,7 +103,7 @@ void Worker::start(int port, const Resources& shared) {
     server_->wait_until_ready();  // listening before it can be stopped: a stop before then would be missed, and wait forever
     on_ = true;
     save();
-    write_ports();
+    write_ports(tell);
 }
 
 void Worker::move_to(int port) {
@@ -153,18 +155,23 @@ void Worker::close_old() {
     }
     if (server) server->stop();
     if (serving.joinable()) serving.join();
-    if (old_port_.exchange(0)) write_ports();
+    if (old_port_.exchange(0)) write_ports(false);  // let go without asking: the user's next change tidies it
 }
 
-void Worker::write_ports() const {
-    std::string ports;
+void Worker::write_ports(bool tell) const {
+    std::vector<int> ports;
     if (on_) {
         std::lock_guard lock(mutex_);
-        ports = std::to_string(port_);
-        if (old_port_) ports += " " + std::to_string(old_port_.load());
+        ports.push_back(port_);
+        if (old_port_) ports.push_back(old_port_);
     }
-    std::ofstream out(file_.parent_path() / "worker-ports");
-    out << ports << "\n";
+    std::string text;
+    for (const int port : ports) text += (text.empty() ? "" : " ") + std::to_string(port);
+    {
+        std::ofstream out(file_.parent_path() / "worker-ports");
+        out << text << "\n";
+    }
+    if (tell && on_ports) on_ports(ports);
 }
 
 void Worker::share(const Resources& shared) {
@@ -365,4 +372,4 @@ void Worker::serve(httplib::Server& server, int port) {
     server.Post("/bitzkey/leave", [let_go](const httplib::Request& request, httplib::Response& response) { let_go(request, response, true); });
 }
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net

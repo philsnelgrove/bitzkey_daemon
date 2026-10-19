@@ -78,6 +78,15 @@ add_custom_command(
     DEPENDS ${BITZKEY_WEB_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_web.cmake
     COMMENT "Building the web interface into the daemon")
 
+# Workers: a main service's pool, and worker mode. Copied to and from bitzkey-cpp, as the core is.
+add_library(bitzkey_net STATIC
+    src/net/Brains.cpp
+    src/net/Pool.cpp
+    src/net/Worker.cpp
+)
+target_compile_definitions(bitzkey_net PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
+target_link_libraries(bitzkey_net PUBLIC bitzkey_core httplib::httplib)
+
 add_executable(bitzkey_daemon
     src/daemon/main.cpp
     src/daemon/Config.cpp
@@ -85,14 +94,11 @@ add_executable(bitzkey_daemon
     src/daemon/Api.cpp
     src/daemon/Views.cpp
     src/daemon/Graph.cpp
-    src/daemon/Brains.cpp
-    src/daemon/Pool.cpp
-    src/daemon/Worker.cpp
     "${BITZKEY_WEB_SOURCE}"
 )
 target_include_directories(bitzkey_daemon PRIVATE src)
 target_compile_definitions(bitzkey_daemon PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
-target_link_libraries(bitzkey_daemon PRIVATE bitzkey_core httplib::httplib)
+target_link_libraries(bitzkey_daemon PRIVATE bitzkey_net)
 
 # Unit tests: the core's, from bitzkey-cpp, and the daemon's own.
 add_executable(bitzkey_tests
@@ -114,14 +120,11 @@ add_executable(bitzkey_tests
     src/daemon/Api.cpp
     src/daemon/Views.cpp
     src/daemon/Graph.cpp
-    src/daemon/Brains.cpp
-    src/daemon/Pool.cpp
-    src/daemon/Worker.cpp
     "${BITZKEY_WEB_SOURCE}"
 )
 target_include_directories(bitzkey_tests PRIVATE src)
 target_compile_definitions(bitzkey_tests PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
-target_link_libraries(bitzkey_tests PRIVATE bitzkey_core httplib::httplib doctest::doctest)
+target_link_libraries(bitzkey_tests PRIVATE bitzkey_net doctest::doctest)
 
 include(GNUInstallDirs)
 install(TARGETS bitzkey_daemon RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -10,13 +10,14 @@
 #include <thread>
 
 #include "core/WorldFile.hpp"
-#include "daemon/Brains.hpp"
-#include "daemon/Pool.hpp"
-#include "daemon/Worker.hpp"
 #include "daemon/World.hpp"
+#include "net/Brains.hpp"
+#include "net/Pool.hpp"
+#include "net/Worker.hpp"
 
 using namespace bitzkey;
 using namespace bitzkey::daemon;
+using namespace bitzkey::net;
 
 namespace {
 

@@ -1,4 +1,4 @@
-#include "daemon/Pool.hpp"
+#include "net/Pool.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 
 #include "core/Simulation.hpp"
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 namespace {
 
@@ -61,8 +61,8 @@ std::string error_of(const httplib::Result& result) {
 // The engine a world thinks through, its brains in the pool.
 class PoolEngine final : public gpu::BrainEngine {
 public:
-    explicit PoolEngine(Pool& pool) : pool_(pool) {}
-    ~PoolEngine() override { pool_.unbind(); }
+    PoolEngine(Pool& pool, int binding) : pool_(pool), binding_(binding) {}
+    ~PoolEngine() override { pool_.unbind(binding_); }
     const std::vector<gpu::DeviceInfo>& devices() const override { return pool_.devices(); }
     Handle attach(const Brain& brain) override { return pool_.attach(brain); }
     void detach(Handle brain) override { pool_.detach(brain); }
@@ -75,6 +75,7 @@ public:
 
 private:
     Pool& pool_;
+    int binding_;  // which of the pool's worlds this engine is
 };
 
 }  // namespace
@@ -395,15 +396,37 @@ void Pool::make_local() {
     local_->threads = resources.threads;
 }
 
+void Pool::adopt(Simulation& simulation) {
+    if (active() && bound_ != &simulation) {
+        simulation.use_engine(engine(simulation), status());
+    } else if (!active() && bound_ == &simulation) {  // thinking alone again, as a world begins
+        std::string why, status;
+        std::unique_ptr<gpu::BrainEngine> alone;
+        if (USE_GPU) {
+            alone = gpu::BrainEngine::create(&why);
+            if (alone) {
+                status = "thinking on";
+                for (const gpu::DeviceInfo& device : alone->devices()) status += " " + device.name + ";";
+                status.pop_back();
+            } else {
+                status = "thinking on the CPU: " + why;
+            }
+        }
+        simulation.use_engine(std::move(alone), status);
+    }
+}
+
 std::unique_ptr<gpu::BrainEngine> Pool::engine(Simulation& simulation) {
     if (!thinker_) make_local();
+    if (bound_) unbind(binding_);  // one world at a time: the last one's brains let go
     bound_ = &simulation;
     last_checkpoint_ = simulation.turn();
     even_out_ = true;
-    return std::make_unique<PoolEngine>(*this);
+    return std::make_unique<PoolEngine>(*this, ++binding_);
 }
 
-void Pool::unbind() {
+void Pool::unbind(int binding) {
+    if (binding != binding_ || !bound_) return;  // a world whose brains were let go already
     bound_ = nullptr;
     owners_.clear();
     const auto forget = [](Member& member) {
@@ -826,4 +849,4 @@ void Pool::tend(Simulation& simulation) {
     }
 }
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net

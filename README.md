@@ -184,7 +184,9 @@ Every 100 turns (set under Checkpoints), the main service brings every brain bac
 
 **Security.** A worker serves one main service at a time, and turns away any other while its own is still in touch. Like the page, the worker port has no password, so keep workers on a network you trust.
 
-Workers speak to the main service in a binary protocol over HTTP. A worker and its main service must run the same version of Bitzkey.
+The [Windows desktop app](https://github.com/philsnelgrove/bitzkey_cpp) can fill either role too: it can be a worker for this daemon, or a main service with this daemon among its workers. The two share the same code for workers, in `src/net/`.
+
+Workers speak to the main service in a binary protocol over HTTP, and a worker and its main service must speak the same version of it. A worker that speaks another version is listed as refused.
 
 ## Building for development
 
@@ -219,14 +221,14 @@ With `--web-dir web`, edits to the page show up on a reload, without rebuilding.
 | `src/daemon/Graph.*` | The colour graph, drawn on the server, which can hold millions of slices |
 | `src/daemon/Api.*` | The HTTP routes |
 | `src/daemon/Config.*` | Settings from the file and the command line |
-| `src/daemon/Pool.*` | The main service's pool of workers: sharing brains out, polling, checkpoints, failures and hand-backs |
-| `src/daemon/Worker.*` | Worker mode: the port a worker listens on for its main service, and its settings |
-| `src/daemon/Brains.*` | The brains a worker holds, the batches it is sent, and brains on the CPU's threads |
-| `src/daemon/Wire.hpp` | The binary form brains, senses and values take between them |
+| `src/net/Pool.*` | The main service's pool of workers: sharing brains out, polling, checkpoints, failures and hand-backs |
+| `src/net/Worker.*` | Worker mode: the port a worker listens on for its main service, and its settings |
+| `src/net/Brains.*` | The brains a worker holds, the batches it is sent, and brains on the CPU's threads |
+| `src/net/Wire.hpp` | The binary form brains, senses and values take between them |
 | `web/` | The page: plain HTML, CSS and JavaScript modules, built into the program |
 | `packaging/` | The systemd service, the sample settings and the install script |
 
-`src/core/`, `shaders/` and the core's tests are copied from `bitzkey-cpp` and should be kept in step with it. When the simulation changes there, copy those folders again. `src/core/shaders/*.spv.h` are compiled from `shaders/` by `tools/compile_shaders.ps1`, which needs the Vulkan SDK.
+`src/core/`, `src/net/`, `shaders/` and the core's tests are copied from `bitzkey-cpp` and should be kept in step with it. When the simulation changes there, copy those folders again. `src/core/shaders/*.spv.h` are compiled from `shaders/` by `tools/compile_shaders.ps1`, which needs the Vulkan SDK.
 
 The version is in `VERSION`.
 

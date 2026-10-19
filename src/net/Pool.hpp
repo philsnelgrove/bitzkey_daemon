@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "core/GpuBrains.hpp"
-#include "daemon/Brains.hpp"
+#include "net/Brains.hpp"
 #include <nlohmann/json.hpp>
 
 namespace httplib {
@@ -33,7 +33,7 @@ namespace bitzkey {
 class Simulation;
 }
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 using Json = nlohmann::ordered_json;
 
@@ -48,6 +48,9 @@ public:
     bool bound() const { return bound_ != nullptr; }   // the world thinks through the pool
     // The engine a world thinks through, its brains shared among the pool: one world at a time.
     std::unique_ptr<gpu::BrainEngine> engine(Simulation& simulation);
+    // The world thinks through the pool while it lists workers, and alone (on its GPUs, if the rules say to think there)
+    // when it lists none: after the list changes, or the world does.
+    void adopt(Simulation& simulation);
     void tend(Simulation& simulation);  // between turns: workers come and go, checkpoints and evening out
     std::string status() const;          // where the world thinks, for the header
 
@@ -65,7 +68,7 @@ public:
     void download(std::span<const int> handles, std::span<Brain* const> into);
     std::size_t attached() const { return owners_.size(); }
     const std::vector<gpu::DeviceInfo>& devices() const;
-    void unbind();  // the world is gone: every brain let go
+    void unbind(int binding);  // that world is gone: every brain let go, unless another world has bound since
 
 private:
     enum class State { Connecting, Ready, Lost, Leaving, Away, Refused };
@@ -142,10 +145,11 @@ private:
     std::unordered_map<int, Owner> owners_;
     int next_handle_ = 0;
     Simulation* bound_ = nullptr;
+    int binding_ = 0;  // counts the worlds bound, so a world gone since doesn't let go of another's brains
     int last_checkpoint_ = 0;
     bool even_out_ = false;
     std::atomic<bool> stopping_{false};
     std::thread poller_;
 };
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net

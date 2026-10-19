@@ -22,7 +22,7 @@
 #include "core/Brain.hpp"
 #include "core/GpuBrains.hpp"
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 constexpr std::uint32_t PROTOCOL = 1;  // a worker and its main service must speak the same
 constexpr int DEFAULT_WORKER_PORT = 50000;
@@ -139,4 +139,4 @@ private:
     double speed_ = 0.0;
 };
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net

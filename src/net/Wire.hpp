@@ -12,7 +12,7 @@
 
 #include "core/Brain.hpp"
 
-namespace bitzkey::daemon::wire {
+namespace bitzkey::net::wire {
 
 static_assert(std::endian::native == std::endian::little, "the wire format is written as the machine holds it: little-endian");
 
@@ -103,4 +103,4 @@ private:
     std::size_t at_ = 0;
 };
 
-}  // namespace bitzkey::daemon::wire
+}  // namespace bitzkey::net::wire

@@ -15,10 +15,17 @@
 
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
-#include "daemon/Pool.hpp"
-#include "daemon/Worker.hpp"
+#include "net/Pool.hpp"
+#include "net/Worker.hpp"
 
 namespace bitzkey::daemon {
+
+// Workers, as the desktop app has them too.
+using net::DEFAULT_CHECKPOINT_TURNS;
+using net::DEFAULT_WORKER_PORT;
+using net::Pool;
+using net::Resources;
+using net::Worker;
 
 // Seconds between turns at each speed, as in the window app: 1x, 2x, 4x, 8x, and as fast as possible.
 constexpr std::array<double, 5> TURN_INTERVALS = {0.24, 0.12, 0.06, 0.03, 0.0};

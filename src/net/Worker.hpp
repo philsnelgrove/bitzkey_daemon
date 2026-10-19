@@ -11,19 +11,20 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 
-#include "daemon/Brains.hpp"
+#include "net/Brains.hpp"
 #include <nlohmann/json.hpp>
 
 namespace httplib {
 class Server;
 }
 
-namespace bitzkey::daemon {
+namespace bitzkey::net {
 
 using Json = nlohmann::ordered_json;
 
@@ -49,12 +50,18 @@ public:
     Json status() const;
     static Json machine();  // what this computer has to share
 
+    // Told the ports to have open, besides worker-ports being written, whenever the user's own doing changes them:
+    // becoming a worker, moving to another port (the old one with it, still open), and stopping for good (none).
+    // The desktop app opens them in Windows' firewall, which asks for approval each time; set before resume().
+    std::function<void(const std::vector<int>&)> on_ports;
+
 private:
+    void begin(int port, const Resources& shared, bool tell);  // start, telling on_ports or not
     void serve(httplib::Server& server, int port);
     Json hello() const;
     void save() const;
     // The ports it listens on, to worker-ports beside its settings, for bitzkey-worker-ports.sh to open in the firewall.
-    void write_ports() const;
+    void write_ports(bool tell = true) const;  // and, unless not to `tell`, on_ports
     void close_old();      // stop listening on the port moved from
     void followed(int port);  // its main service reached it on this port: the old one, if any, is let go
     void noted();  // what is shown of the brains held, brought up to date: under both locks
@@ -88,4 +95,4 @@ private:
     std::atomic<bool> stopping_{false};
 };
 
-}  // namespace bitzkey::daemon
+}  // namespace bitzkey::net
