@@ -89,6 +89,7 @@ export function openWorkers(onClose) {
   const message = element('input', { class: 'worker-message', maxlength: 1000, placeholder: "A message for the worker's page (optional); it can hold a link" });
   for (const box of [host, message]) box.addEventListener('keydown', event => event.stopPropagation());
   const checkpoint = numberBox(100, 1, 100000);
+  const hostShare = numberBox(100, 0, 100);
   let checkpointShown = false;
 
   const say = text => { problem.textContent = text; };
@@ -107,6 +108,7 @@ export function openWorkers(onClose) {
   const show = list => {
     if (!checkpointShown) {
       checkpoint.value = list.checkpoint_turns;
+      hostShare.value = list.host_share;
       checkpointShown = true;
     }
     const row = (cells, worker) => element('tr', {}, cells.map((cell, index) => element('td', index === 0 ? { 'data-no-translate': '' } : {}, cell)), element('td', {},
@@ -115,7 +117,7 @@ export function openWorkers(onClose) {
     table.replaceChildren(element('table', { class: 'report-table' },
       element('tr', {}, ['WORKER', 'STATE', 'PING', 'SHARES', 'SPEED', 'BRAINS', ''].map(name => element('th', {}, name))),
       element('tr', {}, element('td', {}, 'This service'), element('td', {}, 'WORKING'), element('td', {}, ''),
-              element('td', {}, local.description), element('td', {}, speedText(local.speed)),
+              element('td', {}, local.description), element('td', {}, speedText(local.pace || local.speed)),
               element('td', {}, String(local.brains)), element('td', {})),
       list.workers.map(worker => row([
         element('div', {}, `${worker.host}:${worker.port}`, worker.message ? element('div', { class: 'worker-note', dir: 'auto' }, worker.message) : null),
@@ -123,7 +125,7 @@ export function openWorkers(onClose) {
                 worker.error ? element('div', { class: 'worker-note' }, worker.error) : null),
         worker.ping_ms >= 0 ? `${worker.ping_ms.toFixed(1)} ms` : '',
         worker.state === 'working' ? shares(worker) : '',
-        worker.state === 'working' ? speedText(worker.speed) : '',
+        worker.state === 'working' ? speedText(worker.pace || worker.speed) : '',
         String(worker.brains),
       ], worker))));
   };
@@ -161,7 +163,7 @@ export function openWorkers(onClose) {
     element('div', { class: 'dialog wide' },
       element('h2', {}, 'Workers'),
       element('p', {}, 'Workers are other Bitzkey daemons in worker mode. Each holds some of this world\'s brains, and thinks and learns for them; ' +
-                       'this service shares the brains out by each one\'s speed, and keeps a share itself.'),
+                       'this service shares the brains out by the pace each keeps, and keeps a share itself.'),
       table,
       element('div', { class: 'group-heading' }, 'Add a worker'),
       element('div', { class: 'worker-add' }, host, port, message, element('button', { class: 'primary', onclick: add }, 'ADD')),
@@ -170,6 +172,11 @@ export function openWorkers(onClose) {
         element('span', {}, 'Bring every brain back every'), checkpoint, element('span', {}, 'turns'),
         element('button', { onclick: () => act('/api/workers/checkpoint', { turns: Number(checkpoint.value) }) }, 'SET')),
       element('p', { class: 'worker-hint' }, 'Should a worker fail, its brains go to the others as they were at the last checkpoint.'),
+      element('div', { class: 'group-heading' }, 'Host share'),
+      element('div', { class: 'worker-add' },
+        element('span', {}, 'This service thinks at'), hostShare, element('span', {}, '% of its pace'),
+        element('button', { onclick: () => act('/api/workers/host_share', { percent: Number(hostShare.value) }) }, 'SET')),
+      element('p', { class: 'worker-hint' }, 'Brains are shared out by the pace each machine keeps on real turns. At 0, this service only runs the world.'),
       problem,
       element('div', { class: 'dialog-buttons' },
         element('button', { onclick: async () => { if (await becomeWorker()) close(); } }, 'BECOME A WORKER...'),

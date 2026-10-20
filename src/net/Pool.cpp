@@ -19,6 +19,8 @@ constexpr auto RETRY_AFTER = std::chrono::seconds(3);
 constexpr auto REFUSED_RETRY_AFTER = std::chrono::seconds(10);
 constexpr int MISSED_PINGS = 3;  // a worker that misses this many pings in a row has failed
 constexpr int MIN_MOVES = 16;    // evening out moves at least this many brains a time, and at most a tenth of them
+constexpr int MIN_PACED = 8;     // brains a member must hold before its turns tell its pace
+constexpr double PACE_SMOOTHING = 0.2;  // the share of a turn's timing taken into a member's pace
 
 std::uint64_t fresh_session() {
     std::random_device device;
@@ -101,6 +103,7 @@ void Pool::load() {
     try {
         const auto saved = nlohmann::json::parse(in);
         checkpoint_turns_ = std::max(1, saved.value("checkpoint_turns", DEFAULT_CHECKPOINT_TURNS));
+        host_share_ = std::clamp(saved.value("host_share", 100), 0, 100);
         for (const auto& entry : saved.value("workers", nlohmann::json::array())) {
             auto member = std::make_shared<Member>();
             member->host = entry.value("host", std::string());
@@ -114,7 +117,7 @@ void Pool::load() {
 }
 
 void Pool::save() const {
-    nlohmann::json saved = {{"checkpoint_turns", checkpoint_turns_}, {"workers", nlohmann::json::array()}};
+    nlohmann::json saved = {{"checkpoint_turns", checkpoint_turns_}, {"host_share", host_share_}, {"workers", nlohmann::json::array()}};
     {
         std::lock_guard lock(mutex_);
         for (const auto& member : members_) saved["workers"].push_back({{"host", member->host}, {"port", member->port}, {"message", member->message}});
@@ -182,6 +185,13 @@ void Pool::set_checkpoint(int turns) {
     save();
 }
 
+void Pool::set_host_share(int percent) {
+    if (percent < 0 || percent > 100) throw std::invalid_argument("The host share runs from 0 to 100 percent.");
+    host_share_ = percent;
+    even_out_ = true;
+    save();
+}
+
 Json Pool::list() const {
     const auto state_name = [](State state) {
         switch (state) {
@@ -208,12 +218,15 @@ Json Pool::list() const {
                            {"gpus", member->gpus},
                            {"description", member->description},
                            {"speed", member->speed},
+                           {"pace", member->turn_seconds > 0 && member->count ? member->count / member->turn_seconds : 0.0},
                            {"brains", member->count}});
     }
     Json local = {{"description", local_ ? local_->description : std::string()},
                   {"speed", local_ ? local_->speed : 0.0},
+                  {"pace", local_ && local_->turn_seconds > 0 && local_->count ? local_->count / local_->turn_seconds : 0.0},
                   {"brains", local_ ? local_->count : 0}};
-    return {{"checkpoint_turns", checkpoint_turns_}, {"workers", workers}, {"local", local}, {"thinking", bound_ != nullptr}};
+    return {{"checkpoint_turns", checkpoint_turns_}, {"host_share", host_share_}, {"workers", workers}, {"local", local},
+            {"thinking", bound_ != nullptr}};
 }
 
 std::string Pool::status() const {
@@ -452,14 +465,16 @@ void Pool::unbind(int binding) {
 }
 
 Pool::Member* Pool::choose(int depth, const Member* except) {
-    // The member with most room for one more, by its speed, among those working with memory to spare.
+    // The member with most room for one more, by its pace, among those working with memory to spare.
     const std::uint64_t bytes = brain_bytes(depth);
     Member* best = nullptr;
     double best_load = 0.0;
     const auto consider = [&](Member& member) {
         if (&member == except || member.state != State::Ready) return;
         if (!member.local && member.memory && member.bytes + bytes > member.memory) return;
-        const double load = static_cast<double>(member.count + 1) / std::max(member.speed, 1.0);
+        const double speed = pace(member);
+        if (speed <= 0) return;  // the host, thinking for none
+        const double load = static_cast<double>(member.count + 1) / speed;
         if (!best || load < best_load) {
             best = &member;
             best_load = load;
@@ -469,6 +484,13 @@ Pool::Member* Pool::choose(int depth, const Member* except) {
     if (local_) consider(*local_);
     for (const auto& member : members_) consider(*member);
     return best ? best : local_.get();  // with no room anywhere, the main service holds it
+}
+
+double Pool::pace(const Member& member) const {
+    // The brains a second it has got through on real turns, once it has thought for some; until then, as it measured.
+    const double measured = member.turn_seconds > 0 && member.count >= MIN_PACED ? member.count / member.turn_seconds
+                                                                                 : std::max(member.speed, 1.0);
+    return member.local ? measured * host_share_ / 100.0 : measured;
 }
 
 void Pool::place(int handle, Brain brain, const Member* except) {
@@ -601,16 +623,23 @@ void Pool::flush(std::span<const int> asks, std::span<const Senses> senses, std:
             std::future<Answer> remote;
             Answer answer;
             std::string error;
+            double seconds = 0;  // how long it took to answer, its network included
         };
         std::vector<Sent> sent;
         sent.reserve(work.size());
         for (auto& [member, mine] : work) sent.push_back({member, batch_for(*member, mine.first, asks, senses, mine.second, downloads), {}, {}, {}});
+        const auto timed = [this](Sent& each) {
+            const auto start = std::chrono::steady_clock::now();
+            Answer answer = send(*each.member, each.batch);
+            each.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+            return answer;
+        };
         for (Sent& each : sent) {  // every worker at once, the main service's own share meanwhile
-            if (!each.member->local) each.remote = std::async(std::launch::async, [this, &each] { return send(*each.member, each.batch); });
+            if (!each.member->local) each.remote = std::async(std::launch::async, [&timed, &each] { return timed(each); });
         }
         for (Sent& each : sent) {
             try {
-                each.answer = each.member->local ? send(*each.member, each.batch) : each.remote.get();
+                each.answer = each.member->local ? timed(each) : each.remote.get();
                 if (!each.answer.known) each.error = "it restarted";
             } catch (const std::exception& error) {
                 each.error = error.what();
@@ -635,6 +664,7 @@ void Pool::flush(std::span<const int> asks, std::span<const Senses> senses, std:
                 downloads_left.insert(downloads_left.end(), mine_downloads.begin(), mine_downloads.end());
                 continue;
             }
+            member.busy += each.seconds;
             // What it was sent is done; anything given it since, in place of a member that failed, waits.
             member.attaches.erase(member.attaches.begin(), member.attaches.begin() + static_cast<std::ptrdiff_t>(each.batch.attaches.size()));
             member.lessons.erase(member.lessons.begin(), member.lessons.begin() + static_cast<std::ptrdiff_t>(each.batch.lessons.size()));
@@ -759,8 +789,9 @@ void Pool::evacuate(Member& member) {
 }
 
 void Pool::rebalance() {
-    // Each member's fair share, by its speed; those holding too many give some up to the rest.
+    // Each member's fair share, by its pace; those holding too many give some up to the rest.
     std::vector<Member*> working;
+    std::unordered_map<Member*, double> paces;
     double total_speed = 0.0;
     {
         std::lock_guard lock(mutex_);
@@ -768,17 +799,17 @@ void Pool::rebalance() {
         for (const auto& member : members_) {
             if (member->state == State::Ready) working.push_back(member.get());
         }
-        for (Member* member : working) total_speed += std::max(member->speed, 1.0);
+        for (Member* member : working) total_speed += paces[member] = pace(*member);
     }
-    if (working.size() < 2 || owners_.empty()) return;
+    if (working.size() < 2 || owners_.empty() || total_speed <= 0) return;
     const double total = static_cast<double>(owners_.size());
     std::size_t budget = std::max<std::size_t>(MIN_MOVES, owners_.size() / 10);
     std::vector<int> moving;
     std::unordered_map<Member*, std::size_t> taking;
     for (Member* member : working) {
-        const double share = total * std::max(member->speed, 1.0) / total_speed;
+        const double share = total * paces[member] / total_speed;
         const double excess = static_cast<double>(member->count) - share;
-        if (excess > std::max(4.0, 0.1 * share)) taking[member] = static_cast<std::size_t>(excess);
+        if (excess > (share > 0 ? std::max(4.0, 0.1 * share) : 0.0)) taking[member] = static_cast<std::size_t>(std::ceil(excess));
     }
     if (taking.empty()) return;
     for (const auto& [handle, owner] : owners_) {
@@ -839,6 +870,19 @@ void Pool::tend(Simulation& simulation) {
     for (const auto& member : members_) remote = remote || member->count;
     const int turn = simulation.turn(), parts = checkpoint_turns_;
     if (turn != synced_turn_) {
+        // How long each took over its share these turns, smoothed, for its pace.
+        const int turns = synced_turn_ < turn ? turn - synced_turn_ : 1;
+        const auto count_turns = [&](Member& member) {
+            if (member.count && member.busy > 0) {
+                const double seconds = member.busy / turns;
+                member.turn_seconds = member.turn_seconds > 0 ? (1 - PACE_SMOOTHING) * member.turn_seconds + PACE_SMOOTHING * seconds : seconds;
+            } else if (!member.count) {
+                member.turn_seconds = 0;  // nothing to go by
+            }
+            member.busy = 0;
+        };
+        if (local_) count_turns(*local_);
+        for (const auto& member : members_) count_turns(*member);
         if (remote) {
             // Every brain as it now is, to give to others should its worker fail: a share of them, by handle, each
             // turn, so each is brought back once a checkpoint without the turn that brings back all at once. Turns

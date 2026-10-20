@@ -262,6 +262,13 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, world.pool().list());
     }));
 
+    server.Post("/api/workers/host_share", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        const Json given = body(request);
+        auto lock = world.lock();
+        world.pool().set_host_share(given.value("percent", 100));
+        reply(response, world.pool().list());
+    }));
+
     server.Get("/api/machine", guarded([](const httplib::Request&, httplib::Response& response) { reply(response, Worker::machine()); }));
 
     server.Get("/api/worker", guarded([&world](const httplib::Request&, httplib::Response& response) { reply(response, world.worker().status()); }));

@@ -1,9 +1,10 @@
 #pragma once
 // The main service's pool of workers: other daemons, in worker mode, that hold some of the world's brains and do
 // their thinking and learning. The main service holds a share itself. Each new brain goes to the member with most
-// room for it by its speed; a share of the brains is brought back each turn, every brain once every so many turns
-// (a checkpoint), and after each checkpoint the shares are
-// evened out. A worker that stops answering has its brains given to the others, as they were at the last
+// room for it by its pace; a share of the brains is brought back each turn, every brain once every so many turns
+// (a checkpoint), and after each checkpoint the shares are evened out by pace. A member's pace is the brains a
+// second it gets through on real turns, its network included, once it has thought for some; until then, the speed
+// it measured when it started. The main service's own pace is scaled by the host share, down to none. A worker that stops answering has its brains given to the others, as they were at the last
 // checkpoint; a worker that stops gracefully hands its brains back first.
 //
 // Everything but the polling runs on the world's thread, under its lock: the world's turns call it through the
@@ -60,6 +61,8 @@ public:
     void remove(const std::string& host, int port);  // its brains handed back first
     void set_checkpoint(int turns);
     int checkpoint() const { return checkpoint_turns_; }
+    void set_host_share(int percent);  // how much of its pace the main service thinks at, 0 to 100
+    int host_share() const { return host_share_; }
 
     // For the engine.
     int attach(const Brain& brain);
@@ -110,6 +113,8 @@ private:
         std::vector<int> detaches;
         std::size_t count = 0;
         std::uint64_t bytes = 0;
+        double busy = 0;          // seconds spent answering since its turns were last counted
+        double turn_seconds = 0;  // the seconds a turn it takes over its share, smoothed; 0 until known
         std::string name() const;
     };
     struct Owner {
@@ -135,10 +140,12 @@ private:
     void evacuate(Member& member);  // its brains brought back and given to others
     void release(Member& member);
     void rebalance();
+    double pace(const Member& member) const;  // brains a second, by which brains are shared out
     void make_local();
 
     std::filesystem::path file_;
     int checkpoint_turns_ = DEFAULT_CHECKPOINT_TURNS;
+    int host_share_ = 100;  // percent
     mutable std::mutex mutex_;
     std::vector<std::shared_ptr<Member>> members_;  // the workers
     std::unique_ptr<Member> local_;                 // the main service itself

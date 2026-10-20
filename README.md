@@ -168,7 +168,7 @@ The port can be changed from the worker's panel at any time. The worker listens 
 
 There can be any number of workers. When the first is added, the world starts thinking through the pool. As on the GPU, it then keeps no history to rewind. Its header shows how many workers are working.
 
-**How the brains are shared.** Each new brain goes to the worker with the most room for it for its speed, and the main service keeps a share itself. Each turn, every worker is sent one batch, all of them at once:
+**How the brains are shared.** Each new brain goes to the worker with the most room for it for its pace, and the main service keeps a share itself. A machine's pace is the brains a second it gets through on real turns, its network included, timed each turn; until it has thought for a few, the speed it measured when it started. The main service's own pace is scaled by the host share (100% by default, set under Host share); at 0 it thinks for none, and only runs the world. Each turn, every worker is sent one batch, all of them at once:
 
 1. the brains it is to take on;
 2. the lessons its brains are to learn;
@@ -176,7 +176,7 @@ There can be any number of workers. When the first is added, the world starts th
 
 Its values come back in the same answer. A worker keeps the recent senses of each brain it holds, so a lesson replayed from a memory names those senses rather than sending them again.
 
-Every 100 turns (set under Checkpoints), the main service brings every brain back, and evens out the shares if a worker has joined or changed what it shares.
+Every brain is brought back once every 100 turns (set under Checkpoints): a share of them each turn, so no turn waits for them all. After each round the shares are evened out by pace, a tenth of the brains at most moving at a time.
 
 **When workers stop.**
 
