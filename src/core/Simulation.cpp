@@ -1311,12 +1311,14 @@ void Simulation::sync(std::span<Bitzkey* const> agents) {
     }
 }
 
-void Simulation::sync_brains() {
+void Simulation::sync_brains() { sync_brains(0, 1, 1); }
+
+void Simulation::sync_brains(int from, int count, int parts) {
     if (!gpu_) return;
     std::vector<gpu::BrainEngine::Handle> handles;
     std::vector<Brain*> into;
     for (const auto& agent : agents_) {
-        if (agent->brain && agent->gpu >= 0) {
+        if (agent->brain && agent->gpu >= 0 && ((agent->gpu - from) % parts + parts) % parts < count) {
             handles.push_back(agent->gpu);
             into.push_back(&agent->own_brain());
         }

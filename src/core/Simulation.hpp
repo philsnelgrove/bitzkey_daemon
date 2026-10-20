@@ -731,6 +731,8 @@ public:
     // Bring the living's brains back from the GPUs into their CPU copies, before anything reads their
     // weights: an export, the catalog, the brain report. Nothing to do on the CPU.
     void sync_brains();
+    // Only the brains whose handles fall, counted round `parts`, in the `count` from `from` on: a share at a time.
+    void sync_brains(int from, int count, int parts);
     bool on_gpu() const { return gpu_ != nullptr; }
     // Milliseconds spent on each part of the turns so far, for finding where the time goes.
     struct Timings {

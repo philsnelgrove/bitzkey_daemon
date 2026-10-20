@@ -1,7 +1,8 @@
 #pragma once
 // The main service's pool of workers: other daemons, in worker mode, that hold some of the world's brains and do
 // their thinking and learning. The main service holds a share itself. Each new brain goes to the member with most
-// room for it by its speed; every so many turns every brain is brought back (a checkpoint), and the shares are
+// room for it by its speed; a share of the brains is brought back each turn, every brain once every so many turns
+// (a checkpoint), and after each checkpoint the shares are
 // evened out. A worker that stops answering has its brains given to the others, as they were at the last
 // checkpoint; a worker that stops gracefully hands its brains back first.
 //
@@ -146,7 +147,7 @@ private:
     int next_handle_ = 0;
     Simulation* bound_ = nullptr;
     int binding_ = 0;  // counts the worlds bound, so a world gone since doesn't let go of another's brains
-    int last_checkpoint_ = 0;
+    int synced_turn_ = 0;  // the turn whose share of the brains was last brought back
     bool even_out_ = false;
     std::atomic<bool> stopping_{false};
     std::thread poller_;

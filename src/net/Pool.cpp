@@ -420,7 +420,7 @@ std::unique_ptr<gpu::BrainEngine> Pool::engine(Simulation& simulation) {
     if (!thinker_) make_local();
     if (bound_) unbind(binding_);  // one world at a time: the last one's brains let go
     bound_ = &simulation;
-    last_checkpoint_ = simulation.turn();
+    synced_turn_ = simulation.turn();
     even_out_ = true;
     return std::make_unique<PoolEngine>(*this, ++binding_);
 }
@@ -837,11 +837,17 @@ void Pool::tend(Simulation& simulation) {
     for (Member* member : leaving) evacuate(*member);
     bool remote = false;
     for (const auto& member : members_) remote = remote || member->count;
-    if (simulation.turn() < last_checkpoint_) last_checkpoint_ = simulation.turn();
-    if (remote && simulation.turn() - last_checkpoint_ >= checkpoint_turns_) {
-        simulation.sync_brains();  // every brain as it now is, to give to others should its worker fail
-        last_checkpoint_ = simulation.turn();
-        even_out_ = true;
+    const int turn = simulation.turn(), parts = checkpoint_turns_;
+    if (turn != synced_turn_) {
+        if (remote) {
+            // Every brain as it now is, to give to others should its worker fail: a share of them, by handle, each
+            // turn, so each is brought back once a checkpoint without the turn that brings back all at once. Turns
+            // played since this was last called bring back their shares too.
+            const int count = synced_turn_ < turn ? std::min(turn - synced_turn_, parts) : 1;
+            simulation.sync_brains(((turn - count + 1) % parts + parts) % parts, count, parts);
+            if (turn / parts != synced_turn_ / parts) even_out_ = true;  // a checkpoint's round done
+        }
+        synced_turn_ = turn;
     }
     if (even_out_) {
         even_out_ = false;
