@@ -918,6 +918,10 @@ private:
     void take_census();
     // Forget the deaths before the graph's start, and the genomes of the Bitzkeys neither on the graph nor in the world.
     void forget_before(int start);
+    // Forget a death, unless a branch taken after rewinding has since recorded another under its identifier.
+    void forget_death(int turn, int identifier);
+    // The deaths' order, oldest first, from the records alone, as a loaded world has them.
+    void order_deaths();
     bool dies_of_age(Bitzkey& agent);
     bool room_for_seedling(Cell cell) const;  // the cell is free, and plants don't crowd it
     void sprout(Dna dna, Cell cell, int generation);
@@ -952,9 +956,10 @@ private:
     PyRandom random_;
     Insights insights_;
     Census census_;
-    std::vector<Dna> lineage_;  // from identifier lineage_first_ on
+    std::deque<Dna> lineage_;  // from identifier lineage_first_ on
     int lineage_first_ = 0;
     std::unordered_map<int, DeathRecord> death_records_;
+    std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
     int turn_ = 0;
     int deaths_ = 0;
     DeathCauses death_causes_;

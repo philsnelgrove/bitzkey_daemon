@@ -610,7 +610,11 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
             history_bytes_ -= history_.back().bytes;
             history_.pop_back();
         }
-        std::erase_if(death_records_, [&](const auto& entry) { return entry.second.turn > turn_; });  // deaths in the future let go
+        while (!death_order_.empty() && death_order_.back().first > turn_) {  // deaths in the future let go
+            const auto [turn, identifier] = death_order_.back();
+            death_order_.pop_back();
+            forget_death(turn, identifier);
+        }
     }
     std::vector<Bitzkey*> deployed;
     for (const Imported& bitzkey : bitzkeys) {
@@ -835,15 +839,37 @@ void Simulation::take_census() {
 }
 
 void Simulation::forget_before(int start) {
-    std::erase_if(death_records_, [&](const auto& entry) { return entry.second.turn < start; });
+    while (!death_order_.empty() && death_order_.front().first < start) {  // oldest first, so only those forgotten are looked at
+        const auto [turn, identifier] = death_order_.front();
+        death_order_.pop_front();
+        forget_death(turn, identifier);
+    }
     int first = next_identifier_;
     for (const int identifier : census_.snapshots().front().identifiers) first = std::min(first, identifier);
-    for (const auto& [identifier, death] : death_records_) first = std::min(first, identifier);
+    // Any kept death before the graph's start was alive then, and in its first snapshot, unless it died that
+    // very turn; any born since has a later identifier.
+    for (const auto& [turn, identifier] : death_order_) {
+        if (turn > start) break;
+        first = std::min(first, identifier);
+    }
     for (const auto& agent : agents_) first = std::min(first, agent->identifier);
     if (first <= lineage_first_) return;
     const std::size_t gone = std::min(lineage_.size(), static_cast<std::size_t>(first - lineage_first_));
     lineage_.erase(lineage_.begin(), lineage_.begin() + static_cast<std::ptrdiff_t>(gone));
     lineage_first_ = first;
+}
+
+void Simulation::forget_death(int turn, int identifier) {
+    const auto found = death_records_.find(identifier);
+    if (found != death_records_.end() && found->second.turn == turn) death_records_.erase(found);
+}
+
+void Simulation::order_deaths() {
+    std::vector<std::pair<int, int>> order;
+    order.reserve(death_records_.size());
+    for (const auto& [identifier, death] : death_records_) order.emplace_back(death.turn, identifier);
+    std::sort(order.begin(), order.end());
+    death_order_.assign(order.begin(), order.end());
 }
 
 void Simulation::index_bands() {
@@ -1725,6 +1751,7 @@ std::vector<Death> Simulation::deaths_so_far() const {
 void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer, std::string_view activity) {
     death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
                                         killer ? killer->species : Species::Plant, std::string(activity)};
+    death_order_.emplace_back(turn_, agent.identifier);
     if (agent.brain && agent.has_last_senses) {
         // A slow death (old age, starving or the cold or heat) is not its last choice's doing: the health it lost on
         // the way has taught its lessons already.

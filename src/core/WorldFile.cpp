@@ -527,7 +527,6 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         } else {
             const std::size_t lineage_at = record.at("lineage").at("at").get<std::size_t>();
             const std::size_t lineage_count = record.at("lineage").at("count").get<std::size_t>();
-            world.lineage_.reserve(lineage_count);
             for (std::size_t index = 0; index < lineage_count; ++index) {
                 const std::size_t place = lineage_at + 3 * index;
                 world.lineage_.push_back(Dna((static_cast<std::uint64_t>(whole.word(place + 1)) << 32) | whole.word(place + 2), whole.word(place)));
@@ -555,6 +554,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
                 world.death_records_[whole[place]] = std::move(made_death);
             }
         }
+        world.order_deaths();
         world.agents_.clear();
         for (const json& agent : record.at("agents")) {
             world.agents_.push_back(agent_from(agent, reader));
