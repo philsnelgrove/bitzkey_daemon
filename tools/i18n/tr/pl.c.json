@@ -19,5 +19,7 @@
 "hunted": "polował", "hunting": "polując", "mated": "kopulował", "missed": "chybił", "photosynthesized": "fotosynteza",
 "pounced": "skoczył", "rested": "odpoczywał", "revisited": "wrócił", "scavenged": "jadł padlinę", "seeded": "wysiał",
 "spines": "kolce", "uprooted": "wyrwany", "uprooting": "wyrywając", "withering": "więdnięcie",
-"wounded": "ranny", "overheated": "przegrzał się", "eaten": "zjedzony", "attacking": "atakując", "fled": "uciekł"
+"wounded": "ranny", "overheated": "przegrzał się", "eaten": "zjedzony", "attacking": "atakując", "fled": "uciekł",
+"FRAILTY": "Wrażliwość",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "część dodatkowego głodu i obrażeń od ekspozycji, którą ponosi zwierzę odporne na przeciwną skrajność"
 }

@@ -52,16 +52,18 @@ TEST_CASE("the climate genes hold the top bits of each word") {
 
 TEST_CASE("a child inherits its tolerances together from one parent") {
     const Dna hardy = encode_dna(Species::Grazer, {{"heat_tolerance", 1}, {"cold_tolerance", 1}});
-    const Dna tender = encode_dna(Species::Grazer);
+    const Dna tender = encode_dna(Species::Grazer, {{"cold_tolerance", 1}});
     PyRandom rng(5);
-    bool both = false, neither = false;
-    for (int child = 0; child < 60; ++child) {
+    bool cold = false, neither = false;
+    for (int child = 0; child < 60; ++child) {  // both flags cancel out, or only cold
         const Climate climate = decode_climate(cross(hardy, tender, rng));
-        CHECK(climate.heat == climate.cold);
-        both |= climate.heat;
-        neither |= !climate.heat;
+        CHECK(!climate.heat);
+        cold |= climate.cold;
+        neither |= !climate.cold;
     }
-    CHECK((both && neither));
+    CHECK((cold && neither));
+    const Climate both = decode_climate(hardy);
+    CHECK((!both.heat && !both.cold));
 }
 
 TEST_CASE("colour words turn into RGB and colour differences") {

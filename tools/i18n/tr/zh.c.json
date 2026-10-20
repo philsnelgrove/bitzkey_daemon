@@ -19,5 +19,7 @@
 "hunted": "狩猎", "hunting": "狩猎中", "mated": "交配", "missed": "落空", "photosynthesized": "光合作用",
 "pounced": "扑击", "rested": "休息", "revisited": "重返", "scavenged": "食腐", "seeded": "播种",
 "spines": "尖刺", "uprooted": "被拔起", "uprooting": "拔起中", "withering": "枯萎",
-"wounded": "受伤", "overheated": "过热", "eaten": "被吃", "attacking": "攻击中", "fled": "逃跑"
+"wounded": "受伤", "overheated": "过热", "eaten": "被吃", "attacking": "攻击中", "fled": "逃跑",
+"FRAILTY": "脆弱性",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "耐受另一极端的动物所承受的暴露额外饥饿与伤害的比例"
 }

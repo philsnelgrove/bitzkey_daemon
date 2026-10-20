@@ -19,5 +19,7 @@
 "hunted": "полював", "hunting": "полюючи", "mated": "спарувався", "missed": "схибив", "photosynthesized": "фотосинтез",
 "pounced": "стрибнув", "rested": "відпочивав", "revisited": "повернувся", "scavenged": "їв падло", "seeded": "посіяв",
 "spines": "шипи", "uprooted": "вирваний", "uprooting": "вириваючи", "withering": "в'янення",
-"wounded": "поранений", "overheated": "перегрівся", "eaten": "з'їдений", "attacking": "атакуючи", "fled": "утік"
+"wounded": "поранений", "overheated": "перегрівся", "eaten": "з'їдений", "attacking": "атакуючи", "fled": "утік",
+"FRAILTY": "Вразливість",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "частка додаткового голоду й шкоди від впливу клімату, якої зазнає тварина, витривала до протилежної крайності"
 }

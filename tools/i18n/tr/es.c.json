@@ -19,5 +19,7 @@
 "hunted": "cazó", "hunting": "cazando", "mated": "se apareó", "missed": "falló", "photosynthesized": "fotosíntesis",
 "pounced": "se abalanzó", "rested": "descansó", "revisited": "volvió", "scavenged": "carroñeó", "seeded": "sembró",
 "spines": "espinas", "uprooted": "arrancado", "uprooting": "arrancando", "withering": "marchitándose",
-"wounded": "herido", "overheated": "murió de calor", "eaten": "comido", "attacking": "atacando", "fled": "huyó"
+"wounded": "herido", "overheated": "murió de calor", "eaten": "comido", "attacking": "atacando", "fled": "huyó",
+"FRAILTY": "Fragilidad",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "parte del hambre y el daño adicionales de la exposición que sufre un animal que tolera el extremo opuesto"
 }

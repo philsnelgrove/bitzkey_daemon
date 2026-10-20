@@ -273,7 +273,9 @@ void Bitzkey::derive() {
 
 double Bitzkey::exposure_share(double here) const {
     const int home = climate.temperature;
-    if (species != Species::Plant && ((here > home && climate.cold) || (here < home && climate.heat))) return HARDINESS;
+    if (species == Species::Plant || here == home) return 1.0;
+    if (here > home ? climate.cold : climate.heat) return HARDINESS;
+    if (here > home ? climate.heat : climate.cold) return FRAILTY;
     return 1.0;
 }
 

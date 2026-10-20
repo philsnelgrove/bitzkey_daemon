@@ -19,5 +19,7 @@
 "hunted": "狩った", "hunting": "狩り中", "mated": "交尾した", "missed": "外した", "photosynthesized": "光合成",
 "pounced": "飛びかかった", "rested": "休んだ", "revisited": "戻った", "scavenged": "腐肉をあさった", "seeded": "種をまいた",
 "spines": "とげ", "uprooted": "引き抜かれた", "uprooting": "引き抜き中", "withering": "枯れかけ",
-"wounded": "負傷", "overheated": "熱死", "eaten": "食べられた", "attacking": "攻撃中", "fled": "逃げた"
+"wounded": "負傷", "overheated": "熱死", "eaten": "食べられた", "attacking": "攻撃中", "fled": "逃げた",
+"FRAILTY": "脆弱さ",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "反対の極端に耐える動物が受ける、気候による追加の空腹とダメージの割合"
 }

@@ -38,7 +38,7 @@ struct Dna {
 
 struct Climate {
     int temperature;  // home, an index into TEMPERATURES
-    bool heat, cold;  // whether it tolerates heat and cold
+    bool heat, cold;  // whether it tolerates heat or cold, never both
 };
 
 constexpr int GENOME_VERSION = 3;
@@ -102,8 +102,9 @@ inline std::uint32_t social_word(Dna dna) { return dna.social; }
 Traits decode_temperament(Dna dna);  // the dot's traits, then the social background's
 Body decode_body(Dna dna);  // the species slot holds the species index, the trait value mod 4
 inline int decode_neurodivergence(Dna dna) { return static_cast<int>((dna.social >> NEURODIVERGENCE_SHIFT) & NEURODIVERGENCE_MAX); }
-inline Climate decode_climate(Dna dna) {
-    return {static_cast<int>((dna.bits >> TEMPERATURE_SHIFT) & 0x3), (dna.bits & HEAT_TOLERANCE) != 0, (dna.bits & COLD_TOLERANCE) != 0};
+inline Climate decode_climate(Dna dna) {  // both tolerance flags together cancel out, tolerating neither
+    const bool heat = (dna.bits & HEAT_TOLERANCE) != 0, cold = (dna.bits & COLD_TOLERANCE) != 0;
+    return {static_cast<int>((dna.bits >> TEMPERATURE_SHIFT) & 0x3), heat && !cold, cold && !heat};
 }
 
 // Build a genome from named traits, each 0 to 7 ("neurodivergence" 0 to 15), and climate genes

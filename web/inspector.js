@@ -74,7 +74,7 @@ export function details(agent, { large = 0 } = {}) {
     const colour = steps < 0.5 ? 'rgb(175,192,172)' : steps < 1.5 ? 'rgb(238,183,110)' : 'rgb(235,100,90)';
     climate.append(element('span', { style: { color: colour } }, `HERE ${upper(SHORT[Math.floor(agent.here + 0.5)])}`));
   }
-  const hardy = agent.heat && agent.cold ? 'HEAT & COLD-HARDY' : agent.heat ? 'HEAT-HARDY' : agent.cold ? 'COLD-HARDY' : '';
+  const hardy = agent.heat ? 'HEAT-HARDY' : agent.cold ? 'COLD-HARDY' : '';
   if (hardy) climate.append(element('span', { class: 'hardy' }, hardy));
   panel.append(climate);
 

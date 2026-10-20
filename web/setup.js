@@ -298,7 +298,7 @@ export async function openDesigner({ start = null, subtitle = 'DESIGN A BITZKEY'
   // Each field: which word, where its bits start, and how large it goes.
   const fields = [
     ...MIND_TRAITS.map((name, index) => ({ name, word: 'dot', shift: 3 * index, most: 7 })),
-    { name: 'hardiness', word: 'dot', shift: 30, most: 3 },
+    { name: 'hardiness', word: 'dot', shift: 30, most: 2 },
     ...BODY_TRAITS.map((name, index) => ({ name, word: 'ring', shift: 3 * index, most: 7 })),
     { name: 'temperature', word: 'ring', shift: 30, most: 3 },
     ...SOCIAL_TRAITS.map((name, index) => ({ name, word: 'social', shift: 3 * index, most: 7 })),
@@ -314,7 +314,7 @@ export async function openDesigner({ start = null, subtitle = 'DESIGN A BITZKEY'
   const shownValue = (field, value) => {
     if (field.name === 'species') return `${SPECIES[value % 4]} ${value}`;
     if (field.name === 'temperature') return TEMPERATURES[value];
-    if (field.name === 'hardiness') return ['none', 'heat', 'cold', 'both'][value];
+    if (field.name === 'hardiness') return ['none', 'heat', 'cold', 'none'][value];
     return String(value);
   };
 

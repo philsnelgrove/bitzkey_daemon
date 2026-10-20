@@ -19,5 +19,7 @@
 "hunted": "צד", "hunting": "בעת ציד", "mated": "הזדווג", "missed": "החטיא", "photosynthesized": "פוטוסינתזה",
 "pounced": "זינק", "rested": "נח", "revisited": "חזר", "scavenged": "אכל נבלה", "seeded": "הפיץ זרעים",
 "spines": "קוצים", "uprooted": "נעקר", "uprooting": "בעת עקירה", "withering": "נבילה",
-"wounded": "פצוע", "overheated": "התחמם יתר על המידה", "eaten": "נאכל", "attacking": "בעת תקיפה", "fled": "ברח"
+"wounded": "פצוע", "overheated": "התחמם יתר על המידה", "eaten": "נאכל", "attacking": "בעת תקיפה", "fled": "ברח",
+"FRAILTY": "פגיעות",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "החלק מהרעב והנזק הנוספים של החשיפה שסובלת חיה העמידה לקיצון ההפוך"
 }

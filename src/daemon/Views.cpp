@@ -371,7 +371,7 @@ Json design(Dna dna) {
         facts.push_back("At home where it is " + temperature + "; elsewhere it withers.");
     } else {
         const int hardiness = (sample.climate.heat ? 1 : 0) + (sample.climate.cold ? 2 : 0);
-        constexpr std::array<const char*, 4> hardy = {"", "  Tolerates heat.", "  Tolerates cold.", "  Tolerates heat and cold."};
+        constexpr std::array<const char*, 4> hardy = {"", "  Tolerates heat.", "  Tolerates cold.", ""};
         facts.push_back("At home where it is " + temperature + "." + hardy[static_cast<std::size_t>(hardiness)]);
     }
     result["facts"] = facts;

@@ -247,6 +247,7 @@ std::vector<Rule> make_rules() {
         {"SEED_VIABILITY", "Climate", "Seed viability", "years a seed waits for its temperature before it dies", 0.0, 5.0, 0.05, false, &SEED_VIABILITY},
         {"STARTING_TOLERANCE", "Climate", "Starting tolerance", "chance a random starting genome carries each tolerance flag", 0.0, 1.0, 0.05, false, &STARTING_TOLERANCE},
         {"HARDINESS", "Climate", "Hardiness", "share of exposure's extra hunger and damage an animal tolerant of it suffers", 0.0, 1.0, 0.05, false, &HARDINESS},
+        {"FRAILTY", "Climate", "Frailty", "share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers", 1.0, 4.0, 0.05, false, &FRAILTY},
     };
     for (std::size_t event = 0; event < EXPERIENCES.size(); ++event) {
         std::string name(EXPERIENCE_NAMES[event]);

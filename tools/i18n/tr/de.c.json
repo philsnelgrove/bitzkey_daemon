@@ -19,5 +19,7 @@
 "hunted": "hat gejagt", "hunting": "beim Jagen", "mated": "hat sich gepaart", "missed": "hat verfehlt", "photosynthesized": "Photosynthese",
 "pounced": "hat zugeschlagen", "rested": "hat geruht", "revisited": "ist zurückgekehrt", "scavenged": "hat Aas gefressen", "seeded": "hat gesät",
 "spines": "Stacheln", "uprooted": "ausgerissen", "uprooting": "beim Ausreißen", "withering": "Welken",
-"wounded": "verwundet", "overheated": "an Hitze gestorben", "eaten": "gefressen", "attacking": "beim Angreifen", "fled": "ist geflohen"
+"wounded": "verwundet", "overheated": "an Hitze gestorben", "eaten": "gefressen", "attacking": "beim Angreifen", "fled": "ist geflohen",
+"FRAILTY": "Anfälligkeit",
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "Anteil des zusätzlichen Hungers und Schadens durch die Witterung, den ein Tier erleidet, das das andere Extrem verträgt"
 }

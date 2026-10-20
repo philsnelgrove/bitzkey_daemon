@@ -162,8 +162,10 @@ TEST_CASE("hardiness halves an animal's exposure in one direction, and plants ha
         return found;
     };
     CHECK(shares(tender) == std::vector<double>{1.0, 1.0, 1.0, 1.0});
-    CHECK(shares(hardy) == std::vector<double>{1.0, 1.0, 0.5, 0.5});
-    CHECK(shares(warm) == std::vector<double>{0.5, 1.0, 1.0, 1.0});
+    CHECK(shares(hardy) == std::vector<double>{2.0, 1.0, 0.5, 0.5});
+    CHECK(shares(warm) == std::vector<double>{0.5, 1.0, 2.0, 2.0});
+    const Bitzkey both(4, encode_dna(Species::Grazer, {{"heat_tolerance", 1}, {"cold_tolerance", 1}}), 1, 1);  // the flags cancel out
+    CHECK(shares(both) == std::vector<double>{1.0, 1.0, 1.0, 1.0});
     CHECK(shares(plant) == std::vector<double>{1.0, 1.0, 1.0, 1.0});
 }
 
@@ -180,6 +182,16 @@ TEST_CASE("a hardy animal suffers half the extra hunger and damage") {
     CHECK((hardy.hunger >= 1.0 * hardy.burn - 1e-9 && hardy.hunger <= 1.5 * hardy.burn + most_gone(hardy) + 1e-9));
     CHECK((tender.health < 0.83 * tender.max_health && hardy.health >= 0.9 * hardy.max_health - 1e-9 &&
            hardy.health < 0.93 * hardy.max_health));
+}
+
+TEST_CASE("an animal tolerant of heat suffers twice the extra hunger and damage in the cold") {
+    const HarshClimate harsh;
+    Simulation simulation = world_at(239);  // mid-year, mild, the weather settled
+    Bitzkey& frail = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Hot}, {"heat_tolerance", 1}}), 40, 10);  // the arctic
+    simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+    simulation.take_turn();
+    CHECK((frail.hunger >= 2.5 * frail.burn - 1e-9 && frail.hunger <= 3 * frail.burn + most_gone(frail) + 1e-9));
+    CHECK((frail.health >= 0.6 * frail.max_health - 1e-9 && frail.health < 0.63 * frail.max_health));
 }
 
 TEST_CASE("a step from home doubles an animal's food, and two steps also hurt") {
