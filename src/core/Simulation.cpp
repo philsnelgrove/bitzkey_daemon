@@ -538,8 +538,11 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
         attach(*agent);
     }
     ++next_identifier_;
-    if (lineage_.size() <= static_cast<std::size_t>(agent->identifier)) lineage_.resize(agent->identifier + 1);
-    lineage_[agent->identifier] = agent->dna;
+    if (agent->identifier >= lineage_first_) {
+        const auto place = static_cast<std::size_t>(agent->identifier - lineage_first_);
+        if (lineage_.size() <= place) lineage_.resize(place + 1);
+        lineage_[place] = agent->dna;
+    }
     if (in_bounds(x, y)) cell_at(x, y).push_back(agent.get());
     agents_.push_back(std::move(agent));
     return *agents_.back();
@@ -828,7 +831,19 @@ void Simulation::take_turn() {
 void Simulation::take_census() {
     std::vector<int> identifiers;
     for (const Bitzkey* agent : living()) identifiers.push_back(agent->identifier);
-    census_.record(turn_, std::move(identifiers));
+    if (census_.record(turn_, std::move(identifiers))) forget_before(census_.snapshots().front().turn);
+}
+
+void Simulation::forget_before(int start) {
+    std::erase_if(death_records_, [&](const auto& entry) { return entry.second.turn < start; });
+    int first = next_identifier_;
+    for (const int identifier : census_.snapshots().front().identifiers) first = std::min(first, identifier);
+    for (const auto& [identifier, death] : death_records_) first = std::min(first, identifier);
+    for (const auto& agent : agents_) first = std::min(first, agent->identifier);
+    if (first <= lineage_first_) return;
+    const std::size_t gone = std::min(lineage_.size(), static_cast<std::size_t>(first - lineage_first_));
+    lineage_.erase(lineage_.begin(), lineage_.begin() + static_cast<std::ptrdiff_t>(gone));
+    lineage_first_ = first;
 }
 
 void Simulation::index_bands() {

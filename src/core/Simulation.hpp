@@ -619,13 +619,18 @@ public:
     std::size_t grass_tufts() const;
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
-    Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier)); }
-    using DeathRecord = Death;  // each death, by the dead Bitzkey's identifier, back to the world's start
+    // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
+    Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier - lineage_first_)); }
+    bool remembered(int identifier) const {
+        return identifier >= lineage_first_ && identifier - lineage_first_ < static_cast<int>(lineage_.size());
+    }
+    int lineage_first() const { return lineage_first_; }
+    using DeathRecord = Death;  // each death, by the dead Bitzkey's identifier, back to the graph's start
     const DeathRecord* death_record(int identifier) const {
         const auto found = death_records_.find(identifier);
         return found == death_records_.end() ? nullptr : &found->second;
     }
-    std::vector<Death> deaths_so_far() const;  // every death from the world's start to the turn it is at, rewound or not
+    std::vector<Death> deaths_so_far() const;  // every death from the graph's start to the turn it is at, rewound or not
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
     // The advanced rules were changed while the world runs: work out afresh what the world settled from them as
@@ -911,6 +916,8 @@ private:
     void record();
     void restore(const Snapshot& held);  // as a copy, so the history's stays as it was
     void take_census();
+    // Forget the deaths before the graph's start, and the genomes of the Bitzkeys neither on the graph nor in the world.
+    void forget_before(int start);
     bool dies_of_age(Bitzkey& agent);
     bool room_for_seedling(Cell cell) const;  // the cell is free, and plants don't crowd it
     void sprout(Dna dna, Cell cell, int generation);
@@ -945,7 +952,8 @@ private:
     PyRandom random_;
     Insights insights_;
     Census census_;
-    std::vector<Dna> lineage_;
+    std::vector<Dna> lineage_;  // from identifier lineage_first_ on
+    int lineage_first_ = 0;
     std::unordered_map<int, DeathRecord> death_records_;
     int turn_ = 0;
     int deaths_ = 0;

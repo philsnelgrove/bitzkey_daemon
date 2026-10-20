@@ -21,5 +21,7 @@
 "spines": "とげ", "uprooted": "引き抜かれた", "uprooting": "引き抜き中", "withering": "枯れかけ",
 "wounded": "負傷", "overheated": "熱死", "eaten": "食べられた", "attacking": "攻撃中", "fled": "逃げた",
 "FRAILTY": "脆弱さ",
-"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "反対の極端に耐える動物が受ける、気候による追加の空腹とダメージの割合"
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "反対の極端に耐える動物が受ける、気候による追加の空腹とダメージの割合",
+"GRAPH TURNS": "グラフのターン",
+"turns of the past the graph and death report cover; deaths and genomes older than that are forgotten": "グラフと死亡レポートが扱う過去のターン数。それより古い死と遺伝子は忘れられる"
 }

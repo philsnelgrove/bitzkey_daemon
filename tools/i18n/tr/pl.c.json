@@ -21,5 +21,7 @@
 "spines": "kolce", "uprooted": "wyrwany", "uprooting": "wyrywając", "withering": "więdnięcie",
 "wounded": "ranny", "overheated": "przegrzał się", "eaten": "zjedzony", "attacking": "atakując", "fled": "uciekł",
 "FRAILTY": "Wrażliwość",
-"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "część dodatkowego głodu i obrażeń od ekspozycji, którą ponosi zwierzę odporne na przeciwną skrajność"
+"share of exposure's extra hunger and damage an animal tolerant of the other extreme suffers": "część dodatkowego głodu i obrażeń od ekspozycji, którą ponosi zwierzę odporne na przeciwną skrajność",
+"GRAPH TURNS": "Tury wykresu",
+"turns of the past the graph and death report cover; deaths and genomes older than that are forgotten": "minione tury obejmowane przez wykres i raport śmierci; starsze śmierci i genomy idą w niepamięć"
 }

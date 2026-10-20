@@ -42,6 +42,7 @@ std::vector<Rule> make_rules() {
         {"SPAWN_AT_HOME", "World", "Spawn at home", "1: starting and imported groups appear where their home temperature is usual; 0: anywhere", 0, 1, 1, true, &SPAWN_AT_HOME},
         {"HISTORY_TURNS", "World", "History turns", "turns of the world kept whole, to rewind the map to; at the top, all", 1, HISTORY_ALL, 10, true, &HISTORY_TURNS},
         {"HISTORY_MEMORY", "World", "History memory", "most memory, in GB, the rewind history may take", 0.1, 64.0, 0.1, false, &HISTORY_MEMORY},
+        {"GRAPH_TURNS", "World", "Graph turns", "turns of the past the graph and death report cover; deaths and genomes older than that are forgotten", 1000, 2000000, 1000, true, &GRAPH_TURNS},
         {"LIFESPAN_YEARS.0", "Bodies", "Lifespan, shortest", "years of life expected for the smallest bodies, plant or animal", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[0]},
         {"LIFESPAN_YEARS.1", "Bodies", "Lifespan, middle", "years of life expected for middling bodies", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[1]},
         {"LIFESPAN_YEARS.2", "Bodies", "Lifespan, longest", "years of life expected for the largest bodies", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[2]},

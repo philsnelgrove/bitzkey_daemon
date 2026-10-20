@@ -310,7 +310,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                 return;
             }
         }
-        if (identifier >= 0 && identifier < simulation.next_identifier()) {  // gone from the world: its genome alone
+        if (simulation.remembered(identifier)) {  // gone from the world: its genome alone
             const Bitzkey sample(identifier, simulation.lineage(identifier), 0, 0);
             reply(response, inspect(sample, false));
             return;
@@ -518,7 +518,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                 listed.push_back({{"identifier", identifier},
                                   {"dna", dna_key(found->second->dna)},
                                   {"saved", Json::parse(dumps(records.back()))}});
-            } else if (!living_only && identifier >= 0 && identifier < simulation.next_identifier()) {
+            } else if (!living_only && simulation.remembered(identifier)) {
                 records.push_back(genome_only(simulation.lineage(identifier)));
                 ++dead;
             }
@@ -554,7 +554,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
                     if (found != agents.end()) {
                         records.push_back(bitzkey_record(*found->second));
                         dead += !found->second->alive();
-                    } else if (identifier >= 0 && identifier < simulation.next_identifier()) {
+                    } else if (simulation.remembered(identifier)) {
                         records.push_back(genome_only(simulation.lineage(identifier)));
                         ++dead;
                     }

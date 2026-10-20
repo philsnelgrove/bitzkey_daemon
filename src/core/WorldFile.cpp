@@ -368,7 +368,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
         {"grass", std::move(grass)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
-        {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}}},
+        {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
         {"agents", std::move(agents)},
     };
@@ -511,6 +511,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         }
         world.census_.restore(record.at("census").at("stride").get<int>(), std::move(snapshots));
         world.lineage_.clear();
+        world.lineage_first_ = first_format ? 0 : record.at("lineage").value("first", 0);
         world.death_records_.clear();
         if (first_format) {
             for (const json& dna : record.at("lineage")) world.lineage_.push_back(genome_from(dna));

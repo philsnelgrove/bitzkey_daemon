@@ -29,7 +29,7 @@ std::tuple<int, double, double> colour_order(const Rgb& rgb) {
     return {1, hue, value};
 }
 
-void Census::record(int turn, std::vector<int> identifiers) {
+bool Census::record(int turn, std::vector<int> identifiers) {
     Snapshot entry{turn, std::move(identifiers)};
     if (!snapshots_.empty() && snapshots_.back().turn % stride_) {
         snapshots_.back() = std::move(entry);  // the last one only stood in for "latest"
@@ -43,6 +43,10 @@ void Census::record(int turn, std::vector<int> identifiers) {
         std::erase_if(snapshots_, [this](const Snapshot& snapshot) { return snapshot.turn % stride_ != 0; });
         snapshots_.push_back(std::move(latest));
     }
+    std::size_t old = 0;
+    while (old + 1 < snapshots_.size() && snapshots_[old].turn < turn - GRAPH_TURNS) ++old;
+    snapshots_.erase(snapshots_.begin(), snapshots_.begin() + static_cast<std::ptrdiff_t>(old));
+    return old > 0;
 }
 
 void Census::forget_from(int turn) {

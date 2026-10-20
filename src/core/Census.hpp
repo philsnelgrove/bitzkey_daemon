@@ -1,6 +1,6 @@
 #pragma once
-// Population census for the colour graph: which Bitzkeys were alive, sampled across the whole run
-// at an even spacing that widens as the run grows, so it never outgrows memory.
+// Population census for the colour graph: which Bitzkeys were alive, sampled across the last
+// GRAPH_TURNS turns at an even spacing that widens as the run grows, so it never outgrows memory.
 
 #include <span>
 #include <tuple>
@@ -12,6 +12,7 @@
 namespace bitzkey {
 
 constexpr std::size_t MAX_SNAPSHOTS = 1000;
+inline int GRAPH_TURNS = 250000;  // the graph covers only the last this many turns
 
 // A sort key that stacks similar colours together: greys by lightness, then hues round the wheel.
 std::tuple<int, double, double> colour_order(const Rgb& rgb);
@@ -24,8 +25,9 @@ public:
     };
 
     // Snapshots every `stride` turns, plus the latest turn. When there are too many, the stride
-    // doubles and every other snapshot goes.
-    void record(int turn, std::vector<int> identifiers);
+    // doubles and every other snapshot goes. Snapshots older than GRAPH_TURNS go; returns whether
+    // any did.
+    bool record(int turn, std::vector<int> identifiers);
     // Drop snapshots of turns from `turn` on: a future abandoned by rewinding.
     void forget_from(int turn);
     // Who was alive at the latest snapshot on or before `turn`.
