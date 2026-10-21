@@ -95,9 +95,9 @@ TEST_CASE("values show as the Python version shows them") {
 
 TEST_CASE("a world plays by the rules set when it runs") {
     Restore restore;
-    const int usual = corpses_kept(40);
+    const int usual = corpses_kept(120);
     rules::apply({{"CORPSE_TURNS", 1}});
-    CHECK(corpses_kept(40) < usual);
+    CHECK(corpses_kept(120) < usual);
 }
 
 TEST_CASE("a running world works out afresh what it settled from the rules as it began") {
