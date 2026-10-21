@@ -464,9 +464,8 @@ void Pool::unbind(int binding) {
     }
 }
 
-Pool::Member* Pool::choose(int depth, const Member* except) {
+Pool::Member* Pool::choose(std::uint64_t bytes, const Member* except) {
     // The member with most room for one more, by its pace, among those working with memory to spare.
-    const std::uint64_t bytes = brain_bytes(depth);
     Member* best = nullptr;
     double best_load = 0.0;
     const auto consider = [&](Member& member) {
@@ -494,12 +493,12 @@ double Pool::pace(const Member& member) const {
 }
 
 void Pool::place(int handle, Brain brain, const Member* except) {
-    const int depth = brain.depth();
-    Member* member = choose(depth, except);
+    const std::uint64_t bytes = brain_bytes(brain.depth(), brain.width());
+    Member* member = choose(bytes, except);
     member->attaches.emplace_back(handle, std::move(brain));
     member->count += 1;
-    member->bytes += brain_bytes(depth);
-    owners_[handle] = {member, depth};
+    member->bytes += bytes;
+    owners_[handle] = {member, bytes};
 }
 
 int Pool::attach(const Brain& brain) {
@@ -517,7 +516,7 @@ void Pool::detach(int handle) {
     else member.detaches.push_back(handle);
     member.mirrors.erase(handle);
     member.count -= 1;
-    member.bytes -= brain_bytes(found->second.depth);
+    member.bytes -= found->second.bytes;
     owners_.erase(found);
 }
 

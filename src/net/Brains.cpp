@@ -26,18 +26,14 @@ constexpr std::uint32_t BATCH_MAGIC = 0x314B5A42;   // "BZK1"
 constexpr std::uint32_t ANSWER_MAGIC = 0x324B5A42;  // "BZK2"
 constexpr int MEASURE_BRAINS = 128;
 constexpr int MEASURE_ROUNDS = 3;
-constexpr int MEASURE_DEPTH = 4;    // the depth of an animal of middling intellect
+constexpr int MEASURE_DEPTH = 4;    // the depth of an animal of middling intellect, BASE_WIDTH wide
 constexpr int MEASURE_REPLAYS = 4;  // memories it replays a turn
 
-// A brain of this depth, its weights to be filled in.
-Brain shaped(int depth) {
+// A brain of this shape, its weights to be filled in.
+Brain shaped(int depth, int width) {
     Brain brain;
-    brain.layers.resize(static_cast<std::size_t>(depth));
-    for (int index = 0; index < depth; ++index) {
-        Layer& layer = brain.layers[static_cast<std::size_t>(index)];
-        layer.reads = index ? HIDDEN_SIZE : INPUT_SIZE;
-        layer.weights.assign(static_cast<std::size_t>(HIDDEN_SIZE) * static_cast<std::size_t>(layer.reads), 0.0);
-    }
+    for (int index = 0; index < depth; ++index) brain.layers.push_back(Layer::zeros(width, index ? width : INPUT_SIZE));
+    for (auto& row : brain.output_weights) row.assign(static_cast<std::size_t>(width), 0.0);
     return brain;
 }
 
@@ -72,10 +68,10 @@ Machine scan_machine() {
     return machine;
 }
 
-std::uint64_t brain_bytes(int depth) {
-    const std::uint64_t weights = static_cast<std::uint64_t>(HIDDEN_SIZE) * INPUT_SIZE +
-                                  static_cast<std::uint64_t>(depth - 1) * HIDDEN_SIZE * HIDDEN_SIZE +
-                                  static_cast<std::uint64_t>(depth) * HIDDEN_SIZE + ACTION_COUNT * HIDDEN_SIZE + ACTION_COUNT;
+std::uint64_t brain_bytes(int depth, int width) {
+    const std::uint64_t neurons = static_cast<std::uint64_t>(width);
+    const std::uint64_t weights = neurons * INPUT_SIZE + static_cast<std::uint64_t>(depth - 1) * neurons * neurons +
+                                  static_cast<std::uint64_t>(depth) * neurons + ACTION_COUNT * neurons + ACTION_COUNT;
     return weights * 2 * sizeof(double) + RING * sizeof(FloatSenses) + 256;  // weights and traces, in doubles on a CPU
 }
 
@@ -291,7 +287,7 @@ void Thinker::share(const Resources& resources) {
     bool gpu = false;
     auto engine = make_engine(resources_, gpu);
     for (auto& [handle, held] : held_) {
-        Brain brain = shaped(held.depth);
+        Brain brain = shaped(held.depth, held.width);
         Brain* into[] = {&brain};
         const gpu::BrainEngine::Handle handles[] = {held.inner};
         engine_->download(handles, into);
@@ -317,7 +313,7 @@ Answer Thinker::apply(const Batch& batch) {
             engine_->detach(found->second.inner);
             held_.erase(found);
         }
-        held_.emplace(handle, Held{engine_->attach(brain), brain.depth()});
+        held_.emplace(handle, Held{engine_->attach(brain), brain.depth(), brain.width()});
     }
     if (!batch.lessons.empty()) {
         std::vector<Senses> senses(batch.lessons.size());
@@ -362,7 +358,7 @@ Answer Thinker::apply(const Batch& batch) {
         for (std::size_t index = 0; index < batch.downloads.size(); ++index) {
             const auto found = held_.find(batch.downloads[index]);
             if (found == held_.end()) continue;
-            answer.downloads[index] = shaped(found->second.depth);
+            answer.downloads[index] = shaped(found->second.depth, found->second.width);
             handles.push_back(found->second.inner);
             into.push_back(&answer.downloads[index]);
         }

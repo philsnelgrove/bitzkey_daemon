@@ -80,17 +80,24 @@ TEST_CASE("a copy keeps its own traces, and an export none") {
     duplicate.learn_traced(senses, 0, 5.0, 0.1, 0.9);
     CHECK(brain == duplicate);  // the same traces, kept apart
     CHECK_FALSE(Brain::from_record(nlohmann::json::parse(brain.to_record().dump())).traces.has_value());
-    CHECK_FALSE(brain.resized(4).traces.has_value());  // traces belong to one life
+    CHECK_FALSE(brain.resized(4, BASE_WIDTH).traces.has_value());  // traces belong to one life
 }
 
-TEST_CASE("a brain is twice as deep as the inborn intellect, and at least two layers") {
-    std::vector<int> depths;
-    for (int intellect = 0; intellect < 8; ++intellect) depths.push_back(depth_for(intellect));
-    CHECK(depths == std::vector<int>{2, 2, 4, 6, 8, 10, 12, 14});
+TEST_CASE("intellect deepens a brain to four layers, then widens it") {
+    std::vector<int> depths, widths;
+    for (int intellect = 0; intellect < 8; ++intellect) {
+        depths.push_back(depth_for(intellect));
+        widths.push_back(width_for(intellect));
+    }
+    CHECK(depths == std::vector<int>{1, 1, 2, 3, 4, 4, 4, 4});
+    CHECK(widths == std::vector<int>{38, 38, 38, 38, 38, 43, 48, 53});
+    CHECK((BASE_WIDTH == 38 && MAX_WIDTH == 53));
     PyRandom rng(7);
-    const Brain brain = Brain::random(rng, 6);
-    CHECK((brain.depth() == 6 && brain.layers[0].reads == INPUT_SIZE && brain.layers[5].reads == HIDDEN_SIZE));
-    CHECK(Brain::random(rng).depth() == MIN_DEPTH);
+    const Brain brain = Brain::random(rng, 4, 53);
+    CHECK((brain.depth() == 4 && brain.width() == 53 && brain.layers[0].reads == INPUT_SIZE && brain.layers[3].reads == 53 &&
+           brain.output_weights[0].size() == 53));
+    const Brain plain = Brain::random(rng);
+    CHECK((plain.depth() == 1 && plain.width() == BASE_WIDTH));
 }
 
 TEST_CASE("there is an input for each ring, dot and social trait, and none for which actions are open") {
@@ -108,15 +115,15 @@ TEST_CASE("there is an input for each ring, dot and social trait, and none for w
 TEST_CASE("a child takes each hidden neuron whole from one parent") {
     PyRandom rng(3);
     const Brain mother = Brain::random(rng, 4), father = Brain::random(rng, 4);
-    const Brain child = Brain::inherit(mother, father, rng, 4, 0.0);
+    const Brain child = Brain::inherit(mother, father, rng, 4, BASE_WIDTH, 0.0);
     for (int index = 0; index < 4; ++index) {
         const Layer& layer = child.layers[static_cast<std::size_t>(index)];
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        for (int neuron = 0; neuron < BASE_WIDTH; ++neuron) {
             const Layer& from_mother = mother.layers[static_cast<std::size_t>(index)];
             const bool mothers = std::equal(layer.row(neuron), layer.row(neuron) + layer.reads, from_mother.row(neuron));
             const Layer& donor = (mothers ? mother : father).layers[static_cast<std::size_t>(index)];
             CHECK(std::equal(layer.row(neuron), layer.row(neuron) + layer.reads, donor.row(neuron)));
-            CHECK(layer.biases[neuron] == donor.biases[neuron]);
+            CHECK(layer.biases[static_cast<std::size_t>(neuron)] == donor.biases[static_cast<std::size_t>(neuron)]);
         }
     }
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -129,14 +136,43 @@ TEST_CASE("a child takes each hidden neuron whole from one parent") {
 TEST_CASE("a child deeper than a parent keeps the deeper parent's layers, then passes input on") {
     PyRandom rng(3);
     const Brain shallow = Brain::random(rng, 2), deep = Brain::random(rng, 4);
-    const Brain child = Brain::inherit(shallow, deep, rng, 6, 0.0);
+    const Brain child = Brain::inherit(shallow, deep, rng, 6, BASE_WIDTH, 0.0);
     CHECK(child.depth() == 6);
     for (const int index : {2, 3}) CHECK(child.layers[static_cast<std::size_t>(index)] == deep.layers[static_cast<std::size_t>(index)]);
-    for (const int index : {4, 5}) CHECK(child.layers[static_cast<std::size_t>(index)] == Layer::identity());
-    CHECK(Brain::inherit(deep, deep, rng, 2, 0.0).depth() == 2);
-    const Brain deeper = deep.resized(6), shallower = deep.resized(2);
+    for (const int index : {4, 5}) CHECK(child.layers[static_cast<std::size_t>(index)] == Layer::identity(BASE_WIDTH));
+    CHECK(Brain::inherit(deep, deep, rng, 2, BASE_WIDTH, 0.0).depth() == 2);
+    const Brain deeper = deep.resized(6, BASE_WIDTH), shallower = deep.resized(2, BASE_WIDTH);
     CHECK((deeper.depth() == 6 && shallower.depth() == 2));
-    CHECK((deeper.layers[3] == deep.layers[3] && deeper.layers[5] == Layer::identity() && shallower.layers[1] == deep.layers[1]));
+    CHECK((deeper.layers[3] == deep.layers[3] && deeper.layers[5] == Layer::identity(BASE_WIDTH) && shallower.layers[1] == deep.layers[1]));
+}
+
+TEST_CASE("a child wider than a parent takes the neurons only the wider parent has from it") {
+    PyRandom rng(3);
+    const Brain narrow = Brain::random(rng, 2, 38), wide = Brain::random(rng, 2, 48);
+    const Brain child = Brain::inherit(narrow, wide, rng, 2, 53, 0.0);
+    CHECK((child.depth() == 2 && child.width() == 53 && child.layers[1].reads == 53));
+    for (int neuron = 38; neuron < 48; ++neuron) {  // only the wider parent has these
+        CHECK(std::equal(child.layers[0].row(neuron), child.layers[0].row(neuron) + INPUT_SIZE, wide.layers[0].row(neuron)));
+        CHECK(std::equal(child.layers[1].row(neuron), child.layers[1].row(neuron) + 48, wide.layers[1].row(neuron)));
+    }
+    for (int neuron = 48; neuron < 53; ++neuron) {  // neither has these: idle
+        CHECK(std::all_of(child.layers[1].row(neuron), child.layers[1].row(neuron) + 53, [](double weight) { return weight == 0.0; }));
+    }
+    for (const auto& row : child.output_weights) CHECK(std::all_of(row.begin() + 48, row.end(), [](double weight) { return weight == 0.0; }));
+    const Brain narrower = Brain::inherit(wide, wide, rng, 1, 38, 0.0);
+    CHECK((narrower.output_weights[0].size() == 38 && narrower.layers[0] == wide.layers[0].fitted(38, INPUT_SIZE)));
+}
+
+TEST_CASE("resizing wider adds idle neurons that change nothing, and narrower drops the last") {
+    PyRandom rng(7);
+    const Brain brain = Brain::random(rng, 3);
+    const Brain wider = brain.resized(3, 53);
+    CHECK((wider.width() == 53 && wider.layers[2].reads == 53));
+    Senses senses{};
+    senses.fill(0.4);
+    for (int action = 0; action < ACTION_COUNT; ++action) CHECK(wider.values(senses)[action] == doctest::Approx(brain.values(senses)[action]).epsilon(1e-12));
+    const Brain narrower = brain.resized(3, 30);
+    CHECK((narrower.width() == 30 && narrower.layers[1].row(29)[29] == brain.layers[1].row(29)[29]));
 }
 
 TEST_CASE("odds favour the better-valued action and sum to one") {
@@ -163,7 +199,7 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
     renamed["senses"][0] = "smell";
     for (auto& row : renamed["layers"][0]["weights"]) row[0] = 9.0;
     const Brain partial = Brain::from_record(renamed);
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) CHECK(partial.layers[0].row(neuron)[SenseHunger] == 0.0);
+    for (int neuron = 0; neuron < BASE_WIDTH; ++neuron) CHECK(partial.layers[0].row(neuron)[SenseHunger] == 0.0);
     nlohmann::json broken = record;
     broken["layers"][0]["biases"] = "lots";
     CHECK_THROWS_AS(Brain::from_record(broken), std::invalid_argument);
@@ -180,8 +216,8 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
     CHECK(old.layers[0].weights[5] == doctest::Approx(brain.layers[0].weights[5]).epsilon(1e-5));
 }
 
-TEST_CASE("hidden layers are 34 neurons wide, and a narrower saved brain loads widened, valuing alike") {
-    CHECK((HIDDEN_SIZE == 34 && INPUT_SIZE == 88));
+TEST_CASE("there are 88 senses, and a narrower saved brain loads as saved, valuing alike") {
+    CHECK(INPUT_SIZE == 88);
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;
@@ -201,7 +237,7 @@ TEST_CASE("hidden layers are 34 neurons wide, and a narrower saved brain loads w
     record["layers"] = nlohmann::json::array();
     for (int index = 0; index < 2; ++index) record["layers"].push_back({{"weights", weights[index]}, {"biases", biases[index]}});
     const Brain loaded = Brain::from_record(record);
-    CHECK((loaded.layers[0].reads == INPUT_SIZE && loaded.layers[1].reads == HIDDEN_SIZE));
+    CHECK((loaded.layers[0].reads == INPUT_SIZE && loaded.layers[1].reads == narrow && loaded.width() == narrow));
     Senses senses{};
     for (double& sense : senses) sense = uniform(engine) + 0.5;
     std::vector<double> activation(senses.begin(), senses.end());

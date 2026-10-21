@@ -104,10 +104,16 @@ void check(VkResult result, const char* what) {
 // ---------------------------------------------------------------------------------------------
 // A brain as the shaders lay it out: see shaders/brain.glsl.
 
-std::uint32_t slot_floats(int depth) {
-    return static_cast<std::uint32_t>(HIDDEN_SIZE * INPUT_SIZE + (depth - 1) * HIDDEN_SIZE * HIDDEN_SIZE + depth * HIDDEN_SIZE +
-                                      ACTION_COUNT * HIDDEN_SIZE + ACTION_COUNT);
+using Shape = std::pair<int, int>;  // a brain's depth and width: its pool
+
+std::uint32_t slot_floats(Shape shape) {
+    const auto [depth, width] = shape;
+    return static_cast<std::uint32_t>(width * INPUT_SIZE + (depth - 1) * width * width + depth * width + ACTION_COUNT * width +
+                                      ACTION_COUNT);
 }
+
+Shape shape_of(const Brain& brain) { return {brain.depth(), brain.width()}; }
+static_assert(MAX_DEPTH == 4 && MAX_WIDTH == 53, "shaders/brain.glsl's MAX_DEPTH and MAX_HIDDEN must match");
 
 // The layers, input by input, then the biases, then the outputs, neuron by neuron, then their biases:
 // for a brain's weights, or its traces.
@@ -115,13 +121,13 @@ void pack_parts(const std::vector<Layer>& layers, const Brain::OutputWeights& ou
                 float* at) {
     for (const Layer& layer : layers) {
         for (int item = 0; item < layer.reads; ++item) {
-            for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) *at++ = static_cast<float>(layer.row(neuron)[item]);
+            for (int neuron = 0; neuron < layer.neurons(); ++neuron) *at++ = static_cast<float>(layer.row(neuron)[item]);
         }
     }
     for (const Layer& layer : layers) {
         for (const double bias : layer.biases) *at++ = static_cast<float>(bias);
     }
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+    for (std::size_t neuron = 0; neuron < outputs[0].size(); ++neuron) {
         for (int action = 0; action < ACTION_COUNT; ++action) *at++ = static_cast<float>(outputs[action][neuron]);
     }
     for (const double bias : biases) *at++ = static_cast<float>(bias);
@@ -130,13 +136,13 @@ void pack_parts(const std::vector<Layer>& layers, const Brain::OutputWeights& ou
 void unpack_parts(const float* at, std::vector<Layer>& layers, Brain::OutputWeights& outputs, std::array<double, ACTION_COUNT>& biases) {
     for (Layer& layer : layers) {
         for (int item = 0; item < layer.reads; ++item) {
-            for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) layer.row(neuron)[item] = *at++;
+            for (int neuron = 0; neuron < layer.neurons(); ++neuron) layer.row(neuron)[item] = *at++;
         }
     }
     for (Layer& layer : layers) {
         for (double& bias : layer.biases) bias = *at++;
     }
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+    for (std::size_t neuron = 0; neuron < outputs[0].size(); ++neuron) {
         for (int action = 0; action < ACTION_COUNT; ++action) outputs[action][neuron] = *at++;
     }
     for (double& bias : biases) bias = *at++;
@@ -145,12 +151,12 @@ void unpack_parts(const float* at, std::vector<Layer>& layers, Brain::OutputWeig
 void pack(const Brain& brain, float* weights, float* traces) {
     pack_parts(brain.layers, brain.output_weights, brain.output_biases, weights);
     if (brain.traces) pack_parts(brain.traces->layers, brain.traces->output_weights, brain.traces->output_biases, traces);
-    else std::fill(traces, traces + slot_floats(brain.depth()), 0.0f);
+    else std::fill(traces, traces + slot_floats(shape_of(brain)), 0.0f);
 }
 
 
 struct Push {
-    std::uint32_t depth, count, slot_floats, first;
+    std::uint32_t depth, count, slot_floats, first, width;
 };
 
 struct GpuGroup {
@@ -232,7 +238,7 @@ public:
         }
         for (auto& gpu : gpus_) {
             vk_.vkDeviceWaitIdle(gpu->device);
-            for (auto& [depth, pool] : gpu->pools) {
+            for (auto& [shape, pool] : gpu->pools) {
                 destroy(*gpu, pool.weights);
                 destroy(*gpu, pool.traces);
             }
@@ -259,7 +265,7 @@ public:
             if (gpus_[index]->held < gpus_[least]->held) least = index;
         }
         Gpu& gpu = *gpus_[least];
-        Pool& pool = pool_for(gpu, brain.depth());
+        Pool& pool = pool_for(gpu, shape_of(brain));
         std::uint32_t slot;
         if (!pool.free.empty()) {
             slot = pool.free.back();
@@ -268,7 +274,7 @@ public:
             if (pool.next == pool.capacity) grow(gpu, pool);
             slot = pool.next++;
         }
-        Upload upload{brain.depth(), slot, std::vector<float>(pool.slot_floats), std::vector<float>(pool.slot_floats)};
+        Upload upload{shape_of(brain), slot, std::vector<float>(pool.slot_floats), std::vector<float>(pool.slot_floats)};
         pack(brain, upload.weights.data(), upload.traces.data());
         gpu.uploads.push_back(std::move(upload));
         ++gpu.held;
@@ -281,7 +287,7 @@ public:
             handle = static_cast<Handle>(entries_.size());
             entries_.emplace_back();
         }
-        entries_[static_cast<std::size_t>(handle)] = {static_cast<int>(least), brain.depth(), slot, true};
+        entries_[static_cast<std::size_t>(handle)] = {static_cast<int>(least), shape_of(brain), slot, true};
         return handle;
     }
 
@@ -289,7 +295,7 @@ public:
         Entry& entry = entries_.at(static_cast<std::size_t>(handle));
         if (!entry.live) return;
         Gpu& gpu = *gpus_[static_cast<std::size_t>(entry.gpu)];
-        gpu.pools.at(entry.depth).free.push_back(entry.slot);
+        gpu.pools.at(entry.shape).free.push_back(entry.slot);
         --gpu.held;
         --attached_;
         entry.live = false;
@@ -306,7 +312,7 @@ public:
                 const Entry& entry = entries_.at(static_cast<std::size_t>(brains[index]));
                 if (entry.gpu != static_cast<int>(g)) continue;
                 mine.push_back(index);
-                floats += static_cast<std::size_t>(slot_floats(entry.depth));
+                floats += static_cast<std::size_t>(slot_floats(entry.shape));
             }
             if (mine.empty()) continue;
             ensure(gpu, gpu.staging, floats * sizeof(float), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -314,7 +320,7 @@ public:
             VkDeviceSize offset = 0;
             for (const std::size_t index : mine) {
                 const Entry& entry = entries_[static_cast<std::size_t>(brains[index])];
-                const Pool& pool = gpu.pools.at(entry.depth);
+                const Pool& pool = gpu.pools.at(entry.shape);
                 const VkDeviceSize bytes = pool.slot_floats * sizeof(float);
                 const VkBufferCopy weights{entry.slot * bytes, offset, bytes};
                 vk_.vkCmdCopyBuffer(gpu.cmd, pool.weights.buffer, gpu.staging.buffer, 1, &weights);
@@ -324,8 +330,12 @@ public:
             const float* data = static_cast<const float*>(gpu.staging.mapped);
             for (const std::size_t index : mine) {
                 Brain& brain = *into[index];
+                const auto [depth, width] = entries_[static_cast<std::size_t>(brains[index])].shape;
+                brain.layers.clear();
+                for (int layer = 0; layer < depth; ++layer) brain.layers.push_back(Layer::zeros(width, layer == 0 ? INPUT_SIZE : width));
+                for (auto& row : brain.output_weights) row.assign(static_cast<std::size_t>(width), 0.0);
                 unpack_parts(data, brain.layers, brain.output_weights, brain.output_biases);
-                data += slot_floats(brain.depth());
+                data += slot_floats({depth, width});
             }
         }
     }
@@ -337,13 +347,13 @@ public:
         std::vector<Batch> batches(gpus_.size());
         for (std::size_t index = 0; index < brains.size(); ++index) {
             const Entry& entry = entries_.at(static_cast<std::size_t>(brains[index]));
-            batches[static_cast<std::size_t>(entry.gpu)].by_depth[entry.depth].push_back(index);
+            batches[static_cast<std::size_t>(entry.gpu)].by_shape[entry.shape].push_back(index);
         }
         for (std::size_t g = 0; g < gpus_.size(); ++g) {  // every GPU set working, then all waited on
             Gpu& gpu = *gpus_[g];
             Batch& batch = batches[g];
             std::size_t count = 0;
-            for (const auto& [depth, members] : batch.by_depth) count += members.size();
+            for (const auto& [shape, members] : batch.by_shape) count += members.size();
             if (!count) continue;
             ensure(gpu, gpu.slots, count * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
             ensure(gpu, gpu.inputs, count * INPUT_SIZE * sizeof(float), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
@@ -353,7 +363,7 @@ public:
             begin(gpu);
             vk_.vkResetDescriptorPool(gpu.device, gpu.descriptors, 0);
             std::uint32_t first = 0;
-            for (const auto& [depth, members] : batch.by_depth) {
+            for (const auto& [shape, members] : batch.by_shape) {
                 for (std::size_t k = 0; k < members.size(); ++k) {
                     const std::size_t index = members[k];
                     slots[first + k] = entries_[static_cast<std::size_t>(brains[index])].slot;
@@ -361,8 +371,8 @@ public:
                         inputs[(first + k) * INPUT_SIZE + static_cast<std::size_t>(sense)] = static_cast<float>(senses[index][sense]);
                     }
                 }
-                const Pool& pool = gpu.pools.at(depth);
-                dispatch(gpu, gpu.values, {&pool.weights, &gpu.slots, &gpu.inputs, &gpu.outputs, &gpu.outputs}, depth,
+                const Pool& pool = gpu.pools.at(shape);
+                dispatch(gpu, gpu.values, {&pool.weights, &gpu.slots, &gpu.inputs, &gpu.outputs, &gpu.outputs}, shape,
                          static_cast<std::uint32_t>(members.size()), pool.slot_floats, first);
                 first += static_cast<std::uint32_t>(members.size());
             }
@@ -371,12 +381,12 @@ public:
         lap("values: pack and send", clock);
         for (std::size_t g = 0; g < gpus_.size(); ++g) {
             Gpu& gpu = *gpus_[g];
-            if (batches[g].by_depth.empty()) continue;
+            if (batches[g].by_shape.empty()) continue;
             wait(gpu);
             lap("values: GPU", clock);
             const auto* values = static_cast<const float*>(gpu.outputs.mapped);
             std::size_t at = 0;
-            for (const auto& [depth, members] : batches[g].by_depth) {
+            for (const auto& [shape, members] : batches[g].by_shape) {
                 for (const std::size_t index : members) {
                     for (int action = 0; action < ACTION_COUNT; ++action) out[index][action] = values[at * ACTION_COUNT + static_cast<std::size_t>(action)];
                     ++at;
@@ -391,7 +401,7 @@ public:
         auto clock = std::chrono::steady_clock::now();
         flush_all();
         lap("learn: new brains up", clock);
-        // Each brain's lessons together, in the order given; brains grouped by GPU and depth.
+        // Each brain's lessons together, in the order given; brains grouped by GPU and shape.
         std::unordered_map<Handle, std::vector<std::size_t>> by_brain;
         std::vector<Handle> order;
         for (std::size_t index = 0; index < lessons.size(); ++index) {
@@ -400,15 +410,15 @@ public:
             found->second.push_back(index);
         }
         lap("learn: group", clock);
-        std::vector<std::map<int, std::vector<Handle>>> brains_by(gpus_.size());
+        std::vector<std::map<Shape, std::vector<Handle>>> brains_by(gpus_.size());
         for (const Handle handle : order) {
             const Entry& entry = entries_.at(static_cast<std::size_t>(handle));
-            brains_by[static_cast<std::size_t>(entry.gpu)][entry.depth].push_back(handle);
+            brains_by[static_cast<std::size_t>(entry.gpu)][entry.shape].push_back(handle);
         }
         for (std::size_t g = 0; g < gpus_.size(); ++g) {
             Gpu& gpu = *gpus_[g];
             std::size_t groups = 0, count = 0;
-            for (const auto& [depth, handles] : brains_by[g]) {
+            for (const auto& [shape, handles] : brains_by[g]) {
                 groups += handles.size();
                 for (const Handle handle : handles) count += by_brain[handle].size();
             }
@@ -428,10 +438,10 @@ public:
             };
             std::vector<Place> places;
             places.reserve(groups);
-            std::vector<std::pair<int, std::uint32_t>> starts;  // each depth's first group
+            std::vector<std::pair<Shape, std::uint32_t>> starts;  // each shape's first group
             std::uint32_t group_at = 0, lesson_at = 0;
-            for (const auto& [depth, handles] : brains_by[g]) {
-                starts.emplace_back(depth, group_at);
+            for (const auto& [shape, handles] : brains_by[g]) {
+                starts.emplace_back(shape, group_at);
                 for (const Handle handle : handles) {
                     places.push_back({handle, group_at++, lesson_at});
                     lesson_at += static_cast<std::uint32_t>(by_brain[handle].size());
@@ -452,10 +462,10 @@ public:
                 }
             });
             for (std::size_t k = 0; k < starts.size(); ++k) {
-                const auto [depth, first_group] = starts[k];
+                const auto [shape, first_group] = starts[k];
                 const std::uint32_t last = k + 1 < starts.size() ? starts[k + 1].second : group_at;
-                const Pool& pool = gpu.pools.at(depth);
-                dispatch(gpu, gpu.learn, {&pool.weights, &pool.traces, &gpu.groups, &gpu.lessons, &gpu.inputs}, depth, last - first_group,
+                const Pool& pool = gpu.pools.at(shape);
+                dispatch(gpu, gpu.learn, {&pool.weights, &pool.traces, &gpu.groups, &gpu.lessons, &gpu.inputs}, shape, last - first_group,
                          pool.slot_floats, first_group);
             }
             submit(gpu);
@@ -475,7 +485,6 @@ private:
         void* mapped = nullptr;  // host-visible buffers only
     };
     struct Pool {
-        int depth = 0;
         std::uint32_t slot_floats = 0;
         std::uint32_t capacity = 0;
         std::uint32_t next = 0;  // slots used so far, free ones aside
@@ -483,7 +492,7 @@ private:
         Buffer weights, traces;  // on the GPU itself
     };
     struct Upload {
-        int depth;
+        Shape shape;
         std::uint32_t slot;
         std::vector<float> weights, traces;
     };
@@ -500,19 +509,19 @@ private:
         VkPipelineLayout layout = VK_NULL_HANDLE;
         VkDescriptorPool descriptors = VK_NULL_HANDLE;
         VkPipeline values = VK_NULL_HANDLE, learn = VK_NULL_HANDLE;
-        std::map<int, Pool> pools;  // by depth
+        std::map<Shape, Pool> pools;  // by shape
         Buffer slots, inputs, outputs, groups, lessons, staging;  // host-visible, grown as needed
         std::vector<Upload> uploads;  // brains attached, not yet copied up
         std::size_t held = 0;
     };
     struct Entry {
         int gpu = 0;
-        int depth = 0;
+        Shape shape{};
         std::uint32_t slot = 0;
         bool live = false;
     };
     struct Batch {
-        std::map<int, std::vector<std::size_t>> by_depth;
+        std::map<Shape, std::vector<std::size_t>> by_shape;
     };
 
     void open(VkPhysicalDevice physical) {
@@ -647,12 +656,9 @@ private:
                       usage | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, true);
     }
 
-    Pool& pool_for(Gpu& gpu, int depth) {
-        auto [found, fresh] = gpu.pools.try_emplace(depth);
-        if (fresh) {
-            found->second.depth = depth;
-            found->second.slot_floats = slot_floats(depth);
-        }
+    Pool& pool_for(Gpu& gpu, Shape shape) {
+        auto [found, fresh] = gpu.pools.try_emplace(shape);
+        if (fresh) found->second.slot_floats = slot_floats(shape);
         return found->second;
     }
 
@@ -688,7 +694,7 @@ private:
         begin(gpu);
         VkDeviceSize offset = 0;
         for (const Upload& upload : gpu.uploads) {
-            const Pool& pool = gpu.pools.at(upload.depth);
+            const Pool& pool = gpu.pools.at(upload.shape);
             const VkDeviceSize bytes = pool.slot_floats * sizeof(float);
             std::memcpy(data, upload.weights.data(), bytes);
             std::memcpy(data + pool.slot_floats, upload.traces.data(), bytes);
@@ -732,7 +738,7 @@ private:
         wait(gpu);
     }
 
-    void dispatch(Gpu& gpu, VkPipeline pipe, std::initializer_list<const Buffer*> buffers, int depth, std::uint32_t count,
+    void dispatch(Gpu& gpu, VkPipeline pipe, std::initializer_list<const Buffer*> buffers, Shape shape, std::uint32_t count,
                   std::uint32_t floats, std::uint32_t first) {
         if (!count) return;
         VkDescriptorSetAllocateInfo allocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
@@ -759,7 +765,7 @@ private:
         vk_.vkCmdBindDescriptorSets(gpu.cmd, VK_PIPELINE_BIND_POINT_COMPUTE, gpu.layout, 0, 1, &set, 0, nullptr);
         for (std::uint32_t done = 0; done < count; done += gpu.max_groups) {  // in as many dispatches as the GPU needs
             const std::uint32_t part = std::min(gpu.max_groups, count - done);
-            const Push push{static_cast<std::uint32_t>(depth), part, floats, first + done};
+            const Push push{static_cast<std::uint32_t>(shape.first), part, floats, first + done, static_cast<std::uint32_t>(shape.second)};
             vk_.vkCmdPushConstants(gpu.cmd, gpu.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
             vk_.vkCmdDispatch(gpu.cmd, part, 1, 1);
         }

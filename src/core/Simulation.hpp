@@ -570,9 +570,11 @@ Dna predator_dna(Dna dna);
 // species' lower bit moves it a step up the chain, and of its upper bit a step down. A step off the chain is
 // undone, a plant stays a plant and an animal never becomes one; the rest of the genome is as it is.
 Dna evolved(Dna parent, Dna child);
-// An inborn intellect as it counts for the brain's depth and how much it replays: a predator's
+// An inborn intellect as it counts for the brain's shape and how much it replays: a predator's
 // PREDATOR_INTELLIGENCE times over, up to the full range.
 int thinking_intellect(int intellect, Species species);
+// The depth and width of a genome's brain, by its thinking intellect: deeper up to MAX_DEPTH, then wider.
+std::pair<int, int> brain_shape(Dna dna);
 
 enum class EndReason { None, Extinct, Full };
 

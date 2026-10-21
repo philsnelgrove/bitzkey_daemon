@@ -28,10 +28,12 @@ double furthest(const Brain& a, const Brain& b) {  // the largest difference bet
         for (std::size_t index = 0; index < a.layers[layer].weights.size(); ++index) {
             most = std::max(most, std::abs(a.layers[layer].weights[index] - b.layers[layer].weights[index]));
         }
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) most = std::max(most, std::abs(a.layers[layer].biases[neuron] - b.layers[layer].biases[neuron]));
+        for (std::size_t neuron = 0; neuron < a.layers[layer].biases.size(); ++neuron) {
+            most = std::max(most, std::abs(a.layers[layer].biases[neuron] - b.layers[layer].biases[neuron]));
+        }
     }
     for (int action = 0; action < ACTION_COUNT; ++action) {
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        for (std::size_t neuron = 0; neuron < a.output_weights[action].size(); ++neuron) {
             most = std::max(most, std::abs(a.output_weights[action][neuron] - b.output_weights[action][neuron]));
         }
         most = std::max(most, std::abs(a.output_biases[action] - b.output_biases[action]));
@@ -51,7 +53,7 @@ TEST_CASE("brains on the GPU value and learn as on the CPU, near enough") {
     for (const gpu::DeviceInfo& device : engine->devices()) MESSAGE("GPU: " << device.name);
     PyRandom rng(7);
     std::vector<Brain> brains;
-    for (const int depth : {2, 3, 6, 14, 2}) brains.push_back(Brain::random(rng, depth));
+    for (const auto [depth, width] : {std::pair{1, 38}, {3, 38}, {4, 43}, {4, 53}, {1, 38}}) brains.push_back(Brain::random(rng, depth, width));
     std::vector<gpu::BrainEngine::Handle> handles;
     for (const Brain& brain : brains) handles.push_back(engine->attach(brain));
     CHECK(engine->attached() == brains.size());

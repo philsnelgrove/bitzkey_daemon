@@ -23,17 +23,17 @@ void main() {
     for (uint layer = 0u; layer < push.depth; ++layer) {
         const uint reads = reads_of(layer);
         const uint row = weights_of(base, layer);
-        if (thread < HIDDEN) {
+        if (thread < push.width) {
             float sum = 0.0;
-            for (uint item = 0u; item < reads; ++item) sum += weights[row + item * HIDDEN + thread] * layers[below][item];
-            layers[1u - below][thread] = tanh(sum + weights[biases_of(base) + layer * HIDDEN + thread]);
+            for (uint item = 0u; item < reads; ++item) sum += weights[row + item * push.width + thread] * layers[below][item];
+            layers[1u - below][thread] = tanh(sum + weights[biases_of(base) + layer * push.width + thread]);
         }
         barrier();
         below = 1u - below;
     }
     if (thread < ACTIONS) {
         float sum = 0.0;
-        for (uint neuron = 0u; neuron < HIDDEN; ++neuron) sum += weights[outputs_of(base) + neuron * ACTIONS + thread] * layers[below][neuron];
+        for (uint neuron = 0u; neuron < push.width; ++neuron) sum += weights[outputs_of(base) + neuron * ACTIONS + thread] * layers[below][neuron];
         values[request * ACTIONS + thread] = sum + weights[output_biases_of(base) + thread];
     }
 }

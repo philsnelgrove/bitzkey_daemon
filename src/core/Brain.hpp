@@ -94,8 +94,10 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
 int action_index(std::string_view name);  // -1 when unknown
 int sense_index(std::string_view name);   // -1 when unknown
 
-constexpr int HIDDEN_SIZE = 34;  // neurons in each hidden layer
-constexpr int MIN_DEPTH = 2;     // hidden layers: twice the inborn intellect, and never fewer than this
+constexpr int MAX_DEPTH = 4;    // hidden layers: one for each point of inborn intellect, at least one and up to this many
+constexpr int BASE_WIDTH = 38;  // neurons in each hidden layer, up to an intellect of MAX_DEPTH
+constexpr int WIDTH_STEP = 5;   // neurons more in each layer for each point of intellect beyond MAX_DEPTH
+constexpr int MAX_WIDTH = BASE_WIDTH + WIDTH_STEP * (TRAIT_MAX - MAX_DEPTH);
 inline double TEMPERATURE = 0.2;
 inline double MUTATION = 0.05;
 inline double SMART_TRACE_DECAY = 0.97;  // lambda at the highest intellect: the clever trace credit further back
@@ -106,13 +108,16 @@ inline double HEADING_RELUCTANCE = 0.5;
 constexpr int RECORD_DIGITS = 6;  // decimal places kept when a brain is exported
 // A new brain's output weights are drawn within this of zero: smaller the wider its layers, so its
 // untaught values spread as they did when layers were twelve neurons wide.
-inline const double OUTPUT_SPREAD = 0.3 * std::sqrt(12.0 / HIDDEN_SIZE);
+inline double output_spread(int width) { return 0.3 * std::sqrt(12.0 / width); }
 
 using Senses = std::array<double, INPUT_SIZE>;
 using Values = std::array<double, ACTION_COUNT>;
 
-// How many hidden layers a brain has, by its owner's inborn intellect.
-inline int depth_for(int intellect) { return std::max(MIN_DEPTH, 2 * intellect); }
+// How many hidden layers a brain has, by its owner's inborn intellect: one a point, from one to MAX_DEPTH.
+inline int depth_for(int intellect) { return std::max(1, std::min(MAX_DEPTH, intellect)); }
+// How many neurons each of its hidden layers has: BASE_WIDTH, and WIDTH_STEP more for each point of
+// intellect beyond MAX_DEPTH.
+inline int width_for(int intellect) { return BASE_WIDTH + WIDTH_STEP * std::max(0, intellect - MAX_DEPTH); }
 // Fill in the inputs for a genome's traits, ring, dot and social background, and its climate genes.
 void gene_senses(Dna dna, Senses& senses);
 
@@ -122,13 +127,18 @@ std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<
 // One hidden layer: a row of weights for each neuron, reading the senses (the first layer) or the
 // layer before.
 struct Layer {
-    int reads = HIDDEN_SIZE;
-    std::vector<double> weights;  // HIDDEN_SIZE rows of `reads`
-    std::array<double, HIDDEN_SIZE> biases{};
+    int reads = 0;
+    std::vector<double> weights;  // a row of `reads` for each neuron
+    std::vector<double> biases;   // one for each neuron
 
+    int neurons() const { return static_cast<int>(biases.size()); }
     double* row(int neuron) { return weights.data() + static_cast<std::size_t>(neuron) * reads; }
     const double* row(int neuron) const { return weights.data() + static_cast<std::size_t>(neuron) * reads; }
-    static Layer identity();  // passes its input on, near enough
+    static Layer zeros(int neurons, int reads);  // every weight and bias zero
+    static Layer identity(int width);  // passes its input on, near enough
+    // A copy cut down or padded with zeros to `neurons` of `reads`: neurons, and weights from neurons, it no
+    // longer has are dropped, and those it gains are idle until mutation moves them.
+    Layer fitted(int neurons, int reads) const;
     bool operator==(const Layer&) const = default;
 };
 
@@ -138,7 +148,7 @@ struct Layer {
 // to the choices that led to it; the traces belong to one life and are neither inherited nor exported.
 class Brain {
 public:
-    using OutputWeights = std::array<std::array<double, HIDDEN_SIZE>, ACTION_COUNT>;
+    using OutputWeights = std::array<std::vector<double>, ACTION_COUNT>;  // a row of the brain's width for each action
     struct Traces {
         std::vector<Layer> layers;  // shaped as the brain's own
         OutputWeights output_weights{};
@@ -151,16 +161,18 @@ public:
     std::optional<Traces> traces;  // none until it first learns from its own choice
 
     int depth() const { return static_cast<int>(layers.size()); }
-    static Brain random(PyRandom& rng, int depth = MIN_DEPTH);
-    // A child's brain, `depth` layers deep. Where both parents have a layer, each of its neurons
-    // comes from one parent or the other; where only one has it, from that one; deeper still, it
-    // starts passing its input on. Each action's output comes from one parent or the other. Then
-    // it mutates.
-    static Brain inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth = MIN_DEPTH,
+    int width() const { return layers.empty() ? 0 : layers.front().neurons(); }  // neurons in each hidden layer
+    static Brain random(PyRandom& rng, int depth = 1, int width = BASE_WIDTH);
+    // A child's brain, `depth` layers of `width` neurons. Where both parents have a layer, each of its
+    // neurons comes from one parent or the other, or from the one that has it where only one does;
+    // where only one has the layer, from that one; deeper still, it starts passing its input on. A
+    // parent's layers are fitted to the child's width (see Layer::fitted). Each action's output comes
+    // from one parent or the other. Then it mutates.
+    static Brain inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth = 1, int width = BASE_WIDTH,
                          double mutation = MUTATION);
-    // A copy `depth` layers deep: deeper with layers that pass their input on, or shallower
-    // without its last layers.
-    Brain resized(int depth) const;
+    // A copy `depth` layers of `width` neurons: deeper with layers that pass their input on, or
+    // shallower without its last layers, and each layer fitted (see Layer::fitted).
+    Brain resized(int depth, int width) const;
 
     Values values(const Senses& inputs) const;
     // Move one action's value toward a target, with the error clipped for stability, back through
@@ -177,8 +189,8 @@ public:
 
     nlohmann::ordered_json to_record() const;
     // Weights are matched to senses and actions by name; a brain saved with a single hidden
-    // layer loads one layer deep, and one saved with fewer neurons in each layer is widened with idle
-    // neurons, weighted zero, which change nothing. Throws std::invalid_argument.
+    // layer loads one layer deep. It keeps the width it was saved with, and the Bitzkey given it
+    // resizes it to its own. Throws std::invalid_argument.
     static Brain from_record(const nlohmann::json& record);
 
     // The same weights; traces don't count.

@@ -27,6 +27,7 @@ static_assert(std::endian::native == std::endian::little, "world files hold litt
 
 // Rules that say how this computer runs a world rather than how the world unfolds: loading keeps the user's own.
 constexpr std::array<std::string_view, 3> MACHINE_RULES = {"USE_GPU", "HISTORY_TURNS", "HISTORY_MEMORY"};
+constexpr int OLD_WIDTH = 34;  // neurons in each hidden layer of a brain saved without a width
 
 std::string genome_text(Dna dna) {
     char text[25];
@@ -82,7 +83,7 @@ struct Numbers {
         const std::size_t at = values.size();
         add_layers(brain->layers, brain->output_weights, brain->output_biases);
         if (brain->traces) add_layers(brain->traces->layers, brain->traces->output_weights, brain->traces->output_biases);
-        return {{"at", at}, {"depth", brain->depth()}, {"traced", brain->traces.has_value()}};
+        return {{"at", at}, {"depth", brain->depth()}, {"width", brain->width()}, {"traced", brain->traces.has_value()}};
     }
     json senses(const Senses& senses) { return add(senses); }
 };
@@ -96,38 +97,43 @@ struct Reader {
         if (at + wanted > count) throw std::runtime_error("The world file's numbers are cut short.");
         return numbers + at * sizeof(double);
     }
-    void read_layers(std::size_t& at, int depth, std::vector<Layer>& layers, Brain::OutputWeights& output_weights,
+    void read_layers(std::size_t& at, int depth, int width, std::vector<Layer>& layers, Brain::OutputWeights& output_weights,
                      std::array<double, ACTION_COUNT>& output_biases) const {
         layers.clear();
+        const std::size_t neurons = static_cast<std::size_t>(width);
         for (int index = 0; index < depth; ++index) {
-            Layer layer;
-            layer.reads = index == 0 ? INPUT_SIZE : HIDDEN_SIZE;
-            const std::size_t size = static_cast<std::size_t>(HIDDEN_SIZE) * layer.reads;
-            layer.weights.resize(size);
+            Layer layer = Layer::zeros(width, index == 0 ? INPUT_SIZE : width);
+            const std::size_t size = layer.weights.size();
             std::memcpy(layer.weights.data(), take(at, size), sizeof(double) * size);
             at += size;
-            std::memcpy(layer.biases.data(), take(at, HIDDEN_SIZE), sizeof(double) * HIDDEN_SIZE);
-            at += HIDDEN_SIZE;
+            std::memcpy(layer.biases.data(), take(at, neurons), sizeof(double) * neurons);
+            at += neurons;
             layers.push_back(std::move(layer));
         }
         for (auto& row : output_weights) {
-            std::memcpy(row.data(), take(at, HIDDEN_SIZE), sizeof(double) * HIDDEN_SIZE);
-            at += HIDDEN_SIZE;
+            row.resize(neurons);
+            std::memcpy(row.data(), take(at, neurons), sizeof(double) * neurons);
+            at += neurons;
         }
         std::memcpy(output_biases.data(), take(at, ACTION_COUNT), sizeof(double) * ACTION_COUNT);
         at += ACTION_COUNT;
     }
-    std::shared_ptr<Brain> brain(const json& record) const {
+    // The brain saved at `record`, resized to fit the genome `dna` if it was saved another shape.
+    std::shared_ptr<Brain> brain(const json& record, Dna dna) const {
         if (record.is_null()) return nullptr;
         auto brain = std::make_shared<Brain>();
         std::size_t at = record.at("at").get<std::size_t>();
         const int depth = record.at("depth").get<int>();
-        read_layers(at, depth, brain->layers, brain->output_weights, brain->output_biases);
+        const int width = record.contains("width") ? record.at("width").get<int>() : OLD_WIDTH;
+        if (depth < 1 || width < 1 || width > MAX_WIDTH) throw std::runtime_error("The world file holds a brain of no sensible shape.");
+        read_layers(at, depth, width, brain->layers, brain->output_weights, brain->output_biases);
         if (record.at("traced").get<bool>()) {
             Brain::Traces traces;
-            read_layers(at, depth, traces.layers, traces.output_weights, traces.output_biases);
+            read_layers(at, depth, width, traces.layers, traces.output_weights, traces.output_biases);
             brain->traces = std::move(traces);
         }
+        const auto [fit_depth, fit_width] = brain_shape(dna);
+        if (depth != fit_depth || width != fit_width) brain = std::make_shared<Brain>(brain->resized(fit_depth, fit_width));
         return brain;
     }
     Senses senses(const json& at) const {
@@ -225,7 +231,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->age = record.at("age").get<int>();
     agent->cooldown = record.at("cooldown").get<int>();
     agent->last_action = interned(record.at("last_action").get<std::string>());
-    agent->brain = numbers.brain(record.at("brain"));
+    agent->brain = numbers.brain(record.at("brain"), agent->dna);
     agent->generation = record.at("generation").get<int>();
     agent->children = record.at("children").get<int>();
     agent->died_turn = optional_int(record.at("died_turn"));
@@ -258,7 +264,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->memories.push_back({numbers.senses(memory.at(0)), memory.at(1).get<int>(), memory.at(2).get<double>(), memory.at(3).get<double>()});
     }
     for (const json& young : record.at("womb")) {
-        agent->womb.push_back({genome_from(young.at(0)), mind_from(young.at(1)), numbers.brain(young.at(2)), young.at(3).get<double>(),
+        const Dna dna = genome_from(young.at(0));
+        agent->womb.push_back({dna, mind_from(young.at(1)), numbers.brain(young.at(2), dna), young.at(3).get<double>(),
                                young.at(4).get<int>()});
     }
     agent->due_turn = optional_int(record.at("due_turn"));

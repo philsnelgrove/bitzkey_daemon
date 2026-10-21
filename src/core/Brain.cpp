@@ -55,7 +55,7 @@ double pairwise_sum(const double* values, std::size_t count) {
 
 // The products of two runs of numbers, added up as numpy's sum would.
 double dot(const double* first, const double* second, std::size_t count) {
-    std::array<double, std::max(INPUT_SIZE, HIDDEN_SIZE)> products;  // no layer reads more
+    std::array<double, std::max(INPUT_SIZE, MAX_WIDTH)> products;  // no layer reads more
     for (std::size_t index = 0; index < count; ++index) products[index] = first[index] * second[index];
     return pairwise_sum(products.data(), count);
 }
@@ -87,25 +87,51 @@ void gene_senses(Dna dna, Senses& senses) {
     senses[SenseColdTolerance] = climate.cold;
 }
 
-Layer Layer::identity() {
+Layer Layer::zeros(int neurons, int reads) {
     Layer layer;
-    layer.weights.assign(static_cast<std::size_t>(HIDDEN_SIZE) * HIDDEN_SIZE, 0.0);
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) layer.row(neuron)[neuron] = 1.0;
+    layer.reads = reads;
+    layer.weights.assign(static_cast<std::size_t>(neurons) * static_cast<std::size_t>(reads), 0.0);
+    layer.biases.assign(static_cast<std::size_t>(neurons), 0.0);
     return layer;
 }
 
-Brain Brain::random(PyRandom& rng, int depth) {
+Layer Layer::identity(int width) {
+    Layer layer = zeros(width, width);
+    for (int neuron = 0; neuron < width; ++neuron) layer.row(neuron)[neuron] = 1.0;
+    return layer;
+}
+
+Layer Layer::fitted(int to_neurons, int to_reads) const {
+    Layer layer = zeros(to_neurons, to_reads);
+    const int kept = std::min(to_neurons, neurons()), columns = std::min(to_reads, reads);
+    for (int neuron = 0; neuron < kept; ++neuron) {
+        std::copy(row(neuron), row(neuron) + columns, layer.row(neuron));
+        layer.biases[static_cast<std::size_t>(neuron)] = biases[static_cast<std::size_t>(neuron)];
+    }
+    return layer;
+}
+
+namespace {
+// An output row cut down or padded with zeros to `width`.
+std::vector<double> fitted_row(const std::vector<double>& row, int width) {
+    std::vector<double> fitted(row);
+    fitted.resize(static_cast<std::size_t>(width), 0.0);
+    return fitted;
+}
+}  // namespace
+
+Brain Brain::random(PyRandom& rng, int depth, int width) {
     Brain brain;
     for (int index = 0; index < depth; ++index) {
-        Layer layer;
-        layer.reads = index == 0 ? INPUT_SIZE : HIDDEN_SIZE;
-        const double bound = std::sqrt(6.0 / (layer.reads + HIDDEN_SIZE));
-        layer.weights.resize(static_cast<std::size_t>(HIDDEN_SIZE) * layer.reads);
+        Layer layer = Layer::zeros(width, index == 0 ? INPUT_SIZE : width);
+        const double bound = std::sqrt(6.0 / (layer.reads + width));
         for (double& weight : layer.weights) weight = rng.uniform(-bound, bound);
         brain.layers.push_back(std::move(layer));
     }
+    const double spread = output_spread(width);
     for (auto& row : brain.output_weights) {
-        for (double& weight : row) weight = rng.uniform(-OUTPUT_SPREAD, OUTPUT_SPREAD);
+        row.resize(static_cast<std::size_t>(width));
+        for (double& weight : row) weight = rng.uniform(-spread, spread);
     }
     for (double& bias : brain.output_biases) bias = rng.uniform(-0.2, 0.2);
     for (const int heading : {GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest}) {
@@ -114,32 +140,34 @@ Brain Brain::random(PyRandom& rng, int depth) {
     return brain;
 }
 
-Brain Brain::inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth, double mutation) {
+Brain Brain::inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth, int width, double mutation) {
     Brain child;
     for (int index = 0; index < depth; ++index) {
+        const int reads = index == 0 ? INPUT_SIZE : width;
         const bool in_first = index < first.depth(), in_second = index < second.depth();
         if (in_first && in_second) {
-            std::array<bool, HIDDEN_SIZE> from_first{};
-            for (bool& choice : from_first) choice = rng.random() < 0.5;
-            Layer layer = first.layers[static_cast<std::size_t>(index)];
-            const Layer& other = second.layers[static_cast<std::size_t>(index)];
-            for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
-                if (from_first[neuron]) continue;
-                std::copy(other.row(neuron), other.row(neuron) + other.reads, layer.row(neuron));
-                layer.biases[neuron] = other.biases[neuron];
+            std::vector<bool> from_first(static_cast<std::size_t>(width));
+            for (std::size_t neuron = 0; neuron < from_first.size(); ++neuron) from_first[neuron] = rng.random() < 0.5;
+            Layer layer = first.layers[static_cast<std::size_t>(index)].fitted(width, reads);
+            const Layer other = second.layers[static_cast<std::size_t>(index)].fitted(width, reads);
+            for (int neuron = 0; neuron < width; ++neuron) {
+                // From the first parent as chosen while it has the neuron, and wherever the second hasn't.
+                if ((from_first[static_cast<std::size_t>(neuron)] && neuron < first.width()) || neuron >= second.width()) continue;
+                std::copy(other.row(neuron), other.row(neuron) + reads, layer.row(neuron));
+                layer.biases[static_cast<std::size_t>(neuron)] = other.biases[static_cast<std::size_t>(neuron)];
             }
             child.layers.push_back(std::move(layer));
         } else if (in_first || in_second) {
-            child.layers.push_back((in_first ? first : second).layers[static_cast<std::size_t>(index)]);
+            child.layers.push_back((in_first ? first : second).layers[static_cast<std::size_t>(index)].fitted(width, reads));
         } else {
-            child.layers.push_back(Layer::identity());
+            child.layers.push_back(Layer::identity(width));
         }
     }
     std::array<bool, ACTION_COUNT> from_first{};
     for (bool& choice : from_first) choice = rng.random() < 0.5;
     for (int action = 0; action < ACTION_COUNT; ++action) {
         const Brain& donor = from_first[action] ? first : second;
-        child.output_weights[action] = donor.output_weights[action];
+        child.output_weights[action] = fitted_row(donor.output_weights[action], width);
         child.output_biases[action] = donor.output_biases[action];
     }
     if (mutation != 0.0) {
@@ -157,11 +185,14 @@ Brain Brain::inherit(const Brain& first, const Brain& second, PyRandom& rng, int
     return child;
 }
 
-Brain Brain::resized(int depth) const {
-    Brain brain = *this;
-    brain.traces.reset();
-    if (brain.depth() > depth) brain.layers.resize(static_cast<std::size_t>(depth));
-    while (brain.depth() < depth) brain.layers.push_back(Layer::identity());
+Brain Brain::resized(int depth, int width) const {
+    Brain brain;
+    for (int index = 0; index < std::min(depth, this->depth()); ++index) {
+        brain.layers.push_back(layers[static_cast<std::size_t>(index)].fitted(width, index == 0 ? INPUT_SIZE : width));
+    }
+    while (brain.depth() < depth) brain.layers.push_back(Layer::identity(width));
+    for (int action = 0; action < ACTION_COUNT; ++action) brain.output_weights[action] = fitted_row(output_weights[action], width);
+    brain.output_biases = output_biases;
     return brain;
 }
 
@@ -171,10 +202,10 @@ std::vector<std::vector<double>> Brain::activations(const Senses& inputs) const 
     found.emplace_back(inputs.begin(), inputs.end());
     for (const Layer& layer : layers) {
         const std::vector<double>& below = found.back();
-        std::vector<double> output(HIDDEN_SIZE);
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        std::vector<double> output(static_cast<std::size_t>(layer.neurons()));
+        for (int neuron = 0; neuron < layer.neurons(); ++neuron) {
             const double sum = dot(layer.row(neuron), below.data(), static_cast<std::size_t>(layer.reads));
-            output[static_cast<std::size_t>(neuron)] = std::tanh(sum + layer.biases[neuron]);
+            output[static_cast<std::size_t>(neuron)] = std::tanh(sum + layer.biases[static_cast<std::size_t>(neuron)]);
         }
         found.push_back(std::move(output));
     }
@@ -185,7 +216,7 @@ Values Brain::values(const Senses& inputs) const {
     const std::vector<double> top = activations(inputs).back();
     Values values{};
     for (int action = 0; action < ACTION_COUNT; ++action) {
-        const double sum = dot(output_weights[action].data(), top.data(), HIDDEN_SIZE);
+        const double sum = dot(output_weights[action].data(), top.data(), top.size());
         values[action] = sum + output_biases[action];
     }
     return values;
@@ -195,31 +226,32 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
     if (learning_rate <= 0) return;
     const std::vector<std::vector<double>> found = activations(inputs);
     const std::vector<double>& top = found.back();
-    const double sum = dot(output_weights[action].data(), top.data(), HIDDEN_SIZE);
+    const int width = this->width();
+    const double sum = dot(output_weights[action].data(), top.data(), top.size());
     const double error = std::max(-1.0, std::min(1.0, sum + output_biases[action] - target));
-    std::vector<double> gradient(HIDDEN_SIZE);
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][neuron];
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
-        output_weights[action][neuron] -= learning_rate * error * top[static_cast<std::size_t>(neuron)];
+    std::vector<double> gradient(static_cast<std::size_t>(width));
+    for (int neuron = 0; neuron < width; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][static_cast<std::size_t>(neuron)];
+    for (int neuron = 0; neuron < width; ++neuron) {
+        output_weights[action][static_cast<std::size_t>(neuron)] -= learning_rate * error * top[static_cast<std::size_t>(neuron)];
     }
     for (int index = depth() - 1; index >= 0; --index) {
         Layer& layer = layers[static_cast<std::size_t>(index)];
         const std::vector<double>& output = found[static_cast<std::size_t>(index) + 1];
         const std::vector<double>& below = found[static_cast<std::size_t>(index)];
-        std::array<double, HIDDEN_SIZE> delta{};
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        std::array<double, MAX_WIDTH> delta{};
+        for (int neuron = 0; neuron < width; ++neuron) {
             const double value = output[static_cast<std::size_t>(neuron)];
             delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
         }
         if (index) {
             for (int input = 0; input < layer.reads; ++input) {
                 double back = 0.0;
-                for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
+                for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
                 gradient[static_cast<std::size_t>(input)] = back;
             }
         }
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) layer.biases[neuron] -= learning_rate * delta[neuron];
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        for (int neuron = 0; neuron < width; ++neuron) layer.biases[static_cast<std::size_t>(neuron)] -= learning_rate * delta[neuron];
+        for (int neuron = 0; neuron < width; ++neuron) {
             double* weights = layer.row(neuron);
             for (int input = 0; input < layer.reads; ++input) {
                 weights[input] -= learning_rate * (delta[neuron] * below[static_cast<std::size_t>(input)]);
@@ -236,23 +268,20 @@ void Brain::learn_traced(const Senses& inputs, int action, double target, double
 
 void Brain::learn_traced_by(const Senses& inputs, int action, double target, double learning_rate, double decay) {
     if (learning_rate <= 0) return;
+    const int width = this->width();
     if (!traces) {
         traces.emplace();
-        for (const Layer& layer : layers) {
-            Layer trace;
-            trace.reads = layer.reads;
-            trace.weights.assign(layer.weights.size(), 0.0);
-            traces->layers.push_back(std::move(trace));
-        }
+        for (const Layer& layer : layers) traces->layers.push_back(Layer::zeros(layer.neurons(), layer.reads));
+        for (auto& row : traces->output_weights) row.assign(static_cast<std::size_t>(width), 0.0);
     }
     const std::vector<std::vector<double>> found = activations(inputs);
     const std::vector<double>& top = found.back();
-    const double sum = dot(output_weights[action].data(), top.data(), HIDDEN_SIZE);
+    const double sum = dot(output_weights[action].data(), top.data(), top.size());
     const double error = std::max(-1.0, std::min(1.0, sum + output_biases[action] - target));
     for (auto& row : traces->output_weights) {
         for (double& trace : row) trace *= decay;
     }
-    for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) traces->output_weights[action][neuron] += top[static_cast<std::size_t>(neuron)];
+    for (int neuron = 0; neuron < width; ++neuron) traces->output_weights[action][static_cast<std::size_t>(neuron)] += top[static_cast<std::size_t>(neuron)];
     for (double& trace : traces->output_biases) trace *= decay;
     traces->output_biases[action] += 1.0;
     std::vector<double> gradient(output_weights[action].begin(), output_weights[action].end());
@@ -261,35 +290,37 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
         Layer& trace = traces->layers[static_cast<std::size_t>(index)];
         const std::vector<double>& output = found[static_cast<std::size_t>(index) + 1];
         const std::vector<double>& below = found[static_cast<std::size_t>(index)];
-        std::array<double, HIDDEN_SIZE> delta{};
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        std::array<double, MAX_WIDTH> delta{};
+        for (int neuron = 0; neuron < width; ++neuron) {
             const double value = output[static_cast<std::size_t>(neuron)];
             delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
         }
         if (index) {
             for (int input = 0; input < layer.reads; ++input) {
                 double back = 0.0;
-                for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
+                for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
                 gradient[static_cast<std::size_t>(input)] = back;
             }
         }
         for (double& weight : trace.weights) weight *= decay;
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        for (int neuron = 0; neuron < width; ++neuron) {
             double* weights = trace.row(neuron);
             for (int input = 0; input < layer.reads; ++input) weights[input] += delta[neuron] * below[static_cast<std::size_t>(input)];
         }
         for (double& bias : trace.biases) bias *= decay;
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) trace.biases[neuron] += delta[neuron];
+        for (int neuron = 0; neuron < width; ++neuron) trace.biases[static_cast<std::size_t>(neuron)] += delta[neuron];
     }
     const double step = learning_rate * error;
     for (std::size_t index = 0; index < layers.size(); ++index) {
         Layer& layer = layers[index];
         const Layer& trace = traces->layers[index];
         for (std::size_t weight = 0; weight < layer.weights.size(); ++weight) layer.weights[weight] -= step * trace.weights[weight];
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) layer.biases[neuron] -= step * trace.biases[neuron];
+        for (std::size_t neuron = 0; neuron < layer.biases.size(); ++neuron) layer.biases[neuron] -= step * trace.biases[neuron];
     }
     for (int row = 0; row < ACTION_COUNT; ++row) {
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) output_weights[row][neuron] -= step * traces->output_weights[row][neuron];
+        for (int neuron = 0; neuron < width; ++neuron) {
+            output_weights[row][static_cast<std::size_t>(neuron)] -= step * traces->output_weights[row][static_cast<std::size_t>(neuron)];
+        }
     }
     for (int row = 0; row < ACTION_COUNT; ++row) output_biases[row] -= step * traces->output_biases[row];
 }
@@ -310,7 +341,7 @@ nlohmann::ordered_json Brain::to_record() const {
     for (const Layer& layer : layers) {
         json entry = json::object();
         entry["weights"] = json::array();
-        for (int neuron = 0; neuron < HIDDEN_SIZE; ++neuron) {
+        for (int neuron = 0; neuron < layer.neurons(); ++neuron) {
             entry["weights"].push_back(rounded(layer.row(neuron), layer.row(neuron) + layer.reads));
         }
         entry["biases"] = rounded(layer.biases.begin(), layer.biases.end());
@@ -369,9 +400,9 @@ Brain Brain::from_record(const nlohmann::json& record) {
     const std::size_t width = saved[0].first.size();
     for (std::size_t index = 0; index < saved.size(); ++index) {
         const auto& [rows, biases] = saved[index];
-        if (rows.size() != width || biases.size() != width || width == 0 || width > HIDDEN_SIZE) {
+        if (rows.size() != width || biases.size() != width || width == 0 || width > MAX_WIDTH) {
             throw std::invalid_argument("The brain has " + std::to_string(rows.size()) + " neurons in a layer; this version uses up to " +
-                                        std::to_string(HIDDEN_SIZE) + ", the same in every layer.");
+                                        std::to_string(MAX_WIDTH) + ", the same in every layer.");
         }
         const std::size_t reads = index == 0 ? senses.size() : width;
         for (const auto& row : rows) {
@@ -389,16 +420,14 @@ Brain Brain::from_record(const nlohmann::json& record) {
     Brain brain;
     for (std::size_t index = 0; index < saved.size(); ++index) {
         const auto& [rows, biases] = saved[index];
-        Layer layer;
-        layer.reads = index == 0 ? INPUT_SIZE : HIDDEN_SIZE;
-        layer.weights.assign(static_cast<std::size_t>(HIDDEN_SIZE) * layer.reads, 0.0);  // neurons past `width` stay idle
+        Layer layer = Layer::zeros(static_cast<int>(width), index == 0 ? INPUT_SIZE : static_cast<int>(width));
         for (std::size_t neuron = 0; neuron < width; ++neuron) {
             const auto& row = rows[neuron];
             for (int input = 0; input < layer.reads; ++input) {
                 if (index == 0) {
                     const auto found = sense_at.find(std::string(SENSES[input]));
                     layer.row(static_cast<int>(neuron))[input] = found == sense_at.end() ? 0.0 : row[found->second];
-                } else if (static_cast<std::size_t>(input) < width) {
+                } else {
                     layer.row(static_cast<int>(neuron))[input] = row[static_cast<std::size_t>(input)];
                 }
             }
@@ -408,6 +437,7 @@ Brain Brain::from_record(const nlohmann::json& record) {
     }
     for (int action = 0; action < ACTION_COUNT; ++action) {
         const auto found = action_at.find(std::string(ACTIONS[action]));
+        brain.output_weights[action].resize(width);
         for (std::size_t neuron = 0; neuron < width; ++neuron) {
             brain.output_weights[action][neuron] = found == action_at.end() ? 0.0 : output_rows[found->second][neuron];
         }

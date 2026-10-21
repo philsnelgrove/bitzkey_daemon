@@ -37,6 +37,7 @@ public:
     void raw(const void* data, std::size_t size) { bytes_.append(static_cast<const char*>(data), size); }
     void brain(const Brain& brain) {
         put<std::uint8_t>(static_cast<std::uint8_t>(brain.depth()));
+        put<std::uint8_t>(static_cast<std::uint8_t>(brain.width()));
         for (const Layer& layer : brain.layers) {
             put<std::uint16_t>(static_cast<std::uint16_t>(layer.reads));
             floats(layer.weights.data(), layer.weights.size());
@@ -79,17 +80,21 @@ public:
     Brain brain() {
         Brain made;
         const int depth = get<std::uint8_t>();
-        if (depth < 1 || depth > 64) throw std::runtime_error("a brain of no sensible depth");
-        made.layers.resize(static_cast<std::size_t>(depth));
+        const int width = get<std::uint8_t>();
+        if (depth < 1 || depth > MAX_DEPTH) throw std::runtime_error("a brain of no sensible depth");
+        if (width < 1 || width > MAX_WIDTH) throw std::runtime_error("a brain of no sensible width");
         for (int index = 0; index < depth; ++index) {
-            Layer& layer = made.layers[static_cast<std::size_t>(index)];
-            layer.reads = get<std::uint16_t>();
-            if (layer.reads != (index ? HIDDEN_SIZE : INPUT_SIZE)) throw std::runtime_error("a brain of another shape");
-            layer.weights.resize(static_cast<std::size_t>(HIDDEN_SIZE) * static_cast<std::size_t>(layer.reads));
+            const int reads = get<std::uint16_t>();
+            if (reads != (index ? width : INPUT_SIZE)) throw std::runtime_error("a brain of another shape");
+            Layer layer = Layer::zeros(width, reads);
             floats(layer.weights.data(), layer.weights.size());
             floats(layer.biases.data(), layer.biases.size());
+            made.layers.push_back(std::move(layer));
         }
-        for (auto& row : made.output_weights) floats(row.data(), row.size());
+        for (auto& row : made.output_weights) {
+            row.resize(static_cast<std::size_t>(width));
+            floats(row.data(), row.size());
+        }
         floats(made.output_biases.data(), made.output_biases.size());
         return made;
     }

@@ -310,6 +310,11 @@ int thinking_intellect(int intellect, Species species) {
     return std::min(TRAIT_MAX, static_cast<int>(intellect * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)));
 }
 
+std::pair<int, int> brain_shape(Dna dna) {
+    const int intellect = thinking_intellect(decode_temperament(dna)[Intellect], static_cast<Species>(decode_body(dna)[SpeciesTrait]));
+    return {depth_for(intellect), width_for(intellect)};
+}
+
 Dna evolved(Dna parent, Dna child) {
     constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
     const int before = static_cast<int>((parent.bits >> shift) & 0x3), after = static_cast<int>((child.bits >> shift) & 0x3);
@@ -531,9 +536,9 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
         }
     }
     if (agent->species != Species::Plant) {  // plants need no brain
-        const int depth = depth_for(thinking_intellect(agent->inborn[Intellect], agent->species));  // twice its inborn intellect, at least two
-        if (!brain) brain = std::make_shared<Brain>(Brain::random(random_, depth));
-        else if (brain->depth() != depth) brain = std::make_shared<Brain>(brain->resized(depth));
+        const auto [depth, width] = brain_shape(agent->dna);
+        if (!brain) brain = std::make_shared<Brain>(Brain::random(random_, depth, width));
+        else if (brain->depth() != depth || brain->width() != width) brain = std::make_shared<Brain>(brain->resized(depth, width));
         agent->brain = std::move(brain);
         attach(*agent);
     }
@@ -2252,9 +2257,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         if (first.species == Species::Predator || second.species == Species::Predator) {
             dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
         }
-        auto brain = std::make_shared<Brain>(
-            Brain::inherit(*first.brain, *second.brain, random_,
-                           depth_for(thinking_intellect(decode_temperament(dna)[Intellect], static_cast<Species>(decode_body(dna)[SpeciesTrait])))));
+        const auto [depth, width] = brain_shape(dna);
+        auto brain = std::make_shared<Brain>(Brain::inherit(*first.brain, *second.brain, random_, depth, width));
         if (static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Predator && first.species != Species::Predator) {
             // Born a predator of other parents: what they learnt of eating and uprooting it brings to
             // hunting and feasting.

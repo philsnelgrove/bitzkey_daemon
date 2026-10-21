@@ -12,10 +12,11 @@
 // state, the grass, the seeds waiting to sprout, every Bitzkey and every field of it, and the insights.
 // What would make it enormous goes in the other parts, and the JSON part names where:
 //
-// - a brain is {"at": its first number, "depth": hidden layers, "traced": whether learning traces follow}.
-//   Its numbers are each hidden layer's weights (HIDDEN_SIZE rows, each reading the senses or the layer
-//   before) and biases, then the output weights (a row of HIDDEN_SIZE for each action) and biases; then,
-//   if traced, its traces, laid out the same.
+// - a brain is {"at": its first number, "depth": hidden layers, "width": neurons in each, "traced": whether
+//   learning traces follow}. Its numbers are each hidden layer's weights (width rows, each reading the senses
+//   or the layer before) and biases, then the output weights (a row of width for each action) and biases;
+//   then, if traced, its traces, laid out the same. A brain saved without a width, before brains grew wider
+//   with intellect, is OLD_WIDTH wide, and loads resized to its owner's shape, without its traces.
 // - a set of senses (its last, or a memory's) is the position of INPUT_SIZE numbers.
 // - the census's snapshots are [turn, the first whole number, how many]: the identifiers alive then.
 // - "lineage" {"at", "count"}: the genome of every Bitzkey that ever lived, by identifier, three whole numbers

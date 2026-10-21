@@ -24,7 +24,7 @@
 
 namespace bitzkey::net {
 
-constexpr std::uint32_t PROTOCOL = 1;  // a worker and its main service must speak the same
+constexpr std::uint32_t PROTOCOL = 2;  // a worker and its main service must speak the same (2: brains of any width)
 constexpr int DEFAULT_WORKER_PORT = 50000;
 constexpr int DEFAULT_CHECKPOINT_TURNS = 100;
 constexpr int RING = 32;               // senses remembered for each brain: more than any brain replays in a turn
@@ -43,8 +43,8 @@ struct Machine {
     std::vector<gpu::DeviceInfo> gpus;
 };
 Machine scan_machine();
-// The bytes a brain of this depth takes on a worker, its traces and remembered senses with it, near enough.
-std::uint64_t brain_bytes(int depth);
+// The bytes a brain of this shape takes on a worker, its traces and remembered senses with it, near enough.
+std::uint64_t brain_bytes(int depth, int width);
 
 struct Batch {
     struct Lesson {
@@ -125,7 +125,7 @@ public:
 private:
     struct Held {
         gpu::BrainEngine::Handle inner;
-        int depth;
+        int depth, width;
         std::array<FloatSenses, RING> ring{};
         int next = 0;
     };

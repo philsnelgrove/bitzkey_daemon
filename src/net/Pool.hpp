@@ -119,7 +119,7 @@ private:
     };
     struct Owner {
         Member* member;
-        int depth;
+        std::uint64_t bytes;  // its brain's, by brain_bytes
     };
 
     void load();
@@ -127,7 +127,7 @@ private:
     void poll();  // the polling thread
     void poll_one(const std::shared_ptr<Member>& member);
     void start_polling();
-    Member* choose(int depth, const Member* except = nullptr);
+    Member* choose(std::uint64_t bytes, const Member* except = nullptr);
     void place(int handle, Brain brain, const Member* except = nullptr);
     // Send every member its waiting work, with these values and brains asked of it; members that fail have their
     // brains given to others, and are asked again.
