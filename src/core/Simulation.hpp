@@ -196,13 +196,13 @@ inline double CARRION_AVERSION = 1.0;   // how much less a carrion-eater values 
 inline double CARRION_COWARDICE = 1.0;  // a carrion-eater's least chance of breaking when struck, at the highest carrion trait, likewise
 inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hunter, for a grazer; to a kill, for a hunter
 inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
-inline double PREDATOR_LEARNING = 2.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
+inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
 // Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
 // KILL_FOOD_LEARNING times as much, by any animal, and one to eat, forage, browse or uproot PLANT_FOOD_LEARNING.
 // Breeding and courting may be learnt from more than other choices, BREED_LEARNING and COURT_LEARNING times as much;
 // by default no more, as learning them harder unsettles the brain for all else (their pleasures teach them instead).
-inline double KILL_FOOD_LEARNING = 5.0;
+inline double KILL_FOOD_LEARNING = 2.0;
 inline double PLANT_FOOD_LEARNING = 0.5;
 inline double BREED_LEARNING = 1.0;
 inline double COURT_LEARNING = 1.0;

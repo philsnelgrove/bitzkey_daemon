@@ -1234,7 +1234,7 @@ TEST_CASE("breeding is the greatest pleasure, courting into reach the next, and 
         ~PreyAside() { PREY_PER_PREDATOR = was; }
     } prey_aside;
     CHECK((choice_learning(Breed) == BREED_LEARNING && choice_learning(Court) == COURT_LEARNING));
-    CHECK((BREED_LEARNING == 1.0 && COURT_LEARNING == 1.0 && KILL_FOOD_LEARNING == 5.0));
+    CHECK((BREED_LEARNING == 1.0 && COURT_LEARNING == 1.0 && KILL_FOOD_LEARNING == 2.0));
     CHECK((BREED_JOY == 4.0 && COURT_JOY == 2.5 && LIBIDO_IN_JOY == 0.25));
     Simulation simulation = world();
     Bitzkey& cold = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 7}, {"libido", 0}}), 2, 2);
