@@ -508,7 +508,7 @@ TEST_CASE("predators loom larger in primal fear, and feel half their fear") {
     CHECK(fearful.fearfulness() == doctest::Approx(0.5));
 }
 
-TEST_CASE("predators think twice as well, and good experiences sharpen everyone") {
+TEST_CASE("predators think twice as well, hard-won experiences sharpen and hardship dulls") {
     Simulation simulation = world();
     Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"intellect", 3}}), 5, 5);
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", 3}}), 6, 5);
@@ -518,10 +518,28 @@ TEST_CASE("predators think twice as well, and good experiences sharpen everyone"
     CHECK(thinking_intellect(5, Species::Predator) == 7);
     CHECK(thinking_intellect(3, Species::Grazer) == 3);
     CHECK((predator.brain->depth() == 4 && predator.brain->width() == 48));  // its doubled intellect, 6
-    const double before = grazer.mind[Intellect];
+    double before = grazer.mind[Intellect];
     simulation.experience(grazer, 9);   // discovery
-    simulation.experience(grazer, 13);  // lesson
     CHECK(grazer.mind[Intellect] > before);
+    before = grazer.mind[Intellect];
+    simulation.experience(grazer, 13);  // lesson
+    simulation.experience(grazer, 8);   // foraged meal: neither sharpens the mind now
+    CHECK(grazer.mind[Intellect] == before);
+    for (const int hardship : {7, 3, 12}) {  // starving, wounded, panicked
+        simulation.experience(grazer, hardship);
+        CHECK(grazer.mind[Intellect] < before);
+        before = grazer.mind[Intellect];
+    }
+}
+
+TEST_CASE("a cleverer brain burns more food, a predator's half as much more, and a plant's none") {
+    Simulation simulation = world();
+    const auto burn = [&](Species species, int intellect) { return simulation.add_agent(encode_dna(species, {{"intellect", intellect}}), 5, 5).burn; };
+    CHECK(burn(Species::Grazer, 7) / burn(Species::Grazer, 0) == doctest::Approx(1 + BRAIN_COST));
+    CHECK(burn(Species::Omnivore, 7) / burn(Species::Omnivore, 0) == doctest::Approx(1 + BRAIN_COST));
+    CHECK(burn(Species::Predator, 7) / burn(Species::Predator, 0) == doctest::Approx(1 + BRAIN_COST * PREDATOR_BRAIN_COST));
+    CHECK(burn(Species::Plant, 7) == burn(Species::Plant, 0));
+    CHECK((BRAIN_COST == 0.15 && PREDATOR_BRAIN_COST == 0.5));
 }
 
 TEST_CASE("weak grazers cannot strike back") {

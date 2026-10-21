@@ -19,20 +19,20 @@
 namespace bitzkey {
 
 std::array<std::vector<Shift>, 14> EXPERIENCES = {{
-    {{Aggression, 0.04}, {Fear, -0.02}, {Intellect, 0.002}},  // kill
+    {{Aggression, 0.04}, {Fear, -0.02}, {Intellect, 0.004}},  // kill
     {{Aggression, 0.0067}},                       // hit
     {{Aggression, -0.0133}, {Fear, 0.0133}},      // stung
-    {{Fear, 0.0333}, {Aggression, -0.0067}},      // wounded
+    {{Fear, 0.0333}, {Aggression, -0.0067}, {Intellect, -0.002}},  // wounded
     {{Sociability, 0.02}},                        // wounded_alone
     {{Libido, 0.02}, {Sociability, 0.0133}, {Intellect, 0.002}},  // bred
     {{Libido, -0.0533}},                          // bred_into_hunger
-    {{Appetite, 0.0033}, {Patience, -0.0033}},    // starving
-    {{Patience, 0.0067}, {Intellect, 0.0003}},    // foraged_meal
+    {{Appetite, 0.0033}, {Patience, -0.0033}, {Intellect, -0.0005}},  // starving
+    {{Patience, 0.0067}},                         // foraged_meal
     {{Curiosity, 0.01}, {Intellect, 0.002}},      // discovery
     {{Curiosity, -0.02}, {Fear, 0.0133}},         // ambushed
     {{Fear, -0.0133}, {Aggression, 0.0067}, {Intellect, 0.002}},  // defended
-    {{Fear, 0.0067}},                             // panicked
-    {{Intellect, 0.0001}},                        // lesson: a choice that turned out well, learnt from
+    {{Fear, 0.0067}, {Intellect, -0.001}},        // panicked
+    {},                                           // lesson: a choice that turned out well, learnt from: it no longer sharpens the mind
 }};
 
 namespace {
@@ -257,6 +257,10 @@ void Bitzkey::derive() {
     stomach = STOMACH[0] + (STOMACH[1] - STOMACH[0]) * size;
     burn = metabolism * (0.45 + 0.18 * physique(Strength) + 0.24 * physique(Speed) +
                          0.12 * (physique(Weapons) + physique(Armour)));
+    if (species != Species::Plant) {  // and a cleverer animal's brain burns more (Brain cost)
+        const double cost = BRAIN_COST * (species == Species::Predator ? PREDATOR_BRAIN_COST : 1.0);
+        burn = burn * (1 + cost * inborn[Intellect] / TRAIT_MAX);
+    }
     might = (1 - SIZE_IN_MIGHT) * physique(Strength) + SIZE_IN_MIGHT * size;
     toughness = (1 - SIZE_IN_MIGHT) * physique(Armour) + SIZE_IN_MIGHT * size;
     const int base_steps = 1 + trait(Speed) * 3 / TRAIT_MAX;
