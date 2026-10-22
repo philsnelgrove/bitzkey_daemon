@@ -145,7 +145,7 @@ inline double KINSHIP_SHUN = 0.8;
 inline int MEMORY_TURNS = 100;
 inline double RESILIENCE = 0.5;
 inline double MOODINESS = 0.5;
-inline double LEARNING_RATE = 0.045;
+inline double LEARNING_RATE = 0.027;
 // The clever learn faster. The learning rate rises with intellect, and on top of that by up to
 // LEARNING_BOOST times again at the highest; the least intelligent get no boost. And each turn an
 // animal re-learns from REPLAY_PER_INTELLECT of its most recent experiences for each point of its
