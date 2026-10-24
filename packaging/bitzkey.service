@@ -9,6 +9,8 @@ Type=simple
 ExecStart=/usr/local/bin/bitzkey_daemon --config /etc/bitzkey_daemon.conf
 Restart=always
 RestartSec=5
+# Time to keep the world as it stops, to carry on when it next starts: a large one takes a while to write.
+TimeoutStopSec=600
 # A user of its own, made when it starts; its catalog, exports and reports live in /var/lib/bitzkey_daemon.
 DynamicUser=yes
 StateDirectory=bitzkey_daemon

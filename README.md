@@ -49,6 +49,8 @@ To work with the service:
 | Update it | `git pull`, then `sudo packaging/install.sh` again |
 | Remove it | `sudo packaging/install.sh uninstall`; this leaves its settings and data |
 
+When the service stops, it saves its world as `worlds/autosave.bzworld`, and when it starts again it carries on from that save, so restarts, updates and reboots lose nothing. If the save can't be read, it starts a fresh world.
+
 The service runs as a user of its own and keeps its files in `/var/lib/bitzkey_daemon`:
 
 - the catalog, `catalog.json`;

@@ -76,6 +76,12 @@ public:
     void load_world(std::unique_ptr<Simulation> loaded);
     // Pause, and play by these advanced rules (changed from the defaults) from the next turn; its restarts keep them.
     void change_rules(rules::Values rules);
+    // Keep the world as it stands in `path`, to carry on from when the daemon next starts: written beside it
+    // first, so a stop part way through leaves the last one whole. Takes the lock itself; throws on failure.
+    void keep(const std::filesystem::path& path);
+    // Carry on the world kept in `path`, playing or not, in place of the present one: false if none is kept.
+    // Takes the lock itself; throws if it can't be read, leaving the present world as it is.
+    bool resume(const std::filesystem::path& path, bool playing);
     void touch() { ++version_; }  // something changed that viewers should fetch again
 
     // The workers this main service shares its brains with, and worker mode, in which it thinks for another.

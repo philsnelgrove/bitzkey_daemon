@@ -4,6 +4,11 @@
 #include <chrono>
 #include <cstdio>
 #include <exception>
+#include <fstream>
+#include <iterator>
+#include <stdexcept>
+
+#include "core/WorldFile.hpp"
 
 namespace bitzkey::daemon {
 
@@ -80,6 +85,33 @@ void World::load_world(std::unique_ptr<Simulation> loaded) {
     playing_ = false;
     ++world_number_;
     adopt_pool();
+}
+
+void World::keep(const std::filesystem::path& path) {
+    std::string data;
+    {
+        std::lock_guard lock(mutex_);
+        data = WorldFile::bytes(*simulation_);
+    }
+    std::filesystem::create_directories(path.parent_path());
+    auto partial = path;
+    partial += ".partial";
+    {
+        std::ofstream file(partial, std::ios::binary | std::ios::trunc);
+        file.write(data.data(), static_cast<std::streamsize>(data.size()));
+        if (!file) throw std::runtime_error("couldn't write " + partial.string());
+    }
+    std::filesystem::rename(partial, path);
+}
+
+bool World::resume(const std::filesystem::path& path, bool playing) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) return false;
+    const std::string data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::lock_guard lock(mutex_);  // its rules become the rules, so not while the world turns
+    load_world(WorldFile::from_bytes(data));
+    play(playing);
+    return true;
 }
 
 void World::change_rules(rules::Values rules) {

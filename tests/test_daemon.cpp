@@ -404,3 +404,38 @@ TEST_CASE("a world saved on the daemon loads back, to carry on exactly as it wou
     }
     std::filesystem::remove_all(folder);
 }
+
+TEST_CASE("the world is kept as the daemon stops, and carried on as it starts again") {
+    rules::apply(rules::current());  // the tests' own settings, held within the rules' limits as loading holds them
+    const auto folder = scratch("kept");
+    const auto kept = folder / "worlds" / "autosave.bzworld";
+    std::string as_kept;
+    {
+        World world(small_world(), false, folder);
+        CHECK(!world.resume(kept, true));  // none kept yet
+        for (int turn = 0; turn < 15; ++turn) {
+            auto lock = world.lock();
+            world.step();
+        }
+        world.keep(kept);
+        auto lock = world.lock();
+        as_kept = WorldFile::bytes(world.simulation());
+    }
+    CHECK(std::filesystem::exists(kept));
+    CHECK(!std::filesystem::exists(folder / "worlds" / "autosave.bzworld.partial"));
+    {
+        World again(small_world(), false, folder);
+        REQUIRE(again.resume(kept, false));
+        auto lock = again.lock();
+        CHECK((again.simulation().turn() == 15 && !again.playing()));
+        CHECK(WorldFile::bytes(again.simulation()) == as_kept);  // exactly as it stopped
+    }
+    {
+        World playing(small_world(), false, folder);
+        REQUIRE(playing.resume(kept, true));
+        auto lock = playing.lock();
+        CHECK(playing.playing());  // and plays on, when asked to
+    }
+    std::error_code ignored;
+    std::filesystem::remove_all(folder, ignored);
+}

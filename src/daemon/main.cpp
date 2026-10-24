@@ -3,6 +3,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "core/GpuBrains.hpp"
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
+#include "core/WorldFile.hpp"
 #include "daemon/Api.hpp"
 #include "daemon/Config.hpp"
 #include "daemon/World.hpp"
@@ -44,7 +46,19 @@ int main(int argc, char** argv) {
         if (config.gpu.value_or(false) && !gpu) std::cerr << "bitzkey_daemon: no GPU found; thinking on the CPU\n";
         rules::defaults();
 
-        World world(Simulation::Settings{}, !config.start_paused, config.data_dir);
+        // The world as the daemon last stopped, carried on, and kept again as it stops: deploys and restarts lose nothing.
+        const auto kept = config.data_dir / "worlds" / ("autosave" + std::string(WORLD_SUFFIX));
+        World world(Simulation::Settings{}, !config.start_paused && !std::filesystem::exists(kept), config.data_dir);
+        try {
+            if (world.resume(kept, !config.start_paused)) {
+                auto lock = world.lock();
+                std::cout << "bitzkey_daemon: carrying on the world kept at turn " << world.simulation().turn() << std::endl;
+            }
+        } catch (const std::exception& error) {  // a fresh world rather than none
+            std::cerr << "bitzkey_daemon: couldn't carry on the kept world (" << error.what() << "); starting afresh\n";
+            auto lock = world.lock();
+            world.play(!config.start_paused);
+        }
         httplib::Server server;
         install_routes(server, world, config.web_dir);
         if (!server.bind_to_port(config.host, config.port)) {
@@ -67,6 +81,12 @@ int main(int argc, char** argv) {
         if (world.worker().on()) {  // its brains handed back to its main service first, while it waits
             std::cout << "bitzkey_daemon: handing the brains back to the main service" << std::endl;
             world.worker().stop(false, std::chrono::seconds(20));
+        }
+        try {
+            world.keep(kept);
+            std::cout << "bitzkey_daemon: kept the world, to carry on when it next starts" << std::endl;
+        } catch (const std::exception& error) {
+            std::cerr << "bitzkey_daemon: couldn't keep the world: " << error.what() << "\n";
         }
     } catch (const std::exception& error) {
         std::cerr << "bitzkey_daemon: " << error.what() << "\n";
