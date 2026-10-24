@@ -316,6 +316,28 @@ TEST_CASE("an animal senses how far it is from home and how close home weather i
     CHECK(action_index("migrate") == -1);  // moving toward home is left for brains to learn
 }
 
+TEST_CASE("an animal senses which way home lies and how far, beyond its sight, and minds the distance") {
+    Simulation simulation = world_at(240);  // mild: arctic rows 0 to 19 and 80 to 99, the equator 40 to 59
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"sight", 0}}), 50, 35);
+    Simulation::Sensed sensed = simulation.sense(grazer);
+    CHECK((sensed.senses[SenseComfortCloseness] == 0.0 && sensed.senses[SenseHomeDirection] == -1.0));  // out of sight, to the north
+    CHECK(sensed.senses[SenseHomeDistance] == doctest::Approx(16.0 / 50));
+    const double far = simulation.comfort(grazer, sensed.situation);
+
+    Bitzkey& nearer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"sight", 0}}), 50, 70);
+    sensed = simulation.sense(nearer);
+    CHECK((sensed.senses[SenseHomeDirection] == 1.0 && sensed.senses[SenseHomeDistance] == doctest::Approx(10.0 / 50)));
+    CHECK(simulation.comfort(nearer, sensed.situation) - far == doctest::Approx(HOMEWARD_UNEASE * 6.0 / 50));  // each row home eases it
+
+    Bitzkey& at_home = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 50, 30);
+    sensed = simulation.sense(at_home);
+    CHECK((sensed.senses[SenseHomeDirection] == 0.0 && sensed.senses[SenseHomeDistance] == 0.0));
+
+    Bitzkey& lost = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", VeryCold}}), 50, 50);  // very cold nowhere this season
+    sensed = simulation.sense(lost);
+    CHECK((sensed.senses[SenseHomeDirection] == 0.0 && sensed.senses[SenseHomeDistance] == 1.0));
+}
+
 TEST_CASE("an animal sees the wave coming as a staircase of warmth") {
     Simulation simulation = world_at(117);  // the temperate zone's winter front at rows 30 to 37
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 2}}), 50, 32);  // sees 8 rows

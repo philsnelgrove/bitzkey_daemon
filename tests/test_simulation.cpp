@@ -1336,6 +1336,7 @@ TEST_CASE("a square holds ten spaces, a full one stops steps and spawning, and y
     SMALL_LITTERS = 1.0;
     PLANTS_PER_GRAZER = 0;
     Simulation births = world();
+    births.set_mutation(births.mind_mutation(), 0);  // the young as large as their parents
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}, {"size", 1}});  // two spaces each: six young
     Bitzkey& first = births.add_agent(dna, 5, 5);
     Bitzkey& second = births.add_agent(dna, 5, 6);

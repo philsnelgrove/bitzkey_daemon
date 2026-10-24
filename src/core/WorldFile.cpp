@@ -92,6 +92,20 @@ struct Numbers {
 struct Reader {
     const char* numbers;
     std::size_t count;
+    // For a world saved with other senses: how many it saved, and where each sensed now lies among them, or -1.
+    std::size_t saved_inputs = INPUT_SIZE;
+    std::vector<int> sense_from;
+
+    // One set of saved senses at `at`, or one neuron's weights from them, as this version's senses.
+    void read_senses(std::size_t at, double* into) const {
+        if (sense_from.empty()) {
+            std::memcpy(into, take(at, INPUT_SIZE), sizeof(double) * INPUT_SIZE);
+            return;
+        }
+        std::vector<double> saved(saved_inputs);
+        std::memcpy(saved.data(), take(at, saved_inputs), sizeof(double) * saved_inputs);
+        for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = sense_from[sense] < 0 ? 0.0 : saved[static_cast<std::size_t>(sense_from[sense])];
+    }
 
     const char* take(std::size_t at, std::size_t wanted) const {
         if (at + wanted > count) throw std::runtime_error("The world file's numbers are cut short.");
@@ -103,9 +117,13 @@ struct Reader {
         const std::size_t neurons = static_cast<std::size_t>(width);
         for (int index = 0; index < depth; ++index) {
             Layer layer = Layer::zeros(width, index == 0 ? INPUT_SIZE : width);
-            const std::size_t size = layer.weights.size();
-            std::memcpy(layer.weights.data(), take(at, size), sizeof(double) * size);
-            at += size;
+            if (index == 0) {  // a row of senses for each neuron
+                for (int neuron = 0; neuron < width; ++neuron, at += saved_inputs) read_senses(at, layer.row(neuron));
+            } else {
+                const std::size_t size = layer.weights.size();
+                std::memcpy(layer.weights.data(), take(at, size), sizeof(double) * size);
+                at += size;
+            }
             std::memcpy(layer.biases.data(), take(at, neurons), sizeof(double) * neurons);
             at += neurons;
             layers.push_back(std::move(layer));
@@ -138,7 +156,7 @@ struct Reader {
     }
     Senses senses(const json& at) const {
         Senses senses{};
-        std::memcpy(senses.data(), take(at.get<std::size_t>(), INPUT_SIZE), sizeof(double) * INPUT_SIZE);
+        read_senses(at.get<std::size_t>(), senses.data());
         return senses;
     }
 };
@@ -440,8 +458,20 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             throw std::runtime_error("This world file is format " + record.value("format", json(nullptr)).dump() + "; this version reads format " +
                                      std::to_string(WORLD_FORMAT) + ".");
         }
-        if (record.at("senses") != names(SENSES) || record.at("actions") != names(ACTIONS) || record.at("temperament") != names(TEMPERAMENT)) {
+        if (record.at("actions") != names(ACTIONS) || record.at("temperament") != names(TEMPERAMENT)) {
             throw std::runtime_error("This world was saved by a version of Bitzkey whose brains sense or act differently.");
+        }
+        // Brains saved with other senses are read by name: a sense they lacked starts with no weight, and
+        // one no longer sensed is let go.
+        if (const json& saved = record.at("senses"); saved != names(SENSES)) {
+            std::map<std::string, int> saved_at;
+            for (std::size_t index = 0; index < saved.size(); ++index) saved_at[saved[index].get<std::string>()] = static_cast<int>(index);
+            reader.saved_inputs = saved.size();
+            reader.sense_from.resize(INPUT_SIZE);
+            for (int sense = 0; sense < INPUT_SIZE; ++sense) {
+                const auto found = saved_at.find(std::string(SENSES[sense]));
+                reader.sense_from[sense] = found == saved_at.end() ? -1 : found->second;
+            }
         }
         rules::Values values;
         for (const auto& [key, value] : record.at("rules").items()) values[key] = value.get<double>();

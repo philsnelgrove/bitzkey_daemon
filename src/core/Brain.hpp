@@ -62,6 +62,9 @@ enum Sense : int {
     SenseFoodRemembered,   // 1 just after it fed somewhere, fading as its memory lets the place go; 0 when forgotten
     SenseDangerRemembered, // 1 at the place it was last struck, while it remembers it, falling to 0 beyond sight
     SenseHomeFood,         // how well fed its home band is: plants per grazer, prey per predator, 1 at twice what breeding needs
+    // Where the nearest row it would feel at home in lies, however far beyond sight:
+    SenseHomeDirection,    // -1 to the north, 1 to the south, 0 at home or with no such row
+    SenseHomeDistance,     // 0 at home, rising to 1 half the map's height away or with no such row
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -83,7 +86,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "threat_closeness", "kin_near", "others_near", "carrion_closeness", "kill_closeness", "plant_closeness",
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
-    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "aggression", "libido", "curiosity",
+    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
@@ -101,6 +104,7 @@ constexpr int MAX_WIDTH = BASE_WIDTH + WIDTH_STEP * (TRAIT_MAX - MAX_DEPTH);
 inline double TEMPERATURE = 0.2;
 inline double MUTATION = 0.05;
 inline double SMART_TRACE_DECAY = 0.9;  // lambda at the highest intellect: the clever trace credit further back
+inline double PATIENT_DISCOUNT = 0.97;  // gamma at the highest patience: how far ahead the patient look; the least patient keep 0.7
 inline double TRACE_DECAY = 0.7;  // lambda: how much of each earlier choice's credit carries on to the next, beside the discount
 // A new brain values setting off in a direction this much below its other actions, so an untaught
 // brain doesn't march straight away from its range, its herd and its food before it has learned where to go.
@@ -169,6 +173,9 @@ public:
     // parent's layers are fitted to the child's width (see Layer::fitted). Each action's output comes
     // from one parent or the other. Then it mutates.
     static Brain inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth = 1, int width = BASE_WIDTH,
+                         double mutation = MUTATION);
+    // The same from a seed drawn already: every choice and mutation comes from the child's own stream.
+    static Brain inherit(const Brain& first, const Brain& second, std::uint64_t seed, int depth = 1, int width = BASE_WIDTH,
                          double mutation = MUTATION);
     // A copy `depth` layers of `width` neurons: deeper with layers that pass their input on, or
     // shallower without its last layers, and each layer fitted (see Layer::fitted).

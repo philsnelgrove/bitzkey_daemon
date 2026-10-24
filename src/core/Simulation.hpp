@@ -115,6 +115,7 @@ inline double GO_EFFORT = 0.25;
 inline double FEAR_DREAD = 0.3;
 inline double UNEASE = 0.1;
 inline double CLIMATE_UNEASE = 1.5;  // discomfort two or more steps from home, half that one step; less for the hardy
+inline double HOMEWARD_UNEASE = 1.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
 inline double EMPATHY_PAIN = 0.15;
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
@@ -713,6 +714,7 @@ public:
         int herd_near = 0;
         std::optional<Cell> herd_middle;
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
+        double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -732,6 +734,7 @@ public:
     // it. What herd-mates learn from watching is learnt last, all together.
     void think_all(const std::vector<Bitzkey*>& agents);
     void learn_witnessed();  // herd-mates learn from what they saw this turn, each brain in the order it saw it
+    void conceive();  // make the brains of the young conceived since it last did, all at once
     // Bring the living's brains back from the GPUs into their CPU copies, before anything reads their
     // weights: an export, the catalog, the brain report. Nothing to do on the CPU.
     void sync_brains();
@@ -741,6 +744,10 @@ public:
     // Milliseconds spent on each part of the turns so far, for finding where the time goes.
     struct Timings {
         double upkeep = 0, sense = 0, think = 0, learn = 0, choose = 0, act = 0, after = 0, record = 0;
+        // Within acting: each action's share, how often it was taken, and the lessons of what herds saw.
+        std::array<double, ACTION_COUNT> actions{};
+        std::array<long long, ACTION_COUNT> taken{};
+        double witnessed = 0;
     };
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do
@@ -759,7 +766,7 @@ public:
     double comfort(const Bitzkey& agent, const Situation& situation) const;
     double wellbeing(const Bitzkey& agent) const;
     // How much the future counts against the present: more for the patient.
-    static double discount(const Bitzkey& agent) { return 0.7 + 0.27 * agent.feeling(Patience); }
+    static double discount(const Bitzkey& agent) { return 0.7 + (PATIENT_DISCOUNT - 0.7) * agent.feeling(Patience); }
     // How much warmer than home a row feels, as a sense: 0.5 a step, from -1 (two or more steps too
     // cold) to 1 (two or more too hot).
     double warmth(const Bitzkey& agent, int y) const;
@@ -1006,6 +1013,15 @@ private:
         double outcome, rate;
     };
     std::vector<Witnessed> witnessed_;
+    // The brains of young conceived this turn, each made from its parents' and its own seed once the turn's
+    // matings are done, on every core at once, into the brain its womb already holds.
+    struct Conception {
+        std::shared_ptr<Brain> into, first, second;
+        std::uint64_t seed;
+        int depth, width;
+        bool born_hunter;  // a predator of other parents, bringing eating to hunting and uprooting to feasting
+    };
+    std::vector<Conception> conceptions_;
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;
     std::deque<Senses> lesson_senses_;  // what each queued lesson sensed, kept still while it waits

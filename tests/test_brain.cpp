@@ -217,7 +217,7 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
 }
 
 TEST_CASE("there are 88 senses, and a narrower saved brain loads as saved, valuing alike") {
-    CHECK(INPUT_SIZE == 88);
+    CHECK(INPUT_SIZE == 90);
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;
@@ -259,3 +259,31 @@ TEST_CASE("there are 88 senses, and a narrower saved brain loads as saved, valui
     record["layers"][1]["biases"] = std::vector<double>(5, 0.0);
     CHECK_THROWS_AS(Brain::from_record(record), std::invalid_argument);
 }
+
+TEST_CASE("a child's brain is its parents' nudged by normal mutations of the mutation's size") {
+    PyRandom rng(5);
+    const Brain parent = Brain::random(rng, 4, MAX_WIDTH);
+    std::vector<double> nudges;
+    for (int child = 0; child < 20; ++child) {
+        const Brain made = Brain::inherit(parent, parent, rng, 4, MAX_WIDTH, 0.05);
+        for (std::size_t layer = 0; layer < made.layers.size(); ++layer) {
+            for (std::size_t index = 0; index < made.layers[layer].weights.size(); ++index) {
+                nudges.push_back(made.layers[layer].weights[index] - parent.layers[layer].weights[index]);
+            }
+        }
+    }
+    double sum = 0, squares = 0;
+    int wide = 0;
+    for (const double nudge : nudges) {
+        sum += nudge;
+        squares += nudge * nudge;
+        wide += std::abs(nudge) > 3 * 0.05;
+    }
+    const double mean = sum / nudges.size(), spread = std::sqrt(squares / nudges.size() - mean * mean);
+    CHECK(std::abs(mean) < 0.0005);
+    CHECK(spread == doctest::Approx(0.05).epsilon(0.01));
+    CHECK(static_cast<double>(wide) / nudges.size() == doctest::Approx(0.0027).epsilon(0.15));  // a normal's tails beyond 3 sigma
+    const Brain again = Brain::inherit(parent, parent, rng, 4, MAX_WIDTH, 0.05);
+    CHECK(again.layers[0].weights != Brain::inherit(parent, parent, rng, 4, MAX_WIDTH, 0.05).layers[0].weights);  // each child its own
+}
+

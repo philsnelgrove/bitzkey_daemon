@@ -28,6 +28,82 @@ int sense_index(std::string_view name) {
 
 namespace {
 
+// Marsaglia and Tsang's ziggurat for the normal distribution, 128 layers: nearly every draw is one
+// multiply, with no logarithm, root or sine.
+struct Ziggurat {
+    std::array<std::uint32_t, 128> k;
+    std::array<double, 128> w, f;
+    Ziggurat() {
+        const double m1 = 2147483648.0, vn = 9.91256303526217e-3;
+        double dn = 3.442619855899, tn = dn;
+        const double q = vn / std::exp(-0.5 * dn * dn);
+        k[0] = static_cast<std::uint32_t>((dn / q) * m1);
+        k[1] = 0;
+        w[0] = q / m1;
+        w[127] = dn / m1;
+        f[0] = 1.0;
+        f[127] = std::exp(-0.5 * dn * dn);
+        for (int i = 126; i >= 1; --i) {
+            dn = std::sqrt(-2.0 * std::log(vn / dn + std::exp(-0.5 * dn * dn)));
+            k[i + 1] = static_cast<std::uint32_t>((dn / tn) * m1);
+            tn = dn;
+            f[i] = std::exp(-0.5 * dn * dn);
+            w[i] = dn / m1;
+        }
+    }
+};
+
+// A fast stream of random numbers: xoshiro256+, seeded by splitmix64, with normal draws by the ziggurat.
+class Stream {
+public:
+    explicit Stream(std::uint64_t seed) {
+        for (std::uint64_t& word : state_) {
+            seed += 0x9E3779B97F4A7C15ULL;
+            std::uint64_t z = seed;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+            word = z ^ (z >> 31);
+        }
+    }
+
+    double random() { return static_cast<double>(next() >> 11) * (1.0 / 9007199254740992.0); }  // in [0, 1)
+
+    double normal() {  // of mean 0 and spread 1
+        static const Ziggurat table;
+        constexpr double tail = 3.442620;  // where the base layer's tail begins
+        for (;;) {
+            const auto hz = static_cast<std::int32_t>(next() >> 32);
+            const int iz = hz & 127;
+            const double x = hz * table.w[iz];
+            if (static_cast<std::uint32_t>(hz < 0 ? -static_cast<std::int64_t>(hz) : hz) < table.k[iz]) return x;
+            if (iz == 0) {  // beyond the base: the tail, by Marsaglia's method
+                double tx, ty;
+                do {
+                    tx = -std::log(1.0 - random()) / tail;
+                    ty = -std::log(1.0 - random());
+                } while (ty + ty < tx * tx);
+                return hz > 0 ? tail + tx : -tail - tx;
+            }
+            if (table.f[iz] + random() * (table.f[iz - 1] - table.f[iz]) < std::exp(-0.5 * x * x)) return x;
+        }
+    }
+
+private:
+    std::uint64_t next() {  // xoshiro256+
+        const std::uint64_t result = state_[0] + state_[3];
+        const std::uint64_t shifted = state_[1] << 17;
+        state_[2] ^= state_[0];
+        state_[3] ^= state_[1];
+        state_[1] ^= state_[2];
+        state_[0] ^= state_[3];
+        state_[2] ^= shifted;
+        state_[3] = (state_[3] << 45) | (state_[3] >> 19);
+        return result;
+    }
+
+    std::uint64_t state_[4];
+};
+
 // numpy's pairwise summation (the Python version adds up with numpy's sum), so that every sum matches
 // the Python version's to the last bit: up to 8 values in order; up to 128 in eight running sums,
 // combined in pairs, then the rest in order; more, in two halves split on a multiple of eight.
@@ -141,19 +217,27 @@ Brain Brain::random(PyRandom& rng, int depth, int width) {
 }
 
 Brain Brain::inherit(const Brain& first, const Brain& second, PyRandom& rng, int depth, int width, double mutation) {
+    return inherit(first, second, rng.getrandbits(64), depth, width, mutation);
+}
+
+Brain Brain::inherit(const Brain& first, const Brain& second, std::uint64_t seed, int depth, int width, double mutation) {
+    // Thousands of draws a brain, so they come from a fast stream of the child's own, seeded from the
+    // world's: one draw of the world's a child, and children made on many cores at once.
+    Stream stream(seed);
     Brain child;
     for (int index = 0; index < depth; ++index) {
         const int reads = index == 0 ? INPUT_SIZE : width;
         const bool in_first = index < first.depth(), in_second = index < second.depth();
         if (in_first && in_second) {
-            std::vector<bool> from_first(static_cast<std::size_t>(width));
-            for (std::size_t neuron = 0; neuron < from_first.size(); ++neuron) from_first[neuron] = rng.random() < 0.5;
             Layer layer = first.layers[static_cast<std::size_t>(index)].fitted(width, reads);
-            const Layer other = second.layers[static_cast<std::size_t>(index)].fitted(width, reads);
+            const Layer& other = second.layers[static_cast<std::size_t>(index)];
+            const int columns = std::min(reads, other.reads);
             for (int neuron = 0; neuron < width; ++neuron) {
                 // From the first parent as chosen while it has the neuron, and wherever the second hasn't.
-                if ((from_first[static_cast<std::size_t>(neuron)] && neuron < first.width()) || neuron >= second.width()) continue;
-                std::copy(other.row(neuron), other.row(neuron) + reads, layer.row(neuron));
+                const bool from_first = stream.random() < 0.5;
+                if ((from_first && neuron < first.width()) || neuron >= second.width()) continue;
+                std::copy(other.row(neuron), other.row(neuron) + columns, layer.row(neuron));
+                std::fill(layer.row(neuron) + columns, layer.row(neuron) + reads, 0.0);
                 layer.biases[static_cast<std::size_t>(neuron)] = other.biases[static_cast<std::size_t>(neuron)];
             }
             child.layers.push_back(std::move(layer));
@@ -163,24 +247,22 @@ Brain Brain::inherit(const Brain& first, const Brain& second, PyRandom& rng, int
             child.layers.push_back(Layer::identity(width));
         }
     }
-    std::array<bool, ACTION_COUNT> from_first{};
-    for (bool& choice : from_first) choice = rng.random() < 0.5;
     for (int action = 0; action < ACTION_COUNT; ++action) {
-        const Brain& donor = from_first[action] ? first : second;
+        const Brain& donor = stream.random() < 0.5 ? first : second;
         child.output_weights[action] = fitted_row(donor.output_weights[action], width);
         child.output_biases[action] = donor.output_biases[action];
     }
     if (mutation != 0.0) {
         for (Layer& layer : child.layers) {
-            for (double& weight : layer.weights) weight += rng.gauss(0, mutation);
+            for (double& weight : layer.weights) weight += mutation * stream.normal();
         }
         for (auto& row : child.output_weights) {
-            for (double& weight : row) weight += rng.gauss(0, mutation);
+            for (double& weight : row) weight += mutation * stream.normal();
         }
         for (Layer& layer : child.layers) {
-            for (double& bias : layer.biases) bias += rng.gauss(0, mutation);
+            for (double& bias : layer.biases) bias += mutation * stream.normal();
         }
-        for (double& bias : child.output_biases) bias += rng.gauss(0, mutation);
+        for (double& bias : child.output_biases) bias += mutation * stream.normal();
     }
     return child;
 }
