@@ -302,7 +302,7 @@ TEST_CASE("the web API shows the world and steers it") {
         CHECK(std::filesystem::exists(folder / "reports" / report["name"].get<std::string>()));
 
         const Json setup = get(client, "/api/setup");
-        CHECK(setup["settings"].size() == 9);
+        CHECK(setup["settings"].size() == 10);  // the sea among them
         CHECK(setup["rules"].size() == rules::all().size());
         CHECK(post(client, "/api/import/check", {{"text", records["text"]}})["count"] == 1);
         CHECK_FALSE(post(client, "/api/import/check", {{"text", "nonsense"}})["ok"].get<bool>());

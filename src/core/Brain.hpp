@@ -66,6 +66,14 @@ enum Sense : int {
     SenseHomeDirection,    // -1 to the north, 1 to the south, 0 at home or with no such row
     SenseHomeDistance,     // 0 at home, rising to 1 half the map's height away or with no such row
     SenseYoungNear,        // its own young, still infants, within its sight, 0..3 scaled to 0..1
+    SenseSeaHere,          // 1 when it stands in the sea
+    // A shore it can't cross, sea for a land animal or land for a sea animal: 1 when the next square that way is beyond
+    // it, falling to 0 at the edge of its sight, and 0 with none in sight (and always, for the avian and amphibious):
+    SenseShoreNorth,
+    SenseShoreSouth,
+    SenseShoreEast,
+    SenseShoreWest,
+    SenseStamina,          // 1 fresh, falling to 0 exhausted, when it can only rest
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -80,21 +88,25 @@ constexpr int SenseBody = SenseInborn + TEMPERAMENT_COUNT;  // then its ring's t
 constexpr int SenseHomeTemperature = SenseBody + BODY_TRAIT_COUNT;  // then its climate genes: home 0 hot to 1 very cold,
 constexpr int SenseHeatTolerance = SenseHomeTemperature + 1;        // and the tolerance flags, 0 or 1
 constexpr int SenseColdTolerance = SenseHeatTolerance + 1;
-constexpr int INPUT_SIZE = SenseColdTolerance + 1;
+constexpr int SenseSwims = SenseColdTolerance + 1;  // then its terrain: whether it may go into the sea, 0 or 1,
+constexpr int SenseWalks = SenseSwims + 1;          // onto the land,
+constexpr int SenseFlies = SenseWalks + 1;          // and whether it flies
+constexpr int INPUT_SIZE = SenseFlies + 1;
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
     "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "prey_pregnant", "threat_near", "threat_danger",
     "threat_closeness", "kin_near", "others_near", "carrion_closeness", "kill_closeness", "plant_closeness",
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
-    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near", "aggression", "libido", "curiosity",
+    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near",
+    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
     "inborn_moodiness", "inborn_sociability", "inborn_empathy", "inborn_tolerance", "inborn_loyalty",
     "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
-    "heat_tolerance", "cold_tolerance"};
+    "heat_tolerance", "cold_tolerance", "swims", "walks", "flies"};
 int action_index(std::string_view name);  // -1 when unknown
 int sense_index(std::string_view name);   // -1 when unknown
 
@@ -124,7 +136,7 @@ inline int depth_for(int intellect) { return std::max(1, std::min(MAX_DEPTH, int
 // How many neurons each of its hidden layers has: BASE_WIDTH, and WIDTH_STEP more for each point of
 // intellect beyond MAX_DEPTH.
 inline int width_for(int intellect) { return BASE_WIDTH + WIDTH_STEP * std::max(0, intellect - MAX_DEPTH); }
-// Fill in the inputs for a genome's traits, ring, dot and social background, and its climate genes.
+// Fill in the inputs for a genome's traits, ring, dot and social background, its climate genes and its terrain.
 void gene_senses(Dna dna, Senses& senses);
 
 // Softmax over the available actions' values, in the options' order.

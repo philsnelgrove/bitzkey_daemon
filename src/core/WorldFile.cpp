@@ -191,7 +191,7 @@ Mind mind_from(const json& values) {
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
     json record = {
         {"identifier", agent.identifier}, {"dna", genome_text(agent.dna)}, {"x", agent.x}, {"y", agent.y},
-        {"hunger", agent.hunger}, {"health", agent.health}, {"age", agent.age}, {"cooldown", agent.cooldown},
+        {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father},
         {"died_turn", optional_value(agent.died_turn)},
@@ -247,6 +247,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     auto agent = std::make_unique<Bitzkey>(record.at("identifier").get<int>(), genome_from(record.at("dna")),
                                            record.at("x").get<int>(), record.at("y").get<int>());
     agent->hunger = record.at("hunger").get<double>();
+    agent->stamina = record.value("stamina", FULL_STAMINA);  // fresh, in a world saved before stamina
     agent->health = record.at("health").get<double>();
     agent->age = record.at("age").get<int>();
     agent->cooldown = record.at("cooldown").get<int>();
@@ -336,6 +337,20 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     const PyRandom::State& random = simulation.random_.getstate();
     json grass = json::array();
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
+    json sea = json::array();  // the sea's runs, row by row: land, then sea, then land, and so on
+    if (simulation.has_sea()) {
+        std::uint8_t now = 0;
+        long long run = 0;
+        for (const std::uint8_t square : simulation.sea_) {
+            if (square != now) {
+                sea.push_back(run);
+                now = square;
+                run = 0;
+            }
+            ++run;
+        }
+        sea.push_back(run);
+    }
     json seeds = json::array();
     for (const Simulation::Seed& seed : simulation.seeds_) seeds.push_back({seed.x, seed.y, genome_text(seed.dna), seed.generation, seed.sown});
     json death_causes = json::object();
@@ -387,10 +402,12 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         rules[key] = rule && rule->integer ? json(static_cast<long long>(value)) : json(value);
     }
     const json record = {
-        {"format", WORLD_FORMAT}, {"senses", names(SENSES)}, {"actions", names(ACTIONS)}, {"temperament", names(TEMPERAMENT)},
+        {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"actions", names(ACTIONS)},
+        {"temperament", names(TEMPERAMENT)},
         {"settings", {{"width", simulation.width_}, {"height", simulation.height_}, {"population_cap", optional_value(simulation.population_cap_)},
                       {"mind_mutation", simulation.mind_mutation_}, {"body_mutation", simulation.body_mutation_},
-                      {"year_length", YEAR_LENGTH}, {"initial_grass", simulation.initial_grass_}}},
+                      {"year_length", YEAR_LENGTH}, {"initial_grass", simulation.initial_grass_}, {"ocean", simulation.ocean_}}},
+        {"sea", std::move(sea)},
         {"rules", std::move(rules)},
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)},
@@ -499,6 +516,20 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         world.body_mutation_ = settings.at("body_mutation").get<double>();
         world.initial_grass_ = settings.at("initial_grass").get<int>();
         world.grass_regrowth_ = world.initial_grass_ * GRASS_REGROWTH;
+        world.ocean_ = settings.value("ocean", 0.0);  // none in a world saved before the sea
+        if (const auto sea = record.find("sea"); sea != record.end() && !sea->empty()) {
+            world.sea_.assign(world.grass_.size(), 0);
+            std::size_t square = 0;
+            std::uint8_t under = 0;
+            for (const json& run : *sea) {
+                const auto squares = run.get<std::size_t>();
+                if (squares > world.sea_.size() - square) throw std::runtime_error("The world file's sea doesn't fit its map.");
+                std::fill_n(world.sea_.begin() + static_cast<std::ptrdiff_t>(square), squares, under);
+                square += squares;
+                under ^= 1;
+            }
+            if (square != world.sea_.size()) throw std::runtime_error("The world file's sea doesn't fit its map.");
+        }
         world.turn_ = record.at("turn").get<int>();
         world.deaths_ = record.at("deaths").get<int>();
         world.next_identifier_ = record.at("next_identifier").get<int>();
@@ -597,10 +628,21 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         }
         world.order_deaths();
         world.agents_.clear();
+        // Genomes saved before the terrain gene had nothing but spare bits there: they are terrestrial.
+        const bool before_terrain = record.value("genome_version", 3) < 4;
         for (const json& agent : record.at("agents")) {
             world.agents_.push_back(agent_from(agent, reader));
             Bitzkey& made_agent = *world.agents_.back();
+            if (before_terrain) {
+                made_agent.dna = convert_v3(made_agent.dna);
+                for (Bitzkey::Young& young : made_agent.womb) young.dna = convert_v3(young.dna);
+                made_agent.derive();
+            }
             world.attach(made_agent);
+        }
+        if (before_terrain) {
+            for (Simulation::Seed& seed : world.seeds_) seed.dna = convert_v3(seed.dna);
+            for (Dna& dna : world.lineage_) dna = convert_v3(dna);
         }
         world.update_climate();
         world.index_cells();

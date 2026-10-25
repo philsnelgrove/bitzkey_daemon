@@ -1454,7 +1454,7 @@ TEST_CASE("learning weights make success memorable, not failure") {
 TEST_CASE("a slow death is not blamed on the last choice, nor seen by the herd") {
     for (const auto& [cause, blamed] : std::vector<std::pair<std::string, bool>>{{"starved", false}, {"froze", false}, {"old age", false}, {"exhausted", true}}) {
         Simulation simulation = world();
-        const Dna dna = encode_dna(Species::Grazer, {{"intellect", 7}, {"empathy", 7}});
+        const Dna dna = encode_dna(Species::Grazer, {{"intellect", 7}, {"empathy", 7}, {"sight", 7}});  // seen wherever it went
         Bitzkey& dying = simulation.add_agent(dna, 5, 5);
         Bitzkey& herd_mate = simulation.add_agent(dna, 6, 5);
         simulation.index_cells();

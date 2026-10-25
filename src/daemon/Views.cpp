@@ -141,11 +141,12 @@ struct Setting {
     bool optional = false;
     const char* blank = "";
 };
-const std::array<Setting, 9> SETTINGS = {{
+const std::array<Setting, 10> SETTINGS = {{
     {"width", "Grid width", "cells across the world", 10, MAX_GRID, 10},
     {"height", "Grid height", "cells down the world", 10, MAX_GRID, 10},
     {"population", "Bitzkeys", "spawned at the start, a random mix of species", 0, MAX_POPULATION, 10},
     {"grass_density", "Grass density", "percent of cells with grass at the start; regrowth scales too", 0, 100, 1},
+    {"ocean", "Sea", "percent of the map under the sea, laid out by the seed; 0 for land alone", 0, 100, 1},
     {"seed", "Random seed", "the same seed replays the same world; blank for a new one", 0, 999'999'999, 1, true, "random"},
     {"population_cap", "Population cap", "most animals alive at once; blank lets crowding alone decide", 10, 99'999, 100, true,
      "no limit"},
@@ -159,6 +160,7 @@ Json setting_value(const Simulation::Settings& settings, std::string_view key) {
     if (key == "height") return settings.height;
     if (key == "population") return settings.population;
     if (key == "grass_density") return static_cast<int>(settings.grass_density);
+    if (key == "ocean") return static_cast<int>(settings.ocean + 0.5);
     if (key == "seed") return settings.seed ? Json(*settings.seed) : Json(nullptr);
     if (key == "population_cap") return settings.population_cap ? Json(*settings.population_cap) : Json(nullptr);
     if (key == "mind_mutation") return static_cast<int>(settings.mind_mutation);
@@ -256,7 +258,7 @@ std::string frame(const Simulation& simulation) {
     put<std::uint32_t>(out, static_cast<std::uint32_t>(trail_cells));
     for (int y = 0; y < height; ++y) put<float>(out, static_cast<float>(simulation.temperature(y)));
     for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) out.push_back(simulation.grass_at(x, y) > 0 ? 1 : 0);
+        for (int x = 0; x < width; ++x) out.push_back(static_cast<char>((simulation.grass_at(x, y) > 0 ? 1 : 0) | (simulation.sea(x, y) ? 2 : 0)));  // and the sea
     }
     for (const auto& agent : agents) {
         const Rgb dot = color_from_word(mind_word(agent->dna)), ring = color_from_word(body_word(agent->dna)),
@@ -295,6 +297,7 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
         {"identifier", agent.identifier},
         {"species", std::string(species_name(agent.species))},
         {"species_index", static_cast<int>(agent.species)},
+        {"terrain", std::string(terrain_name(agent.terrain))},
         {"dot", hex_word(mind_word(agent.dna))},
         {"ring", hex_word(body_word(agent.dna))},
         {"social", hex_word(social_word(agent.dna))},
@@ -319,6 +322,7 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
     }
     result["alive"] = agent.alive();
     result["hunger"] = agent.hunger;
+    result["stamina"] = agent.stamina;
     result["health"] = agent.health;
     result["max_health"] = agent.max_health;
     result["age"] = agent.age;
@@ -583,6 +587,7 @@ Simulation::Settings read_settings(const Json& form, std::string* import_error) 
         else if (key == "height") settings.height = *value;
         else if (key == "population") settings.population = *value;
         else if (key == "grass_density") settings.grass_density = *value;
+        else if (key == "ocean") settings.ocean = *value;
         else if (key == "seed") { if (value) settings.seed = static_cast<std::uint64_t>(*value); }
         else if (key == "population_cap") settings.population_cap = value;
         else if (key == "mind_mutation") settings.mind_mutation = *value;

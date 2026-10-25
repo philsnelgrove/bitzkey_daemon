@@ -37,6 +37,52 @@ TEST_CASE("a child inherits its neurodivergence whole from one parent") {
     CHECK((three && twelve));
 }
 
+TEST_CASE("terrain sits after neurodivergence, and a child takes it whole from one parent") {
+    const Dna avian = encode_dna(Species::Grazer, {{"terrain", 2}, {"neurodivergence", 15}});
+    CHECK(decode_terrain(avian) == Terrain::Avian);
+    CHECK(decode_neurodivergence(avian) == 15);
+    CHECK(social_word(avian) == ((15U << 21) | (2U << 25)));
+    CHECK(decode_terrain(encode_dna(Species::Grazer)) == Terrain::Terrestrial);
+    CHECK(terrain_from_name("amphibious") == Terrain::Amphibious);
+    CHECK_THROWS_AS(encode_dna(Species::Grazer, {{"terrain", 4}}), std::invalid_argument);
+    CHECK((fits(Terrain::Terrestrial, false) && !fits(Terrain::Terrestrial, true) && fits(Terrain::Aquatic, true) &&
+           !fits(Terrain::Aquatic, false) && fits(Terrain::Avian, true) && fits(Terrain::Amphibious, false)));
+    const Dna aquatic = encode_dna(Species::Grazer, {{"terrain", 1}});
+    PyRandom rng(4);
+    bool both[2] = {};
+    for (int child = 0; child < 60; ++child) {
+        const Terrain terrain = decode_terrain(cross(avian, aquatic, rng, std::nullopt, 0.0, 0.0));
+        CHECK((terrain == Terrain::Avian || terrain == Terrain::Aquatic));
+        both[terrain == Terrain::Avian] = true;
+    }
+    CHECK((both[0] && both[1]));
+}
+
+TEST_CASE("a mutation of the species' third bit moves the terrain a step along its chain") {
+    // Set, a step toward the air; cleared, a step toward the sea; no further than the chain's ends.
+    const auto children = [](Dna parent, bool mutation) {
+        PyRandom rng(12);
+        std::vector<std::pair<bool, Terrain>> found;  // whether the bit flipped, and the child's terrain
+        for (int child = 0; child < 400; ++child) {
+            const Dna made = cross(parent, parent, rng, std::nullopt, 0.0, 1.0, mutation);
+            found.emplace_back(((body_word(made) ^ body_word(parent)) & 0x4U) != 0, decode_terrain(made));
+        }
+        return found;
+    };
+    const Dna amphibious = encode_dna(Species::Grazer, {{"terrain", 3}});  // its third species bit clear: setting it, toward the air
+    int flips = 0;
+    for (const auto& [flipped, terrain] : children(amphibious, true)) {
+        CHECK(terrain == (flipped ? Terrain::Terrestrial : Terrain::Amphibious));
+        flips += flipped;
+    }
+    CHECK(flips > 0);
+    for (const auto& [flipped, terrain] : children(amphibious, false)) CHECK(terrain == Terrain::Amphibious);  // none where it's off
+    const Dna sea_bound = Dna(encode_dna(Species::Grazer, {{"terrain", 3}}).bits | (std::uint64_t{0x4} << 32), with_terrain(0, Terrain::Amphibious).social);
+    for (const auto& [flipped, terrain] : children(sea_bound, true)) CHECK(terrain == (flipped ? Terrain::Aquatic : Terrain::Amphibious));
+    const Dna fish = encode_dna(Species::Grazer, {{"terrain", 1}});  // at the sea's end already
+    for (const auto& [flipped, terrain] : children(Dna(fish.bits | (std::uint64_t{0x4} << 32), fish.social), true)) CHECK(terrain == Terrain::Aquatic);
+}
+
 TEST_CASE("the climate genes hold the top bits of each word") {
     CHECK(TEMPERATURES[3] == "very cold");
     const Dna dna = encode_dna(Species::Grazer, {{"temperature", 3}, {"cold_tolerance", 1}, {"size", 7}});
@@ -107,11 +153,16 @@ TEST_CASE("a written mind shows in the dot, fractions rounding by chance") {
     CHECK(total / 4000.0 == doctest::Approx(3.25).epsilon(0.02));
 }
 
-TEST_CASE("genome records read back, and version 1 and 2 records convert") {
-    const Dna dna{(std::uint64_t{0x7421FF41} << 32) | 0x637E4B01, 0x0A1B2C3D};
-    const nlohmann::json record = {{"version", 3}, {"ring", hex_word(body_word(dna))}, {"dot", hex_word(mind_word(dna))},
+TEST_CASE("genome records read back, and version 1, 2 and 3 records convert") {
+    const Dna dna{(std::uint64_t{0x7421FF41} << 32) | 0x637E4B01, 0x0D1B2C3D};  // avian
+    const nlohmann::json record = {{"version", 4}, {"ring", hex_word(body_word(dna))}, {"dot", hex_word(mind_word(dna))},
                                    {"social", hex_word(social_word(dna))}};
+    CHECK(decode_terrain(dna) == Terrain::Avian);
     CHECK(genome_from_record(record) == dna);
+    nlohmann::json before_terrain = record;  // version 3: those bits were spare, and it is terrestrial
+    before_terrain["version"] = 3;
+    CHECK(genome_from_record(before_terrain) == with_terrain(dna, Terrain::Terrestrial));
+    CHECK(genome_from_record(before_terrain).social == 0x091B2C3DU);
     CHECK(hex_word(body_word(dna)) == "7421FF41");
     CHECK_THROWS_AS(genome_from_record({{"version", 3}, {"ring", "00000000"}, {"dot", "00000000"}}), std::invalid_argument);
     const nlohmann::json old = {{"ring", "#00000002"}, {"dot", "0000000F"}};

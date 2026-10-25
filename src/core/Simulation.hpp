@@ -36,6 +36,33 @@ inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
+// The sea: a new world's share of the map under it, in percent, and how broad its land and sea are, as a share of the
+// map's width (smaller, and they break into more and smaller islands and seas). East and west, the coasts wrap round.
+constexpr double DEFAULT_OCEAN = 200.0 / 3;
+constexpr double CONTINENT_BREADTH = 0.25;
+// Terrain. An avian animal's size, weapons and armour count AVIAN_BODY of its genes' (light enough to fly), and it burns
+// FLIGHT_HUNGER more food; the terrestrial and aquatic can hunt or attack it only while it rests. An amphibious animal
+// goes AMPHIBIOUS_SPEED of its usual steps, at home nowhere. An avian plant's seeds fly AVIAN_SEED_REACH times as far.
+inline double AVIAN_BODY = 0.5;
+inline double FLIGHT_HUNGER = 0.25;
+inline double AMPHIBIOUS_SPEED = 0.5;
+inline double AVIAN_SEED_REACH = 2.0;
+// Stamina, 0 to 100: every action but rest tires an animal, and resting restores REST_RECOVERY a turn. Any other
+// action costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more (a flyer's FLIGHT_FATIGUE times that), each
+// blow it strikes STRIKE_FATIGUE and mating BREED_FATIGUE (each parent); a flyer over the sea, where it can't rest,
+// tires HOVER_FATIGUE a turn more. An animal with no stamina left can only rest, and a flyer exhausted over the sea
+// drowns. An amphibious animal tires AMPHIBIOUS_FATIGUE times as fast at everything.
+inline double REST_RECOVERY = 20;
+inline double ACTION_FATIGUE = 1;
+inline double STEP_FATIGUE = 2;
+inline double FLIGHT_FATIGUE = 2.0;
+inline double STRIKE_FATIGUE = 10;
+inline double BREED_FATIGUE = 15;
+inline double HOVER_FATIGUE = 1;
+inline double AMPHIBIOUS_FATIGUE = 2.0;
+// What tiring by `cost` takes from an animal: an amphibious one's AMPHIBIOUS_FATIGUE times as much.
+inline double fatigue(const Bitzkey& agent, double cost);
+constexpr double FULL_STAMINA = 100;
 inline int SPAWN_SPREAD = 2;
 // A square holds CELL_SPACE spaces, and every Bitzkey, plant or animal, takes 1 + its size of them. Bitzkeys share a
 // square, and meet there as they would alongside, but none is born, moves or spawns into one without room for it.
@@ -442,8 +469,10 @@ struct Bitzkey {
     int identifier;
     Dna dna;
     int x, y;
+    bool wet = false;  // in the sea, as the world keeps it while it moves
     double hunger = 0.0;
     double health = 100.0;
+    double stamina = FULL_STAMINA;  // spent by acting, restored by resting (see REST_RECOVERY)
     int age = 0;
     int cooldown = 0;
     std::string_view last_action = "new";
@@ -509,6 +538,7 @@ struct Bitzkey {
 
     // Fixed by the genome.
     Species species;
+    Terrain terrain = Terrain::Terrestrial;  // kept up by derive()
     Traits inborn;
     Body body;
     double max_health, metabolism, stomach, burn, might, toughness, lifespan, breeding_cost, digestion;
@@ -520,10 +550,18 @@ struct Bitzkey {
     // feeble: its body traits and health are at FEEBLE_SHARE. Plants never are. Kept up by derive().
     bool feeble = false;
 
-    // A body trait as it is now: its genes' value, or FEEBLE_SHARE of it while feeble.
+    // A body trait as it is now: its genes' value, or FEEBLE_SHARE of it while feeble; an avian animal's size,
+    // weapons and armour AVIAN_BODY of that.
     int trait(int name) const {
-        return feeble && name != SpeciesTrait ? static_cast<int>(body[name] * FEEBLE_SHARE) : body[name];
+        if (name == SpeciesTrait) return body[name];
+        double value = feeble ? static_cast<int>(body[name] * FEEBLE_SHARE) : body[name];
+        if (terrain == Terrain::Avian && species != Species::Plant && (name == Size || name == Weapons || name == Armour)) value *= AVIAN_BODY;
+        return static_cast<int>(value);
     }
+    // Whether it may be in the sea, or on the land, by its terrain.
+    bool can_be(bool sea) const { return fits(terrain, sea); }
+    bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
+    bool aloft_at_sea() const { return terrain == Terrain::Avian && species != Species::Plant && wet; }  // it can't rest
     double physique(int name) const { return share(trait(name)); }  // a body trait, as it is now, as a share of its range
     // Whether it is feeble at its age: if that has changed, its body is worked out afresh.
     void grow() {
@@ -589,6 +627,10 @@ struct Bitzkey {
     Rgb social_color() const { return color_from_word(social_word(dna)); }
 };
 
+inline double fatigue(const Bitzkey& agent, double cost) {
+    return agent.terrain == Terrain::Amphibious ? cost * AMPHIBIOUS_FATIGUE : cost;
+}
+
 int litter_size(std::span<const std::pair<int, int>> parents);
 // A pleasure of mating as an animal feels it: LIBIDO_IN_JOY of it by its libido, the rest whatever it is.
 inline double mating_joy(const Bitzkey& agent, double joy) { return joy * (1 - LIBIDO_IN_JOY + LIBIDO_IN_JOY * agent.feeling(Libido)); }
@@ -624,6 +666,9 @@ public:
         // Turns in a year, for the seasons and lifespans; like the advanced rules, it holds for the
         // whole program while the world runs.
         int year_length = DEFAULT_YEAR_LENGTH;
+        // Percent of the map under the sea, laid out by the seed; none unless asked for (a new world's setup offers
+        // DEFAULT_OCEAN).
+        double ocean = 0.0;
     };
 
     explicit Simulation(Settings settings);
@@ -647,6 +692,14 @@ public:
     const std::vector<std::unique_ptr<Bitzkey>>& agents() const { return agents_; }
     std::vector<Bitzkey*> living() const;
     int grass_at(int x, int y) const;
+    // The sea: whether a square lies under it (none off the map, nor in a world without sea).
+    bool sea(int x, int y) const { return !sea_.empty() && in_bounds(x, y) && sea_[static_cast<std::size_t>(y) * width_ + x]; }
+    bool has_sea() const { return !sea_.empty(); }
+    const std::vector<std::uint8_t>& sea_map() const { return sea_; }  // a square a cell, row by row; empty without sea
+    double ocean() const { return ocean_; }  // the share of the map asked to be sea, in percent
+    // Whether a Bitzkey of this terrain may be in a square, sea or land.
+    bool suits(Terrain terrain, Cell cell) const { return fits(terrain, sea(cell.x, cell.y)); }
+    bool can_enter(const Bitzkey& agent, Cell cell) const { return suits(agent.terrain, cell); }
     int& grass_cell(int x, int y) { return grass_[static_cast<std::size_t>(y) * width_ + x]; }
     void clear_grass() { std::fill(grass_.begin(), grass_.end(), 0); }
     std::size_t grass_tufts() const;
@@ -790,7 +843,7 @@ public:
     void use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::string status);
     // The brain whose handle on the engine this is, as it was last brought back from it; none if no living brain's.
     const Brain* engine_brain(int handle) const;
-    void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed
+    void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed, and tires (see REST_RECOVERY)
     // How clearly it remembers a place: 1 the turn it happened, fading to nothing over MEMORY_TURNS times its
     // memory; 0 when it has nothing to remember.
     double remembered(const Bitzkey& agent, const std::optional<Place>& memory) const;
@@ -858,8 +911,9 @@ public:
     std::vector<Cell> free_cells_near(const Bitzkey& agent) const;  // squares near it, its own first, with any room
     std::vector<Cell> squares_near(const Bitzkey& agent) const;     // its own square, then those around, nearest first
     int room_in(Cell cell, const Bitzkey* leaving = nullptr) const;  // a square's free spaces, as though `leaving` were gone
-    // A square with room for a Bitzkey taking `space`: this one, or else the nearest within BIRTH_REACH.
-    std::optional<Cell> spot_near(Cell cell, int space) const;
+    // A square with room for a Bitzkey taking `space`, of a terrain it may be in: this one, or else the nearest within
+    // BIRTH_REACH.
+    std::optional<Cell> spot_near(Cell cell, int space, Terrain terrain = Terrain::Terrestrial) const;
     bool step(Bitzkey& agent, int x, int y);  // a step into a square, if it has room; whether it took it
     std::pair<double, double> territory(const Bitzkey& hunter) const;
     struct HerdView {
@@ -886,6 +940,9 @@ public:
     // Whether an animal's blows would bring the opponent down as fast as the opponent's would bring it down,
     // each as it stands now.
     static bool would_win(const Bitzkey& agent, const Bitzkey& opponent);
+    // Whether a hunter could hunt or attack another, wherever they stand: it may go where the other is, sea or land,
+    // and the other is no flyer out of its reach, avian and not resting, while it is terrestrial or aquatic.
+    static bool within_reach(const Bitzkey& hunter, const Bitzkey& other);
     static bool is_prey(const Bitzkey& hunter, const Bitzkey& other);
     static bool feeds_on(const Bitzkey& eater, const Bitzkey& other);
     static double diet_share(const Bitzkey& eater, const Bitzkey& other);
@@ -957,6 +1014,10 @@ private:
     };
 
     std::vector<int> group_sizes(int population);
+    // Lay out the sea over `ocean` percent of the map, from its own stream of `seed`: smooth noise, the lowest of it sea.
+    void make_sea(double ocean, std::uint64_t seed);
+    // A square for a group's centre of this terrain, in one of `rows` if given, drawn until one suits it; none if none does.
+    std::optional<Cell> group_centre(Terrain terrain, const std::vector<int>& rows);
     // `native` groups have random starting genomes: each carries a tolerance flag only with
     // STARTING_TOLERANCE, and plants take the usual temperature of their centre's zone as their home.
     // So that every zone starts with plants, the starting groups' plant groups take a zone each, top
@@ -1032,6 +1093,8 @@ private:
     double mind_mutation_, body_mutation_;
     int plants_ = 0;
     std::vector<int> grass_;
+    std::vector<std::uint8_t> sea_;  // 1 for each square under the sea, row by row; empty without sea
+    double ocean_ = 0.0;
     double grass_regrowth_;
     int initial_grass_ = 0;  // what grows back each turn is a share of it
     std::vector<Seed> seeds_;

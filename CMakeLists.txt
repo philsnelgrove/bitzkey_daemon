@@ -118,6 +118,7 @@ add_executable(bitzkey_tests
     tests/test_daemon.cpp
     tests/test_pool.cpp
     tests/test_probe.cpp
+    tests/test_sea.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp
     src/daemon/Api.cpp

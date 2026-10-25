@@ -13,6 +13,11 @@ const WORLD_GREY = [196, 198, 196];
 const ZONE_TINTS = [[150, 85, 55], [110, 170, 90], [255, 255, 255], [170, 210, 250]];
 const ZONE_TINT = 0.45;
 export const GRASS = [62, 122, 52];
+// The sea: its row's temperature tint drawn this far toward deep blue, so the climate's bands show through, and its
+// grass, sea grass, in kelp green.
+const SEA = [38, 84, 140];
+const SEA_TINT = 0.6;
+export const SEA_GRASS = [58, 150, 120];
 export const GRID = [140, 146, 142];
 export const EXPORTING = [205, 120, 30];
 export const SPECIES = ['plant', 'grazer', 'omnivore', 'predator'];
@@ -41,6 +46,12 @@ export function zoneColour(temperature) {
     const tint = ZONE_TINTS[lower][c] + (ZONE_TINTS[upper][c] - ZONE_TINTS[lower][c]) * turned;
     return pyRound(WORLD_GREY[c] + (tint - WORLD_GREY[c]) * ZONE_TINT);
   });
+}
+
+// The same under the sea.
+export function seaColour(temperature) {
+  const zone = zoneColour(temperature);
+  return zone.map((value, c) => pyRound(value + (SEA[c] - value) * SEA_TINT));
 }
 
 export function dotRadius(size, largest = DOT_RADIUS_LARGEST, smallest = DOT_RADIUS_SMALLEST) {

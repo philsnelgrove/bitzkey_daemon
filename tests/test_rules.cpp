@@ -28,7 +28,7 @@ int corpses_kept(int turns) {
 }  // namespace
 
 TEST_CASE("every default is within its rule and of its kind") {
-    CHECK(rules::all().size() == 248);
+    CHECK(rules::all().size() == 260);
     const rules::Rule& turns = *rules::find("HISTORY_TURNS");
     CHECK((rules::shown(turns, turns.maximum) == "ALL" && rules::shown(turns, 100) == "100"));  // its top keeps every turn
     CHECK(!rules::warning("HISTORY_MEMORY").empty());
@@ -95,9 +95,10 @@ TEST_CASE("values show as the Python version shows them") {
 
 TEST_CASE("a world plays by the rules set when it runs") {
     Restore restore;
-    const int usual = corpses_kept(120);
+    rules::apply({{"CORPSE_TURNS", 200}});
+    const int lasting = corpses_kept(120);
     rules::apply({{"CORPSE_TURNS", 1}});
-    CHECK(corpses_kept(120) < usual);
+    CHECK(corpses_kept(120) < lasting);
 }
 
 TEST_CASE("a running world works out afresh what it settled from the rules as it began") {

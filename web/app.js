@@ -4,8 +4,8 @@
 
 import { startLanguages } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
-import { drawBitzkey, drawReticle, zoneColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
+import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
+         GRASS, SEA_GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -164,7 +164,7 @@ function parseFrame(view) {
   let offset = 24;
   const temperatures = new Float32Array(height);
   for (let y = 0; y < height; ++y, offset += 4) temperatures[y] = view.getFloat32(offset, true);
-  const grass = new Uint8Array(view.buffer, offset, width * height);
+  const grass = new Uint8Array(view.buffer, offset, width * height);  // a byte a square: 1 for grass, and 2 for the sea
   offset += width * height;
   const agents = new Array(count);
   const living = new Map();
@@ -293,11 +293,12 @@ function drawMap() {
     const gctx = grassCanvas.getContext('2d');
     const image = gctx.createImageData(frame.width, frame.height);
     const data = image.data;
+    const mix = (ground, tuft) => ground.map((value, c) => Math.round(value + (tuft[c] - value) * Math.min(1, 0.4 * cell)));
     for (let y = 0; y < frame.height; ++y) {
-      const zone = zoneColour(frame.temperatures[y]);
-      const mixed = zone.map((value, c) => Math.round(value + (GRASS[c] - value) * Math.min(1, 0.4 * cell)));
+      const zone = zoneColour(frame.temperatures[y]), sea = seaColour(frame.temperatures[y]);
+      const colours = [zone, mix(zone, GRASS), sea, mix(sea, SEA_GRASS)];  // by the square's byte
       for (let x = 0; x < frame.width; ++x) {
-        const at = (y * frame.width + x) * 4, colour = frame.grass[y * frame.width + x] ? mixed : zone;
+        const at = (y * frame.width + x) * 4, colour = colours[frame.grass[y * frame.width + x] & 3];
         data[at] = colour[0]; data[at + 1] = colour[1]; data[at + 2] = colour[2]; data[at + 3] = 255;
       }
     }
@@ -310,21 +311,33 @@ function drawMap() {
       if (bottom < 0 || top > view.h) continue;
       ctx.fillStyle = css(zoneColour(frame.temperatures[y]));
       ctx.fillRect(geometry.x, top, geometry.w, bottom - top);
-    }
-    const radius = Math.max(1, pyRound(cell * 0.18));
-    ctx.fillStyle = css(GRASS);
-    ctx.beginPath();
-    const [x0, x1] = [Math.max(0, Math.floor(-geometry.x / cell) - 1), Math.min(frame.width, Math.ceil((view.w - geometry.x) / cell) + 1)];
-    const [y0, y1] = [Math.max(0, Math.floor(-geometry.y / cell) - 1), Math.min(frame.height, Math.ceil((view.h - geometry.y) / cell) + 1)];
-    for (let y = y0; y < y1; ++y) {
-      for (let x = x0; x < x1; ++x) {
-        if (!frame.grass[y * frame.width + x]) continue;
-        const px = geometry.x + (x + 0.5) * cell, py = geometry.y + (y + 0.5) * cell;
-        ctx.moveTo(px + radius, py);
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fillStyle = css(seaColour(frame.temperatures[y]));
+      for (let x = 0; x < frame.width;) {  // each stretch of sea along the row at once
+        if (!(frame.grass[y * frame.width + x] & 2)) { ++x; continue; }
+        let end = x;
+        while (end < frame.width && frame.grass[y * frame.width + end] & 2) ++end;
+        const left = pyRound(geometry.x + x * cell), right = pyRound(geometry.x + end * cell);
+        ctx.fillRect(left, top, right - left, bottom - top);
+        x = end;
       }
     }
-    ctx.fill();
+    const radius = Math.max(1, pyRound(cell * 0.18));
+    const [x0, x1] = [Math.max(0, Math.floor(-geometry.x / cell) - 1), Math.min(frame.width, Math.ceil((view.w - geometry.x) / cell) + 1)];
+    const [y0, y1] = [Math.max(0, Math.floor(-geometry.y / cell) - 1), Math.min(frame.height, Math.ceil((view.h - geometry.y) / cell) + 1)];
+    for (const [under, colour] of [[0, GRASS], [2, SEA_GRASS]]) {  // grass on the land, then in the sea
+      ctx.fillStyle = css(colour);
+      ctx.beginPath();
+      for (let y = y0; y < y1; ++y) {
+        for (let x = x0; x < x1; ++x) {
+          const square = frame.grass[y * frame.width + x];
+          if (!(square & 1) || (square & 2) !== under) continue;
+          const px = geometry.x + (x + 0.5) * cell, py = geometry.y + (y + 0.5) * cell;
+          ctx.moveTo(px + radius, py);
+          ctx.arc(px, py, radius, 0, Math.PI * 2);
+        }
+      }
+      ctx.fill();
+    }
   }
   const [smallest, largest] = mapDotRadii(cell);
   const reach = (px, py) => px > -largest * 3 && py > -largest * 3 && px < view.w + largest * 3 && py < view.h + largest * 3;

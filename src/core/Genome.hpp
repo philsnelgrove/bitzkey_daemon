@@ -5,12 +5,15 @@
 // ring: the body and its physical attributes. The high 32 bits are the social background, behind
 // the species icon: how it treats others. The dot and ring each hold ten three-bit traits (0 to 7),
 // from their least-significant bits; their top two bits carry no trait but the climate genes. The
-// social background holds seven three-bit traits, then the four-bit neurodivergence gene (0 to 15),
-// which does nothing yet; its top seven bits are spare. Like the rest, they all shade the colour:
+// ring's first trait is the species, in its lower two bits; its third bit sets no species, but a
+// mutation landing there moves the terrain along its chain. The social background holds seven
+// three-bit traits, then the four-bit neurodivergence gene (0 to 15), which does nothing yet, then
+// the two-bit terrain gene; its top five bits are spare. Like the rest, they all shade the colour:
 // read as four CMYK bytes, each word sets the colour of its part of the Bitzkey. Version 1 genomes
 // held eight four-bit traits (0 to 15) per word, and version 2 ten three-bit traits in each of the
 // dot and ring, with sociability, empathy and tolerance in the dot; exported records without a
-// version are version 1, and older versions are converted when imported.
+// version are version 1, and older versions are converted when imported. Version 3 genomes had no
+// terrain, its bits spare and random: they are terrestrial when converted.
 
 #include <array>
 #include <compare>
@@ -41,7 +44,7 @@ struct Climate {
     bool heat, cold;  // whether it tolerates heat or cold, never both
 };
 
-constexpr int GENOME_VERSION = 3;
+constexpr int GENOME_VERSION = 4;
 constexpr int TRAIT_BITS = 3;
 constexpr int TRAIT_MAX = (1 << TRAIT_BITS) - 1;
 constexpr std::uint32_t WORD = 0xFFFFFFFFU;
@@ -80,6 +83,20 @@ constexpr std::array<std::string_view, TEMPERAMENT_COUNT> TEMPERAMENT = {
 constexpr int NEURODIVERGENCE_SHIFT = TRAIT_BITS * SOCIAL_TRAIT_COUNT;  // in the social background, after its traits
 constexpr int NEURODIVERGENCE_MAX = 15;                                // four bits
 constexpr std::uint32_t SOCIAL_SPARE = WORD & ~((1U << NEURODIVERGENCE_SHIFT) - 1);  // its bits that hold no trait
+// Terrain: where a Bitzkey can live, in the two bits after neurodivergence. The terrestrial keep to the land and
+// the aquatic to the sea; the avian and the amphibious go freely between them.
+enum class Terrain : std::uint8_t { Terrestrial, Aquatic, Avian, Amphibious };
+constexpr std::array<std::string_view, 4> TERRAINS = {"terrestrial", "aquatic", "avian", "amphibious"};
+constexpr int TERRAIN_SHIFT = NEURODIVERGENCE_SHIFT + 4;
+constexpr std::uint32_t TERRAIN_BITS = 0x3U << TERRAIN_SHIFT;
+inline std::string_view terrain_name(Terrain terrain) { return TERRAINS[static_cast<int>(terrain)]; }
+std::optional<Terrain> terrain_from_name(std::string_view name);
+// Whether a Bitzkey of this terrain may be in the sea, or on the land.
+inline bool swims(Terrain terrain) { return terrain != Terrain::Terrestrial; }
+inline bool walks(Terrain terrain) { return terrain != Terrain::Aquatic; }
+inline bool fits(Terrain terrain, bool sea) { return sea ? swims(terrain) : walks(terrain); }
+// A terrain mutation moves it a step along this chain, from the sea to the air.
+constexpr std::array<Terrain, 4> TERRAIN_CHAIN = {Terrain::Aquatic, Terrain::Amphibious, Terrain::Terrestrial, Terrain::Avian};
 
 enum BodyTrait : int {
     SpeciesTrait, Size, Strength, Armour, Weapons, Speed, Sight, Fertility, Litter, Carrion
@@ -102,14 +119,19 @@ inline std::uint32_t social_word(Dna dna) { return dna.social; }
 Traits decode_temperament(Dna dna);  // the dot's traits, then the social background's
 Body decode_body(Dna dna);  // the species slot holds the species index, the trait value mod 4
 inline int decode_neurodivergence(Dna dna) { return static_cast<int>((dna.social >> NEURODIVERGENCE_SHIFT) & NEURODIVERGENCE_MAX); }
+inline Terrain decode_terrain(Dna dna) { return static_cast<Terrain>((dna.social & TERRAIN_BITS) >> TERRAIN_SHIFT); }
+inline Dna with_terrain(Dna dna, Terrain terrain) {
+    dna.social = (dna.social & ~TERRAIN_BITS) | static_cast<std::uint32_t>(terrain) << TERRAIN_SHIFT;
+    return dna;
+}
 inline Climate decode_climate(Dna dna) {  // both tolerance flags together cancel out, tolerating neither
     const bool heat = (dna.bits & HEAT_TOLERANCE) != 0, cold = (dna.bits & COLD_TOLERANCE) != 0;
     return {static_cast<int>((dna.bits >> TEMPERATURE_SHIFT) & 0x3), heat && !cold, cold && !heat};
 }
 
-// Build a genome from named traits, each 0 to 7 ("neurodivergence" 0 to 15), and climate genes
-// ("temperature" 0 to 3, "heat_tolerance" and "cold_tolerance" 0 or 1); unnamed traits are zero, the
-// home temperature medium, and neither tolerance. Throws std::invalid_argument for an unknown trait
+// Build a genome from named traits, each 0 to 7 ("neurodivergence" 0 to 15, "terrain" 0 to 3), and climate
+// genes ("temperature" 0 to 3, "heat_tolerance" and "cold_tolerance" 0 or 1); unnamed traits are zero, the
+// home temperature medium, neither tolerance, and terrestrial. Throws std::invalid_argument for an unknown trait
 // or a value out of range.
 Dna encode_dna(Species species, std::initializer_list<std::pair<std::string_view, int>> traits = {});
 
@@ -118,6 +140,8 @@ Dna convert_v1(std::uint64_t dna);
 // Re-encode a version 2 genome in this layout: its dot's sociability, empathy and tolerance moved to the
 // social background, and the traits version 2 lacked at their defaults.
 Dna convert_v2(std::uint64_t dna);
+// Re-encode a version 3 genome in this layout: terrestrial, whatever its spare bits held.
+inline Dna convert_v3(Dna dna) { return with_terrain(dna, Terrain::Terrestrial); }
 
 struct Rgb {
     int r = 0, g = 0, b = 0;
@@ -144,12 +168,16 @@ std::uint32_t write_social(std::uint32_t spare, const Mind& mind, PyRandom& rng)
 
 // A child's genome: the ring a single-point crossover with a `body_chance` of one flipped bit;
 // the dot and social background written from `mind`, or from the average of the parents' inborn traits.
+// Its terrain is one parent's, as the rest of the social background's spare bits are; with `terrain_mutation`, a
+// flip of the species' third bit moves it a step along TERRAIN_CHAIN, toward the air if the bit was set, toward
+// the sea if cleared (and no further than the chain's end).
 Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind = std::nullopt,
-          double mind_chance = MIND_MUTATION_CHANCE, double body_chance = BODY_MUTATION_CHANCE);
+          double mind_chance = MIND_MUTATION_CHANCE, double body_chance = BODY_MUTATION_CHANCE,
+          bool terrain_mutation = true);
 
 Mind to_mind(const Traits& traits);
 
-// {"version": 3, "ring": "7421FF41", "dot": "637E4B01", "social": "0A1B2C3D"}
+// {"version": 4, "ring": "7421FF41", "dot": "637E4B01", "social": "0A1B2C3D"}
 std::string hex_word(std::uint32_t word);
 Dna genome_from_record(const nlohmann::json& record);  // throws std::invalid_argument
 int record_version(const nlohmann::json& record);      // throws std::invalid_argument

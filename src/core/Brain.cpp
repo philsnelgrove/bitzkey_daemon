@@ -161,6 +161,10 @@ void gene_senses(Dna dna, Senses& senses) {
     senses[SenseHomeTemperature] = climate.temperature / static_cast<double>(TEMPERATURES.size() - 1);
     senses[SenseHeatTolerance] = climate.heat;
     senses[SenseColdTolerance] = climate.cold;
+    const Terrain terrain = decode_terrain(dna);
+    senses[SenseSwims] = swims(terrain);
+    senses[SenseWalks] = walks(terrain);
+    senses[SenseFlies] = terrain == Terrain::Avian;
 }
 
 Layer Layer::zeros(int neurons, int reads) {

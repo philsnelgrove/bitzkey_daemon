@@ -33,7 +33,7 @@ export function details(agent, { large = 0 } = {}) {
   const panel = element('div', { class: 'details' });
   panel.append(element('div', { class: 'details-head' },
     bitzkeyCanvas(look(agent), radius, large ? Math.round(large / 4) : 2, agent.alive !== false || !known),
-    element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}`),
+    element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}${agent.terrain ? '  ' + upper(agent.terrain) : ''}`),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   panel.append(element('div', { class: 'mono small' }, `DOT ${agent.dot} RING ${agent.ring} SOCIAL ${agent.social}`));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
@@ -85,6 +85,10 @@ export function details(agent, { large = 0 } = {}) {
   }
   panel.append(element('div', { class: 'mono hunger' }, `HUNGER  ${fixed(Math.min(100, agent.hunger), 1).padStart(5)}%`));
   panel.append(bar(agent.hunger / 100, 'rgb(224,150,94)'));
+  if (agent.stamina !== undefined) {
+    panel.append(element('div', { class: 'mono stamina' }, `STAMINA ${fixed(agent.stamina, 1).padStart(5)}`));
+    panel.append(bar(agent.stamina / 100, 'rgb(110,160,220)'));
+  }
   panel.append(element('div', { class: 'mono health' }, `HEALTH  ${fixed(Math.max(0, agent.health), 1).padStart(5)} / ${fixed(agent.max_health, 0)}`));
   panel.append(bar(agent.health / agent.max_health, 'rgb(124,190,131)'));
   panel.append(element('div', { class: 'note' },

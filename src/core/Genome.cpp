@@ -19,6 +19,13 @@ std::optional<Species> species_from_name(std::string_view name) {
     return std::nullopt;
 }
 
+std::optional<Terrain> terrain_from_name(std::string_view name) {
+    for (int index = 0; index < 4; ++index) {
+        if (TERRAINS[index] == name) return static_cast<Terrain>(index);
+    }
+    return std::nullopt;
+}
+
 namespace {
 int trait_at(std::uint32_t word, int index, int bits = TRAIT_BITS) {
     return static_cast<int>((word >> (bits * index)) & ((1U << bits) - 1));
@@ -71,6 +78,11 @@ Dna encode_dna(Species species, std::initializer_list<std::pair<std::string_view
                 throw std::invalid_argument("Neurodivergence runs from 0 to 15: " + std::to_string(value) + ".");
             }
             dna.social |= static_cast<std::uint32_t>(value) << NEURODIVERGENCE_SHIFT;
+            continue;
+        }
+        if (name == "terrain") {
+            if (value < 0 || value > 3) throw std::invalid_argument("Terrains run from 0 to 3: " + std::to_string(value) + ".");
+            dna = with_terrain(dna, static_cast<Terrain>(value));
             continue;
         }
         if (value < 0 || value > TRAIT_MAX) {
@@ -186,20 +198,29 @@ std::uint32_t write_social(std::uint32_t spare, const Mind& mind, PyRandom& rng)
 }
 
 Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind, double mind_chance,
-          double body_chance) {
+          double body_chance, bool terrain_mutation) {
     const std::uint32_t mask = static_cast<std::uint32_t>((1ULL << rng.randrange(1, 32)) - 1);
     std::uint32_t body = (body_word(first) & mask) | (body_word(second) & ~mask & WORD);
+    int flipped = -1;
     if (rng.random() < body_chance) {
         int bit = static_cast<int>(rng.randrange(32));
         if (bit < 2 && rng.random() < SPECIES_REROLL) bit = static_cast<int>(rng.randrange(32));  // the bits that set the species: often rolled afresh
         body ^= 1U << bit;
+        flipped = bit;
     }
     const Mind start = mind ? *mind : inherit_mind(to_mind(decode_temperament(first)), to_mind(decode_temperament(second)), rng, mind_chance);
     const std::array<Dna, 2> parents = {first, second};
     const std::uint32_t spare = mind_word(rng.choice(parents));
     const std::uint32_t social_spare = social_word(rng.choice(parents));
     const std::uint32_t dot = write_mind(spare, start, rng);
-    return {(static_cast<std::uint64_t>(body) << 32) | dot, write_social(social_spare, start, rng)};
+    Dna child{(static_cast<std::uint64_t>(body) << 32) | dot, write_social(social_spare, start, rng)};
+    if (flipped == 2 && terrain_mutation) {  // the species' third bit: the terrain moves a step along its chain
+        const Terrain terrain = decode_terrain(child);
+        const auto place = static_cast<int>(std::find(TERRAIN_CHAIN.begin(), TERRAIN_CHAIN.end(), terrain) - TERRAIN_CHAIN.begin());
+        const int moved = std::max(0, std::min(3, place + ((body >> 2) & 1U ? 1 : -1)));
+        child = with_terrain(child, TERRAIN_CHAIN[static_cast<std::size_t>(moved)]);
+    }
+    return child;
 }
 
 std::string hex_word(std::uint32_t word) {
@@ -214,7 +235,7 @@ int record_version(const nlohmann::json& record) {
     if (version.is_number_integer() && version.get<long long>() >= 1 && version.get<long long>() <= GENOME_VERSION) {
         return static_cast<int>(version.get<long long>());
     }
-    throw std::invalid_argument("Genome version " + version.dump() + " is not one this Bitzkey knows (1 to 3).");
+    throw std::invalid_argument("Genome version " + version.dump() + " is not one this Bitzkey knows (1 to 4).");
 }
 
 namespace {
@@ -240,7 +261,8 @@ Dna genome_from_record(const nlohmann::json& record) {
     const std::uint64_t dna = (static_cast<std::uint64_t>(hex_part(record, "ring", version)) << 32) | hex_part(record, "dot", version);
     if (version == 1) return convert_v1(dna);
     if (version == 2) return convert_v2(dna);
-    return {dna, hex_part(record, "social", version)};
+    const Dna whole{dna, hex_part(record, "social", version)};
+    return version == 3 ? convert_v3(whole) : whole;
 }
 
 }  // namespace bitzkey

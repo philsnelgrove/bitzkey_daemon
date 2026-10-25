@@ -89,7 +89,7 @@ const auto SIGHT_WITHIN = make_within(false);
 const auto SEEN_WITHIN = make_within(true);
 
 // How many of the first sight offsets a seed reaches.
-std::int64_t seed_offsets() { return static_cast<std::int64_t>(SIGHT_WITHIN[static_cast<std::size_t>(SEED_REACH)].size()); }
+std::int64_t seed_offsets(int reach) { return static_cast<std::int64_t>(SIGHT_WITHIN[static_cast<std::size_t>(reach)].size()); }
 
 // The offsets within `radius` steps, the own cell among them, column by column.
 // Where young may be born around their mother, nearest first: the sides, then the corners, then each
@@ -244,6 +244,7 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
 }
 
 void Bitzkey::derive() {
+    terrain = decode_terrain(dna);
     {  // plant or animal: it is its genes' body that counts, feeble or not
         const double shortest = LIFESPAN_YEARS[0], middle = LIFESPAN_YEARS[1], longest = LIFESPAN_YEARS[2];
         const double fastest = METABOLISM[0], slowest = METABOLISM[1];
@@ -263,11 +264,13 @@ void Bitzkey::derive() {
     if (species != Species::Plant) {  // and a cleverer animal's brain burns more (Brain cost)
         const double cost = BRAIN_COST * (species == Species::Predator ? PREDATOR_BRAIN_COST : 1.0);
         burn = burn * (1 + cost * inborn[Intellect] / TRAIT_MAX);
+        if (terrain == Terrain::Avian) burn *= 1 + FLIGHT_HUNGER;  // flight is hungry work
     }
     might = (1 - SIZE_IN_MIGHT) * physique(Strength) + SIZE_IN_MIGHT * size;
     toughness = (1 - SIZE_IN_MIGHT) * physique(Armour) + SIZE_IN_MIGHT * size;
     const int base_steps = 1 + trait(Speed) * 3 / TRAIT_MAX;
     steps = species == Species::Grazer ? static_cast<int>(base_steps * GRAZER_SPEED + 0.5) : base_steps;
+    if (terrain == Terrain::Amphibious && species != Species::Plant) steps = std::max(1, static_cast<int>(steps * AMPHIBIOUS_SPEED + 0.5));
     grazing = GRAZING[static_cast<std::size_t>(species)];
     browsing = BROWSING[static_cast<std::size_t>(species)];
     sight = 2 + SIGHT_PER_TRAIT * trait(Sight);
@@ -402,6 +405,9 @@ Simulation::Simulation(Settings settings)
         seed = (static_cast<std::uint64_t>(device()) << 32) | device();
     }
     random_.seed(seed);
+    if (!(0 <= settings.ocean && settings.ocean <= 100)) throw std::invalid_argument("The sea must cover between 0 and 100 percent.");
+    ocean_ = settings.ocean;
+    if (ocean_ > 0) make_sea(ocean_, seed);
     population_cap_ = settings.population_cap;
     const std::size_t area = static_cast<std::size_t>(width_) * height_;
     cells_.resize(area);
@@ -508,13 +514,64 @@ std::vector<int> Simulation::home_rows(int home) const {
     return rows;
 }
 
+void Simulation::make_sea(double ocean, std::uint64_t seed) {
+    // Value noise in octaves, each twice as fine and half as strong as the last, wrapping round east and west.
+    PyRandom rng;
+    rng.seed(seed ^ 0x5EA5EA5EA5EA5EA5ULL);  // its own stream, so the sea leaves the world's draws as they were
+    const std::size_t area = static_cast<std::size_t>(width_) * height_;
+    std::vector<double> level(area, 0.0);
+    const int columns = std::max(2, static_cast<int>(1 / CONTINENT_BREADTH + 0.5));
+    const int rows = std::max(1, static_cast<int>(static_cast<double>(columns) * height_ / width_ + 0.5));
+    const auto smooth = [](double t) { return t * t * (3 - 2 * t); };
+    double strength = 1.0;
+    for (int octave = 0; octave < 4; ++octave, strength /= 2) {
+        const int across = columns << octave, down = rows << octave;
+        std::vector<double> lattice(static_cast<std::size_t>(across) * (down + 1));
+        for (double& value : lattice) value = rng.random();
+        const auto at = [&](int i, int j) { return lattice[static_cast<std::size_t>(j) * across + static_cast<std::size_t>(i % across)]; };
+        for (int y = 0; y < height_; ++y) {
+            const double fy = (y + 0.5) / height_ * down;
+            const int j = std::min(down - 1, static_cast<int>(fy));
+            const double ty = smooth(fy - j);
+            for (int x = 0; x < width_; ++x) {
+                const double fx = (x + 0.5) / width_ * across;
+                const int i = static_cast<int>(fx);
+                const double tx = smooth(fx - i);
+                const double top = at(i, j) + (at(i + 1, j) - at(i, j)) * tx;
+                const double bottom = at(i, j + 1) + (at(i + 1, j + 1) - at(i, j + 1)) * tx;
+                level[static_cast<std::size_t>(y) * width_ + x] += strength * (top + (bottom - top) * ty);
+            }
+        }
+    }
+    // The lowest squares are sea, as many as the share asks.
+    std::vector<std::size_t> order(area);
+    for (std::size_t index = 0; index < area; ++index) order[index] = index;
+    std::sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) { return std::pair{level[a], a} < std::pair{level[b], b}; });
+    sea_.assign(area, 0);
+    const auto under = static_cast<std::size_t>(py_round(static_cast<double>(area) * ocean / 100));
+    for (std::size_t index = 0; index < std::min(under, area); ++index) sea_[order[index]] = 1;
+}
+
+std::optional<Cell> Simulation::group_centre(Terrain terrain, const std::vector<int>& rows) {
+    for (int tries = 0; tries < 1000; ++tries) {
+        const int x = static_cast<int>(random_.randrange(SPAWN_SPREAD, width_ - SPAWN_SPREAD));
+        const int y = rows.empty() ? static_cast<int>(random_.randrange(SPAWN_SPREAD, height_ - SPAWN_SPREAD))
+                                   : rows[static_cast<std::size_t>(random_.randrange(static_cast<std::int64_t>(rows.size())))];
+        if (suits(terrain, Cell{x, y})) return Cell{x, y};
+    }
+    return std::nullopt;
+}
+
 void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brain>& brain,
                              const std::optional<PartialMind>& mind, bool native, const std::vector<int>& given_rows) {
-    // In one of the rows given, if any; otherwise, with SPAWN_AT_HOME, in its home zone.
+    // In one of the rows given, if any; otherwise, with SPAWN_AT_HOME, in its home zone; on land or sea as its terrain
+    // allows. A world without sea starts with nothing but terrestrial Bitzkeys.
+    if (native && !has_sea()) dna = with_terrain(dna, Terrain::Terrestrial);
     const std::vector<int> rows = !given_rows.empty() || !SPAWN_AT_HOME ? given_rows : home_rows(decode_climate(dna).temperature);
-    const int x = static_cast<int>(random_.randrange(SPAWN_SPREAD, width_ - SPAWN_SPREAD));
-    const int y = rows.empty() ? static_cast<int>(random_.randrange(SPAWN_SPREAD, height_ - SPAWN_SPREAD))
-                               : rows[static_cast<std::size_t>(random_.randrange(static_cast<std::int64_t>(rows.size())))];
+    const Terrain terrain = decode_terrain(dna);
+    const std::optional<Cell> centre = group_centre(terrain, rows);
+    if (!centre) return;  // nowhere it could live
+    const int x = centre->x, y = centre->y;
     if (native) {  // tolerance is rare at the start
         for (const std::uint64_t flag : {HEAT_TOLERANCE, COLD_TOLERANCE}) {
             dna.bits = random_.random() < STARTING_TOLERANCE ? dna.bits | flag : dna.bits & ~flag;
@@ -528,7 +585,7 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
     for (int member = 0; member < size; ++member) {
         const int dx = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
         const int dy = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-        if (const auto spot = spot_near(Cell{x + dx, y + dy}, space)) {  // only where there is room
+        if (const auto spot = spot_near(Cell{x + dx, y + dy}, space, terrain)) {  // only where there is room
             add_agent(dna, spot->x, spot->y, brain ? std::make_shared<Brain>(*brain) : nullptr, mind);
         }
     }
@@ -549,6 +606,7 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
         agent->brain = std::move(brain);
         attach(*agent);
     }
+    agent->wet = sea(x, y);
     ++next_identifier_;
     if (agent->identifier >= lineage_first_) {
         const auto place = static_cast<std::size_t>(agent->identifier - lineage_first_);
@@ -634,7 +692,7 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
         for (int member = 0; member < DEPLOY_GROUP; ++member) {
             const int cell_x = x + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
             const int cell_y = y + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-            if (const auto spot = spot_near(Cell{cell_x, cell_y}, space)) {  // only where there is room
+            if (const auto spot = spot_near(Cell{cell_x, cell_y}, space, decode_terrain(bitzkey.dna))) {  // only where there is room
                 deployed.push_back(&add_agent(bitzkey.dna, spot->x, spot->y, bitzkey.brain ? std::make_shared<Brain>(*bitzkey.brain) : nullptr,
                                               bitzkey.mind));
             }
@@ -928,6 +986,7 @@ void Simulation::index_cells() {
     band_omnivore_prey_.assign(band_count, 0);
     for (const auto& agent : agents_) {
         if (!in_bounds(agent->x, agent->y)) continue;
+        agent->wet = sea(agent->x, agent->y);
         if (agent->alive()) {
             cell_at(agent->x, agent->y).push_back(agent.get());
             if (agent->species == Species::Plant) {
@@ -1064,11 +1123,13 @@ void Simulation::seed_plant(Bitzkey& plant) {
     int shade = 0;
     for (const Bitzkey* other : nearby(plant, LIGHT_RADIUS)) shade += other->species == Species::Plant;
     if (roll >= chance * std::max(0.0, 1 - static_cast<double>(shade) / LIGHT_LIMIT)) return;
-    const Offset offset = SIGHT_OFFSETS[static_cast<std::size_t>(random_.randrange(seed_offsets()))];
+    const int reach = plant.terrain == Terrain::Avian ? std::min(MAX_SIGHT, static_cast<int>(SEED_REACH * AVIAN_SEED_REACH)) : SEED_REACH;
+    const Offset offset = SIGHT_OFFSETS[static_cast<std::size_t>(random_.randrange(seed_offsets(reach)))];
     if (plant.y + offset.dy < 0 || plant.y + offset.dy >= height_) return;  // off the top or bottom of the map: the seed is lost
     const Cell cell{py_mod(plant.x + offset.dx, width_), plant.y + offset.dy};
     if (!room_for_seedling(cell)) return;
-    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, random_, std::nullopt, mind_mutation_, body_mutation_));
+    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, random_, std::nullopt, mind_mutation_, body_mutation_, has_sea()));
+    if (!suits(decode_terrain(dna), cell)) return;  // fallen in the sea, or on the land, where it can't grow
     plant.hunger += SEED_COST;
     plant.children += 1;
     plant.last_action = "seeded";
@@ -1094,10 +1155,12 @@ void Simulation::nurse(Bitzkey& agent) {
 }
 
 void Simulation::seed_corpse(const Bitzkey& corpse) {
-    // A random plant genome, at home in the temperature where the body lay; it sprouts as any seed does.
+    // A random plant genome, at home in the temperature where the body lay, and in its sea or on its land; it sprouts
+    // as any seed does.
     Dna dna = make_dna(random_, static_cast<int>(Species::Plant));
     dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) |
                static_cast<std::uint64_t>(zone_temperature(corpse.y, height_)) << TEMPERATURE_SHIFT;
+    dna = with_terrain(dna, sea(corpse.x, corpse.y) ? Terrain::Aquatic : Terrain::Terrestrial);
     seeds_.push_back({corpse.x, corpse.y, dna, 0, turn_});
 }
 
@@ -1140,7 +1203,7 @@ void Simulation::germinate() {
         if (turn_ - seed.sown >= viable) continue;
         if (turn_ - seed.sown >= PLANT_GESTATION &&
             std::abs(climate_[static_cast<std::size_t>(seed.y)] - decode_climate(seed.dna).temperature) < 0.5 &&
-            room_for_seedling({seed.x, seed.y})) {
+            suits(decode_terrain(seed.dna), {seed.x, seed.y}) && room_for_seedling({seed.x, seed.y})) {
             sprout(seed.dna, {seed.x, seed.y}, seed.generation);
         } else {
             waiting.push_back(seed);
@@ -1455,6 +1518,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             situation.panic = true;
             options = {Flee};
         }
+        if (agent.exhausted()) {  // spent: it can do nothing but rest, whatever it fears
+            situation.panic = situation.frozen = false;
+            options = {Rest};
+        }
         Values valued = values[index];
         if (agent.species == Species::Predator) {  // the instinct to hunt, on top of what its brain has learnt
             const double urge = HUNTING_INSTINCT * std::min(1.0, agent.hunger / 100);
@@ -1656,7 +1723,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
 
     std::array<bool, ACTION_COUNT> available{};
-    available[Rest] = available[GoEast] = available[GoWest] = available[WalkEast] = available[WalkWest] = true;
+    available[GoEast] = available[GoWest] = available[WalkEast] = available[WalkWest] = true;
+    available[Rest] = !agent.aloft_at_sea();  // a flyer can't rest over the sea
     available[Eat] = s.grass_here;
     available[Forage] = s.grass.has_value();
     available[Browse] = s.flora != nullptr;
@@ -1761,6 +1829,21 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     senses[SenseYoungNear] = std::min(3, young) / 3.0;
+    senses[SenseSeaHere] = agent.wet;
+    senses[SenseStamina] = agent.stamina / FULL_STAMINA;
+    if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
+        for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
+            const Heading& way = HEADINGS[static_cast<std::size_t>(heading)];
+            for (int cells = 1; cells <= sight; ++cells) {
+                const int y = agent.y + way.dy * cells;
+                if (y < 0 || y >= height_) break;
+                if (!can_enter(agent, Cell{py_mod(agent.x + way.dx * cells, width_), y})) {
+                    senses[SenseShoreNorth + heading] = 1 - static_cast<double>(cells - 1) / sight;
+                    break;
+                }
+            }
+        }
+    }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 
@@ -1864,10 +1947,26 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
 // Actions
 
 void Simulation::act(Bitzkey& agent, int action, Situation& s) {
+    const std::size_t passed = agent.trail.size();
     perform(agent, action, s);
     const std::string_view did = agent.last_action;
     if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged") {
         agent.food_memory = Place{agent.x, agent.y, turn_};
+    }
+    if (!agent.alive()) return;
+    if (did == "rested") {
+        agent.stamina = std::min(FULL_STAMINA, agent.stamina + REST_RECOVERY);
+        return;
+    }
+    // Tired by what it did: each square it went (flying, the more so), each blow struck, and keeping aloft over the sea.
+    const double cells = static_cast<double>(agent.trail.size() - passed);
+    double cost = ACTION_FATIGUE + cells * STEP_FATIGUE * (agent.terrain == Terrain::Avian ? FLIGHT_FATIGUE : 1.0);
+    if (did == "attacked" || did == "pounced" || did == "defended") cost += STRIKE_FATIGUE;
+    if (agent.aloft_at_sea()) cost += HOVER_FATIGUE;
+    agent.stamina = std::max(0.0, agent.stamina - fatigue(agent, cost));
+    if (agent.aloft_at_sea() && agent.exhausted()) {
+        agent.health = 0;
+        die(agent, "drowned");  // too tired to stay aloft, with nowhere to land
     }
 }
 
@@ -1981,7 +2080,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             int moved = 0;  // as far as it goes before the map's edge (north and south) or a full square
             for (int step = 1; step <= cells; ++step) {
                 const int x = py_mod(agent.x + heading.dx * step, width_), y = agent.y + heading.dy * step;
-                if (y < 0 || y >= height_ || room_in(Cell{x, y}, &agent) < agent.space()) break;
+                if (y < 0 || y >= height_ || !can_enter(agent, Cell{x, y}) || room_in(Cell{x, y}, &agent) < agent.space()) break;
                 moved = step;
             }
             if (moved) move(agent, py_mod(agent.x + heading.dx * moved, width_), agent.y + heading.dy * moved);
@@ -2319,7 +2418,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         // dot is written from that mind, so experience is inherited and shows. Its brain, a mix of
         // its parents', is as deep as its own inborn intellect makes it.
         const Mind mind = inherit_mind(first.mind, second.mind, random_, mind_mutation_);
-        Dna dna = evolved(first.dna, cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_));
+        Dna dna = evolved(first.dna, cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_, has_sea()));
         if (first.species == Species::Predator || second.species == Species::Predator) {
             dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
         }
@@ -2337,6 +2436,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         const double rest = parent.species == Species::Predator ? PREDATOR_BREED_COOLDOWN : BREED_COOLDOWN;
         parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest));
         parent.children += litter;
+        parent.stamina = std::max(0.0, parent.stamina - fatigue(parent, BREED_FATIGUE));
         parent.reward += mating_joy(parent, BREED_JOY);
         if (!parent.alive()) {
             die(parent, "bred to death");
@@ -2402,15 +2502,16 @@ void Simulation::conceive() {
 
 void Simulation::give_birth(Bitzkey& mother) {
     conceive();  // young conceived outside a turn's thinking, as in a test
-    // In the squares nearest it with room for each, its own first and several to a square while there is room, as many
-    // as the population cap allows; the rest are lost.
+    // In the squares nearest it with room for each, of land or sea as each may live in, its own first and several to a
+    // square while there is room, as many as the population cap allows; the rest are lost.
     int born = 0;
     for (Bitzkey::Young& young : mother.womb) {
         if (born >= room()) break;
         const int space = 1 + decode_body(young.dna)[Size];
+        const Terrain terrain = decode_terrain(young.dna);
         std::optional<Cell> found;
         for (const Cell& cell : squares_near(mother)) {
-            if (room_in(cell) >= space) {
+            if (suits(terrain, cell) && room_in(cell) >= space) {
                 found = cell;
                 break;
             }
@@ -2441,7 +2542,7 @@ std::vector<Cell> Simulation::squares_near(const Bitzkey& agent) const {
 std::vector<Cell> Simulation::free_cells_near(const Bitzkey& agent) const {
     std::vector<Cell> cells;
     for (const Cell& cell : squares_near(agent)) {
-        if (room_in(cell) > 0) cells.push_back(cell);
+        if (can_enter(agent, cell) && room_in(cell) > 0) cells.push_back(cell);
     }
     return cells;
 }
@@ -2454,19 +2555,21 @@ int Simulation::room_in(Cell cell, const Bitzkey* leaving) const {
     return CELL_SPACE - used;
 }
 
-std::optional<Cell> Simulation::spot_near(Cell cell, int space) const {
+std::optional<Cell> Simulation::spot_near(Cell cell, int space, Terrain terrain) const {
     const int x = py_mod(cell.x, width_), y = within(cell.y);
-    if (room_in(Cell{x, y}) >= space) return Cell{x, y};
+    if (suits(terrain, Cell{x, y}) && room_in(Cell{x, y}) >= space) return Cell{x, y};
     for (const Offset& offset : birth_offsets(BIRTH_REACH)) {
         if (y + offset.dy < 0 || y + offset.dy >= height_) continue;
         const Cell near{py_mod(x + offset.dx, width_), y + offset.dy};
-        if (room_in(near) >= space) return near;
+        if (suits(terrain, near) && room_in(near) >= space) return near;
     }
     return std::nullopt;
 }
 
 bool Simulation::step(Bitzkey& agent, int x, int y) {
-    if ((x != agent.x || y != agent.y) && room_in(Cell{x, y}, &agent) < agent.space()) return false;  // full: it stops short
+    if ((x != agent.x || y != agent.y) && (!can_enter(agent, Cell{x, y}) || room_in(Cell{x, y}, &agent) < agent.space())) {
+        return false;  // full, or sea (or land) it can't go into: it stops short
+    }
     move(agent, x, y);
     return true;
 }
@@ -2474,7 +2577,7 @@ bool Simulation::step(Bitzkey& agent, int x, int y) {
 std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) const {
     const double worst = agent.climate_steps(in_bounds(agent.x, agent.y) ? temperature(agent.y) : Medium);
     for (const Offset& offset : SIGHT_WITHIN[static_cast<std::size_t>(sight)]) {
-        if (grass_at(agent.x + offset.dx, agent.y + offset.dy) > 0 &&
+        if (grass_at(agent.x + offset.dx, agent.y + offset.dy) > 0 && can_enter(agent, Cell{agent.x + offset.dx, agent.y + offset.dy}) &&
             agent.climate_steps(temperature(agent.y + offset.dy)) <= worst) {
             return Cell{agent.x + offset.dx, agent.y + offset.dy};
         }
@@ -2492,7 +2595,7 @@ Bitzkey* Simulation::nearest_carrion(const Bitzkey& agent, int sight) const {
         const int x = agent.x + offset.dx, y = agent.y + offset.dy;
         if (!in_bounds(x, y)) continue;
         for (Bitzkey* corpse : carrion_[static_cast<std::size_t>(y) * width_ + x]) {
-            if (corpse->meat > 0) return corpse;
+            if (corpse->meat > 0 && agent.can_be(corpse->wet)) return corpse;
         }
     }
     return nullptr;
@@ -2504,7 +2607,7 @@ Bitzkey* Simulation::nearest_kill(const Bitzkey& agent, int sight) const {
         const int x = agent.x + offset.dx, y = agent.y + offset.dy;
         if (!in_bounds(x, y)) continue;
         for (Bitzkey* corpse : kills_[static_cast<std::size_t>(y) * width_ + x]) {
-            if (feeds_on(agent, *corpse)) return corpse;
+            if (feeds_on(agent, *corpse) && agent.can_be(corpse->wet)) return corpse;
         }
     }
     return nullptr;
@@ -2530,7 +2633,7 @@ Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int pr
                 continue;
             } else if (!seen.hunter && is_prey(*other, agent)) {
                 seen.hunter = other;
-            } else if (browses && !seen.flora && other->species == Species::Plant && !other->cooldown) {
+            } else if (browses && !seen.flora && other->species == Species::Plant && !other->cooldown && agent.can_be(other->wet)) {
                 seen.flora = other;
             } else if (courts && !seen.suitor && other->can_breed() && compatible(agent, *other)) {
                 seen.suitor = other;
@@ -2558,6 +2661,7 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
     }
     agent.x = x;
     agent.y = y;
+    agent.wet = sea(x, y);
     if (in_bounds(x, y)) cell_at(x, y).push_back(&agent);
 }
 
@@ -2728,7 +2832,7 @@ double Simulation::food_supply(const Bitzkey& agent) const {
         double cells = 0.0;
         int tufts = 0;
         for (const Offset& offset : nearby_offsets(FORAGE_RADIUS)) {
-            if (!in_bounds(agent.x + offset.dx, agent.y + offset.dy)) continue;
+            if (!in_bounds(agent.x + offset.dx, agent.y + offset.dy) || !can_enter(agent, Cell{agent.x + offset.dx, agent.y + offset.dy})) continue;
             cells += growth(agent.y + offset.dy);
             tufts += grass_at(agent.x + offset.dx, agent.y + offset.dy);
         }
@@ -2739,7 +2843,7 @@ double Simulation::food_supply(const Bitzkey& agent) const {
     double mouths = 1.0;
     for (const Bitzkey* other : nearby(agent, FORAGE_RADIUS)) {
         if (other->species == Species::Plant) {
-            food += PLANT_MEALS * agent.browsing * plant_yield(*other);
+            if (agent.can_be(other->wet)) food += PLANT_MEALS * agent.browsing * plant_yield(*other);
         } else if (feeds_on(agent, *other)) {
             food += PREY_MEALS;
         } else {
@@ -2780,7 +2884,9 @@ int Simulation::other_food(const Bitzkey& omnivore) const {
     for (const Bitzkey* other : nearby(omnivore, FORAGE_RADIUS)) food += other->species == Species::Grazer || other->species == Species::Plant;
     for (int dx = -FORAGE_RADIUS; dx <= FORAGE_RADIUS; ++dx) {
         const int reach = FORAGE_RADIUS - std::abs(dx);
-        for (int dy = -reach; dy <= reach; ++dy) food += grass_at(omnivore.x + dx, omnivore.y + dy) > 0;
+        for (int dy = -reach; dy <= reach; ++dy) {
+            food += grass_at(omnivore.x + dx, omnivore.y + dy) > 0 && can_enter(omnivore, Cell{omnivore.x + dx, omnivore.y + dy});
+        }
     }
     return food;
 }
@@ -2789,8 +2895,15 @@ bool Simulation::would_win(const Bitzkey& agent, const Bitzkey& opponent) {
     return damage(agent, opponent) / std::max(1.0, opponent.health) >= damage(opponent, agent) / std::max(1.0, agent.health);
 }
 
+bool Simulation::within_reach(const Bitzkey& hunter, const Bitzkey& other) {
+    if (!hunter.can_be(other.wet)) return false;
+    const bool grounded = hunter.terrain == Terrain::Terrestrial || hunter.terrain == Terrain::Aquatic;
+    return !(grounded && other.terrain == Terrain::Avian && other.species != Species::Plant && other.last_action != "rested");
+}
+
 bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     if (other.guarded) return false;  // a predator's infant, guarded by a grown one of its kind
+    if (!within_reach(hunter, other)) return false;
     if (hunter.species == Species::Omnivore) {
         // Grazers while they are common enough to switch to, and other omnivores only in an
         // overcrowded territory, once hungry past its reluctance as that rivalry wears it down.

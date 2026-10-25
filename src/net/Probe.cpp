@@ -34,11 +34,14 @@ std::optional<Species> species_named(const std::string& name) {
 Json brief(const Bitzkey& agent) {
     return {{"id", agent.identifier},
             {"species", std::string(species_name(agent.species))},
+            {"terrain", std::string(terrain_name(agent.terrain))},
+            {"wet", agent.wet},
             {"x", agent.x},
             {"y", agent.y},
             {"age", agent.age},
             {"health", agent.max_health > 0 ? std::max(0.0, agent.health) / agent.max_health : 0.0},
             {"hunger", agent.hunger},
+            {"stamina", agent.stamina},
             {"action", std::string(agent.last_action)}};
 }
 
@@ -105,16 +108,26 @@ Probe::Probe(Run run) : run_(std::move(run)) {}
 
 Json Probe::state(Simulation& world) const {
     std::array<int, 4> counts{};
-    for (const Bitzkey* agent : world.living()) counts[static_cast<std::size_t>(agent->species)] += 1;
-    Json alive = Json::object();
-    for (std::size_t index = 0; index < SPECIES.size(); ++index) alive[std::string(SPECIES[index])] = counts[index];
+    std::array<std::array<int, 4>, 4> terrains{};  // by species, then terrain
+    for (const Bitzkey* agent : world.living()) {
+        counts[static_cast<std::size_t>(agent->species)] += 1;
+        terrains[static_cast<std::size_t>(agent->species)][static_cast<std::size_t>(agent->terrain)] += 1;
+    }
+    Json alive = Json::object(), by_terrain = Json::object();
+    for (std::size_t index = 0; index < SPECIES.size(); ++index) {
+        alive[std::string(SPECIES[index])] = counts[index];
+        Json kinds = Json::object();
+        for (std::size_t terrain = 0; terrain < TERRAINS.size(); ++terrain) kinds[std::string(TERRAINS[terrain])] = terrains[index][terrain];
+        by_terrain[std::string(SPECIES[index])] = std::move(kinds);
+    }
     return {{"turn", world.turn()},
             {"year", year(world.turn())},
             {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])},
             {"year_length", YEAR_LENGTH},
             {"width", world.width()},
             {"height", world.height()},
-            {"alive", alive}};
+            {"alive", alive},
+            {"by_terrain", by_terrain}};
 }
 
 Json Probe::animals(Simulation& world, const std::string& species, int x, int y, int radius, std::size_t limit) const {
@@ -408,35 +421,44 @@ Json Probe::settings(Simulation& world) const {
             {"on_gpu", world.on_gpu()},
             {"gpu_status", world.gpu_status()},
             {"grass_regrowth", world.grass_regrowth()},
+            {"ocean", world.ocean()},
+            {"sea_squares", std::count(world.sea_map().begin(), world.sea_map().end(), 1)},
             {"history_bytes", world.history_bytes()}};
 }
 
 Json Probe::climate(Simulation& world) const {
     Json rows = Json::array();
     for (int y = 0; y < world.height(); ++y) {
-        int grass = 0;
-        for (int x = 0; x < world.width(); ++x) grass += world.grass_at(x, y);
+        int grass = 0, sea = 0;
+        for (int x = 0; x < world.width(); ++x) {
+            grass += world.grass_at(x, y);
+            sea += world.sea(x, y);
+        }
         rows.push_back({{"y", y}, {"temperature", world.temperature(y)}, {"zone", zone_temperature(y, world.height())},
-                        {"growth", world.growth(y)}, {"grass", grass}});
+                        {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}});
     }
     return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"rows", rows}};
 }
 
 Json Probe::grass(Simulation& world, bool map) const {
-    Json rows = Json::array(), cells = Json::array();
+    Json rows = Json::array(), cells = Json::array(), sea = Json::array();
     for (int y = 0; y < world.height(); ++y) {
         int total = 0;
         Json row = Json::array();
+        std::string shore;  // the row's sea, a character a square: 1 sea, 0 land
         for (int x = 0; x < world.width(); ++x) {
             const int tufts = world.grass_at(x, y);
             total += tufts;
             if (map) row.push_back(tufts);
+            if (map && world.has_sea()) shore += world.sea(x, y) ? '1' : '0';
         }
         rows.push_back(total);
         if (map) cells.push_back(std::move(row));
+        if (map && world.has_sea()) sea.push_back(std::move(shore));
     }
     Json result = {{"turn", world.turn()}, {"tufts", world.grass_tufts()}, {"by_row", rows}};
     if (map) result["map"] = cells;
+    if (map && world.has_sea()) result["sea"] = sea;
     return result;
 }
 
@@ -450,7 +472,7 @@ Json Probe::cell(Simulation& world, int x, int y) const {
     for (const Simulation::Seed& seed : world.seeds()) {
         if (seed.x == x && seed.y == y) seeds.push_back({{"generation", seed.generation}, {"sown", seed.sown}});
     }
-    return {{"turn", world.turn()}, {"x", x}, {"y", y}, {"grass", world.grass_at(x, y)}, {"temperature", world.temperature(y)},
+    return {{"turn", world.turn()}, {"x", x}, {"y", y}, {"sea", world.sea(x, y)}, {"grass", world.grass_at(x, y)}, {"temperature", world.temperature(y)},
             {"living", living}, {"dead", dead}, {"seeds", seeds}};
 }
 
