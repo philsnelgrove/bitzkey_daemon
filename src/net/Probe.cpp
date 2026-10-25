@@ -12,6 +12,9 @@
 
 #include <httplib.h>
 
+#include "core/Insights.hpp"
+#include "core/Rules.hpp"
+
 namespace bitzkey::net {
 
 namespace {
@@ -142,6 +145,25 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["mother"] = agent->mother;
     result["father"] = agent->father;
     result["children"] = agent->children;
+    result["max_health"] = agent->max_health;
+    result["cooldown"] = agent->cooldown;
+    result["in_heat"] = agent->in_heat;
+    result["can_breed"] = agent->can_breed();
+    result["carrying"] = agent->womb.size();
+    if (agent->due_turn) result["due_turn"] = *agent->due_turn;
+    Json body = Json::object();
+    for (int trait = 0; trait < BODY_TRAIT_COUNT; ++trait) body[std::string(BODY_TRAITS[static_cast<std::size_t>(trait)])] = agent->trait(trait);
+    result["body"] = body;
+    result["memories"] = agent->memories.size();
+    if (agent->food_memory) result["food_memory"] = {agent->food_memory->x, agent->food_memory->y, agent->food_memory->turn};
+    if (agent->danger_memory) result["danger_memory"] = {agent->danger_memory->x, agent->danger_memory->y, agent->danger_memory->turn};
+    result["rivalry"] = agent->rivalry;
+    result["panicked"] = agent->panicked;
+    result["primal_fear"] = agent->primal_fear;
+    result["last_choice"] = std::string(ACTIONS[static_cast<std::size_t>(agent->last_choice)]);
+    result["reward"] = agent->reward;
+    result["last_comfort"] = agent->last_comfort;
+    result["last_wellbeing"] = agent->last_wellbeing;
     result["home"] = std::string(TEMPERATURES[static_cast<std::size_t>(agent->climate.temperature)]);
     result["heat_tolerant"] = agent->climate.heat;
     result["cold_tolerant"] = agent->climate.cold;
@@ -361,6 +383,209 @@ void Probe::after_turn(const Simulation& world) {
     }
 }
 
+Json Probe::rules() const {
+    Json all = Json::object();
+    for (const rules::Rule& rule : rules::all()) {
+        all[rule.key] = {{"value", rule.get()}, {"group", rule.group}, {"label", rule.label}, {"hint", rule.hint},
+                         {"minimum", rule.minimum}, {"maximum", rule.maximum}, {"step", rule.step}};
+    }
+    return {{"rules", all}};
+}
+
+Json Probe::settings(Simulation& world) const {
+    return {{"turn", world.turn()},
+            {"width", world.width()},
+            {"height", world.height()},
+            {"year_length", YEAR_LENGTH},
+            {"population_cap", world.population_cap() ? Json(*world.population_cap()) : Json(nullptr)},
+            {"mind_mutation", world.mind_mutation()},
+            {"body_mutation", world.body_mutation()},
+            {"earliest", world.earliest()},
+            {"frontier", world.frontier()},
+            {"ended", world.ended()},
+            {"deaths", world.deaths()},
+            {"next_identifier", world.next_identifier()},
+            {"on_gpu", world.on_gpu()},
+            {"gpu_status", world.gpu_status()},
+            {"grass_regrowth", world.grass_regrowth()},
+            {"history_bytes", world.history_bytes()}};
+}
+
+Json Probe::climate(Simulation& world) const {
+    Json rows = Json::array();
+    for (int y = 0; y < world.height(); ++y) {
+        int grass = 0;
+        for (int x = 0; x < world.width(); ++x) grass += world.grass_at(x, y);
+        rows.push_back({{"y", y}, {"temperature", world.temperature(y)}, {"zone", zone_temperature(y, world.height())},
+                        {"growth", world.growth(y)}, {"grass", grass}});
+    }
+    return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"rows", rows}};
+}
+
+Json Probe::grass(Simulation& world, bool map) const {
+    Json rows = Json::array(), cells = Json::array();
+    for (int y = 0; y < world.height(); ++y) {
+        int total = 0;
+        Json row = Json::array();
+        for (int x = 0; x < world.width(); ++x) {
+            const int tufts = world.grass_at(x, y);
+            total += tufts;
+            if (map) row.push_back(tufts);
+        }
+        rows.push_back(total);
+        if (map) cells.push_back(std::move(row));
+    }
+    Json result = {{"turn", world.turn()}, {"tufts", world.grass_tufts()}, {"by_row", rows}};
+    if (map) result["map"] = cells;
+    return result;
+}
+
+Json Probe::cell(Simulation& world, int x, int y) const {
+    if (x < 0 || x >= world.width() || y < 0 || y >= world.height()) throw std::invalid_argument("no such cell");
+    Json living = Json::array(), dead = Json::array(), seeds = Json::array();
+    for (const auto& agent : world.agents()) {
+        if (agent->x != x || agent->y != y) continue;
+        (agent->alive() ? living : dead).push_back(brief(*agent));
+    }
+    for (const Simulation::Seed& seed : world.seeds()) {
+        if (seed.x == x && seed.y == y) seeds.push_back({{"generation", seed.generation}, {"sown", seed.sown}});
+    }
+    return {{"turn", world.turn()}, {"x", x}, {"y", y}, {"grass", world.grass_at(x, y)}, {"temperature", world.temperature(y)},
+            {"living", living}, {"dead", dead}, {"seeds", seeds}};
+}
+
+Json Probe::bodies(Simulation& world, std::size_t limit) const {
+    Json found = Json::array();
+    std::size_t count = 0;
+    for (const auto& agent : world.agents()) {
+        if (agent->alive() || agent->species == Species::Plant) continue;
+        ++count;
+        if (found.size() >= limit) continue;
+        Json body = brief(*agent);
+        body["died_turn"] = agent->died_turn ? Json(*agent->died_turn) : Json(nullptr);
+        body["meat"] = agent->meat;
+        body["portions"] = agent->portions;
+        body["fresh"] = world.fresh(*agent);
+        found.push_back(std::move(body));
+    }
+    return {{"turn", world.turn()}, {"count", count}, {"bodies", found}};
+}
+
+Json Probe::seeds(Simulation& world, std::size_t limit) const {
+    Json found = Json::array();
+    for (const Simulation::Seed& seed : world.seeds()) {
+        if (found.size() >= limit) break;
+        found.push_back({{"x", seed.x}, {"y", seed.y}, {"generation", seed.generation}, {"sown", seed.sown}});
+    }
+    return {{"turn", world.turn()}, {"count", world.seeds().size()}, {"seeds", found}};
+}
+
+Json Probe::deaths(Simulation& world, int since, const std::string& species, const std::string& cause, std::size_t limit) const {
+    const std::optional<Species> kind = species.empty() ? std::nullopt : species_named(species);
+    if (!species.empty() && !kind) throw std::invalid_argument("no species " + species);
+    Json found = Json::array();
+    std::size_t matched = 0;
+    const std::vector<Death> all = world.deaths_so_far();
+    for (auto death = all.rbegin(); death != all.rend(); ++death) {  // the latest first
+        if (death->turn < since || (kind && death->species != *kind) || (!cause.empty() && death->cause != cause)) continue;
+        ++matched;
+        if (found.size() >= limit) continue;
+        Json entry = {{"turn", death->turn}, {"species", std::string(species_name(death->species))}, {"cause", death->cause}};
+        if (death->killer >= 0) {
+            entry["killer"] = death->killer;
+            entry["killer_species"] = std::string(species_name(death->killer_species));
+            entry["activity"] = death->activity;
+        }
+        found.push_back(std::move(entry));
+    }
+    Json totals = Json::object();  // every death since the world began, by species and cause
+    for (std::size_t index = 0; index < SPECIES.size(); ++index) {
+        Json causes = Json::object();
+        for (const auto& [name, count] : world.death_causes()[index]) causes[name] = count;
+        totals[std::string(SPECIES[index])] = causes;
+    }
+    return {{"turn", world.turn()}, {"matched", matched}, {"deaths", found}, {"since_the_start", totals}};
+}
+
+Json Probe::history(Simulation& world, std::size_t points) const {
+    const auto& snapshots = world.census().snapshots();
+    const std::size_t stride = std::max<std::size_t>(1, (snapshots.size() + std::max<std::size_t>(points, 1) - 1) / std::max<std::size_t>(points, 1));
+    Json series = Json::array();
+    for (std::size_t at = 0; at < snapshots.size(); at += stride) {
+        std::array<int, 4> counts{};
+        for (const int identifier : snapshots[at].identifiers) {
+            if (const Bitzkey* agent = world.find_agent(identifier)) {
+                counts[static_cast<std::size_t>(agent->species)] += 1;
+            } else if (world.remembered(identifier)) {
+                counts[static_cast<std::size_t>(decode_body(world.lineage(identifier))[SpeciesTrait])] += 1;
+            }
+        }
+        Json alive = Json::object();
+        for (std::size_t index = 0; index < SPECIES.size(); ++index) alive[std::string(SPECIES[index])] = counts[index];
+        series.push_back({{"turn", snapshots[at].turn}, {"alive", alive}});
+    }
+    return {{"turn", world.turn()}, {"points", series.size()}, {"history", series}};
+}
+
+Json Probe::insights(Simulation& world) const {
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        Json actions = Json::object();
+        for (int action = 0; action < ACTION_COUNT; ++action) {
+            const Insights::Rate rate = world.insights().rate(action, species);
+            if (rate.offered <= 0) continue;
+            actions[std::string(ACTIONS[static_cast<std::size_t>(action)])] = {{"offered", rate.offered},
+                                                                                {"taken", rate.share ? Json(*rate.share) : Json(nullptr)}};
+        }
+        result[std::string(species_name(species))] = actions;
+    }
+    return {{"turn", world.turn()}, {"insights", result}};
+}
+
+Json Probe::brain(Simulation& world, int identifier, bool weights) const {
+    Bitzkey* agent = world.find_agent(identifier);
+    if (!agent) throw std::out_of_range("no Bitzkey " + std::to_string(identifier) + " in the world now");
+    if (!agent->brain) throw std::out_of_range("Bitzkey " + std::to_string(identifier) + " has no brain");
+    world.sync_brain(*agent);  // as it now is, from the GPUs if it thinks there
+    Json result = {{"id", identifier}, {"depth", agent->brain->depth()}, {"width", agent->brain->width()}};
+    if (agent->has_last_senses) {
+        const Values values = agent->brain->values(agent->last_senses);
+        Json valued = Json::object();
+        for (int action = 0; action < ACTION_COUNT; ++action) valued[std::string(ACTIONS[static_cast<std::size_t>(action)])] = values[static_cast<std::size_t>(action)];
+        result["values"] = valued;  // what it makes of what it last sensed, every action, open or not
+    }
+    if (weights) result["weights"] = Json::parse(agent->brain->to_record().dump());
+    return result;
+}
+
+std::string Probe::brain_report_text(Simulation& world) const {
+    world.sync_brains();  // every brain as it now is
+    const auto alive = world.living();
+    const std::vector<const Bitzkey*> animals(alive.begin(), alive.end());
+    return brain_report(world.turn(), animals, world.insights());
+}
+
+std::string Probe::death_report_text(Simulation& world) const {
+    std::string text;
+    for (const std::string& line : death_report_lines(world.deaths_so_far())) text += line + '\n';
+    return text;
+}
+
+Json Probe::timings(Simulation& world) const {
+    const Simulation::Timings& took = world.timings;
+    Json actions = Json::object();
+    for (int action = 0; action < ACTION_COUNT; ++action) {
+        if (took.taken[static_cast<std::size_t>(action)]) {
+            actions[std::string(ACTIONS[static_cast<std::size_t>(action)])] = {{"ms", took.actions[static_cast<std::size_t>(action)]},
+                                                                                {"taken", took.taken[static_cast<std::size_t>(action)]}};
+        }
+    }
+    return {{"turn", world.turn()},
+            {"ms_total", {{"upkeep", took.upkeep}, {"sense", took.sense}, {"think", took.think}, {"learn", took.learn},
+                          {"choose", took.choose}, {"act", took.act}, {"after", took.after}, {"record", took.record}}},
+            {"acting", actions}};
+}
+
 void Probe::install(httplib::Server& server, const std::string& prefix) {
     const auto looked = [this](const std::function<Json(Simulation&)>& look) {
         Json result;
@@ -400,6 +625,71 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         reply(response, tracks());
     }));
     server.Get(prefix + "/watch", answered([this](const httplib::Request&, httplib::Response& response) { reply(response, tracks()); }));
+    // The rest of the world.
+    const auto param = [](const httplib::Request& request, const char* name, int fallback) {
+        return request.has_param(name) ? std::stoi(request.get_param_value(name)) : fallback;
+    };
+    const auto text = [](httplib::Response& response, const std::string& body) {
+        response.set_content(body, "text/plain; charset=utf-8");
+    };
+    server.Get(prefix + "/rules", answered([this](const httplib::Request&, httplib::Response& response) {
+        Json result;
+        run_([&](Simulation&) { result = rules(); });  // the rules hold while the world turns
+        reply(response, result);
+    }));
+    server.Get(prefix + "/settings", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return settings(world); }));
+    }));
+    server.Get(prefix + "/climate", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return climate(world); }));
+    }));
+    server.Get(prefix + "/grass", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const bool map = request.get_param_value("map") == "1";
+        reply(response, looked([&](Simulation& world) { return grass(world, map); }));
+    }));
+    server.Get(prefix + "/cell", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const int x = param(request, "x", -1), y = param(request, "y", -1);
+        reply(response, looked([&](Simulation& world) { return cell(world, x, y); }));
+    }));
+    server.Get(prefix + "/bodies", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const auto limit = static_cast<std::size_t>(std::max(0, param(request, "limit", 500)));
+        reply(response, looked([&](Simulation& world) { return bodies(world, limit); }));
+    }));
+    server.Get(prefix + "/seeds", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const auto limit = static_cast<std::size_t>(std::max(0, param(request, "limit", 500)));
+        reply(response, looked([&](Simulation& world) { return seeds(world, limit); }));
+    }));
+    server.Get(prefix + "/deaths", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const int since = param(request, "since", 0);
+        const std::string species = request.get_param_value("species"), cause = request.get_param_value("cause");
+        const auto limit = static_cast<std::size_t>(std::max(0, param(request, "limit", 500)));
+        reply(response, looked([&](Simulation& world) { return deaths(world, since, species, cause, limit); }));
+    }));
+    server.Get(prefix + "/history", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const auto points = static_cast<std::size_t>(std::max(1, param(request, "points", 200)));
+        reply(response, looked([&](Simulation& world) { return history(world, points); }));
+    }));
+    server.Get(prefix + "/insights", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return insights(world); }));
+    }));
+    server.Get(prefix + R"(/brain/(\d+))", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const int identifier = number_in(request.matches);
+        const bool weights = request.get_param_value("weights") == "1";
+        reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/reports/brain", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        std::string body;
+        run_([&](Simulation& world) { body = brain_report_text(world); });
+        text(response, body);
+    }));
+    server.Get(prefix + "/reports/deaths", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        std::string body;
+        run_([&](Simulation& world) { body = death_report_text(world); });
+        text(response, body);
+    }));
+    server.Get(prefix + "/timings", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return timings(world); }));
+    }));
     server.Delete(prefix + "/watch", answered([this](const httplib::Request& request, httplib::Response& response) {
         unwatch(numbers_in(request.get_param_value("ids")));
         reply(response, tracks());

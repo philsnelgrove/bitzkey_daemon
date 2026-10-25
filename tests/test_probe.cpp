@@ -9,6 +9,7 @@
 #include <httplib.h>
 
 #include "core/Genome.hpp"
+#include "core/Rules.hpp"
 #include "core/Simulation.hpp"
 #include "net/Probe.hpp"
 #include "net/ProbeServer.hpp"
@@ -153,4 +154,43 @@ TEST_CASE("a herd holds together within a couple of steps, not merely within sig
     REQUIRE(loose["herds"].size() == 1);
     CHECK(loose["herds"][0]["size"] == 6);
     CHECK_THROWS_AS(probe.herds(world, "grazer", false, 0), std::invalid_argument);
+}
+
+TEST_CASE("the probe reads the rest of the world: rules, settings, climate, grass, cells, bodies, deaths, history, brains") {
+    Simulation world = empty_world();
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});
+    Bitzkey& mother = world.add_agent(dna, 5, 5);
+    Bitzkey& father = world.add_agent(dna, 5, 6);
+    world.index_cells();
+    for (int turn = 0; turn < 3; ++turn) world.advance();
+    net::Probe probe = direct(world);
+
+    const Json rules = probe.rules()["rules"];
+    CHECK(rules["SEASON_TURNING"]["value"].get<double>() == doctest::Approx(SEASON_TURNING));
+    CHECK(rules.size() == rules::all().size());
+    CHECK(probe.settings(world)["width"] == 40);
+    const Json climate = probe.climate(world);
+    REQUIRE(climate["rows"].size() == 40);
+    CHECK(climate["rows"][0]["temperature"].get<double>() == doctest::Approx(world.temperature(0)));
+    CHECK(probe.grass(world, true)["map"].size() == 40);
+
+    const Json square = probe.cell(world, mother.x, mother.y);
+    CHECK(square["living"].size() >= 1);
+    CHECK_THROWS_AS(probe.cell(world, -1, 0), std::invalid_argument);
+
+    world.die(father, "killed");
+    const Json bodies = probe.bodies(world, 10);
+    CHECK(bodies["count"] == 1);
+    const Json deaths = probe.deaths(world, 0, "grazer", "", 10);
+    CHECK((deaths["matched"].get<int>() >= 1 && deaths["deaths"][0]["cause"] == "killed"));
+    CHECK(deaths["since_the_start"]["grazer"]["killed"].get<int>() >= 1);
+
+    CHECK(probe.history(world, 50)["points"].get<int>() >= 1);
+    CHECK(probe.insights(world).contains("insights"));
+    const Json brain = probe.brain(world, mother.identifier, true);
+    CHECK((brain["depth"].get<int>() >= 1 && brain.contains("weights")));
+    if (mother.has_last_senses) CHECK(brain["values"].size() == ACTION_COUNT);
+    CHECK(!probe.death_report_text(world).empty());
+    CHECK(probe.timings(world).contains("ms_total"));
+    CHECK(probe.animal(world, mother.identifier).contains("body"));
 }

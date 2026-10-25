@@ -845,6 +845,11 @@ public:
     Bitzkey* find_agent(int identifier) const;
     // Whether an animal is in heat now, where it stands (see HEAT_CLOSEST).
     bool heat(const Bitzkey& agent) const;
+    // Its brain as it now is, brought back from the GPUs if it thinks there: to read it.
+    void sync_brain(Bitzkey& agent) {
+        Bitzkey* one[] = {&agent};
+        sync(one);
+    }
     std::vector<Bitzkey*> nearby_cell(Cell cell, int radius, const Bitzkey* except) const;
     std::vector<Cell> free_cells_near(const Bitzkey& agent) const;  // squares near it, its own first, with any room
     std::vector<Cell> squares_near(const Bitzkey& agent) const;     // its own square, then those around, nearest first

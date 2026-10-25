@@ -196,7 +196,7 @@ Workers speak to the main service in a binary protocol over HTTP, and a worker a
 
 ## The probe
 
-The probe lets a program, or an assistant, look at the world while it runs: any Bitzkey, the herds, and the turn-by-turn tracks of the Bitzkeys it is asked to watch. It only reads the world, never changes it. It is served among the page's own routes, under `/api/probe`, and answers JSON:
+The probe lets a program, or an assistant, read anything about the world while it runs: any Bitzkey and its brain, the herds, the turn-by-turn tracks of the Bitzkeys it is asked to watch, and the rules, climate, grass, bodies, seeds, deaths, history and reports. It only reads the world, never changes it. It is served among the page's own routes, under `/api/probe`, and answers JSON:
 
 | Route | What it shows |
 |---|---|
@@ -208,6 +208,20 @@ The probe lets a program, or an assistant, look at the world while it runs: any 
 | `POST /api/probe/watch` `{"ids": [...], "keep": turns}` | watch these Bitzkeys, turn by turn |
 | `GET /api/probe/watch` | the tracks of those watched, until they die (720 turns of each kept, unless told otherwise) |
 | `DELETE /api/probe/watch?ids=` | stop watching these, or all |
+| `GET /api/probe/rules` | every advanced rule: its value, group, label, hint and limits |
+| `GET /api/probe/settings` | the world's settings, the turns it keeps, its GPUs and its totals |
+| `GET /api/probe/climate` | each row: its temperature now, how its grass grows, and its grass |
+| `GET /api/probe/grass?map=1` | the grass row by row, and cell by cell if asked |
+| `GET /api/probe/cell?x=&y=` | one square: its grass, its Bitzkeys living and dead, its seeds |
+| `GET /api/probe/bodies?limit=` | the bodies still lying in the world, fresh kills or carrion |
+| `GET /api/probe/seeds?limit=` | the seeds waiting in the ground |
+| `GET /api/probe/deaths?since=&species=&cause=&limit=` | the deaths the world remembers, latest first, and every death's cause counted since the start |
+| `GET /api/probe/history?points=` | each species' numbers over the run, as the graph remembers it |
+| `GET /api/probe/insights` | how often each species took each action when it could, lately |
+| `GET /api/probe/brain/ID?weights=1` | a brain: its shape, what it makes of what it last sensed, and its weights if asked |
+| `GET /api/probe/reports/brain` | the brain report, as text |
+| `GET /api/probe/reports/deaths` | the death report, as text |
+| `GET /api/probe/timings` | where each turn's time has gone, part by part and action by action |
 
 Like the page, the probe has no password. A worker serves none of it. The [Windows desktop app](https://github.com/philsnelgrove/bitzkey_cpp) serves the same probe on a port of its own computer, when asked to.
 

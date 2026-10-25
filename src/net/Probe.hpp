@@ -45,6 +45,22 @@ public:
     //   POST   prefix/watch  {"ids": [...], "keep": turns}   watch these Bitzkeys, turn by turn
     //   GET    prefix/watch                  the tracks of those watched
     //   DELETE prefix/watch?ids=             stop watching these, or all of them
+    // And the rest of the world:
+    //   GET    prefix/rules                  every advanced rule: its value, group, label, hint and limits
+    //   GET    prefix/settings               the world's settings, its turns kept, the GPUs, and its totals
+    //   GET    prefix/climate                each row: its temperature now, its grass's growth, and its grass
+    //   GET    prefix/grass?map=1            the grass, row by row, and cell by cell if asked
+    //   GET    prefix/cell?x=&y=             one square: its grass, its Bitzkeys living and dead, its seeds
+    //   GET    prefix/bodies?limit=          the bodies still lying in the world, fresh kills or carrion
+    //   GET    prefix/seeds?limit=           the seeds waiting in the ground
+    //   GET    prefix/deaths?since=&species=&cause=&limit=   the deaths the world remembers, and every death's cause
+    //                                        counted since the start
+    //   GET    prefix/history?points=        each species' numbers over the run, as the graph remembers it
+    //   GET    prefix/insights               how often each species took each action when it could, lately
+    //   GET    prefix/brain/ID?weights=1     a brain: its shape, its values for what it last sensed, its weights if asked
+    //   GET    prefix/reports/brain          the brain report, as text
+    //   GET    prefix/reports/deaths         the death report, as text
+    //   GET    prefix/timings                where each turn's time has gone
     void install(httplib::Server& server, const std::string& prefix);
 
     // After each new turn, with the world held: the watched Bitzkeys' tracks grow by a turn.
@@ -61,6 +77,20 @@ public:
     void watch(const std::vector<int>& identifiers, std::size_t keep);
     Json tracks() const;
     void unwatch(const std::vector<int>& identifiers);  // all, when empty
+    Json rules() const;
+    Json settings(Simulation& world) const;
+    Json climate(Simulation& world) const;
+    Json grass(Simulation& world, bool map) const;
+    Json cell(Simulation& world, int x, int y) const;
+    Json bodies(Simulation& world, std::size_t limit) const;
+    Json seeds(Simulation& world, std::size_t limit) const;
+    Json deaths(Simulation& world, int since, const std::string& species, const std::string& cause, std::size_t limit) const;
+    Json history(Simulation& world, std::size_t points) const;
+    Json insights(Simulation& world) const;
+    Json brain(Simulation& world, int identifier, bool weights) const;
+    std::string brain_report_text(Simulation& world) const;
+    std::string death_report_text(Simulation& world) const;
+    Json timings(Simulation& world) const;
 
 private:
     struct Herd {
