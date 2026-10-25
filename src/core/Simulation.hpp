@@ -8,6 +8,7 @@
 #include <exception>
 #include <filesystem>
 #include <functional>
+#include <mutex>
 #include <memory>
 #include <optional>
 #include <span>
@@ -1159,6 +1160,13 @@ private:
     // Put a brain on the GPUs, unless they have failed.
     void attach(Bitzkey& agent);
     std::deque<Snapshot> history_;      // every turn kept, oldest first
+    // Brains a turn let go of held nothing else, kept to copy brains into rather than make new ones: in a crowded
+    // world every brain that learns is copied from the one the history keeps, hundreds of megabytes a turn, and
+    // making and freeing them is slower than all the learning. The lock guards them while brains learn at once.
+    std::vector<std::shared_ptr<Brain>> spare_brains_;
+    std::unique_ptr<std::mutex> spare_lock_ = std::make_unique<std::mutex>();  // held apart, so the world can still move
+    // A brain of its own to learn on: its own if nothing else holds it, else a copy, into a spare brain if there is one.
+    Brain& learning_brain(Bitzkey& agent);
     std::uintmax_t history_bytes_ = 0;  // the memory they take, near enough
     int frontier_ = 0;
 };

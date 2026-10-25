@@ -723,8 +723,12 @@ void Simulation::record() {
            (gpu_ || (HISTORY_TURNS < HISTORY_ALL && history_.size() > static_cast<std::size_t>(HISTORY_TURNS)) ||
             static_cast<double>(history_bytes_) > HISTORY_MEMORY * static_cast<double>(std::uintmax_t{1} << 30))) {
         history_bytes_ -= history_.front().bytes;
+        for (Bitzkey& gone : history_.front().agents) {  // brains nothing else holds, kept to copy into
+            if (gone.brain && gone.brain.use_count() == 1) spare_brains_.push_back(std::move(gone.brain));
+        }
         history_.pop_front();
     }
+    if (spare_brains_.size() > agents_.size()) spare_brains_.resize(agents_.size());  // no more than a world could use
 }
 
 std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, int x, int y) {
@@ -1331,6 +1335,23 @@ double choice_learning(int choice) {
     }
 }
 
+Brain& Simulation::learning_brain(Bitzkey& agent) {
+    if (agent.brain.use_count() > 1) {
+        std::shared_ptr<Brain> copy;
+        {
+            std::lock_guard held(*spare_lock_);
+            if (!spare_brains_.empty()) {
+                copy = std::move(spare_brains_.back());
+                spare_brains_.pop_back();
+            }
+        }
+        if (copy) *copy = *agent.brain;  // into the spare's memory, as far as it is the same shape
+        else copy = std::make_shared<Brain>(*agent.brain);
+        agent.brain = std::move(copy);
+    }
+    return *agent.brain;
+}
+
 void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
@@ -1349,7 +1370,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             }
         }
     } else {
-        agent.own_brain().learn_traced(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent),
+        learning_brain(agent).learn_traced(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent),
                                        agent.intelligence());
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
@@ -1531,22 +1552,33 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             values.clear();
         }
     }
-    if (!gpu_) {
-        for (std::size_t index = 0; index < agents.size(); ++index) values.push_back(agents[index]->brain->values(plans[index].senses));
+    if (!gpu_) {  // on every core at once, each brain reading only itself
+        values.resize(agents.size());
+        std::for_each(std::execution::par, indices.begin(), indices.end(),
+                      [&](std::size_t index) { values[index] = agents[index]->brain->values(plans[index].senses); });
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
     timings.think += lap(clock);
+    // What came of each one's last choice: whatever raised its health (fullness counting with it) or its mood was a
+    // success, whatever lowered them a failure, by how much; both may happen. Each learns from it on its own brain
+    // alone, so on the CPU they all learn at once, on every core, each its lessons in their order, as one by one.
+    std::vector<double> rewards(agents.size()), targets(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         if (!agent.has_last_senses) continue;
-        // What came of its last choice: whatever raised its health (fullness counting with it) or its
-        // mood was a success, whatever lowered them a failure, by how much; both may happen.
-        const double reward = agent.reward + wellbeing(agent) - agent.last_wellbeing + comforts[index] - agent.last_comfort;
+        rewards[index] = agent.reward + wellbeing(agent) - agent.last_wellbeing + comforts[index] - agent.last_comfort;
         const std::vector<int>& options = plans[index].options;
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);
-        learn(agent, reward + discount(agent) * best, reward, true);
-        if (reward > 0) experience(agent, Lesson);  // a lesson learnt from a choice that turned out well
+        targets[index] = rewards[index] + discount(agent) * best;
+    }
+    const auto teach = [&](std::size_t index) {
+        if (agents[index]->has_last_senses) learn(*agents[index], targets[index], rewards[index], true);
+    };
+    if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
+    else std::for_each(std::execution::par, indices.begin(), indices.end(), teach);
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        if (agents[index]->has_last_senses && rewards[index] > 0) experience(*agents[index], Lesson);  // a choice that turned out well
     }
     learn_queued();  // on the GPUs, every brain's lessons at once
     timings.learn += lap(clock);
