@@ -35,6 +35,7 @@ Json brief(const Bitzkey& agent) {
     return {{"id", agent.identifier},
             {"species", std::string(species_name(agent.species))},
             {"terrain", std::string(terrain_name(agent.terrain))},
+            {"nocturnal", agent.nocturnal},
             {"wet", agent.wet},
             {"x", agent.x},
             {"y", agent.y},
@@ -127,7 +128,10 @@ Json Probe::state(Simulation& world) const {
             {"width", world.width()},
             {"height", world.height()},
             {"alive", alive},
-            {"by_terrain", by_terrain}};
+            {"by_terrain", by_terrain},
+            {"day_length", DAY_LENGTH},
+            {"night_start", world.night_start()},  // the night runs east half the map's width from this column
+            {"night_width", world.width() / 2}};
 }
 
 Json Probe::animals(Simulation& world, const std::string& species, int x, int y, int radius, std::size_t limit) const {

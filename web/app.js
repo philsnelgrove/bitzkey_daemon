@@ -5,7 +5,7 @@
 import { startLanguages } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -341,6 +341,15 @@ function drawMap() {
         }
       }
       ctx.fill();
+    }
+  }
+  const day = app.state?.day_length;
+  if (day) {  // the night, a shadow over half the map's columns, moving west round it once a day, as the daemon has it
+    const width = frame.width, columns = Math.floor(width / 2);
+    const start = (((Math.trunc(-(frame.turn % day) * width / day)) % width) + width) % width;
+    ctx.fillStyle = NIGHT;
+    for (const [from, count] of [[start, Math.min(columns, width - start)], [0, Math.max(0, start + columns - width)]]) {
+      if (count > 0) ctx.fillRect(geometry.x + from * cell, geometry.y, count * cell, geometry.h);
     }
   }
   const [smallest, largest] = mapDotRadii(cell);

@@ -165,6 +165,7 @@ void gene_senses(Dna dna, Senses& senses) {
     senses[SenseSwims] = swims(terrain);
     senses[SenseWalks] = walks(terrain);
     senses[SenseFlies] = terrain == Terrain::Avian;
+    senses[SenseNocturnal] = decode_nocturnal(dna);
 }
 
 Layer Layer::zeros(int neurons, int reads) {

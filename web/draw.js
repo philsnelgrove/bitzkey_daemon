@@ -18,6 +18,7 @@ export const GRASS = [62, 122, 52];
 const SEA = [38, 84, 140];
 const SEA_TINT = 0.6;
 export const SEA_GRASS = [58, 150, 120];
+export const NIGHT = 'rgba(10, 16, 40, 0.35)';  // the shadow over the night's half of the map
 export const GRID = [140, 146, 142];
 export const EXPORTING = [205, 120, 30];
 export const SPECIES = ['plant', 'grazer', 'omnivore', 'predator'];

@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <map>
+
 #include <nlohmann/json.hpp>
 
 #include "core/Genome.hpp"
@@ -58,29 +60,29 @@ TEST_CASE("terrain sits after neurodivergence, and a child takes it whole from o
     CHECK((both[0] && both[1]));
 }
 
-TEST_CASE("a mutation of the species' third bit moves the terrain a step along its chain") {
-    // Set, a step toward the air; cleared, a step toward the sea; no further than the chain's ends.
+TEST_CASE("a terrain mutation moves it a step along its chain, toward the sea or the air") {
     const auto children = [](Dna parent, bool mutation) {
         PyRandom rng(12);
-        std::vector<std::pair<bool, Terrain>> found;  // whether the bit flipped, and the child's terrain
-        for (int child = 0; child < 400; ++child) {
-            const Dna made = cross(parent, parent, rng, std::nullopt, 0.0, 1.0, mutation);
-            found.emplace_back(((body_word(made) ^ body_word(parent)) & 0x4U) != 0, decode_terrain(made));
-        }
+        std::map<Terrain, int> found;
+        for (int child = 0; child < 4000; ++child) found[decode_terrain(cross(parent, parent, rng, std::nullopt, 0.0, 1.0, mutation))] += 1;
         return found;
     };
-    const Dna amphibious = encode_dna(Species::Grazer, {{"terrain", 3}});  // its third species bit clear: setting it, toward the air
-    int flips = 0;
-    for (const auto& [flipped, terrain] : children(amphibious, true)) {
-        CHECK(terrain == (flipped ? Terrain::Terrestrial : Terrain::Amphibious));
-        flips += flipped;
-    }
-    CHECK(flips > 0);
-    for (const auto& [flipped, terrain] : children(amphibious, false)) CHECK(terrain == Terrain::Amphibious);  // none where it's off
-    const Dna sea_bound = Dna(encode_dna(Species::Grazer, {{"terrain", 3}}).bits | (std::uint64_t{0x4} << 32), with_terrain(0, Terrain::Amphibious).social);
-    for (const auto& [flipped, terrain] : children(sea_bound, true)) CHECK(terrain == (flipped ? Terrain::Aquatic : Terrain::Amphibious));
-    const Dna fish = encode_dna(Species::Grazer, {{"terrain", 1}});  // at the sea's end already
-    for (const auto& [flipped, terrain] : children(Dna(fish.bits | (std::uint64_t{0x4} << 32), fish.social), true)) CHECK(terrain == Terrain::Aquatic);
+    const auto amphibious = children(encode_dna(Species::Grazer, {{"terrain", 3}}), true);
+    CHECK((amphibious.at(Terrain::Aquatic) > 0 && amphibious.at(Terrain::Terrestrial) > 0));  // a step either way
+    CHECK(amphibious.count(Terrain::Avian) == 0);  // never two
+    const double moved = 4000 - amphibious.at(Terrain::Amphibious);
+    CHECK(moved / 4000 == doctest::Approx(TERRAIN_MUTATION_SHARE).epsilon(0.35));  // at its share of the body mutations
+    CHECK(children(encode_dna(Species::Grazer, {{"terrain", 3}}), false).size() == 1);  // none where it's off
+    const auto fish = children(encode_dna(Species::Grazer, {{"terrain", 1}}), true);  // at the sea's end already
+    CHECK(fish.count(Terrain::Terrestrial) == 0);
+}
+
+TEST_CASE("the species' third bit is the activity gene") {
+    const Dna diurnal = encode_dna(Species::Omnivore);
+    CHECK_FALSE(decode_nocturnal(diurnal));
+    const Dna nocturnal(diurnal.bits | NOCTURNAL, diurnal.social);
+    CHECK(decode_nocturnal(nocturnal));
+    CHECK(decode_body(nocturnal)[SpeciesTrait] == static_cast<int>(Species::Omnivore));  // the species as it was
 }
 
 TEST_CASE("the climate genes hold the top bits of each word") {

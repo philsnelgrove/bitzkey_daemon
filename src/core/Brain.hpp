@@ -74,6 +74,7 @@ enum Sense : int {
     SenseShoreEast,
     SenseShoreWest,
     SenseStamina,          // 1 fresh, falling to 0 exhausted, when it can only rest
+    SenseNight,            // 1 when it is night where it stands
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -91,7 +92,8 @@ constexpr int SenseColdTolerance = SenseHeatTolerance + 1;
 constexpr int SenseSwims = SenseColdTolerance + 1;  // then its terrain: whether it may go into the sea, 0 or 1,
 constexpr int SenseWalks = SenseSwims + 1;          // onto the land,
 constexpr int SenseFlies = SenseWalks + 1;          // and whether it flies
-constexpr int INPUT_SIZE = SenseFlies + 1;
+constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 nocturnal, 0 diurnal
+constexpr int INPUT_SIZE = SenseNocturnal + 1;
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
     "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "prey_pregnant", "threat_near", "threat_danger",
@@ -99,14 +101,14 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
     "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near",
-    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "aggression", "libido", "curiosity",
+    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "night", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
     "inborn_moodiness", "inborn_sociability", "inborn_empathy", "inborn_tolerance", "inborn_loyalty",
     "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
-    "heat_tolerance", "cold_tolerance", "swims", "walks", "flies"};
+    "heat_tolerance", "cold_tolerance", "swims", "walks", "flies", "nocturnal"};
 int action_index(std::string_view name);  // -1 when unknown
 int sense_index(std::string_view name);   // -1 when unknown
 

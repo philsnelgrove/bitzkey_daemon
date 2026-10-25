@@ -245,6 +245,7 @@ Bitzkey::Bitzkey(int identifier_, Dna dna_, int x_, int y_)
 
 void Bitzkey::derive() {
     terrain = decode_terrain(dna);
+    nocturnal = decode_nocturnal(dna);
     {  // plant or animal: it is its genes' body that counts, feeble or not
         const double shortest = LIFESPAN_YEARS[0], middle = LIFESPAN_YEARS[1], longest = LIFESPAN_YEARS[2];
         const double fastest = METABOLISM[0], slowest = METABOLISM[1];
@@ -1335,6 +1336,14 @@ double choice_learning(int choice) {
     }
 }
 
+int Simulation::night_start() const {
+    return py_mod(-(turn_ % DAY_LENGTH) * width_ / DAY_LENGTH, width_);
+}
+
+bool Simulation::night(int x) const {
+    return py_mod(x - night_start(), width_) < width_ / 2;
+}
+
 Brain& Simulation::learning_brain(Bitzkey& agent) {
     if (agent.brain.use_count() > 1) {
         std::shared_ptr<Brain> copy;
@@ -1606,6 +1615,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         if (agent.exhausted()) {  // spent: it can do nothing but rest, whatever it fears
             situation.panic = situation.frozen = false;
             options = {Rest};
+        } else if (SLEEP && resting_time(agent) && !agent.aloft_at_sea() && !situation.panic && !situation.frozen) {
+            std::vector<int> asleep{Rest};  // its night: it rests, unless startled awake by a hunter or a blow
+            for (const int option : options) {
+                if (option == Flee || option == Defend) asleep.push_back(option);
+            }
+            options = std::move(asleep);
         }
         Values valued = values[index];
         if (agent.species == Species::Predator) {  // the instinct to hunt, on top of what its brain has learnt
@@ -1916,6 +1931,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseYoungNear] = std::min(3, young) / 3.0;
     senses[SenseSeaHere] = agent.wet;
     senses[SenseStamina] = agent.stamina / FULL_STAMINA;
+    senses[SenseNight] = night(agent.x);
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
             const Heading& way = HEADINGS[static_cast<std::size_t>(heading)];

@@ -16,6 +16,10 @@ struct Grown : doctest::IReporter {
         bitzkey::FULL_LITTER_FOOD = 2.0;  // and full litters at twice the need, as the older tests' figures assume
         bitzkey::PREDATOR_FULL_LITTER_FOOD = 2.0;
         bitzkey::GRAZER_RARE_BREEDING_COST = 1.0;
+        // The older tests' figures count years of 360 turns, and their animals don't sleep through the night, unless
+        // a test says so.
+        bitzkey::DEFAULT_YEAR_LENGTH = bitzkey::YEAR_LENGTH = 360;
+        bitzkey::SLEEP = 0;
     }
     void report_query(const doctest::QueryData&) override {}
     void test_run_start() override {}

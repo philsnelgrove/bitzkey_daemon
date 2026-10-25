@@ -50,18 +50,19 @@ inline double FLIGHT_HUNGER = 0.25;
 inline double AMPHIBIOUS_SPEED = 0.5;
 inline double AMPHIBIOUS_COOLDOWN = 2.0;
 inline double AVIAN_SEED_REACH = 2.0;
-// Stamina, 0 to 100: every action but rest tires an animal, and resting restores REST_RECOVERY a turn. Any other
+// Stamina, 0 to 100: every action but rest tires an animal, and resting restores REST_RECOVERY a turn: on the whole,
+// an animal spends it in five turns of acting and gets it back in three of rest, a day of eight turns. Any other
 // action costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more (a flyer's FLIGHT_FATIGUE times that), each
 // blow it strikes STRIKE_FATIGUE and mating BREED_FATIGUE (each parent); a flyer over the sea, where it can't rest,
 // tires HOVER_FATIGUE a turn more. An animal with no stamina left can only rest, and a flyer exhausted over the sea
 // drowns. An amphibious animal tires AMPHIBIOUS_FATIGUE times as fast at everything.
-inline double REST_RECOVERY = 20;
-inline double ACTION_FATIGUE = 1;
-inline double STEP_FATIGUE = 2;
+inline double REST_RECOVERY = 34;
+inline double ACTION_FATIGUE = 10;
+inline double STEP_FATIGUE = 5;
 inline double FLIGHT_FATIGUE = 2.0;
-inline double STRIKE_FATIGUE = 10;
-inline double BREED_FATIGUE = 15;
-inline double HOVER_FATIGUE = 1;
+inline double STRIKE_FATIGUE = 50;
+inline double BREED_FATIGUE = 75;
+inline double HOVER_FATIGUE = 5;
 inline double AMPHIBIOUS_FATIGUE = 2.0;
 // What tiring by `cost` takes from an animal: an amphibious one's AMPHIBIOUS_FATIGUE times as much.
 inline double fatigue(const Bitzkey& agent, double cost);
@@ -385,7 +386,14 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // across the equator's middle stays hot through both winters. Every Bitzkey has a home temperature,
 // and may tolerate heat or cold, suffering HARDINESS of its penalties, and FRAILTY of the other's; plants tolerate nothing, and a plant
 // spawned at the start is at home in its zone's usual temperature.
-constexpr int DEFAULT_YEAR_LENGTH = 360;
+// Days: every DAY_LENGTH turns is a day, and a new world's year is 360 of them. Night covers half the map, its
+// columns from the top to the bottom, and moves west round it once a day. With SLEEP, an animal rests through its
+// night, the dark for the diurnal and the light for the nocturnal (see the activity gene): it may only rest, but for
+// fleeing a hunter or striking back at what struck it, startled awake, and a flyer over the sea, which can't rest.
+inline int DAY_LENGTH = 8;
+inline int SLEEP = 1;
+constexpr int DAYS_IN_YEAR = 360;
+inline int DEFAULT_YEAR_LENGTH = 8 * DAYS_IN_YEAR;  // a new world's, unless its settings say otherwise
 inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its year length setting
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
@@ -548,6 +556,7 @@ struct Bitzkey {
     // Fixed by the genome.
     Species species;
     Terrain terrain = Terrain::Terrestrial;  // kept up by derive()
+    bool nocturnal = false;                  // active by night, resting by day; else the other way round (derive())
     Traits inborn;
     Body body;
     double max_health, metabolism, stomach, burn, might, toughness, lifespan, breeding_cost, digestion;
@@ -708,6 +717,11 @@ public:
     std::vector<Bitzkey*> living() const;
     int grass_at(int x, int y) const;
     // The sea: whether a square lies under it (none off the map, nor in a world without sea).
+    // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
+    bool night(int x) const;
+    int night_start() const;  // the westernmost column of the night, which runs east half the map's width from it
+    // Whether an animal is in its night where it stands: dark for the diurnal, light for the nocturnal.
+    bool resting_time(const Bitzkey& agent) const { return agent.nocturnal != night(agent.x); }
     bool sea(int x, int y) const { return !sea_.empty() && in_bounds(x, y) && sea_[static_cast<std::size_t>(y) * width_ + x]; }
     bool has_sea() const { return !sea_.empty(); }
     const std::vector<std::uint8_t>& sea_map() const { return sea_; }  // a square a cell, row by row; empty without sea

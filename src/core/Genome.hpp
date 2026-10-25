@@ -5,8 +5,8 @@
 // ring: the body and its physical attributes. The high 32 bits are the social background, behind
 // the species icon: how it treats others. The dot and ring each hold ten three-bit traits (0 to 7),
 // from their least-significant bits; their top two bits carry no trait but the climate genes. The
-// ring's first trait is the species, in its lower two bits; its third bit sets no species, but a
-// mutation landing there moves the terrain along its chain. The social background holds seven
+// ring's first trait is the species, in its lower two bits; its third bit is the activity gene, nocturnal (set) or
+// diurnal. The social background holds seven
 // three-bit traits, then the four-bit neurodivergence gene (0 to 15), which does nothing yet, then
 // the two-bit terrain gene; its top five bits are spare. Like the rest, they all shade the colour:
 // read as four CMYK bytes, each word sets the colour of its part of the Bitzkey. Version 1 genomes
@@ -61,6 +61,9 @@ constexpr double MIND_MUTATION_CHANCE = 0.25;  // for each of MIND_MUTATION_ROLL
 constexpr int MIND_MUTATION_ROLLS = 3;
 constexpr double BODY_MUTATION_CHANCE = 0.25;  // one bit of the ring flips
 constexpr double SPECIES_REROLL = 0.5;  // a body mutation landing on the species is moved to another bit, rolled afresh, this often
+// A birth's chance of its terrain moving a step along TERRAIN_CHAIN, as a share of its body mutation chance.
+constexpr double TERRAIN_MUTATION_SHARE = 1.0 / 32;
+constexpr std::uint64_t NOCTURNAL = std::uint64_t{1} << 34;  // the species trait's third bit: active by night
 constexpr int V1_MAX = 15;
 constexpr int V2_TRAIT_DEFAULT = 3;  // the traits version 2 lacked start here when converted
 
@@ -119,6 +122,7 @@ inline std::uint32_t social_word(Dna dna) { return dna.social; }
 Traits decode_temperament(Dna dna);  // the dot's traits, then the social background's
 Body decode_body(Dna dna);  // the species slot holds the species index, the trait value mod 4
 inline int decode_neurodivergence(Dna dna) { return static_cast<int>((dna.social >> NEURODIVERGENCE_SHIFT) & NEURODIVERGENCE_MAX); }
+inline bool decode_nocturnal(Dna dna) { return (dna.bits & NOCTURNAL) != 0; }
 inline Terrain decode_terrain(Dna dna) { return static_cast<Terrain>((dna.social & TERRAIN_BITS) >> TERRAIN_SHIFT); }
 inline Dna with_terrain(Dna dna, Terrain terrain) {
     dna.social = (dna.social & ~TERRAIN_BITS) | static_cast<std::uint32_t>(terrain) << TERRAIN_SHIFT;
@@ -169,8 +173,8 @@ std::uint32_t write_social(std::uint32_t spare, const Mind& mind, PyRandom& rng)
 // A child's genome: the ring a single-point crossover with a `body_chance` of one flipped bit;
 // the dot and social background written from `mind`, or from the average of the parents' inborn traits.
 // Its terrain is one parent's, as the rest of the social background's spare bits are; with `terrain_mutation`, a
-// flip of the species' third bit moves it a step along TERRAIN_CHAIN, toward the air if the bit was set, toward
-// the sea if cleared (and no further than the chain's end).
+// birth has TERRAIN_MUTATION_SHARE of the body mutation chance of moving it a step along TERRAIN_CHAIN, toward the
+// sea or the air as likely (and no further than the chain's end).
 Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind = std::nullopt,
           double mind_chance = MIND_MUTATION_CHANCE, double body_chance = BODY_MUTATION_CHANCE,
           bool terrain_mutation = true);

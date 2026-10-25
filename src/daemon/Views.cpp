@@ -153,7 +153,7 @@ const std::array<Setting, 10> SETTINGS = {{
      "no limit"},
     {"mind_mutation", "Mind mutation", "mind mutations a birth carries: 0 none, 50 about 1.5, 100 three", 0, 100, 5},
     {"body_mutation", "Body mutation", "percent chance a birth flips one body gene: 0 stable, 100 always", 0, 100, 5},
-    {"year_length", "Year length", "turns in a year, of four seasons; lifespans are counted in years", 20, 3600, 20},
+    {"year_length", "Year length", "turns in a year, of four seasons; a day is 8 turns, and lifespans are counted in years", 32, 28800, 80},
 }};
 
 Json setting_value(const Simulation::Settings& settings, std::string_view key) {
@@ -238,6 +238,7 @@ Json state(World& world) {
         {"rules_changed", world.rules().size()},
         {"mode", "main"},
         {"about", about()},  // the version running and the cores it thinks on, for the page's header
+        {"day_length", DAY_LENGTH},  // the night moves round the map once a day
         {"pooled", world.pool().bound()},  // its brains shared with workers
     };
     return result;
@@ -299,6 +300,7 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
         {"identifier", agent.identifier},
         {"species", std::string(species_name(agent.species))},
         {"species_index", static_cast<int>(agent.species)},
+        {"nocturnal", agent.nocturnal},
         {"terrain", std::string(terrain_name(agent.terrain))},
         {"dot", hex_word(mind_word(agent.dna))},
         {"ring", hex_word(body_word(agent.dna))},

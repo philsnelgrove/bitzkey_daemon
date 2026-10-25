@@ -201,12 +201,10 @@ Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind,
           double body_chance, bool terrain_mutation) {
     const std::uint32_t mask = static_cast<std::uint32_t>((1ULL << rng.randrange(1, 32)) - 1);
     std::uint32_t body = (body_word(first) & mask) | (body_word(second) & ~mask & WORD);
-    int flipped = -1;
     if (rng.random() < body_chance) {
         int bit = static_cast<int>(rng.randrange(32));
         if (bit < 2 && rng.random() < SPECIES_REROLL) bit = static_cast<int>(rng.randrange(32));  // the bits that set the species: often rolled afresh
         body ^= 1U << bit;
-        flipped = bit;
     }
     const Mind start = mind ? *mind : inherit_mind(to_mind(decode_temperament(first)), to_mind(decode_temperament(second)), rng, mind_chance);
     const std::array<Dna, 2> parents = {first, second};
@@ -214,10 +212,10 @@ Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind,
     const std::uint32_t social_spare = social_word(rng.choice(parents));
     const std::uint32_t dot = write_mind(spare, start, rng);
     Dna child{(static_cast<std::uint64_t>(body) << 32) | dot, write_social(social_spare, start, rng)};
-    if (flipped == 2 && terrain_mutation) {  // the species' third bit: the terrain moves a step along its chain
+    if (terrain_mutation && rng.random() < body_chance * TERRAIN_MUTATION_SHARE) {  // a step along its chain
         const Terrain terrain = decode_terrain(child);
         const auto place = static_cast<int>(std::find(TERRAIN_CHAIN.begin(), TERRAIN_CHAIN.end(), terrain) - TERRAIN_CHAIN.begin());
-        const int moved = std::max(0, std::min(3, place + ((body >> 2) & 1U ? 1 : -1)));
+        const int moved = std::max(0, std::min(3, place + (rng.random() < 0.5 ? 1 : -1)));
         child = with_terrain(child, TERRAIN_CHAIN[static_cast<std::size_t>(moved)]);
     }
     return child;

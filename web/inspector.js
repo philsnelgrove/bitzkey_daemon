@@ -33,7 +33,7 @@ export function details(agent, { large = 0 } = {}) {
   const panel = element('div', { class: 'details' });
   panel.append(element('div', { class: 'details-head' },
     bitzkeyCanvas(look(agent), radius, large ? Math.round(large / 4) : 2, agent.alive !== false || !known),
-    element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}${agent.terrain ? '  ' + upper(agent.terrain) : ''}`),
+    element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}${agent.terrain ? '  ' + upper(agent.terrain) : ''}${agent.nocturnal === undefined ? '' : agent.nocturnal ? '  NOCTURNAL' : '  DIURNAL'}`),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   panel.append(element('div', { class: 'mono small' }, `DOT ${agent.dot} RING ${agent.ring} SOCIAL ${agent.social}`));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
