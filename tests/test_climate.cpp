@@ -45,6 +45,20 @@ struct HarshClimate {
     ~HarshClimate() { CLIMATE_DAMAGE = saved; }
 };
 
+// These tests follow a wave through the turns at the pace it first had, over half of each season, with
+// the gentler damage of then, so an animal outlives the winters they watch.
+struct SlowWaves {
+    double turning = SEASON_TURNING, damage = CLIMATE_DAMAGE;
+    SlowWaves() {
+        SEASON_TURNING = 0.5;
+        CLIMATE_DAMAGE = 0.01;
+    }
+    ~SlowWaves() {
+        SEASON_TURNING = turning;
+        CLIMATE_DAMAGE = damage;
+    }
+};
+
 TEST_CASE("zones band the map arctic, temperate, equator, temperate, arctic") {
     std::vector<double> rows;
     for (int y = 0; y < 100; ++y) rows.push_back(zone_temperature(y, 100));
@@ -80,6 +94,7 @@ TEST_CASE("each hemisphere and the equator are a step colder in its winter") {
 }
 
 TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the way it came") {
+    const SlowWaves slow;
     // The north's winter covers the arctic (rows 0-19), the temperate zone (20-39) and the equator
     // (40-59), each 10 bands of two with a wave of its own, all setting off together. A wave takes half
     // a season, 45 turns, and has a front four bands wide. 27 turns in, each front has come 0.6 of 14 bands.
@@ -111,6 +126,7 @@ TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the wa
 }
 
 TEST_CASE("while the weather turns, its effects turn with it") {
+    const SlowWaves slow;
     const HarshClimate harsh;
     Simulation simulation = world_at(116);  // at turn 117, next, the temperate zone's front has turned row 32 0.6 of the way to cold
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 50, 32);
@@ -124,6 +140,7 @@ TEST_CASE("while the weather turns, its effects turn with it") {
 }
 
 TEST_CASE("grass grows and dies back by how medium a turning row is") {
+    const SlowWaves slow;
     Simulation simulation = world_at(117);  // rows 32 and 33 are 0.6 of the way to cold; the south is medium
     simulation.sow(20000);
     double turning = 0, south = 0;
@@ -339,6 +356,7 @@ TEST_CASE("an animal senses which way home lies and how far, beyond its sight, a
 }
 
 TEST_CASE("an animal sees the wave coming as a staircase of warmth") {
+    const SlowWaves slow;
     Simulation simulation = world_at(117);  // the temperate zone's winter front at rows 30 to 37
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}, {"sight", 2}}), 50, 32);  // sees 8 rows
     const Simulation::Sensed sensed = simulation.sense(grazer);
@@ -507,6 +525,7 @@ TEST_CASE("grass grows only where it is medium now") {
 }
 
 TEST_CASE("a seed that falls where it can't grow waits for its temperature") {
+    const SlowWaves slow;
     const double regrowth = GRASS_REGROWTH;
     GRASS_REGROWTH = 0.004;  // the world this test was laid out in: the seed falls where it waits long enough
     Simulation simulation = world_at(240);
@@ -541,6 +560,7 @@ TEST_CASE("a seed stays viable for three quarters of a year") {
 }
 
 TEST_CASE("animals sense the time of year as two clock hands a quarter apart") {
+    const SlowWaves slow;
     Simulation simulation = world_at(0);
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 50, 50);
     std::vector<std::pair<double, double>> hands;

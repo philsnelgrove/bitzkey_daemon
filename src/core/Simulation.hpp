@@ -114,7 +114,7 @@ inline double WALK_REST = 0.5;
 inline double GO_EFFORT = 0.25;
 inline double FEAR_DREAD = 0.3;
 inline double UNEASE = 0.1;
-inline double CLIMATE_UNEASE = 1.5;  // discomfort two or more steps from home, half that one step; less for the hardy
+inline double CLIMATE_UNEASE = 2.0;  // discomfort two or more steps from home, half that one step; less for the hardy
 inline double HOMEWARD_UNEASE = 1.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
 inline double EMPATHY_PAIN = 0.15;
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
@@ -331,7 +331,7 @@ inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its ye
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
-inline double CLIMATE_DAMAGE = 0.01;   // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
+inline double CLIMATE_DAMAGE = 0.025;  // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
 inline int GRASS_DIEBACK = 20;     // where it isn't medium, a cell's grass loses a tuft every this many turns
 // The weather turns in waves, one in each climate zone, all setting off together as the season turns,
@@ -339,7 +339,7 @@ inline int GRASS_DIEBACK = 20;     // where it isn't medium, a cell's grass lose
 // toward the equator, and as it ends ebbs back the way it came, over this share of each season. The wave moves in bands of WAVE_BAND
 // rows; at its front, WAVE_FRONT bands stand part way between the old weather and the new, in even
 // steps, so the change comes as a staircase. The climate's effects move with it.
-inline double SEASON_TURNING = 0.5;
+inline double SEASON_TURNING = 0.1;
 inline int WAVE_BAND = 2;
 inline int WAVE_FRONT = 4;
 // A dead animal is a fresh kill, not yet carrion, through the turn it died and FRESH_KILL_TURNS more;
