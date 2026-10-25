@@ -86,6 +86,13 @@ inline double SMALL_LITTERS = 2.0;  // the smallest bodies' litters are this man
 // Turns an animal carries its young, from mating to birth: from the first for the smallest body to the
 // second for the largest, evenly between, rounded half up.
 inline std::array<int, 2> GESTATION = {10, 50};
+// Heat: an animal is fertile only while in heat, a stretch of the turns before its next winter, the winter of the row
+// it stands in. Heat ends HEAT_CLOSEST of a year before that winter, and HEAT_FORESIGHT more for the most patient, who
+// breed further from it; it begins HEAT_LENGTH of a year before it ends. No animal is in heat through its own winter,
+// and one where no winter comes, at the polar caps or the equator's heart, always is. By species, plants aside.
+inline std::array<double, 4> HEAT_CLOSEST = {0.0, 0.1, 0.1, 0.1};
+inline std::array<double, 4> HEAT_LENGTH = {0.0, 0.5, 0.5, 0.5};
+inline double HEAT_FORESIGHT = 0.15;
 inline int BIRTH_REACH = 2;  // young are born on the free cells nearest their mother, up to this many cells away
 // Years a Bitzkey, plant or animal, is expected to live: the smallest bodies, with the fastest
 // metabolisms; middling ones; and the largest, with the slowest. Between them, lifespan rises steadily
@@ -124,6 +131,9 @@ inline double EMPATHY_PAIN = 0.15;
 // brain to learn.
 inline double PARENT_JOY = 0.3;
 inline double PARENT_GRIEF = 2.0;
+// A hunter that kills a mother carrying young feels remorse, by half again and up to one and a half times as much
+// with its empathy: a lesson, not a law.
+inline double PREGNANT_REMORSE = 1.0;
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
 // if it had made the herd-mate's last choice itself, and feels it, by its empathy times its intellect.
@@ -268,7 +278,7 @@ inline double KIND_DIFFERENCE = 0.25;
 inline int FORAGE_RADIUS = 6;
 inline double FOOD_NEEDED = 0.0;  // 0: no limit, and litters don't follow food
 inline double UPROOT_FOOD = 3.0;  // a starving grazer uproots a plant only with fewer meals a mouth than this about it
-inline double BREED_COOLDOWN = 0.0;  // share of the usual rest after breeding, 20 turns for the least fertile to 5 for the most
+inline double BREED_COOLDOWN = 1.0;  // grazers' and omnivores' share of the usual rest after breeding, 20 turns for the least fertile to 5 for the most
 inline double PREDATOR_BREED_COOLDOWN = 0.5;  // the same for predators: a short rest
 inline double PREDATOR_FOOD_NEEDED = 0.0;  // the same for predators: none, so the food about them never stops them breeding
 // Plants each grazer needs in its home band, the climate band of its home temperature nearest it, shared
@@ -539,7 +549,8 @@ struct Bitzkey {
     double scavenger() const { return std::max(0.0, 2 * physique(Carrion) - 1); }
     Profile profile() const;
     // Ready, not carrying young, and able to pay for breeding with energy to spare.
-    bool can_breed() const { return cooldown == 0 && womb.empty() && hunger + breeding_price() <= 100 - BREED_RESERVE; }
+    bool can_breed() const { return in_heat && cooldown == 0 && womb.empty() && hunger + breeding_price() <= 100 - BREED_RESERVE; }
+    bool in_heat = true;  // in heat now, and so fertile: kept turn by turn (see Simulation::heat)
     double breeding_price() const { return breeding_cost * cost_share; }  // what it pays to breed now, its species' scarcity counted
     bool alive() const { return health > 0; }  // full hunger wears its health away (STARVING_DAMAGE) rather than killing
     // Eat: the same food fills a small stomach more than a large one. Meat is kept track of, as it lasts longer.
@@ -832,6 +843,8 @@ public:
     // The Bitzkey of this identifier, living or dead, while the world still holds it; agents_ stays in the order
     // they were made, so it is found by halving.
     Bitzkey* find_agent(int identifier) const;
+    // Whether an animal is in heat now, where it stands (see HEAT_CLOSEST).
+    bool heat(const Bitzkey& agent) const;
     std::vector<Bitzkey*> nearby_cell(Cell cell, int radius, const Bitzkey* except) const;
     std::vector<Cell> free_cells_near(const Bitzkey& agent) const;  // squares near it, its own first, with any room
     std::vector<Cell> squares_near(const Bitzkey& agent) const;     // its own square, then those around, nearest first

@@ -728,3 +728,25 @@ TEST_CASE("an action finds the world as those before it left it, and a stale pla
     simulation.act(grazer, Breed, situation);
     CHECK((grazer.last_action == "was spurned" && grazer.womb.empty()));
 }
+
+TEST_CASE("an animal is in heat only before its winter, the patient further from it, and never through it") {
+    const auto in_heat = [](Simulation& simulation, int y, int patience) {
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 50, y);
+        grazer.mind[Patience] = patience;
+        return simulation.heat(grazer);
+    };
+    // The north's winter comes at day 90. The least patient are in heat from 216 turns before it to 36 (days 234 to 53),
+    // the most patient from 270 turns before it to 90 (days 180 to 359), further from it.
+    Simulation late = world_at(20);
+    CHECK((in_heat(late, 30, 0) && !in_heat(late, 30, TRAIT_MAX)));
+    Simulation early = world_at(200);
+    CHECK((!in_heat(early, 30, 0) && in_heat(early, 30, TRAIT_MAX)));
+    Simulation both = world_at(300);
+    CHECK((in_heat(both, 30, 0) && in_heat(both, 30, TRAIT_MAX)));
+    Simulation winter = world_at(120);
+    CHECK((!in_heat(winter, 30, 0) && !in_heat(winter, 30, TRAIT_MAX)));  // never through its own winter
+    CHECK(in_heat(winter, 70, 0));   // the south's winter is half a year off: the least patient are in heat
+    CHECK(in_heat(winter, 0, 0));    // the polar cap knows no winter
+    Bitzkey& plant = winter.add_agent(encode_dna(Species::Plant), 10, 30);
+    CHECK(winter.heat(plant));
+}

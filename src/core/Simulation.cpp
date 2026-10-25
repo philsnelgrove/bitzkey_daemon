@@ -809,6 +809,7 @@ void Simulation::take_turn() {
             seed_plant(*agent);
             continue;
         }
+        agent->in_heat = heat(*agent);
         if (agent->due_turn && *agent->due_turn <= turn_) give_birth(*agent);
         agent->seen_success *= SOCIAL_MEMORY;
         agent->seen_failure *= std::pow(SOCIAL_MEMORY, 1 + RESILIENCE * (2 * agent->feeling(Resilience) - 1));  // got over sooner
@@ -1028,6 +1029,24 @@ double Simulation::home_plants(const Bitzkey& grazer) const {
     if (band_plants_.empty()) return 0.0;  // none before the cells are first indexed
     const auto band = static_cast<std::size_t>(home_band_[static_cast<std::size_t>(grazer.climate.temperature)][static_cast<std::size_t>(grazer.y)]);
     return static_cast<double>(band_plants_[band]) / std::max(1, band_grazers_[band]);
+}
+
+bool Simulation::heat(const Bitzkey& agent) const {
+    if (agent.species == Species::Plant || !in_bounds(agent.x, agent.y)) return true;
+    // Turns until the next winter where it stands: of its hemisphere, or the nearer of the two on the equator.
+    const int day = turn_ % YEAR_LENGTH;
+    std::optional<int> until;
+    for (const int quarter : {1, 3}) {
+        if (!in_winter(agent.y, height_, quarter)) continue;
+        const int start = quarter * YEAR_LENGTH / 4;
+        const int turns = ((start - day) % YEAR_LENGTH + YEAR_LENGTH) % YEAR_LENGTH;
+        if (!until || turns < *until) until = turns;
+    }
+    if (!until) return true;  // no winter ever comes here
+    const auto species = static_cast<std::size_t>(agent.species);
+    const double end = HEAT_CLOSEST[species] + HEAT_FORESIGHT * agent.feeling(Patience);
+    const double begin = std::min(end + HEAT_LENGTH[species], 0.75);  // never through its own winter, a quarter of the year
+    return *until > end * YEAR_LENGTH && *until <= begin * YEAR_LENGTH;
 }
 
 int gestation(int size) {
@@ -1692,7 +1711,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseGrassCloseness] = closeness(agent, s.grass, sight);
     senses[SenseMateNear] = s.mate != nullptr;
     senses[SenseMateCloseness] = closeness(agent, cell_of(s.suitor), sight);
-    senses[SenseReadyToBreed] = agent.cooldown == 0;
+    senses[SenseReadyToBreed] = agent.cooldown == 0 && agent.in_heat;  // rested, and in heat
     senses[SensePreyNear] = std::min<int>(4, static_cast<int>(prey.size())) / 4.0;
     senses[SensePreyFrailty] = s.prey ? std::min(1.0, damage(agent, *s.prey) / s.prey->health) : 0.0;
     senses[SensePreyCloseness] = closeness(agent, cell_of(s.quarry), prey_sight);
@@ -1795,6 +1814,11 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
                                         killer ? killer->species : Species::Plant, std::string(activity)};
     death_order_.emplace_back(turn_, agent.identifier);
+    if (killer && !agent.womb.empty() && (killer->species == Species::Predator || killer->species == Species::Omnivore)) {
+        // A hunter that killed a mother carrying young feels remorse for it.
+        Bitzkey* hunter = find_agent(killer->identifier);
+        if (hunter && hunter->alive() && hunter->brain) hunter->reward -= PREGNANT_REMORSE * (0.5 + hunter->feeling(Empathy));
+    }
     if (agent.infant()) {  // its parents grieve, wherever they are, and learn from it what came before
         for (const int identifier : {agent.mother, agent.father}) {
             Bitzkey* parent = identifier >= 0 ? find_agent(identifier) : nullptr;

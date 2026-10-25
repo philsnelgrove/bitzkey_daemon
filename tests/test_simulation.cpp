@@ -1998,3 +1998,23 @@ TEST_CASE("a parent is glad of its infants close by, grieves for one that dies, 
     PLANTS_PER_GRAZER = plants_per_grazer;
     FEEBLE_YOUTH = feeble_youth;
 }
+
+TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother carrying young") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 0}});
+    Bitzkey& first = simulation.add_agent(dna, 5, 5);
+    Bitzkey& second = simulation.add_agent(dna, 5, 6);
+    simulation.index_cells();
+    simulation.breed(first, second);
+    CHECK((first.cooldown == static_cast<int>(20 * BREED_COOLDOWN) && second.cooldown == first.cooldown));  // the least fertile rest longest
+    CHECK(!first.can_breed());
+
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 6, 5);
+    hunter.reward = 0;
+    REQUIRE(!first.womb.empty());
+    simulation.die(first, "killed", &hunter, "hunting");
+    CHECK(hunter.reward == doctest::Approx(-PREGNANT_REMORSE * (0.5 + hunter.feeling(Empathy))));
+    hunter.reward = 0;
+    simulation.die(second, "killed", &hunter, "hunting");  // the father carried none
+    CHECK(hunter.reward == 0.0);
+}
