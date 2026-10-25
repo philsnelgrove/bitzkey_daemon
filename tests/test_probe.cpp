@@ -138,3 +138,19 @@ TEST_CASE("the probe served on a port answers between the world's turns, and not
     CHECK(Json::parse(got->body)["alive"]["grazer"] == 1);
     server.detach();
 }
+
+TEST_CASE("a herd holds together within a couple of steps, not merely within sight") {
+    Simulation world = empty_world(60);
+    const Dna dna = encode_dna(Species::Grazer, {{"sight", 3}});  // they see far beyond the gap
+    for (int dx = 0; dx < 3; ++dx) world.add_agent(dna, 10 + dx, 20);
+    for (int dx = 0; dx < 3; ++dx) world.add_agent(dna, 16 + dx, 20);  // four steps from the first group
+    world.index_cells();
+    net::Probe probe = direct(world);
+    const Json tight = probe.herds(world, "grazer", false);
+    REQUIRE(tight["herds"].size() == 2);
+    CHECK((tight["herds"][0]["size"] == 3 && tight["herds"][1]["size"] == 3));
+    const Json loose = probe.herds(world, "grazer", false, 4);
+    REQUIRE(loose["herds"].size() == 1);
+    CHECK(loose["herds"][0]["size"] == 6);
+    CHECK_THROWS_AS(probe.herds(world, "grazer", false, 0), std::invalid_argument);
+}

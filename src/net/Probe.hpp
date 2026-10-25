@@ -40,7 +40,8 @@ public:
     //   GET    prefix/animal/ID              one Bitzkey in full
     //   GET    prefix/family/ID              its parents and theirs as far as the world still holds them, and its
     //                                        living young and theirs
-    //   GET    prefix/herds?species=&members=1   the herds of a species, as they stand
+    //   GET    prefix/herds?species=&members=1&reach=   the herds of a species, as they stand: herd-mates within
+    //                                        `reach` steps of one another (HERD_REACH unless given), and theirs
     //   POST   prefix/watch  {"ids": [...], "keep": turns}   watch these Bitzkeys, turn by turn
     //   GET    prefix/watch                  the tracks of those watched
     //   DELETE prefix/watch?ids=             stop watching these, or all of them
@@ -54,7 +55,9 @@ public:
     Json animals(Simulation& world, const std::string& species, int x, int y, int radius, std::size_t limit) const;
     Json animal(Simulation& world, int identifier) const;
     Json family(Simulation& world, int identifier) const;
-    Json herds(Simulation& world, const std::string& species, bool members);
+    // Herd-mates this many steps apart or nearer are one herd: as close as the herd-mates an animal counts as close by.
+    static constexpr int HERD_REACH = 2;
+    Json herds(Simulation& world, const std::string& species, bool members, int reach = HERD_REACH);
     void watch(const std::vector<int>& identifiers, std::size_t keep);
     Json tracks() const;
     void unwatch(const std::vector<int>& identifiers);  // all, when empty

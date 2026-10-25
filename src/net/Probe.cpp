@@ -209,10 +209,12 @@ Json Probe::family(Simulation& world, int identifier) const {
     return {{"turn", world.turn()}, {"ancestors", up(identifier, FAMILY_DEPTH)}, {"descendants", down(identifier, FAMILY_DEPTH)}};
 }
 
-Json Probe::herds(Simulation& world, const std::string& species, bool members) {
+Json Probe::herds(Simulation& world, const std::string& species, bool members, int reach) {
     const std::optional<Species> kind = species_named(species.empty() ? "grazer" : species);
     if (!kind || *kind == Species::Plant) throw std::invalid_argument("no herds of " + species);
-    // Herd-mates within one another's sight are one herd, and so are herd-mates of herd-mates.
+    if (reach < 1) throw std::invalid_argument("a herd's reach is at least 1 step");
+    // Herd-mates within `reach` steps of one another are one herd, and so are their herd-mates: close enough to hold
+    // a herd together, not just to see one another, or a crowded map chains into one herd from end to end.
     std::vector<const Bitzkey*> animals;
     for (const Bitzkey* agent : world.living()) {
         if (agent->species == *kind) animals.push_back(agent);
@@ -223,7 +225,7 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members) {
     std::iota(root.begin(), root.end(), std::size_t{0});
     std::function<std::size_t(std::size_t)> find = [&](std::size_t at) { return root[at] == at ? at : root[at] = find(root[at]); };
     for (const Bitzkey* agent : animals) {
-        for (const Bitzkey* other : world.nearby(*agent, agent->sight)) {
+        for (const Bitzkey* other : world.nearby(*agent, std::min(reach, agent->sight))) {
             const auto found = index.find(other->identifier);
             if (found == index.end() || !(world.herd_mate(*agent, *other) || world.herd_mate(*other, *agent))) continue;
             root[find(index[agent->identifier])] = find(found->second);
@@ -388,7 +390,8 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     server.Get(prefix + "/herds", answered([=, this](const httplib::Request& request, httplib::Response& response) {
         const std::string species = request.get_param_value("species");
         const bool members = request.get_param_value("members") == "1";
-        reply(response, looked([&](Simulation& world) { return herds(world, species, members); }));
+        const int reach = request.has_param("reach") ? std::stoi(request.get_param_value("reach")) : HERD_REACH;
+        reply(response, looked([&](Simulation& world) { return herds(world, species, members, reach); }));
     }));
     server.Post(prefix + "/watch", answered([this](const httplib::Request& request, httplib::Response& response) {
         const Json body = Json::parse(request.body.empty() ? std::string("{}") : request.body);
