@@ -105,7 +105,8 @@ constexpr int MAX_WIDTH = BASE_WIDTH + WIDTH_STEP * (TRAIT_MAX - MAX_DEPTH);
 inline double TEMPERATURE = 0.2;
 inline double MUTATION = 0.05;
 inline double SMART_TRACE_DECAY = 0.95;  // lambda at the highest intellect: the clever trace credit further back
-inline double PATIENT_DISCOUNT = 0.99;  // gamma at the highest patience: how far ahead the patient look; the least patient keep 0.7
+inline double PATIENT_DISCOUNT = 0.99;  // gamma at the highest patience: how far ahead the patient look
+inline double IMPATIENT_DISCOUNT = 0.9;  // and at the lowest: even the least patient look some ten turns ahead
 inline double TRACE_DECAY = 0.7;  // lambda: how much of each earlier choice's credit carries on to the next, beside the discount
 // A new brain values setting off in a direction this much below its other actions, so an untaught
 // brain doesn't march straight away from its range, its herd and its food before it has learned where to go.

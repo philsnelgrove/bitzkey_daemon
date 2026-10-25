@@ -99,7 +99,7 @@ inline int BIRTH_REACH = 2;  // young are born on the free cells nearest their m
 // Years a Bitzkey, plant or animal, is expected to live: the smallest bodies, with the fastest
 // metabolisms; middling ones; and the largest, with the slowest. Between them, lifespan rises steadily
 // with the metabolism slowing.
-inline std::array<double, 3> LIFESPAN_YEARS = {1.0, 5.0, 10.0};
+inline std::array<double, 3> LIFESPAN_YEARS = {3.0, 15.0, 30.0};  // long enough for even the smallest to see its winter come round again
 inline std::array<double, 2> METABOLISM = {1.6, 0.6};
 inline std::array<double, 2> STOMACH = {0.5, 2.0};
 inline double SIZE_IN_MIGHT = 0.5;
@@ -797,7 +797,9 @@ public:
     double comfort(const Bitzkey& agent, const Situation& situation) const;
     double wellbeing(const Bitzkey& agent) const;
     // How much the future counts against the present: more for the patient.
-    static double discount(const Bitzkey& agent) { return 0.7 + (PATIENT_DISCOUNT - 0.7) * agent.feeling(Patience); }
+    static double discount(const Bitzkey& agent) {
+        return IMPATIENT_DISCOUNT + (PATIENT_DISCOUNT - IMPATIENT_DISCOUNT) * agent.feeling(Patience);
+    }
     // How much warmer than home a row feels, as a sense: 0.5 a step, from -1 (two or more steps too
     // cold) to 1 (two or more too hot).
     double warmth(const Bitzkey& agent, int y) const;

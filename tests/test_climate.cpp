@@ -94,7 +94,7 @@ TEST_CASE("a world sets the year length for seasons and lifespans") {
     settings.year_length = 100;
     Simulation simulation(settings);
     CHECK((season(25) == 1 && season(50) == 2 && year(100) == 2));
-    CHECK(simulation.add_agent(encode_dna(Species::Grazer), 1, 1).lifespan == doctest::Approx(100));  // the smallest live a year
+    CHECK(simulation.add_agent(encode_dna(Species::Grazer), 1, 1).lifespan == doctest::Approx(300));  // the smallest live three years
     settings.year_length = 3;
     CHECK_THROWS_AS(Simulation{settings}, std::invalid_argument);
     const Simulation standard(Simulation::Settings{20, 20, 0, 1});

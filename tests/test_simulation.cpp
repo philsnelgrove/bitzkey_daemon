@@ -81,11 +81,11 @@ TEST_CASE("bodies set health pools, metabolism, stomachs and lifespans") {
     CHECK(large.metabolism == doctest::Approx(0.6));
     CHECK(small.stomach == doctest::Approx(0.5));
     CHECK(large.stomach == doctest::Approx(2.0));
-    CHECK(small.lifespan == doctest::Approx(360));   // a year
-    CHECK(large.lifespan == doctest::Approx(3600));  // ten years
-    // five years halfway between, rising steadily either side
-    CHECK(simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 4, 4).lifespan == doctest::Approx((1 + 4 * 6.0 / 7) * 360));
-    CHECK(simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 5, 5).lifespan == doctest::Approx((5 + 5 * 1.0 / 7) * 360));
+    CHECK(small.lifespan == doctest::Approx(3 * 360));    // three years
+    CHECK(large.lifespan == doctest::Approx(30 * 360));   // thirty years
+    // fifteen years halfway between, rising steadily either side
+    CHECK(simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 4, 4).lifespan == doctest::Approx((3 + 12 * 6.0 / 7) * 360));
+    CHECK(simulation.add_agent(encode_dna(Species::Grazer, {{"size", 4}}), 5, 5).lifespan == doctest::Approx((15 + 15 * 1.0 / 7) * 360));
     CHECK(small.steps == 2);  // grazers move half as far again, rounded up
     const Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"speed", 7}}), 3, 3);
     CHECK(predator.steps == 4);

@@ -120,7 +120,8 @@ std::vector<Rule> make_rules() {
         {"TRUST_REACH", "Society", "Trust reach", "times its trust times its sight away a herd-mate's alert is heeded", 0.0, 5.0, 0.25, false, &TRUST_REACH},
         {"KINSHIP_SHUN", "Society", "Kinship shun", "at full kinship and no tolerance, a herd-mate's or partner's social background may differ by no more than 1 less this", 0.0, 1.0, 0.05, false, &KINSHIP_SHUN},
         {"LEARNING_RATE", "Mind", "Learning rate", "how fast a brain learns, at the highest intellect", 0.0, 0.5, 0.005, false, &LEARNING_RATE},
-        {"PATIENT_DISCOUNT", "Mind", "Discount, most patient", "how much the most patient value what comes later (gamma); the least patient keep 0.7", 0.7, 0.999, 0.001, false, &PATIENT_DISCOUNT},
+        {"PATIENT_DISCOUNT", "Mind", "Discount, most patient", "how much the most patient value what comes later (gamma)", 0.5, 0.999, 0.001, false, &PATIENT_DISCOUNT},
+        {"IMPATIENT_DISCOUNT", "Mind", "Discount, least patient", "how much the least patient value what comes later (gamma): their foresight, at the least", 0.5, 0.999, 0.001, false, &IMPATIENT_DISCOUNT},
         {"TRACE_DECAY", "Mind", "Trace decay", "how far back a choice's outcome reaches earlier choices (lambda)", 0.0, 1.0, 0.05, false, &TRACE_DECAY},
         {"SMART_TRACE_DECAY", "Mind", "Trace decay, smartest", "trace decay at the highest intellect; the lowest keeps the one above", 0.0, 1.0, 0.01, false, &SMART_TRACE_DECAY},
         {"LEARNING_BOOST", "Mind", "Learning boost", "the highest intellect learns this much faster again; the lowest, no faster", 0.0, 5.0, 0.1, false, &LEARNING_BOOST},
@@ -285,7 +286,8 @@ std::vector<Rule> make_rules() {
 
 // Pairs that must stay in order, smaller first, and pairs that must differ (lifespan divides by the gap).
 constexpr std::pair<std::string_view, std::string_view> ORDERED[] = {
-    {"LITTER_RANGE.0", "LITTER_RANGE.1"}, {"GESTATION.0", "GESTATION.1"}, {"LIFESPAN_YEARS.0", "LIFESPAN_YEARS.1"}, {"LIFESPAN_YEARS.1", "LIFESPAN_YEARS.2"}};
+    {"LITTER_RANGE.0", "LITTER_RANGE.1"}, {"GESTATION.0", "GESTATION.1"}, {"LIFESPAN_YEARS.0", "LIFESPAN_YEARS.1"}, {"LIFESPAN_YEARS.1", "LIFESPAN_YEARS.2"},
+    {"IMPATIENT_DISCOUNT", "PATIENT_DISCOUNT"}};
 constexpr std::pair<std::string_view, std::string_view> DISTINCT[] = {{"METABOLISM.0", "METABOLISM.1"}};
 
 std::string lower(std::string text) {
