@@ -59,6 +59,7 @@ TEST_CASE("a seeded world replays exactly, and seeking repeats the recorded run"
 }
 
 TEST_CASE("random populations spawn in groups of three to five sharing a genome") {
+    BIOME_GROUPS = 0;  // the population alone, without the biomes' groups
     for (const int population : {3, 7, 90, 101}) {
         Simulation simulation(Simulation::Settings{50, 50, population, static_cast<std::uint64_t>(population)});
         std::map<Dna, int> groups;
@@ -69,6 +70,7 @@ TEST_CASE("random populations spawn in groups of three to five sharing a genome"
             CHECK(count <= 5);
         }
     }
+    BIOME_GROUPS = 2;
 }
 
 TEST_CASE("bodies set health pools, metabolism, stomachs and lifespans") {

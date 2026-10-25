@@ -182,6 +182,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
 }
 
 TEST_CASE("the colour graph is drawn bar by bar, and finds who lies under a point") {
+    BIOME_GROUPS = 0;  // a world of its population alone, few enough for the zoomed chart to leave some out
     const auto folder = scratch("graph");
     {
         World world(small_world(), false, folder);
@@ -215,6 +216,7 @@ TEST_CASE("the colour graph is drawn bar by bar, and finds who lies under a poin
         CHECK(graph.at(simulation, zoomed, 9, 99.5) != bottom);
     }
     std::filesystem::remove_all(folder);
+    BIOME_GROUPS = 2;
 }
 
 TEST_CASE("the web API shows the world and steers it") {

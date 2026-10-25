@@ -426,6 +426,7 @@ Simulation::Simulation(Settings settings)
     for (std::size_t group = 0; group < sizes.size(); ++group) {
         spawn_group(make_dna(random_, species[group]), sizes[group], nullptr, std::nullopt, true, homes[group]);
     }
+    if (settings.population > 0) spawn_biomes();
     for (const Imported& bitzkey : settings.imported) {
         spawn_group(bitzkey.dna, static_cast<int>(random_.randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
                     bitzkey.mind);
@@ -552,6 +553,55 @@ void Simulation::make_sea(double ocean, std::uint64_t seed) {
     for (std::size_t index = 0; index < std::min(under, area); ++index) sea_[order[index]] = 1;
 }
 
+std::vector<std::vector<Cell>> Simulation::biomes() const {
+    std::vector<int> band(static_cast<std::size_t>(height_));
+    {
+        int index = 0;
+        for (const std::vector<int>& rows : zones()) {
+            for (const int y : rows) band[static_cast<std::size_t>(y)] = index;
+            ++index;
+        }
+    }
+    const auto key = [&](int x, int y) { return std::pair{band[static_cast<std::size_t>(y)], sea(x, y)}; };
+    std::vector<std::uint8_t> seen(static_cast<std::size_t>(width_) * height_, 0);
+    std::vector<std::vector<Cell>> found;
+    for (int y = 0; y < height_; ++y) {
+        for (int x = 0; x < width_; ++x) {
+            if (seen[static_cast<std::size_t>(y) * width_ + x]) continue;
+            seen[static_cast<std::size_t>(y) * width_ + x] = 1;
+            std::vector<Cell> biome{{x, y}};  // gathered breadth first, from its first square
+            for (std::size_t next = 0; next < biome.size(); ++next) {
+                const Cell here = biome[next];
+                for (const auto [dx, dy] : {std::pair{0, -1}, std::pair{1, 0}, std::pair{0, 1}, std::pair{-1, 0}}) {
+                    const int nx = py_mod(here.x + dx, width_), ny = here.y + dy;
+                    if (ny < 0 || ny >= height_ || seen[static_cast<std::size_t>(ny) * width_ + nx] || key(nx, ny) != key(x, y)) continue;
+                    seen[static_cast<std::size_t>(ny) * width_ + nx] = 1;
+                    biome.push_back({nx, ny});
+                }
+            }
+            if (static_cast<int>(biome.size()) >= BIOME_SIZE) found.push_back(std::move(biome));
+        }
+    }
+    return found;
+}
+
+void Simulation::spawn_biomes() {
+    for (const std::vector<Cell>& biome : biomes()) {
+        const bool wet = sea(biome.front().x, biome.front().y);
+        const int home = zone_temperature(biome.front().y, height_);
+        for (int group = 0; group < BIOME_GROUPS; ++group) {
+            Dna dna = make_dna(random_, static_cast<int>(random_.randrange(4)));
+            dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;
+            // The first the surface's own; the rest any terrain that may live there.
+            static constexpr std::array<Terrain, 3> land = {Terrain::Terrestrial, Terrain::Avian, Terrain::Amphibious};
+            static constexpr std::array<Terrain, 3> water = {Terrain::Aquatic, Terrain::Avian, Terrain::Amphibious};
+            const auto& fitting = wet ? water : land;
+            dna = with_terrain(dna, group == 0 ? fitting[0] : fitting[static_cast<std::size_t>(random_.randrange(3))]);
+            spawn_group(dna, static_cast<int>(random_.randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), nullptr, std::nullopt, true, {}, &biome);
+        }
+    }
+}
+
 std::optional<Cell> Simulation::group_centre(Terrain terrain, const std::vector<int>& rows) {
     for (int tries = 0; tries < 1000; ++tries) {
         const int x = static_cast<int>(random_.randrange(SPAWN_SPREAD, width_ - SPAWN_SPREAD));
@@ -563,13 +613,15 @@ std::optional<Cell> Simulation::group_centre(Terrain terrain, const std::vector<
 }
 
 void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brain>& brain,
-                             const std::optional<PartialMind>& mind, bool native, const std::vector<int>& given_rows) {
+                             const std::optional<PartialMind>& mind, bool native, const std::vector<int>& given_rows,
+                             const std::vector<Cell>* biome) {
     // In one of the rows given, if any; otherwise, with SPAWN_AT_HOME, in its home zone; on land or sea as its terrain
     // allows. A world without sea starts with nothing but terrestrial Bitzkeys.
     if (native && !has_sea()) dna = with_terrain(dna, Terrain::Terrestrial);
     const std::vector<int> rows = !given_rows.empty() || !SPAWN_AT_HOME ? given_rows : home_rows(decode_climate(dna).temperature);
     const Terrain terrain = decode_terrain(dna);
-    const std::optional<Cell> centre = group_centre(terrain, rows);
+    const std::optional<Cell> centre = biome ? (*biome)[static_cast<std::size_t>(random_.randrange(static_cast<std::int64_t>(biome->size())))]
+                                             : group_centre(terrain, rows);
     if (!centre) return;  // nowhere it could live
     const int x = centre->x, y = centre->y;
     if (native) {  // tolerance is rare at the start
@@ -585,7 +637,9 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
     for (int member = 0; member < size; ++member) {
         const int dx = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
         const int dy = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-        if (const auto spot = spot_near(Cell{x + dx, y + dy}, space, terrain)) {  // only where there is room
+        Cell aim{py_mod(x + dx, width_), y + dy};
+        if (biome && std::find(biome->begin(), biome->end(), aim) == biome->end()) aim = Cell{x, y};  // kept in its biome
+        if (const auto spot = spot_near(aim, space, terrain)) {  // only where there is room
             add_agent(dna, spot->x, spot->y, brain ? std::make_shared<Brain>(*brain) : nullptr, mind);
         }
     }

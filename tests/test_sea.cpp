@@ -262,3 +262,28 @@ TEST_CASE("an exhausted animal can only rest, and a flyer can't rest at sea, whe
     CHECK_FALSE(gull.alive());
     CHECK(simulation.death_record(gull.identifier)->cause == "drowned");
 }
+
+TEST_CASE("every biome starts with groups at home in it, on top of the population, in any world with Bitzkeys") {
+    for (const double ocean : {DEFAULT_OCEAN, 0.0}) {
+        Simulation::Settings settings{60, 60, 30, 7};
+        settings.ocean = ocean;
+        const Simulation simulation(settings);
+        const auto biomes = simulation.biomes();
+        REQUIRE(biomes.size() >= (ocean > 0 ? 7U : 7U));  // the seven climate zones at least, and with the sea, more
+        for (const auto& biome : biomes) {
+            CAPTURE(biome.front().x);
+            CAPTURE(biome.front().y);
+            CHECK(static_cast<int>(biome.size()) >= BIOME_SIZE);
+            const int home = zone_temperature(biome.front().y, simulation.height());
+            const bool wet = simulation.sea(biome.front().x, biome.front().y);
+            int at_home = 0;
+            for (const auto& agent : simulation.agents()) {
+                const bool inside = std::any_of(biome.begin(), biome.end(), [&](const Cell& cell) { return cell.x == agent->x && cell.y == agent->y; });
+                at_home += inside && agent->climate.temperature == home && agent->can_be(wet);
+            }
+            CHECK(at_home >= BIOME_GROUPS);
+        }
+        CHECK(static_cast<int>(simulation.agents().size()) > 30);
+    }
+    CHECK(Simulation(Simulation::Settings{60, 60, 0, 7}).agents().empty());  // an empty world stays empty
+}

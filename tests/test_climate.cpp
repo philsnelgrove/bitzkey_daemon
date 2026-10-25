@@ -352,7 +352,7 @@ TEST_CASE("spawned plants are at home in their zone, and imports keep theirs") {
         CHECK(near.contains(agent->climate.temperature));
         temperatures.insert(agent->climate.temperature);
     }
-    CHECK(temperatures.size() == 3);  // hot, medium and cold zones
+    CHECK(temperatures.size() == 4);  // hot, medium and cold zones, and the polar caps' biomes very cold
     Imported saved;
     saved.dna = encode_dna(Species::Plant, {{"temperature", VeryCold}});
     Simulation::Settings settings{30, 30, 0, 4};

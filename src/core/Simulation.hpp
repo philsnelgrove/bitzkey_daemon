@@ -80,6 +80,12 @@ inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as 
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
+// Biomes: each stretch of land or sea within one climate zone, joined square to square (east and west wrapping round),
+// of BIOME_SIZE squares or more. A world started with any Bitzkeys has BIOME_GROUPS more groups in every biome, on
+// top of its population, each at home there: the zone's usual temperature its home, and a terrain that suits it, the
+// first the surface's own (terrestrial on land, aquatic at sea) and the rest any that may live there.
+inline int BIOME_GROUPS = 2;
+inline int BIOME_SIZE = 25;
 // The history is kept in memory: the world at each of the latest HISTORY_TURNS turns, whole, so the map
 // can be rewound to any of them at once, with nothing to replay. When a crowded world's brains make them
 // large, fewer are kept, so they fit HISTORY_MEMORY gigabytes; the newest turn is always kept. Older turns live on
@@ -700,6 +706,9 @@ public:
     // Whether a Bitzkey of this terrain may be in a square, sea or land.
     bool suits(Terrain terrain, Cell cell) const { return fits(terrain, sea(cell.x, cell.y)); }
     bool can_enter(const Bitzkey& agent, Cell cell) const { return suits(agent.terrain, cell); }
+    // The biomes, each its squares, in the order they are first met row by row (see BIOME_GROUPS); those smaller
+    // than BIOME_SIZE left out.
+    std::vector<std::vector<Cell>> biomes() const;
     int& grass_cell(int x, int y) { return grass_[static_cast<std::size_t>(y) * width_ + x]; }
     void clear_grass() { std::fill(grass_.begin(), grass_.end(), 0); }
     std::size_t grass_tufts() const;
@@ -1016,6 +1025,8 @@ private:
     std::vector<int> group_sizes(int population);
     // Lay out the sea over `ocean` percent of the map, from its own stream of `seed`: smooth noise, the lowest of it sea.
     void make_sea(double ocean, std::uint64_t seed);
+    // BIOME_GROUPS starting groups at home in every biome.
+    void spawn_biomes();
     // A square for a group's centre of this terrain, in one of `rows` if given, drawn until one suits it; none if none does.
     std::optional<Cell> group_centre(Terrain terrain, const std::vector<int>& rows);
     // `native` groups have random starting genomes: each carries a tolerance flag only with
@@ -1026,9 +1037,10 @@ private:
     // by group; the rest fall anywhere. `species` is changed in place.
     std::vector<std::vector<int>> plant_homes(std::vector<int>& species) const;
     // A group's centre falls in one of `rows` if given (and not empty).
+    // Or, given a biome, centred on one of its squares, and each member that would fall outside it at the centre.
     void spawn_group(Dna dna, int size, const std::shared_ptr<const Brain>& brain = nullptr,
                      const std::optional<PartialMind>& mind = std::nullopt, bool native = false,
-                     const std::vector<int>& rows = {});
+                     const std::vector<int>& rows = {}, const std::vector<Cell>* biome = nullptr);
     void perform(Bitzkey& agent, int action, Situation& situation);  // the action itself
     void record();
     void restore(const Snapshot& held);  // as a copy, so the history's stays as it was
