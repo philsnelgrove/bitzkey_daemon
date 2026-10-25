@@ -1955,3 +1955,46 @@ TEST_CASE("a grown predator guards the infants of its kind") {
     CHECK((infant.guarded && !parent.guarded));
     CHECK_FALSE(Simulation::is_prey(hunter, infant));  // guarded: prey to no one
 }
+
+TEST_CASE("a parent is glad of its infants close by, grieves for one that dies, and its young know their parents") {
+    const double newborn_food = NEWBORN_FOOD, plants_per_grazer = PLANTS_PER_GRAZER, feeble_youth = FEEBLE_YOUTH;
+    NEWBORN_FOOD = 0;
+    PLANTS_PER_GRAZER = 0;
+    FEEBLE_YOUTH = 0.1;  // young are infants for a tenth of their lives, as in a world
+    Simulation simulation = world(20);
+    const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}, {"sight", 2}});
+    Bitzkey& mother = simulation.add_agent(dna, 5, 5);
+    Bitzkey& father = simulation.add_agent(dna, 5, 6);
+    simulation.index_cells();
+    CHECK(simulation.sense(mother).senses[SenseYoungNear] == 0.0);
+    simulation.breed(mother, father);
+    simulation.give_birth(mother);
+    REQUIRE(simulation.agents().size() > 3);
+    Bitzkey& infant = *simulation.agents()[2];
+    CHECK((infant.mother == mother.identifier && infant.father == father.identifier && infant.infant()));
+    CHECK((simulation.find_agent(infant.identifier) == &infant && simulation.find_agent(9999) == nullptr));
+
+    simulation.index_cells();
+    const Simulation::Sensed sensed = simulation.sense(mother);
+    const int young = std::min(3, sensed.situation.young_near);
+    CHECK(young >= 1);
+    CHECK(sensed.senses[SenseYoungNear] == doctest::Approx(young / 3.0));
+    Simulation::Situation without = sensed.situation;
+    without.young_near = 0;
+    CHECK(simulation.comfort(mother, sensed.situation) - simulation.comfort(mother, without) ==
+          doctest::Approx(PARENT_JOY * (0.5 + mother.feeling(Empathy)) * young / 3));
+
+    mother.reward = father.reward = 0;
+    simulation.die(infant, "killed");
+    CHECK(mother.reward == doctest::Approx(-PARENT_GRIEF * (0.5 + mother.feeling(Empathy))));
+    CHECK(father.reward == doctest::Approx(-PARENT_GRIEF * (0.5 + father.feeling(Empathy))));
+
+    Bitzkey& grown = *simulation.agents()[3];
+    grown.age = static_cast<int>(grown.lifespan / 2);  // no longer an infant
+    mother.reward = 0;
+    simulation.die(grown, "killed");
+    CHECK(mother.reward == 0.0);  // a parent grieves for its infants only
+    NEWBORN_FOOD = newborn_food;
+    PLANTS_PER_GRAZER = plants_per_grazer;
+    FEEBLE_YOUTH = feeble_youth;
+}

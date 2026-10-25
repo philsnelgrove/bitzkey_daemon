@@ -10,7 +10,7 @@
 // Stored input by input, neighbouring threads, each a neuron, read neighbouring weights.
 // Its eligibility traces sit in a second buffer laid out the same way.
 
-const uint INPUTS = 90u;
+const uint INPUTS = 91u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
 const uint ACTIONS = 24u;
 const uint MAX_DEPTH = 4u;

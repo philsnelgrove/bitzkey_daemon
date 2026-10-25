@@ -65,6 +65,7 @@ enum Sense : int {
     // Where the nearest row it would feel at home in lies, however far beyond sight:
     SenseHomeDirection,    // -1 to the north, 1 to the south, 0 at home or with no such row
     SenseHomeDistance,     // 0 at home, rising to 1 half the map's height away or with no such row
+    SenseYoungNear,        // its own young, still infants, within its sight, 0..3 scaled to 0..1
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -86,7 +87,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "threat_closeness", "kin_near", "others_near", "carrion_closeness", "kill_closeness", "plant_closeness",
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
-    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "aggression", "libido", "curiosity",
+    "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

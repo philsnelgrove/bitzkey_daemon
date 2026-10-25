@@ -193,7 +193,8 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"identifier", agent.identifier}, {"dna", genome_text(agent.dna)}, {"x", agent.x}, {"y", agent.y},
         {"hunger", agent.hunger}, {"health", agent.health}, {"age", agent.age}, {"cooldown", agent.cooldown},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
-        {"generation", agent.generation}, {"children", agent.children}, {"died_turn", optional_value(agent.died_turn)},
+        {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father},
+        {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
         {"hunts_omnivores", agent.hunts_omnivores}, {"hunts_predators", agent.hunts_predators}, {"guarded", agent.guarded},
@@ -223,7 +224,8 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     record["memories"] = std::move(memories);
     json womb = json::array();
     for (const Bitzkey::Young& young : agent.womb) {
-        womb.push_back({genome_text(young.dna), mind_record(young.mind), numbers.brain(young.brain), young.energy, young.generation});
+        womb.push_back({genome_text(young.dna), mind_record(young.mind), numbers.brain(young.brain), young.energy, young.generation,
+                        young.father});
     }
     record["womb"] = std::move(womb);
     json odds = json::object();
@@ -252,6 +254,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->brain = numbers.brain(record.at("brain"), agent->dna);
     agent->generation = record.at("generation").get<int>();
     agent->children = record.at("children").get<int>();
+    agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
+    agent->father = record.value("father", -1);
     agent->died_turn = optional_int(record.at("died_turn"));
     agent->assailant = optional_int(record.at("assailant"));
     agent->panicked = record.at("panicked").get<bool>();
@@ -284,7 +288,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     for (const json& young : record.at("womb")) {
         const Dna dna = genome_from(young.at(0));
         agent->womb.push_back({dna, mind_from(young.at(1)), numbers.brain(young.at(2), dna), young.at(3).get<double>(),
-                               young.at(4).get<int>()});
+                               young.at(4).get<int>(), young.size() > 5 ? young.at(5).get<int>() : -1});
     }
     agent->due_turn = optional_int(record.at("due_turn"));
     agent->mind = mind_from(record.at("mind"));

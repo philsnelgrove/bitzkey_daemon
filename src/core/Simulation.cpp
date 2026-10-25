@@ -1734,6 +1734,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseHomeFood] = home_food_sense(agent);
     senses[SenseHomeDirection] = home ? (home->y > agent.y ? 1.0 : -1.0) : 0.0;
     senses[SenseHomeDistance] = home_distance;
+    int young = 0;  // its own young, still infants, within its sight
+    if (agent.children) {
+        for (const Bitzkey* other : nearby(agent, sight)) {
+            young += (other->mother == agent.identifier || other->father == agent.identifier) && other->infant();
+        }
+    }
+    senses[SenseYoungNear] = std::min(3, young) / 3.0;
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 
@@ -1744,6 +1751,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.herd_middle = view.middle;
     s.exposure = std::min(2.0, discomfort) / 2 * agent.exposure_share(here);
     s.home_distance = home_distance * agent.exposure_share(here);
+    s.young_near = young;
     return sensed;
 }
 
@@ -1769,7 +1777,9 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     // Out of its home temperature, it is uneasy, the more so the further, and less if hardy to it.
     // and more the further home lies, so every step toward it is felt, not only the last.
     const double exposed = CLIMATE_UNEASE * s.exposure + HOMEWARD_UNEASE * s.home_distance;
-    return company - dread - unease - crowded + herding - exposed;
+    // A parent is glad of its own young close by, the more so the more empathetic.
+    const double parental = PARENT_JOY * (0.5 + agent.feeling(Empathy)) * std::min(3, s.young_near) / 3;
+    return company - dread - unease - crowded + herding - exposed + parental;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -1784,6 +1794,12 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
                                         killer ? killer->species : Species::Plant, std::string(activity)};
     death_order_.emplace_back(turn_, agent.identifier);
+    if (agent.infant()) {  // its parents grieve, wherever they are, and learn from it what came before
+        for (const int identifier : {agent.mother, agent.father}) {
+            Bitzkey* parent = identifier >= 0 ? find_agent(identifier) : nullptr;
+            if (parent && parent->alive() && parent->brain) parent->reward -= PARENT_GRIEF * (0.5 + parent->feeling(Empathy));
+        }
+    }
     if (agent.brain && agent.has_last_senses) {
         // A slow death (old age, starving or the cold or heat) is not its last choice's doing: the health it lost on
         // the way has taught its lessons already.
@@ -2286,7 +2302,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         auto brain = std::make_shared<Brain>();  // made in conceive(), with the turn's other young
         const bool born_hunter = static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Predator && first.species != Species::Predator;
         conceptions_.push_back({brain, first.brain, second.brain, random_.getrandbits(64), depth, width, born_hunter});
-        first.womb.push_back({dna, mind, std::move(brain), given / litter, generation});
+        first.womb.push_back({dna, mind, std::move(brain), given / litter, generation, second.identifier});
     }
     first.due_turn = turn_ + gestation(first.trait(Size));
     const std::array<Bitzkey*, 2> pair = {&first, &second};
@@ -2318,6 +2334,12 @@ std::vector<Bitzkey*> Simulation::nearby_cell(Cell cell, int radius, const Bitzk
         }
     }
     return found;
+}
+
+Bitzkey* Simulation::find_agent(int identifier) const {
+    const auto found = std::lower_bound(agents_.begin(), agents_.end(), identifier,
+                                        [](const std::unique_ptr<Bitzkey>& agent, int wanted) { return agent->identifier < wanted; });
+    return found != agents_.end() && (*found)->identifier == identifier ? found->get() : nullptr;
 }
 
 std::vector<Bitzkey*> Simulation::nearby(const Bitzkey& agent, int radius) const {
@@ -2370,6 +2392,8 @@ void Simulation::give_birth(Bitzkey& mother) {
         }
         if (!found) continue;  // no room left near it
         Bitzkey& child = add_agent(young.dna, found->x, found->y, std::move(young.brain));
+        child.mother = mother.identifier;
+        child.father = young.father;
         child.mind = young.mind;
         child.hunger = std::max(0.0, 100 - young.energy / child.stomach);
         child.generation = young.generation;

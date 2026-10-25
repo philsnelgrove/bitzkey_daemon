@@ -117,6 +117,12 @@ inline double UNEASE = 0.1;
 inline double CLIMATE_UNEASE = 2.0;  // discomfort two or more steps from home, half that one step; less for the hardy
 inline double HOMEWARD_UNEASE = 1.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
 inline double EMPATHY_PAIN = 0.15;
+// Parental attachment: a parent is glad of its own young, still infants, within its sight, up to PARENT_JOY with
+// three or more, and grieves PARENT_GRIEF when one of them dies, wherever it is; both by half again and up to one
+// and a half times as much with its empathy. Neither tells it what to do: what keeps its young alive is for its
+// brain to learn.
+inline double PARENT_JOY = 0.3;
+inline double PARENT_GRIEF = 2.0;
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
 // if it had made the herd-mate's last choice itself, and feels it, by its empathy times its intellect.
@@ -431,6 +437,7 @@ struct Bitzkey {
     std::shared_ptr<Brain> brain;  // shared with history snapshots; copied before it learns
     int generation = 0;
     int children = 0;
+    int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
     bool panicked = false;              // failed a morale check when struck
@@ -471,6 +478,7 @@ struct Bitzkey {
         std::shared_ptr<Brain> brain;
         double energy = 0.0;
         int generation = 0;
+        int father = -1;
     };
     std::vector<Young> womb;      // the young it carries
     std::uintmax_t brain_bytes() const;  // the memory its brain, and those of the young it carries, take
@@ -721,6 +729,7 @@ public:
         std::optional<Cell> herd_middle;
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
+        int young_near = 0;  // its own young, still infants, within its sight
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -817,6 +826,9 @@ public:
     void sow(int tufts);
     void experience(Bitzkey& agent, int event);
     std::vector<Bitzkey*> nearby(const Bitzkey& agent, int radius) const;
+    // The Bitzkey of this identifier, living or dead, while the world still holds it; agents_ stays in the order
+    // they were made, so it is found by halving.
+    Bitzkey* find_agent(int identifier) const;
     std::vector<Bitzkey*> nearby_cell(Cell cell, int radius, const Bitzkey* except) const;
     std::vector<Cell> free_cells_near(const Bitzkey& agent) const;  // squares near it, its own first, with any room
     std::vector<Cell> squares_near(const Bitzkey& agent) const;     // its own square, then those around, nearest first
