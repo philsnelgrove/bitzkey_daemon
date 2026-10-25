@@ -48,7 +48,7 @@ inline double STARVING_DAMAGE = 0.1;
 inline double MEAT_DIGESTION = 1.0 / 7;
 // Feeble: an animal in its infancy (the first FEEBLE_YOUTH of its lifespan) or its old age (past AGEING of it)
 // has every body trait, and its health, at FEEBLE_SHARE of its own.
-inline double FEEBLE_YOUTH = 0.1;
+inline double FEEBLE_YOUTH = 1.0 / 30;  // 36 turns for the smallest, as when they lived a year and were infants a tenth of it
 inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
