@@ -300,8 +300,10 @@ inline double HERD_VIGILANCE = 0.5; // how far three herd-mates close by, at ful
 inline double GRASS_OUTLOOK = 150;  // judging grass before breeding, count what regrows in this many turns
 inline double STANDING_GRASS = 0.25;  // and this share of the grass standing now
 inline double GRASS_MEAL = 18;  // hunger a tuft of grass sates: about a tenth of a middle-sized kill
-inline double PLANT_MEAL = 37;  // hunger a bite of a plant sates, plus up to PLANT_MEAL_FOR_SIZE for the largest:
-inline double PLANT_MEAL_FOR_SIZE = 66;  // a fifth of a kill of the same size
+// A plant is eaten in portions, a bite each: every bite sates PLANT_MEAL hunger (and PLANT_MEAL_FOR_SIZE more for the
+// largest, none by default) and takes PLANT_BITE of its health, so a plant's food is in proportion to its size.
+inline double PLANT_MEAL = 70;
+inline double PLANT_MEAL_FOR_SIZE = 0;
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
 inline int PLANT_RECOVERY = 8;
@@ -320,16 +322,20 @@ inline int LIGHT_LIMIT = 3;   // each cuts a plant's chance of seeding by this s
 inline int PLANT_CROWDING = 3;
 inline double TEMPERAMENT_RELAPSE = 0.0005;
 // Climate. The map is banded into zones across its height: ARCTIC_SHARE at the top and at the
-// bottom is arctic, cold; a strip of EQUATOR_SHARE across the middle is the equator, hot; the rest
-// is temperate, medium. Every YEAR_LENGTH turns is a year, starting mild. Through its second quarter
-// the north, from the top down to and through the equator, is a step colder; through its fourth the
-// south, from the bottom up to and through the equator, is. Every Bitzkey has a home temperature,
+// bottom is arctic, cold, its outermost POLAR_SHARE a polar cap, very cold all year; a strip of
+// EQUATOR_SHARE across the middle is the equator, hot; the rest is temperate, medium. Every
+// YEAR_LENGTH turns is a year, starting mild. Through its second quarter the north, from the top
+// down to and through the equator, is a step colder; through its fourth the south, from the bottom up
+// to and through the equator, is; but the polar caps never change, and a strip of WINTER_EQUATOR_SHARE
+// across the equator's middle stays hot through both winters. Every Bitzkey has a home temperature,
 // and may tolerate heat or cold, suffering HARDINESS of its penalties, and FRAILTY of the other's; plants tolerate nothing, and a plant
 // spawned at the start is at home in its zone's usual temperature.
 constexpr int DEFAULT_YEAR_LENGTH = 360;
 inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its year length setting
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
+inline double POLAR_SHARE = 0.025;  // at the top and again at the bottom: 5% of the map in all
+inline double WINTER_EQUATOR_SHARE = 0.05;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
 inline double CLIMATE_DAMAGE = 0.025;  // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food

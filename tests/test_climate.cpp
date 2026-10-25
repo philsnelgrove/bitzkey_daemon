@@ -3,10 +3,12 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <set>
 #include <vector>
 
+#include "core/Rules.hpp"
 #include "core/Simulation.hpp"
 
 using namespace bitzkey;
@@ -45,6 +47,20 @@ struct HarshClimate {
     ~HarshClimate() { CLIMATE_DAMAGE = saved; }
 };
 
+// These tests measure the zones as they first were: no polar caps, and the whole equator turning in
+// either winter.
+struct OldBands {
+    double polar = POLAR_SHARE, winter_equator = WINTER_EQUATOR_SHARE;
+    OldBands() {
+        POLAR_SHARE = 0;
+        WINTER_EQUATOR_SHARE = 0;
+    }
+    ~OldBands() {
+        POLAR_SHARE = polar;
+        WINTER_EQUATOR_SHARE = winter_equator;
+    }
+};
+
 // These tests follow a wave through the turns at the pace it first had, over half of each season, with
 // the gentler damage of then, so an animal outlives the winters they watch.
 struct SlowWaves {
@@ -60,6 +76,7 @@ struct SlowWaves {
 };
 
 TEST_CASE("zones band the map arctic, temperate, equator, temperate, arctic") {
+    const OldBands old_bands;
     std::vector<double> rows;
     for (int y = 0; y < 100; ++y) rows.push_back(zone_temperature(y, 100));
     CHECK(rows == bands({{Cold, 20}, {Medium, 20}, {Hot, 20}, {Medium, 20}, {Cold, 20}}));
@@ -85,6 +102,7 @@ TEST_CASE("a world sets the year length for seasons and lifespans") {
 }
 
 TEST_CASE("each hemisphere and the equator are a step colder in its winter") {
+    const OldBands old_bands;
     // the second quarter, once the wave has passed, and the fourth
     CHECK(rows_on(150) == bands({{VeryCold, 20}, {Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}}));
     CHECK(rows_on(330) == bands({{Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}, {VeryCold, 20}}));
@@ -94,6 +112,7 @@ TEST_CASE("each hemisphere and the equator are a step colder in its winter") {
 }
 
 TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the way it came") {
+    const OldBands old_bands;
     const SlowWaves slow;
     // The north's winter covers the arctic (rows 0-19), the temperate zone (20-39) and the equator
     // (40-59), each 10 bands of two with a wave of its own, all setting off together. A wave takes half
@@ -292,6 +311,35 @@ TEST_CASE("a plant out of its temperature gives half the food") {
     }
 }
 
+TEST_CASE("a plant is eaten in portions of the same meal, more of them the larger it is") {
+    Simulation simulation = world_at(240);
+    Bitzkey& small = simulation.add_agent(encode_dna(Species::Plant, {{"temperature", Medium}, {"size", 0}}), 50, 30);
+    Bitzkey& large = simulation.add_agent(encode_dna(Species::Plant, {{"temperature", Medium}, {"size", 7}}), 60, 30);
+    std::vector<double> meals;
+    for (Bitzkey* plant : {&small, &large}) {
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), plant->x, plant->y + 1);
+        grazer.hunger = 90;
+        simulation.browse(grazer, *plant);
+        meals.push_back((90 - grazer.hunger) * grazer.stomach / grazer.browsing);
+    }
+    CHECK(meals[0] == doctest::Approx(PLANT_MEAL));  // a bite of either is the same meal
+    CHECK(meals[1] == doctest::Approx(PLANT_MEAL));
+    const auto bites = [](const Bitzkey& plant) { return std::ceil(plant.max_health / PLANT_BITE); };
+    CHECK((bites(small) == 4 && bites(large) == 10));  // but the larger holds more of them
+}
+
+TEST_CASE("the polar caps are very cold all year, and the equator's heart stays hot through both winters") {
+    for (int quarter = 0; quarter < 4; ++quarter) {
+        for (const int y : {0, 1, 98, 99}) CHECK(season_temperature(y, 100, quarter) == VeryCold);
+        CHECK((season_temperature(2, 100, quarter) == (quarter == 1 ? VeryCold : Cold) &&
+               season_temperature(97, 100, quarter) == (quarter == 3 ? VeryCold : Cold)));  // the arctic still turns
+        for (const int y : {48, 49, 50, 51}) CHECK(season_temperature(y, 100, quarter) == Hot);
+        CHECK(season_temperature(45, 100, quarter) == (quarter % 2 ? Medium : Hot));  // the rest of the equator still turns
+    }
+    CHECK(rules::find("POLAR_SHARE"));
+    CHECK(rules::find("WINTER_EQUATOR_SHARE"));
+}
+
 TEST_CASE("spawned plants are at home in their zone, and imports keep theirs") {
     Simulation simulation(Simulation::Settings{60, 60, 300, 4});
     std::set<int> temperatures;
@@ -334,6 +382,7 @@ TEST_CASE("an animal senses how far it is from home and how close home weather i
 }
 
 TEST_CASE("an animal senses which way home lies and how far, beyond its sight, and minds the distance") {
+    const OldBands old_bands;
     Simulation simulation = world_at(240);  // mild: arctic rows 0 to 19 and 80 to 99, the equator 40 to 59
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"sight", 0}}), 50, 35);
     Simulation::Sensed sensed = simulation.sense(grazer);
@@ -512,6 +561,7 @@ TEST_CASE("the year starts mild") {
 }
 
 TEST_CASE("grass grows only where it is medium now") {
+    const OldBands old_bands;
     Simulation simulation = world_at(150);  // the north's winter: its temperate zone is cold, the equator medium
     simulation.sow(3000);
     std::set<int> rows;

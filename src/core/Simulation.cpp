@@ -174,13 +174,16 @@ int year(int turn) { return turn / YEAR_LENGTH + 1; }
 
 int zone_temperature(int y, int height) {
     const double place = (y + 0.5) / height;
+    if (place < POLAR_SHARE || place > 1 - POLAR_SHARE) return VeryCold;
     if (place < ARCTIC_SHARE || place > 1 - ARCTIC_SHARE) return Cold;
     return std::abs(place - 0.5) < EQUATOR_SHARE / 2 ? Hot : Medium;
 }
 
 bool in_winter(int y, int height, int quarter) {
     const double place = (y + 0.5) / height;
+    if (place < POLAR_SHARE || place > 1 - POLAR_SHARE) return false;  // the polar caps are very cold all year
     const bool equator = std::abs(place - 0.5) < EQUATOR_SHARE / 2;
+    if (equator && std::abs(place - 0.5) < WINTER_EQUATOR_SHARE / 2) return false;  // the equator's heart stays hot
     return (quarter == 1 && (place < 0.5 || equator)) || (quarter == 3 && (place > 0.5 || equator));
 }
 
