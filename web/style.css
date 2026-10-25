@@ -296,6 +296,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .worker-language { float: inline-end; margin-inline-start: 12px; }
 .worker-language .language { font: 12px var(--sans); color: var(--text); background: rgb(52, 56, 56); border: 1px solid rgb(120, 126, 126); border-radius: 4px; padding: 4px 6px; }
 .worker-title { font: bold 26px var(--sans); letter-spacing: 2px; color: rgb(236, 238, 236); }
+.worker-about { margin-left: 16px; font: 12px var(--sans); letter-spacing: 0; color: rgb(200, 204, 200); }
 .worker-lead { font-size: 15px; margin: 12px 0; }
 .worker-message-box { white-space: pre-wrap; font-size: 14px; background: rgb(52, 56, 56); border-radius: 5px; padding: 10px 12px; margin: 4px 0 12px; }
 .worker-message-box a { color: var(--green); }

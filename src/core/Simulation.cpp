@@ -270,7 +270,6 @@ void Bitzkey::derive() {
     toughness = (1 - SIZE_IN_MIGHT) * physique(Armour) + SIZE_IN_MIGHT * size;
     const int base_steps = 1 + trait(Speed) * 3 / TRAIT_MAX;
     steps = species == Species::Grazer ? static_cast<int>(base_steps * GRAZER_SPEED + 0.5) : base_steps;
-    if (terrain == Terrain::Amphibious && species != Species::Plant) steps = std::max(1, static_cast<int>(steps * AMPHIBIOUS_SPEED + 0.5));
     grazing = GRAZING[static_cast<std::size_t>(species)];
     browsing = BROWSING[static_cast<std::size_t>(species)];
     sight = 2 + SIGHT_PER_TRAIT * trait(Sight);
@@ -2088,7 +2087,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         }
         case Hunt: {
             Bitzkey& quarry = *s.quarry;
-            move_toward(agent, quarry.x, quarry.y, agent.steps + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
+            move_toward(agent, quarry.x, quarry.y, agent.pace() + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
             agent.last_action = "hunted";
             if (quarry.alive() && distance(quarry.x, quarry.y, agent.x, agent.y) <= 1) {
                 attack(agent, quarry, "hunting");
@@ -2130,7 +2129,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case WalkEast:
         case WalkWest: {
             const Heading& heading = HEADINGS[static_cast<std::size_t>(action - GoNorth)];
-            const int cells = heading.walk ? 1 : agent.steps;
+            const int cells = heading.walk ? 1 : agent.pace();
             int moved = 0;  // as far as it goes before the map's edge (north and south) or a full square
             for (int step = 1; step <= cells; ++step) {
                 const int x = py_mod(agent.x + heading.dx * step, width_), y = agent.y + heading.dy * step;
@@ -2488,7 +2487,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         Bitzkey& parent = *pair[index];
         parent.hunger += costs[index];
         const double rest = parent.species == Species::Predator ? PREDATOR_BREED_COOLDOWN : BREED_COOLDOWN;
-        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest));
+        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest *
+                                                    (parent.terrain == Terrain::Amphibious ? AMPHIBIOUS_COOLDOWN : 1.0)));
         parent.children += litter;
         parent.stamina = std::max(0.0, parent.stamina - fatigue(parent, BREED_FATIGUE));
         parent.reward += mating_joy(parent, BREED_JOY);
@@ -2720,7 +2720,7 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
 }
 
 void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
-    if (steps < 0) steps = agent.steps;
+    if (steps < 0) steps = agent.pace();
     int cells = 0;
     for (int taken = 0; taken < steps; ++taken) {
         bool moved;
@@ -2739,7 +2739,7 @@ void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
 
 void Simulation::move_away(Bitzkey& agent, const Bitzkey& threat) {
     int cells = 0;
-    for (int taken = 0; taken < agent.steps; ++taken) {
+    for (int taken = 0, pace = agent.pace(); taken < pace; ++taken) {
         const int dx = agent.x >= threat.x ? 1 : -1;
         const int dy = agent.y >= threat.y ? 1 : -1;
         if (!step(agent, py_mod(agent.x + dx, width_), within(agent.y + dy))) break;

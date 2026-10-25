@@ -42,10 +42,12 @@ constexpr double DEFAULT_OCEAN = 200.0 / 3;
 constexpr double CONTINENT_BREADTH = 0.25;
 // Terrain. An avian animal's size, weapons and armour count AVIAN_BODY of its genes' (light enough to fly), and it burns
 // FLIGHT_HUNGER more food; the terrestrial and aquatic can hunt or attack it only while it rests. An amphibious animal
-// goes AMPHIBIOUS_SPEED of its usual steps, at home nowhere. An avian plant's seeds fly AVIAN_SEED_REACH times as far.
+// goes AMPHIBIOUS_SPEED of its usual steps on land, and rests AMPHIBIOUS_COOLDOWN times as long after breeding. An avian
+// plant's seeds fly AVIAN_SEED_REACH times as far.
 inline double AVIAN_BODY = 0.5;
 inline double FLIGHT_HUNGER = 0.25;
 inline double AMPHIBIOUS_SPEED = 0.5;
+inline double AMPHIBIOUS_COOLDOWN = 2.0;
 inline double AVIAN_SEED_REACH = 2.0;
 // Stamina, 0 to 100: every action but rest tires an animal, and resting restores REST_RECOVERY a turn. Any other
 // action costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more (a flyer's FLIGHT_FATIGUE times that), each
@@ -567,6 +569,12 @@ struct Bitzkey {
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
     bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
+    // The squares it goes a step from where it stands: its steps, but an amphibious animal on land AMPHIBIOUS_SPEED of
+    // them, rounded half up, at least one.
+    int pace() const {
+        return terrain == Terrain::Amphibious && species != Species::Plant && !wet ? std::max(1, static_cast<int>(steps * AMPHIBIOUS_SPEED + 0.5))
+                                                                                    : steps;
+    }
     bool aloft_at_sea() const { return terrain == Terrain::Avian && species != Species::Plant && wet; }  // it can't rest
     double physique(int name) const { return share(trait(name)); }  // a body trait, as it is now, as a share of its range
     // Whether it is feeble at its age: if that has changed, its body is worked out afresh.

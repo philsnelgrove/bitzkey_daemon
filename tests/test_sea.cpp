@@ -146,7 +146,10 @@ TEST_CASE("a flyer is light and hungry, and the amphibious slow") {
     flyer.derive();
     CHECK(hungry == doctest::Approx(flyer.burn * 1.25));
     FLIGHT_HUNGER = 0.25;
-    CHECK(grown(Terrain::Amphibious).steps == static_cast<int>(walker.steps * AMPHIBIOUS_SPEED + 0.5));
+    Bitzkey frog = grown(Terrain::Amphibious);
+    CHECK(frog.pace() == static_cast<int>(walker.steps * AMPHIBIOUS_SPEED + 0.5));  // on land, slow
+    frog.wet = true;
+    CHECK(frog.pace() == walker.steps);  // in the water, as fast as any
     CHECK(grown(Terrain::Avian, Species::Plant).trait(Size) == 6);  // a plant's terrain is where it grows, not wings
 }
 

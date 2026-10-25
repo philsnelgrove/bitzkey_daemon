@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <tuple>
 
+#include "core/About.hpp"
 #include "core/Exchange.hpp"
 #include "core/Insights.hpp"
 #include "core/PyFormat.hpp"
@@ -236,6 +237,7 @@ Json state(World& world) {
         {"on_gpu", simulation.on_gpu()},
         {"rules_changed", world.rules().size()},
         {"mode", "main"},
+        {"about", about()},  // the version running and the cores it thinks on, for the page's header
         {"pooled", world.pool().bound()},  // its brains shared with workers
     };
     return result;

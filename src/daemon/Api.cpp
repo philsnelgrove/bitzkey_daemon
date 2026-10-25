@@ -12,6 +12,7 @@
 
 #include <httplib.h>
 
+#include "core/About.hpp"
 #include "core/Catalog.hpp"
 #include "core/Exchange.hpp"
 #include "core/Insights.hpp"
@@ -203,7 +204,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     server.Get("/api/state", guarded([&world](const httplib::Request&, httplib::Response& response) {
         if (world.worker().on()) {
-            reply(response, {{"mode", "worker"}, {"worker", world.worker().status()}});
+            reply(response, {{"mode", "worker"}, {"about", about()}, {"worker", world.worker().status()}});
             return;
         }
         auto lock = world.lock();

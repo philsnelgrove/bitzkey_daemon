@@ -253,7 +253,7 @@ export async function showWorkerPanel() {
     } }, 'CHANGE')), 'to listen on for the main service'));
   const panel = element('div', { class: 'worker-panel' },
     element('div', { class: 'worker-card' },
-      element('div', { class: 'worker-title' }, 'WORKER'),
+      element('div', { class: 'worker-title' }, 'WORKER', element('span', { class: 'worker-about' }, window.bitzkeyAbout || '')),
       lead, noteHolder, facts,
       element('div', { class: 'group-heading' }, 'Shared with the main service'),
       moving,

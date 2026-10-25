@@ -61,7 +61,8 @@ export function openSetup(app, onClose) {
 
   const shade = screen('setup', panel => {
     panel.append(
-      element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY'), element('span', {}, 'NEW WORLD  /  CONFIGURATION')),
+      element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY'), element('span', {}, 'NEW WORLD  /  CONFIGURATION'),
+        element('span', {}, window.bitzkeyAbout ? `/  ${window.bitzkeyAbout}` : '')),
       element('div', { class: 'advanced-button' }, advancedButton, advancedNote),
       element('div', { class: 'lead' }, 'Set up the world, then start it. It replaces the world running now, for everyone viewing it.'),
       element('div', { class: 'scroll' }, rows,

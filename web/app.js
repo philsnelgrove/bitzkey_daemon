@@ -117,6 +117,10 @@ async function poll(force = false) {
   try {
     const state = await api('/api/state');
     $('lost').hidden = true;
+    if (state.about && window.bitzkeyAbout !== state.about) {  // the version running and the cores it thinks on
+      window.bitzkeyAbout = state.about;
+      $('about').textContent = `/  ${state.about}`;
+    }
     if (state.mode === 'worker') {
       workerMode = true;
       app.overlay = { update() {} };  // the keys steer nothing
