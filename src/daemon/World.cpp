@@ -18,7 +18,12 @@ constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed
 
 World::World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir)
     : pool_(std::make_unique<Pool>(data_dir / "workers.json")), worker_(std::make_unique<Worker>(data_dir / "worker.json")),
-      simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)), playing_(playing) {
+      simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)),
+      probe_([this](const std::function<void(Simulation&)>& look) {
+          auto held = lock();
+          look(*simulation_);
+      }),
+      playing_(playing) {
     paths_ = {data_dir / "catalog.json", data_dir / "exports", data_dir / "reports", data_dir / "worlds"};
     std::filesystem::create_directories(data_dir);
     adopt_pool();
@@ -27,6 +32,7 @@ World::World(Simulation::Settings settings, bool playing, const std::filesystem:
 
 void World::adopt_pool() {
     pool_->adopt(*simulation_);
+    simulation_->on_turn = [this](const Simulation& turned) { probe_.after_turn(turned); };  // watched tracks follow it
     touch();
 }
 

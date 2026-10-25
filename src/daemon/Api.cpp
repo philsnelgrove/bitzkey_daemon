@@ -195,6 +195,10 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         return httplib::Server::HandlerResponse::Handled;
     });
 
+    // ---- The probe: a read-only look at the world, its Bitzkeys, herds and watched tracks, for analysing it
+
+    world.probe().install(server, "/api/probe");
+
     // ---- The world as it is
 
     server.Get("/api/state", guarded([&world](const httplib::Request&, httplib::Response& response) {

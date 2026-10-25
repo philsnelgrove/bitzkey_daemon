@@ -7,6 +7,7 @@
 #include <deque>
 #include <exception>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -678,6 +679,8 @@ public:
 
     // Step one turn: on through the recorded run, or simulating a new turn, unless it has ended.
     void advance();
+    // Called after each new turn is simulated, not as the history is replayed: to watch the world as it goes.
+    std::function<void(const Simulation&)> on_turn;
     // Move the world to any turn the history keeps, from the earliest to the latest simulated, by
     // bringing it back from its file.
     void seek(int target);

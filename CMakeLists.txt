@@ -82,6 +82,8 @@ add_custom_command(
 add_library(bitzkey_net STATIC
     src/net/Brains.cpp
     src/net/Pool.cpp
+    src/net/Probe.cpp
+    src/net/ProbeServer.cpp
     src/net/Worker.cpp
 )
 target_compile_definitions(bitzkey_net PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
@@ -115,6 +117,7 @@ add_executable(bitzkey_tests
     tests/test_worldfile.cpp
     tests/test_daemon.cpp
     tests/test_pool.cpp
+    tests/test_probe.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp
     src/daemon/Api.cpp

@@ -16,6 +16,7 @@
 #include "core/Rules.hpp"
 #include "core/Simulation.hpp"
 #include "net/Pool.hpp"
+#include "net/Probe.hpp"
 #include "net/Worker.hpp"
 
 namespace bitzkey::daemon {
@@ -89,6 +90,9 @@ public:
     Worker& worker() { return *worker_; }
     // Think through the pool while it has workers, and alone when it has none: after the list changes, or the world.
     void adopt_pool();
+    // The probe, a read-only look at the world for analysing it: each look takes the lock; watched tracks follow the
+    // world, whichever it is.
+    net::Probe& probe() { return probe_; }
 
 private:
     void run();
@@ -101,6 +105,7 @@ private:
     Simulation::Settings settings_;
     rules::Values rules_;
     Paths paths_;
+    net::Probe probe_;
     bool playing_ = true;
     int speed_ = 0;
     std::uint64_t version_ = 1;

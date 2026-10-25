@@ -194,6 +194,23 @@ The [Windows desktop app](https://github.com/philsnelgrove/bitzkey_cpp) can fill
 
 Workers speak to the main service in a binary protocol over HTTP, and a worker and its main service must speak the same version of it. A worker that speaks another version is listed as refused.
 
+## The probe
+
+The probe lets a program, or an assistant, look at the world while it runs: any Bitzkey, the herds, and the turn-by-turn tracks of the Bitzkeys it is asked to watch. It only reads the world, never changes it. It is served among the page's own routes, under `/api/probe`, and answers JSON:
+
+| Route | What it shows |
+|---|---|
+| `GET /api/probe/state` | the turn, season, map size and how many of each species live |
+| `GET /api/probe/animals?species=&x=&y=&r=&limit=` | living Bitzkeys in brief, of a species, or within `r` steps of a cell |
+| `GET /api/probe/animal/ID` | one Bitzkey in full: what it sensed and the odds it chose by at its last choice, its mind, home and the temperature where it stands, its parents, and its herd |
+| `GET /api/probe/family/ID` | its parents and theirs, as far as the world still holds them, and its living young and theirs |
+| `GET /api/probe/herds?species=&members=1` | the herds as they stand, each keeping its number from one look to the next while most of it holds together, with its drift, and which herds it split from or which merged into it |
+| `POST /api/probe/watch` `{"ids": [...], "keep": turns}` | watch these Bitzkeys, turn by turn |
+| `GET /api/probe/watch` | the tracks of those watched, until they die (720 turns of each kept, unless told otherwise) |
+| `DELETE /api/probe/watch?ids=` | stop watching these, or all |
+
+Like the page, the probe has no password. A worker serves none of it. The [Windows desktop app](https://github.com/philsnelgrove/bitzkey_cpp) serves the same probe on a port of its own computer, when asked to.
+
 ## Building for development
 
 On Linux:

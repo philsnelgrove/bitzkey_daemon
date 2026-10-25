@@ -439,3 +439,36 @@ TEST_CASE("the world is kept as the daemon stops, and carried on as it starts ag
     std::error_code ignored;
     std::filesystem::remove_all(folder, ignored);
 }
+
+TEST_CASE("the daemon serves the probe among its routes, and watched tracks follow the world's turns") {
+    const auto folder = scratch("probe");
+    {
+        World world(small_world(), false, folder);
+        Served served(world);
+        auto client = served.client();
+        const Json state = get(client, "/api/probe/state");
+        CHECK(state["turn"] == 0);
+        int watched = -1;
+        {
+            auto lock = world.lock();
+            for (const Bitzkey* agent : world.simulation().living()) {
+                if (agent->species != Species::Plant) {
+                    watched = agent->identifier;
+                    break;
+                }
+            }
+        }
+        REQUIRE(watched >= 0);
+        CHECK(get(client, "/api/probe/animal/" + std::to_string(watched))["id"] == watched);
+        post(client, "/api/probe/watch", {{"ids", Json::array({watched})}});
+        for (int turn = 0; turn < 3; ++turn) post(client, "/api/control", {{"action", "step"}});
+        const Json tracks = get(client, "/api/probe/watch");
+        CHECK(tracks["tracks"][std::to_string(watched)].size() == 3);
+        CHECK(get(client, "/api/probe/herds?species=grazer").contains("herds"));
+        const auto missing = client.Get("/api/probe/animal/999999");
+        REQUIRE(missing);
+        CHECK(missing->status == 404);
+    }
+    std::error_code ignored;
+    std::filesystem::remove_all(folder, ignored);
+}

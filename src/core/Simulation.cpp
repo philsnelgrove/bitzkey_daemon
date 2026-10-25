@@ -698,6 +698,7 @@ void Simulation::advance() {
     auto clock = std::chrono::steady_clock::now();
     record();
     timings.record += lap(clock);
+    if (on_turn) on_turn(*this);
 }
 
 EndReason Simulation::end_reason() const {
