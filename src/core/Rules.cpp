@@ -47,7 +47,7 @@ std::vector<Rule> make_rules() {
         {"LIFESPAN_YEARS.1", "Bodies", "Lifespan, middle", "years of life expected for middling bodies", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[1]},
         {"LIFESPAN_YEARS.2", "Bodies", "Lifespan, longest", "years of life expected for the largest bodies", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[2]},
         {"STARVING_DAMAGE", "Bodies", "Starving damage", "share of its full health a Bitzkey at full hunger loses each turn", 0.0, 1.0, 0.01, false, &STARVING_DAMAGE},
-        {"MEAT_DIGESTION", "Bodies", "Meat digestion", "the share of its fullness that is meat empties at this share of the usual rate", 0.05, 1.0, 0.05, false, &MEAT_DIGESTION},
+        {"MEAT_DIGESTION", "Bodies", "Meat digestion", "the share of its fullness that is meat empties at this share of the usual rate (1/7: meat lasts a week to plants' day)", 0.01, 1.0, 0.001, false, &MEAT_DIGESTION},
         {"AGEING", "Bodies", "Ageing", "from this share of its lifespan, an animal may die of old age, and is feeble", 0.0, 0.95, 0.05, false, &AGEING},
         {"FEEBLE_YOUTH", "Bodies", "Feeble youth", "an animal is feeble, an infant, for this share of its lifespan", 0.0, 0.5, 0.05, false, &FEEBLE_YOUTH},
         {"PREDATOR_INFANCY", "Bodies", "Predator infancy", "a predator is an infant this share as long as other animals", 0.0, 1.0, 0.05, false, &PREDATOR_INFANCY},

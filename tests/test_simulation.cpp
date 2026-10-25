@@ -1363,11 +1363,11 @@ TEST_CASE("meat lasts twice as long as plant food, and full hunger wears a tenth
     hunter.nourish(40 * hunter.stomach, true);
     grazer.nourish(40 * grazer.stomach);
     CHECK((hunter.hunger == doctest::Approx(10) && hunter.meat_fill == doctest::Approx(40) && grazer.meat_fill == 0.0));
-    CHECK(hunter.digest(10) == doctest::Approx(10 * (1 - 40.0 / 90 * (1 - MEAT_DIGESTION))));  // its meat share at half the rate
+    CHECK(hunter.digest(10) == doctest::Approx(10 * (1 - 40.0 / 90 * (1 - MEAT_DIGESTION))));  // its meat share at a seventh the rate
     CHECK(grazer.digest(10) == doctest::Approx(10));
     hunter.meat_fill = 90;
-    hunter.hunger = 10;  // all its fullness meat: half the hunger a turn
-    CHECK(hunter.digest(10) == doctest::Approx(5));
+    hunter.hunger = 10;  // all its fullness meat: a seventh of the hunger a turn, so meat lasts seven times as long
+    CHECK(hunter.digest(10) == doctest::Approx(10.0 / 7));
 
     Simulation starving = world();
     Bitzkey& lean = starving.add_agent(encode_dna(Species::Grazer, {{"temperature", 1}}), 5, 3);  // medium: at home here
