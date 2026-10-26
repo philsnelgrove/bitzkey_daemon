@@ -131,3 +131,20 @@ TEST_CASE("startled awake, a sleeper may flee or strike back, and a flyer over t
     CHECK((sleeper.odds_offered & ~awake) == 0);  // nothing but rest, flight or a blow back
     CHECK((sleeper.odds_offered & (1U << Flee)) != 0);  // a hunter alongside: it may wake to flee
 }
+
+TEST_CASE("an infant beside a parent is sheltered from the climate") {
+    FEEBLE_YOUTH = 0.5;  // infants for half their lives, in this test
+    Simulation simulation(Simulation::Settings{20, 20, 0, 1});
+    Bitzkey& mother = simulation.add_agent(animal(false), 5, 5);
+    Bitzkey& near = simulation.add_agent(animal(false), 5, 6);
+    Bitzkey& apart = simulation.add_agent(animal(false), 9, 9);
+    near.mother = apart.mother = mother.identifier;
+    mother.age = static_cast<int>(mother.lifespan * 0.6);  // grown
+    for (Bitzkey* agent : {&mother, &near, &apart}) agent->derive();
+    CHECK(simulation.sheltered(near));
+    CHECK_FALSE(simulation.sheltered(apart));  // too far from its mother
+    CHECK_FALSE(simulation.sheltered(mother));  // grown, and an orphan besides
+    mother.health = 0;
+    CHECK_FALSE(simulation.sheltered(near));  // no shelter from a dead parent
+    FEEBLE_YOUTH = 0.0;
+}

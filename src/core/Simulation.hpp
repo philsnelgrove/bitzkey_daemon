@@ -392,6 +392,8 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // fleeing a hunter or striking back at what struck it, startled awake, and a flyer over the sea, which can't rest.
 inline int DAY_LENGTH = 8;
 inline int SLEEP = 1;
+// An infant within this many squares of a living parent is sheltered: the climate's extra hunger and harm pass it by.
+constexpr int SHELTER_REACH = 1;
 constexpr int DAYS_IN_YEAR = 360;
 inline int DEFAULT_YEAR_LENGTH = 8 * DAYS_IN_YEAR;  // a new world's, unless its settings say otherwise
 inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its year length setting
@@ -722,6 +724,8 @@ public:
     int night_start() const;  // the westernmost column of the night, which runs east half the map's width from it
     // Whether an animal is in its night where it stands: dark for the diurnal, light for the nocturnal.
     bool resting_time(const Bitzkey& agent) const { return agent.nocturnal != night(agent.x); }
+    // Whether an infant is sheltered: a living parent within SHELTER_REACH of it. It is spared the climate.
+    bool sheltered(const Bitzkey& agent) const;
     bool sea(int x, int y) const { return !sea_.empty() && in_bounds(x, y) && sea_[static_cast<std::size_t>(y) * width_ + x]; }
     bool has_sea() const { return !sea_.empty(); }
     const std::vector<std::uint8_t>& sea_map() const { return sea_; }  // a square a cell, row by row; empty without sea

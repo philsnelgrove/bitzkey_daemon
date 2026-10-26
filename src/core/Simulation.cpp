@@ -892,7 +892,7 @@ void Simulation::take_turn() {
         }
         const bool plant = agent->species == Species::Plant;
         const double here = in_bounds(agent->x, agent->y) ? climate_[static_cast<std::size_t>(agent->y)] : Medium;
-        const double steps = agent->climate_steps(here);
+        const double steps = sheltered(*agent) ? 0.0 : agent->climate_steps(here);  // a sheltered infant feels no weather
         const bool hungrier = steps > 0 && (!plant || here < agent->climate.temperature);  // out of its temperature; a plant, too hot
         const double share = agent->exposure_share(here);  // less for the hardy
         // The extra food it needs rises with the weather's turning, to the full amount a step away.
@@ -1334,6 +1334,15 @@ double choice_learning(int choice) {
         case Eat: case Forage: case Browse: case Uproot: return PLANT_FOOD_LEARNING;
         default: return 1.0;
     }
+}
+
+bool Simulation::sheltered(const Bitzkey& agent) const {
+    if (!agent.infant()) return false;
+    for (const int parent : {agent.mother, agent.father}) {
+        const Bitzkey* found = parent >= 0 ? find_agent(parent) : nullptr;
+        if (found && found->alive() && distance(found->x, found->y, agent.x, agent.y) <= SHELTER_REACH) return true;
+    }
+    return false;
 }
 
 int Simulation::night_start() const {
