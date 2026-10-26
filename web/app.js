@@ -54,6 +54,7 @@ const GLOBE_ZOOM_MAX = 8;
 const GLOBE_TEXTURE = 1600;   // the map drawn onto it from a picture about this many pixels across
 const STACK_SPACING = 0.7;    // a stack's Bitzkeys each this share of the one below's radius above it, its face showing
 let globe = false;
+let blind = false;            // neither map nor globe drawn, to spare the time
 let globeYaw = 0, globeTilt = 0.35, globeZoom = 1;
 let turnFrom = null;          // a drag on the globe: where it began, and its turn then
 let globeLook = null;         // where each pixel of the disc lies on the map, kept while its size and tilt stay
@@ -298,6 +299,14 @@ function drawMap() {
   const ctx = mapContext;
   ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0);
   ctx.clearRect(0, 0, view.w, view.h);
+  if (blind) {
+    ctx.fillStyle = 'rgb(116,139,124)';
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText("BLIND: the map isn't drawn", view.w / 2, view.h / 2);
+    ctx.textAlign = 'start';
+    return;
+  }
   if (globe) {
     drawGlobe(frame, ctx, view);
     return;
@@ -616,12 +625,14 @@ const globeGround = document.createElement('canvas');
 const globeFrame = document.createElement('canvas');
 
 const viewButtons = element('div', { class: 'view-buttons' },
-  element('button', { class: 'view-map', onclick: () => { globe = false; showViewButtons(); drawMap(); } }, 'MAP'),
-  element('button', { class: 'view-globe', onclick: () => { globe = true; showViewButtons(); drawMap(); } }, 'GLOBE'));
+  element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); } }, 'MAP'),
+  element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); } }, 'GLOBE'),
+  element('button', { class: 'view-blind', onclick: () => { blind = true; showViewButtons(); drawMap(); } }, 'BLIND'));
 $('map-holder').append(viewButtons);
 function showViewButtons() {
-  viewButtons.querySelector('.view-map').classList.toggle('on', !globe);
-  viewButtons.querySelector('.view-globe').classList.toggle('on', globe);
+  viewButtons.querySelector('.view-map').classList.toggle('on', !globe && !blind);
+  viewButtons.querySelector('.view-globe').classList.toggle('on', globe && !blind);
+  viewButtons.querySelector('.view-blind').classList.toggle('on', blind);
 }
 showViewButtons();
 
