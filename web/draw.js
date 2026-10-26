@@ -127,35 +127,223 @@ export function drawIcon(ctx, species, cx, cy, half, colour) {
 // One Bitzkey: `look` holds dot (rgb), ring (rgb), social (rgb, the background behind its icon) and
 // species. A dead one is dimmed and crossed in red; with `opacity` below 1, all of it is that faint,
 // as a corpse fades.
-export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, alive = true, opacity = 1) {
-  if (opacity <= 0) return;
-  ctx.save();
-  ctx.globalAlpha *= opacity;
+// A Bitzkey is drawn as a poker chip, as in the window app: its coloured edge CHIP_EDGE of its radius (at least the
+// ring's width) with CHIP_INSERTS lighter inserts round it, its face the social background's (or the dot's, too small
+// for an icon) carrying the species icon, lit from the top left with a shine and a soft shadow. Each look is drawn
+// once, onto a canvas of its own, and kept.
+const CHIP_EDGE = 0.32;
+const CHIP_INSERTS = 6;
+const chips = new Map();
+
+const scaled = (colour, factor) => colour.map(value => Math.max(0, Math.min(255, Math.round(value * factor))));
+const mixed = (from, to, share) => from.map((value, c) => Math.round(value + (to[c] - value) * share));
+
+function drawChip(ctx, look, x, y, radius, ringWidth, alive) {
+  const outer = radius + ringWidth;
+  const edge = Math.max(ringWidth, Math.round(outer * CHIP_EDGE)), face = outer - edge, drop = Math.max(1, outer * 0.14);
   let dot = look.dot, ring = look.ring, outline = OUTLINE, social = look.social || [0, 0, 0];
-  if (!alive) [dot, ring, outline, social] = [dot, ring, outline, social].map(c => c.map(v => Math.floor(v / 3)));
-  circle(ctx, x, y, radius + ringWidth, css(ring));
-  if (radius >= ICON_MIN_RADIUS) {
-    circle(ctx, x, y, radius, css(social));
-    iconPath(ctx, look.species, x, y, radius * 0.8);
+  if (!alive) [dot, ring, outline, social] = [dot, ring, outline, social].map(c => scaled(c, 1 / 3));
+  const icon = radius >= ICON_MIN_RADIUS;
+  // The shadow, softened at its edge.
+  const shadow = ctx.createRadialGradient(x + drop, y + drop, outer * 0.6, x + drop, y + drop, outer + 1 + outer * 0.35);
+  shadow.addColorStop(0, 'rgba(0,0,0,0.38)');
+  shadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.arc(x + drop, y + drop, outer + 1 + outer * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  // The edge, its inserts, the groove and the face.
+  circle(ctx, x, y, outer, css(ring));
+  if (outer >= 5) {
+    ctx.fillStyle = css(mixed(ring, [255, 255, 255], 0.55));
+    for (let insert = 0; insert < CHIP_INSERTS; ++insert) {
+      const from = -Math.PI + insert * 2 * Math.PI / CHIP_INSERTS, to = from + 0.4 * 2 * Math.PI / CHIP_INSERTS;
+      ctx.beginPath();
+      ctx.arc(x, y, outer, from, to);
+      ctx.arc(x, y, face, to, from, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  circle(ctx, x, y, face, css(icon ? social : dot));
+  if (outer >= 5) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, face, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (icon) {
+    iconPath(ctx, look.species, x, y, face * 0.82);
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 2 * Math.max(1, ringWidth / RING_WIDTH);
+    ctx.lineWidth = 2 * Math.max(1, face / 6);
     ctx.strokeStyle = css(outline);
     ctx.stroke();
     ctx.fillStyle = css(dot);
     ctx.fill('nonzero');
-  } else {
-    circle(ctx, x, y, radius, css(dot));
   }
+  // Light from the top left, and the shine, on the chip alone.
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, outer, 0, Math.PI * 2);
+  ctx.clip();
+  const light = ctx.createLinearGradient(x - outer, y - outer, x + outer, y + outer);
+  light.addColorStop(0, 'rgba(255,255,255,0.14)');
+  light.addColorStop(0.5, 'rgba(255,255,255,0)');
+  light.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = light;
+  ctx.fillRect(x - outer, y - outer, 2 * outer, 2 * outer);
+  const shineX = x - outer * 0.35, shineY = y - outer * 0.42, shine = ctx.createRadialGradient(shineX, shineY, 0, shineX, shineY, outer * 0.55);
+  shine.addColorStop(0, `rgba(255,255,255,${alive ? 0.42 : 0.15})`);
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = shine;
+  ctx.fillRect(x - outer, y - outer, 2 * outer, 2 * outer);
+  ctx.restore();
   if (!alive) {
-    const reach = radius + ringWidth;
     ctx.strokeStyle = css(CROSS);
-    ctx.lineWidth = Math.max(2, Math.floor(reach / 3));
+    ctx.lineWidth = Math.max(2, Math.floor(outer / 3));
     ctx.beginPath();
-    ctx.moveTo(x - reach, y - reach); ctx.lineTo(x + reach, y + reach);
-    ctx.moveTo(x - reach, y + reach); ctx.lineTo(x + reach, y - reach);
+    ctx.moveTo(x - outer, y - outer); ctx.lineTo(x + outer, y + outer);
+    ctx.moveTo(x - outer, y + outer); ctx.lineTo(x + outer, y - outer);
     ctx.stroke();
   }
+}
+
+export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, alive = true, opacity = 1) {
+  if (opacity <= 0) return;
+  const scale = window.devicePixelRatio || 1;
+  const key = `${look.dot}|${look.ring}|${look.social}|${look.species}|${radius}|${ringWidth}|${alive}|${scale}`;
+  let chip = chips.get(key);
+  if (!chip) {
+    if (chips.size > 20000) chips.clear();
+    const outer = radius + ringWidth, reach = Math.ceil(outer + Math.max(1, outer * 0.14) + outer * 0.35 + 3);
+    chip = document.createElement('canvas');
+    chip.width = chip.height = Math.ceil(2 * reach * scale);
+    chip.reach = reach;
+    const own = chip.getContext('2d');
+    own.scale(scale, scale);
+    drawChip(own, look, reach, reach, radius, ringWidth, alive);
+    chips.set(key, chip);
+  }
+  ctx.save();
+  ctx.globalAlpha *= opacity;
+  ctx.drawImage(chip, x - chip.reach, y - chip.reach, 2 * chip.reach, 2 * chip.reach);
   ctx.restore();
+}
+
+// Grass as a tuft, or kelp in the sea, and the ground's faint texture, each drawn once for a square's size.
+export const TEXTURE_FROM = 6;  // squares this many pixels across or more are textured, and their grass drawn as tufts
+export const GROUND_VARIANTS = 4;
+const tufts = new Map(), tiles = new Map();
+
+function sprite(size, draw) {
+  const scale = window.devicePixelRatio || 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = Math.max(1, Math.ceil(size * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  ctx.lineCap = 'round';
+  draw(ctx);
+  return canvas;
+}
+
+function strokeLine(ctx, points, colour, width = 1) {
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(...points[0]);
+  for (const point of points.slice(1)) ctx.lineTo(...point);
+  ctx.stroke();
+}
+
+export function grassTuft(size, sea) {
+  const key = `${size}|${sea}|${window.devicePixelRatio || 1}`;
+  if (!tufts.has(key)) {
+    tufts.set(key, sprite(size, ctx => {
+      const baseX = size * 0.5, baseY = size * 0.8, tall = size * 0.55, thick = Math.max(1, size / 12);
+      if (sea) {  // kelp: a few swaying strands, darker ones behind a light one
+        for (let strand = 0; strand < 3; ++strand) {
+          const x0 = baseX + (strand - 1) * size * 0.16, points = [[x0, baseY]];
+          for (let step = 1; step <= 8; ++step) {
+            const t = step / 8;
+            points.push([x0 + Math.sin(t * 5.5 + strand) * size * 0.08, baseY - t * tall * (strand === 1 ? 1 : 0.8)]);
+          }
+          strokeLine(ctx, points, css(strand === 1 ? SEA_GRASS : scaled(SEA_GRASS, 0.7)), thick);
+        }
+      } else {  // blades fanning from a clump, dark beneath and light at their tips
+        const lean = [-0.55, -0.25, 0, 0.3, 0.6], share = [0.7, 0.95, 1, 0.85, 0.65];
+        lean.forEach((tilt, blade) => {
+          const tip = [baseX + tilt * size * 0.42, baseY - tall * share[blade]];
+          const mid = [baseX + tilt * size * 0.12, baseY - tall * share[blade] * 0.55];
+          strokeLine(ctx, [[baseX + (blade - 2) * thick * 0.6, baseY], mid], css(scaled(GRASS, 0.75)), thick * 1.3);
+          strokeLine(ctx, [mid, tip], css(mixed(GRASS, [170, 220, 120], 0.45)), thick);
+        });
+      }
+    }));
+  }
+  return tufts.get(key);
+}
+
+// The ground's texture: 'sand', 'meadow', 'snow' or 'ice' by a zone's usual temperature (hot to very cold), or 'sea'.
+export const GROUNDS = ['sand', 'meadow', 'snow', 'ice'];
+
+export function groundTile(ground, size, variant) {
+  const key = `${ground}|${size}|${variant}|${window.devicePixelRatio || 1}`;
+  if (!tiles.has(key)) {
+    let state = (Math.imul(2654435761, variant * 7 + GROUNDS.concat('sea').indexOf(ground) * 131 + 1) >>> 0) || 1;
+    const next = () => {  // the same texture every time
+      state ^= state << 13; state >>>= 0;
+      state ^= state >>> 17;
+      state ^= state << 5; state >>>= 0;
+      return (state & 0xFFFFFF) / 0x1000000;
+    };
+    const speck = (ctx, colour) => ctx.fillRect(Math.floor(next() * size), Math.floor(next() * size), 1, 1, ctx.fillStyle = colour);
+    tiles.set(key, sprite(size, ctx => {
+      const s = size;
+      if (ground === 'sand') {  // ripples drifted by the wind, and grit
+        for (let ripple = 0; ripple < 2; ++ripple) {
+          const y0 = s * (0.3 + 0.4 * ripple + 0.1 * next()), x0 = s * 0.1 * next(), points = [[x0, y0]];
+          for (let step = 1; step <= 6; ++step) points.push([x0 + step * s * 0.13, y0 + Math.sin(step * 1.1 + ripple) * s * 0.05]);
+          strokeLine(ctx, points, 'rgba(255,240,205,0.3)');
+        }
+        for (let grit = 0; grit < 4; ++grit) { ctx.fillStyle = 'rgba(110,75,40,0.3)'; ctx.fillRect(Math.floor(next() * s), Math.floor(next() * s), 1, 1); }
+      } else if (ground === 'meadow') {  // short darker strokes, and pale flecks
+        for (let mark = 0; mark < 4; ++mark) {
+          const x0 = next() * s, y0 = next() * s;
+          strokeLine(ctx, [[x0, y0], [x0 + (next() - 0.5) * s * 0.12, y0 - s * 0.12]], 'rgba(45,85,35,0.3)');
+        }
+        for (let fleck = 0; fleck < 3; ++fleck) { ctx.fillStyle = 'rgba(215,235,160,0.3)'; ctx.fillRect(Math.floor(next() * s), Math.floor(next() * s), 1, 1); }
+      } else if (ground === 'snow') {  // a drift's blue shadow, and sparkle
+        const x0 = s * (0.1 + 0.3 * next()), y0 = s * (0.4 + 0.4 * next());
+        strokeLine(ctx, [[x0, y0], [x0 + s * 0.5, y0 - s * 0.08]], 'rgba(150,175,210,0.35)', Math.max(1, s / 10));
+        for (let flake = 0; flake < 6; ++flake) {
+          ctx.fillStyle = flake % 2 ? 'rgba(255,255,255,0.6)' : 'rgba(160,190,225,0.6)';
+          ctx.fillRect(Math.floor(next() * s), Math.floor(next() * s), 1, 1);
+        }
+      } else if (ground === 'ice') {  // cracks across the ice, and a glint
+        const points = [[next() * s, next() * s]];
+        for (let step = 0; step < 3; ++step) {
+          const [px, py] = points[points.length - 1];
+          points.push([px + (next() - 0.4) * s * 0.4, py + (next() - 0.4) * s * 0.4]);
+        }
+        strokeLine(ctx, points, 'rgba(245,252,255,0.4)');
+        const gx = Math.floor(next() * s), gy = Math.floor(next() * s);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(gx - 1, gy, 3, 1);
+        ctx.fillRect(gx, gy - 1, 1, 3);
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(gx, gy, 1, 1);
+      } else {  // wave crests, light over the deep
+        const crests = 1 + Math.floor(next() * 2);
+        for (let crest = 0; crest < crests; ++crest) {
+          const cx = s * (0.2 + 0.6 * next()), cy = s * (0.25 + 0.5 * next()), span = s * 0.22, points = [];
+          for (let step = 0; step <= 6; ++step) points.push([cx - span + 2 * span * step / 6, cy - Math.sin(step / 6 * Math.PI) * s * 0.08]);
+          strokeLine(ctx, points, 'rgba(225,238,255,0.33)');
+        }
+      }
+    }));
+  }
+  return tiles.get(key);
 }
 
 // The ring round a selected Bitzkey, like a target's sights: white inside black, with four pips.

@@ -5,7 +5,7 @@
 import { startLanguages } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -48,6 +48,16 @@ let shownVersion = -1;
 let shownWorld = -1;
 let mapZoom = 1;
 let mapCentre = null;     // [x, y] in cells, or null for the middle
+// The globe (see drawGlobe):
+const GLOBE_SHARE = 0.46;     // its radius, this share of the view's smaller side at no zoom
+const GLOBE_ZOOM_MAX = 8;
+const GLOBE_TEXTURE = 1600;   // the map drawn onto it from a picture about this many pixels across
+const STACK_SPACING = 0.7;    // a stack's Bitzkeys each this share of the one below's radius above it, its face showing
+let globe = false;
+let globeYaw = 0, globeTilt = 0.35, globeZoom = 1;
+let turnFrom = null;          // a drag on the globe: where it began, and its turn then
+let globeLook = null;         // where each pixel of the disc lies on the map, kept while its size and tilt stay
+let globeHits = [];           // each living Bitzkey drawn on the globe: x, y, reach, identifier
 let marquee = null;       // {x, y, adding, nowX, nowY}
 let panFrom = null;
 let messageTimer = null;
@@ -288,6 +298,10 @@ function drawMap() {
   const ctx = mapContext;
   ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0);
   ctx.clearRect(0, 0, view.w, view.h);
+  if (globe) {
+    drawGlobe(frame, ctx, view);
+    return;
+  }
   // Each row in its temperature's colour, and the grass: a pixel a cell when cells are small.
   if (cell < 4) {
     if (grassCanvas.width !== frame.width || grassCanvas.height !== frame.height) {
@@ -328,7 +342,18 @@ function drawMap() {
     const radius = Math.max(1, pyRound(cell * 0.18));
     const [x0, x1] = [Math.max(0, Math.floor(-geometry.x / cell) - 1), Math.min(frame.width, Math.ceil((view.w - geometry.x) / cell) + 1)];
     const [y0, y1] = [Math.max(0, Math.floor(-geometry.y / cell) - 1), Math.min(frame.height, Math.ceil((view.h - geometry.y) / cell) + 1)];
-    for (const [under, colour] of [[0, GRASS], [2, SEA_GRASS]]) {  // grass on the land, then in the sea
+    const size = Math.round(cell);
+    if (cell >= TEXTURE_FROM) {  // the ground's texture by the temperature now (sand to ice), or waves at sea; grass as tufts
+      for (let y = y0; y < y1; ++y) {
+        const land = GROUNDS[Math.max(0, Math.min(3, Math.round(frame.temperatures[y])))];
+        for (let x = x0; x < x1; ++x) {
+          const square = frame.grass[y * frame.width + x];
+          const variant = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % GROUND_VARIANTS;
+          ctx.drawImage(groundTile(square & 2 ? 'sea' : land, size, variant), geometry.x + x * cell, geometry.y + y * cell, cell, cell);
+          if (square & 1) ctx.drawImage(grassTuft(size, (square & 2) !== 0), geometry.x + x * cell, geometry.y + y * cell, cell, cell);
+        }
+      }
+    } else for (const [under, colour] of [[0, GRASS], [2, SEA_GRASS]]) {  // grass on the land, then in the sea
       ctx.fillStyle = css(colour);
       ctx.beginPath();
       for (let y = y0; y < y1; ++y) {
@@ -471,6 +496,17 @@ function select(identifier) {
 map.addEventListener('mousedown', event => {
   if (!app.frame) return;
   const [x, y] = mousePoint(event);
+  if (globe) {  // a right or middle drag turns the globe; a click picks the Bitzkey there
+    if (event.button === 0) {
+      const hit = [...globeHits].reverse().find(([hx, hy, reach]) => (x - hx) ** 2 + (y - hy) ** 2 <= (reach + 2) ** 2);
+      if (hit) select(hit[3]);
+      else selectAll(new Set());
+    } else {
+      turnFrom = { x, y, yaw: globeYaw, tilt: globeTilt };
+    }
+    event.preventDefault();
+    return;
+  }
   if (deploying && event.button === 2) {
     stopDeploying();
     event.preventDefault();
@@ -517,8 +553,15 @@ function showSquare() {
 window.addEventListener('mousemove', event => {
   if (!app.frame) return;
   const [x, y] = mousePoint(event);
+  if (turnFrom) {  // dragged across, the globe turns about its axis; up or down, it tips
+    const geometry = board(), radius = Math.min(geometry.view.w, geometry.view.h) * GLOBE_SHARE * globeZoom;
+    globeYaw = turnFrom.yaw - (x - turnFrom.x) / radius;
+    globeTilt = Math.max(-1.3, Math.min(1.3, turnFrom.tilt + (y - turnFrom.y) / radius));
+    drawMap();
+    return;
+  }
   if (!squarePanel.contains(event.target)) {
-    square = event.buttons === 0 && !deploying && event.target === map ? cellAt(x, y) : null;
+    square = event.buttons === 0 && !deploying && !globe && event.target === map ? cellAt(x, y) : null;
     showSquare();
   }
   if (deploying && painted && event.buttons & 1) {  // painting: another group every DEPLOY_GROUP cells
@@ -536,6 +579,7 @@ window.addEventListener('mousemove', event => {
   }
 });
 window.addEventListener('mouseup', event => {
+  turnFrom = null;
   if (deploying && event.button === 0) painted = null;
   if (marquee && event.button === 0) {
     const [x, y] = mousePoint(event);
@@ -549,6 +593,11 @@ map.addEventListener('contextmenu', event => event.preventDefault());
 map.addEventListener('wheel', event => {
   if (!app.frame) return;
   event.preventDefault();
+  if (globe) {
+    globeZoom = Math.max(0.5, Math.min(GLOBE_ZOOM_MAX, globeZoom * MAP_ZOOM_STEP ** (event.deltaY < 0 ? 1 : -1)));
+    drawMap();
+    return;
+  }
   const [x, y] = mousePoint(event);
   const geometry = board();
   const cellX = (x - geometry.x) / geometry.cell, cellY = (y - geometry.y) / geometry.cell;  // stays under the pointer
@@ -559,6 +608,143 @@ map.addEventListener('wheel', event => {
   drawMap();
 }, { passive: false });
 new ResizeObserver(() => drawMap()).observe($('map-holder'));
+// ---------------------------------------------------------------------------------------------
+// The globe: the map wrapped round a sphere, turned about its axis by dragging and tipped up or down, zoomed by the
+// wheel, with each square's Bitzkeys stacked on it, the largest at the bottom, as in the window app.
+
+const globeGround = document.createElement('canvas');
+const globeFrame = document.createElement('canvas');
+
+const viewButtons = element('div', { class: 'view-buttons' },
+  element('button', { class: 'view-map', onclick: () => { globe = false; showViewButtons(); drawMap(); } }, 'MAP'),
+  element('button', { class: 'view-globe', onclick: () => { globe = true; showViewButtons(); drawMap(); } }, 'GLOBE'));
+$('map-holder').append(viewButtons);
+function showViewButtons() {
+  viewButtons.querySelector('.view-map').classList.toggle('on', !globe);
+  viewButtons.querySelector('.view-globe').classList.toggle('on', globe);
+}
+showViewButtons();
+
+function drawGlobeGround(frame) {
+  // The map flat, a few pixels a square: the rows' colours, the sea, their textures and grass, and the night.
+  const per = Math.max(2, Math.min(12, Math.floor(GLOBE_TEXTURE / Math.max(frame.width, frame.height))));
+  if (globeGround.width !== frame.width * per || globeGround.height !== frame.height * per) {
+    globeGround.width = frame.width * per;
+    globeGround.height = frame.height * per;
+  }
+  const ctx = globeGround.getContext('2d');
+  for (let y = 0; y < frame.height; ++y) {
+    const land = GROUNDS[Math.max(0, Math.min(3, Math.round(frame.temperatures[y])))];
+    const zone = css(zoneColour(frame.temperatures[y])), sea = css(seaColour(frame.temperatures[y]));
+    for (let x = 0; x < frame.width; ++x) {
+      const square = frame.grass[y * frame.width + x];
+      ctx.fillStyle = square & 2 ? sea : zone;
+      ctx.fillRect(x * per, y * per, per, per);
+      if (per >= TEXTURE_FROM) {
+        const variant = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % GROUND_VARIANTS;
+        ctx.drawImage(groundTile(square & 2 ? 'sea' : land, per, variant), x * per, y * per, per, per);
+        if (square & 1) ctx.drawImage(grassTuft(per, (square & 2) !== 0), x * per, y * per, per, per);
+      } else if (square & 1) {
+        ctx.fillStyle = css(square & 2 ? SEA_GRASS : GRASS);
+        ctx.fillRect(x * per + per / 4, y * per + per / 4, per / 2, per / 2);
+      }
+    }
+  }
+  const day = app.state?.day_length;
+  if (day) {
+    const width = frame.width, columns = Math.floor(width / 2);
+    const start = (((Math.trunc(-(frame.turn % day) * width / day)) % width) + width) % width;
+    ctx.fillStyle = NIGHT;
+    for (const [from, count] of [[start, Math.min(columns, width - start)], [0, Math.max(0, start + columns - width)]]) {
+      if (count > 0) ctx.fillRect(from * per, 0, count * per, globeGround.height);
+    }
+  }
+}
+
+function drawGlobe(frame, ctx, view) {
+  drawGlobeGround(frame);
+  const scale = view.scale;
+  const radius = Math.min(view.w, view.h) * GLOBE_SHARE * globeZoom;
+  const size = 2 * Math.ceil(radius * scale) + 1;  // in device pixels
+  const pixelRadius = radius * scale;
+  if (!globeLook || globeLook.size !== size || globeLook.tilt !== globeTilt) {
+    const longitude = new Float32Array(size * size), row = new Float32Array(size * size).fill(-1), light = new Float32Array(size * size);
+    const c = Math.cos(globeTilt), sn = Math.sin(globeTilt), half = size / 2;
+    for (let py = 0; py < size; ++py) {
+      for (let px = 0; px < size; ++px) {
+        const nx = (px + 0.5 - half) / pixelRadius, ny = -(py + 0.5 - half) / pixelRadius, rr = nx * nx + ny * ny;
+        if (rr >= 1) continue;
+        const nz = Math.sqrt(1 - rr), y1 = ny * c + nz * sn, z1 = -ny * sn + nz * c;  // tipped back upright
+        const at = py * size + px;
+        longitude[at] = Math.atan2(nx, z1);
+        row[at] = 0.5 - Math.asin(Math.max(-1, Math.min(1, y1))) / Math.PI;
+        light[at] = 0.35 + 0.65 * Math.max(0, -0.35 * nx + 0.45 * ny + 0.82 * nz);  // lit from the upper left, in front
+      }
+    }
+    globeLook = { size, tilt: globeTilt, longitude, row, light };
+  }
+  const ground = globeGround.getContext('2d').getImageData(0, 0, globeGround.width, globeGround.height).data;
+  const gw = globeGround.width, gh = globeGround.height;
+  if (globeFrame.width !== size) globeFrame.width = globeFrame.height = size;
+  const fctx = globeFrame.getContext('2d');
+  const image = fctx.createImageData(size, size), out = image.data;
+  const turn = globeYaw / (2 * Math.PI);
+  for (let at = 0; at < size * size; ++at) {
+    const row = globeLook.row[at];
+    if (row < 0) continue;
+    let u = globeLook.longitude[at] / (2 * Math.PI) + 0.5 + turn;
+    u -= Math.floor(u);
+    const from = (Math.min(gh - 1, Math.floor(row * gh)) * gw + Math.min(gw - 1, Math.floor(u * gw))) * 4, light = globeLook.light[at];
+    out[at * 4] = ground[from] * light;
+    out[at * 4 + 1] = ground[from + 1] * light;
+    out[at * 4 + 2] = ground[from + 2] * light;
+    out[at * 4 + 3] = 255;
+  }
+  fctx.putImageData(image, 0, 0);
+  const cx = view.w / 2, cy = view.h / 2;
+  ctx.drawImage(globeFrame, cx - size / scale / 2, cy - size / scale / 2, size / scale, size / scale);
+
+  // Each square's Bitzkeys, stacked largest at the bottom, the stacks drawn from the back of the globe to the front.
+  const squares = new Map();
+  for (const agent of frame.agents) {
+    if (agent.opacity <= 0) continue;
+    const key = agent.y * frame.width + agent.x;
+    if (!squares.has(key)) squares.set(key, []);
+    squares.get(key).push(agent);
+  }
+  const c = Math.cos(globeTilt), sn = Math.sin(globeTilt), stacks = [];
+  for (const [key, members] of squares) {
+    const x = key % frame.width, y = Math.floor(key / frame.width);
+    const latitude = (0.5 - (y + 0.5) / frame.height) * Math.PI;
+    const longitude = ((x + 0.5) / frame.width - 0.5) * 2 * Math.PI - globeYaw;
+    const x1 = Math.cos(latitude) * Math.sin(longitude), y1 = Math.sin(latitude), z1 = Math.cos(latitude) * Math.cos(longitude);
+    const up = y1 * c - z1 * sn, depth = y1 * sn + z1 * c;
+    if (depth < 0.08) continue;  // round the back, or too near the edge to see
+    stacks.push({ depth, px: cx + x1 * radius, py: cy - up * radius, members });
+  }
+  stacks.sort((a, b) => a.depth - b.depth);
+  globeHits = [];
+  const [smallest, largest] = mapDotRadii(Math.PI * radius / frame.height);
+  for (const stack of stacks) {
+    const members = [...stack.members].sort((a, b) => b.size - a.size);
+    const shrink = 0.55 + 0.45 * stack.depth;  // foreshortened toward the edge
+    let lift = 0;
+    for (const agent of members) {
+      const dot = Math.max(2, Math.round(dotRadius(agent.size, largest, smallest) * shrink));
+      drawBitzkey(ctx, agent, stack.px, stack.py - lift, dot, RING_WIDTH, agent.alive, agent.opacity);
+      if (agent.alive) globeHits.push([stack.px, stack.py - lift, dot + RING_WIDTH, agent.identifier]);  // drawn last, on top
+      if (agent.identifier === app.selectedId) drawReticle(ctx, stack.px, stack.py - lift, dot + RING_WIDTH + 3);
+      lift += Math.max(2, Math.round((dot + RING_WIDTH) * STACK_SPACING));  // the next above, its face clear
+    }
+  }
+}
+
+// H hides everything but the map or globe, which then fill the window; H again brings it all back.
+function toggleHud() {
+  document.body.classList.toggle('hud-hidden');
+  drawMap();
+}
+
 
 // ---------------------------------------------------------------------------------------------
 // The exemplar cards
@@ -1058,7 +1244,8 @@ document.addEventListener('keydown', event => {
   else if (key === 'a' || key === 'A') toggleExport();
   else if (key === 'e' || key === 'E') openExportDialog();
   else if (key === 'k' || key === 'K') catalogIdentifiers(app.selectedId !== null ? [app.selectedId] : []);
-  else if (key === 'z' || key === 'Z') { mapZoom = 1; mapCentre = null; drawMap(); }
+  else if (key === 'z' || key === 'Z') { mapZoom = 1; mapCentre = null; globeZoom = 1; drawMap(); }
+  else if (key === 'h' || key === 'H') toggleHud();
   else if (key === 'Escape') setup();
 });
 
