@@ -1185,5 +1185,6 @@
 "Search settings": "Einstellungen suchen",
 "{#} found": "{#} gefunden",
 "No settings match \"{*}\".": "Keine Einstellung passt zu „{*}“.",
-"{#} neurons": "{#} Neuronen"
+"{#} neurons": "{#} Neuronen",
+"Zoomed out too far to see anybody": "Zu weit herausgezoomt, um jemanden zu sehen"
 }

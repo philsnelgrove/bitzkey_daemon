@@ -1185,5 +1185,6 @@
 "Search settings": "חיפוש הגדרות",
 "{#} found": "נמצאו {#}",
 "No settings match \"{*}\".": "אין הגדרות התואמות ל-\"{*}\".",
-"{#} neurons": "{#} נוירונים"
+"{#} neurons": "{#} נוירונים",
+"Zoomed out too far to see anybody": "רחוק מדי כדי לראות מישהו"
 }

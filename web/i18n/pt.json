@@ -1185,5 +1185,6 @@
 "Search settings": "Procurar definições",
 "{#} found": "{#} encontradas",
 "No settings match \"{*}\".": "Nenhuma definição corresponde a \"{*}\".",
-"{#} neurons": "{#} neurónios"
+"{#} neurons": "{#} neurónios",
+"Zoomed out too far to see anybody": "Demasiado afastado para ver alguém"
 }

@@ -1185,5 +1185,6 @@
 "Search settings": "搜索设置",
 "{#} found": "找到 {#} 项",
 "No settings match \"{*}\".": "没有与“{*}”匹配的设置。",
-"{#} neurons": "{#} 个神经元"
+"{#} neurons": "{#} 个神经元",
+"Zoomed out too far to see anybody": "缩得太远，看不到任何个体"
 }

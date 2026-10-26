@@ -2,7 +2,7 @@
 // the window app. The world is the daemon's, shared by every viewer; what this viewer has selected,
 // its export list and its exemplar cards stay in this browser.
 
-import { startLanguages } from './i18n.js';
+import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
          GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
@@ -16,6 +16,36 @@ await startLanguages();  // before anything is drawn, so it appears in the chose
 
 const MAP_ZOOM_STEP = 1.25;
 const MAP_ZOOM_MAX = 12;
+// The level of detail: zoomed out all the way, only the largest Bitzkeys (size 7) are drawn, and each step in shows
+// the next size down, until from ALL_SIZES_AT of the way in (on the wheel's scale) every size shows. The one chosen,
+// those picked and those to export are drawn whatever their size.
+const ALL_SIZES_AT = 0.85;
+const TRAIT_MAX = 7;
+const TOO_FAR = 'Zoomed out too far to see anybody';
+// The smallest size drawn at `zoom`, between `least` (all the way out) and `most` (all the way in).
+function smallestShown(zoom, least, most) {
+  const inward = Math.log(zoom / least) / Math.log(most / least);  // 0 all the way out, 1 all the way in
+  return Math.max(0, Math.min(TRAIT_MAX, Math.ceil(TRAIT_MAX * (1 - inward / ALL_SIZES_AT) - 1e-9)));
+}
+// Whether a Bitzkey is drawn whatever its size: the one chosen, one picked, or one to export.
+function marked(agent) {
+  return agent.identifier === app.selectedId || app.selection.has(agent.identifier) ||
+    app.exportList.some(entry => entry.identifier === agent.identifier);
+}
+// Every Bitzkey in view too small to draw from this far out: say so, in the middle of the view.
+function sayTooFar(ctx, view) {
+  const text = tr(TOO_FAR);
+  ctx.save();
+  ctx.font = '15px "Segoe UI", sans-serif';
+  const width = ctx.measureText(text).width + 28;
+  ctx.fillStyle = 'rgba(19,26,27,0.86)';
+  ctx.fillRect(view.w / 2 - width / 2, view.h / 2 - 17, width, 34);
+  ctx.fillStyle = 'rgb(238,183,110)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, view.w / 2, view.h / 2);
+  ctx.restore();
+}
 const MAP_DRAG_THRESHOLD = 5;
 const TRAIL_OPACITY = 0.5;
 const POLL_MS = 120;
@@ -385,12 +415,14 @@ function drawMap() {
     }
   }
   const [smallest, largest] = mapDotRadii(cell);
+  const least = smallestShown(mapZoom, 1, MAP_ZOOM_MAX);
+  const shown = agent => agent.size >= least || marked(agent);
   const reach = (px, py) => px > -largest * 3 && py > -largest * 3 && px < view.w + largest * 3 && py < view.h + largest * 3;
   const centre = (x, y) => [geometry.x + (x + 0.5) * cell, geometry.y + (y + 0.5) * cell];
   ctx.save();
   ctx.globalAlpha = TRAIL_OPACITY;  // the way each came this turn, faint, beneath them all
   for (const agent of frame.agents) {
-    if (!agent.trail.length) continue;
+    if (!agent.trail.length || !shown(agent)) continue;
     const radius = dotRadius(agent.size, largest, smallest);
     for (const [x, y] of agent.trail) {
       const [px, py] = centre(x, y);
@@ -399,9 +431,12 @@ function drawMap() {
   }
   ctx.restore();
   const exporting = new Set(app.exportList.map(entry => entry.identifier));
+  let drawn = 0, hidden = 0;
   for (const agent of frame.agents) {
     const [px, py] = centre(agent.x, agent.y);
     if (!reach(px, py)) continue;
+    if (!shown(agent)) { hidden += 1; continue; }  // too small to see from this far out
+    drawn += 1;
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
@@ -415,6 +450,7 @@ function drawMap() {
       ctx.stroke();
     }
   }
+  if (!drawn && hidden) sayTooFar(ctx, view);
   if (marquee && Math.max(Math.abs(marquee.nowX - marquee.x), Math.abs(marquee.nowY - marquee.y)) >= MAP_DRAG_THRESHOLD) {
     const x = Math.min(marquee.x, marquee.nowX), y = Math.min(marquee.y, marquee.nowY);
     const w = Math.abs(marquee.nowX - marquee.x) + 1, h = Math.abs(marquee.nowY - marquee.y) + 1;
@@ -734,8 +770,12 @@ function drawGlobe(frame, ctx, view) {
   stacks.sort((a, b) => a.depth - b.depth);
   globeHits = [];
   const [smallest, largest] = mapDotRadii(Math.PI * radius / frame.height);
+  const least = smallestShown(globeZoom, 0.5, GLOBE_ZOOM_MAX);
+  let drawn = 0, hidden = 0;
   for (const stack of stacks) {
-    const members = [...stack.members].sort((a, b) => b.size - a.size);
+    const members = stack.members.filter(agent => agent.size >= least || marked(agent)).sort((a, b) => b.size - a.size);
+    drawn += members.length;
+    hidden += stack.members.length - members.length;  // too small to see from this far out
     const shrink = 0.55 + 0.45 * stack.depth;  // foreshortened toward the edge
     let lift = 0;
     for (const agent of members) {
@@ -746,6 +786,7 @@ function drawGlobe(frame, ctx, view) {
       lift += Math.max(2, Math.round((dot + RING_WIDTH) * STACK_SPACING));  // the next above, its face clear
     }
   }
+  if (!drawn && hidden) sayTooFar(ctx, view);
 }
 
 // H hides everything but the map or globe, which then fill the window; H again brings it all back.
