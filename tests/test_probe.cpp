@@ -194,3 +194,17 @@ TEST_CASE("the probe reads the rest of the world: rules, settings, climate, gras
     CHECK(probe.timings(world).contains("ms_total"));
     CHECK(probe.animal(world, mother.identifier).contains("body"));
 }
+
+TEST_CASE("the probe counts each species' infants, and those sheltered beside a parent") {
+    FEEBLE_YOUTH = 0.5;  // infants for half their lives, in this test
+    Simulation world = empty_world();
+    Bitzkey& mother = world.add_agent(encode_dna(Species::Grazer), 5, 5);
+    Bitzkey& beside = world.add_agent(encode_dna(Species::Grazer), 5, 6);
+    Bitzkey& apart = world.add_agent(encode_dna(Species::Grazer), 20, 20);
+    beside.mother = apart.mother = mother.identifier;
+    mother.age = static_cast<int>(mother.lifespan * 0.6);  // grown
+    world.index_cells();
+    const Json young = direct(world).state(world)["infants"]["grazer"];
+    CHECK((young["infants"] == 2 && young["sheltered"] == 1));
+    FEEBLE_YOUTH = 0.0;
+}

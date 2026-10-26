@@ -110,13 +110,19 @@ Probe::Probe(Run run) : run_(std::move(run)) {}
 Json Probe::state(Simulation& world) const {
     std::array<int, 4> counts{};
     std::array<std::array<int, 4>, 4> terrains{};  // by species, then terrain
+    std::array<int, 4> infants{}, sheltered{};     // the infants, and those of them beside a living parent
     for (const Bitzkey* agent : world.living()) {
         counts[static_cast<std::size_t>(agent->species)] += 1;
+        if (agent->infant()) {
+            infants[static_cast<std::size_t>(agent->species)] += 1;
+            if (world.sheltered(*agent)) sheltered[static_cast<std::size_t>(agent->species)] += 1;
+        }
         terrains[static_cast<std::size_t>(agent->species)][static_cast<std::size_t>(agent->terrain)] += 1;
     }
-    Json alive = Json::object(), by_terrain = Json::object();
+    Json alive = Json::object(), by_terrain = Json::object(), young = Json::object();
     for (std::size_t index = 0; index < SPECIES.size(); ++index) {
         alive[std::string(SPECIES[index])] = counts[index];
+        young[std::string(SPECIES[index])] = {{"infants", infants[index]}, {"sheltered", sheltered[index]}};
         Json kinds = Json::object();
         for (std::size_t terrain = 0; terrain < TERRAINS.size(); ++terrain) kinds[std::string(TERRAINS[terrain])] = terrains[index][terrain];
         by_terrain[std::string(SPECIES[index])] = std::move(kinds);
@@ -129,6 +135,7 @@ Json Probe::state(Simulation& world) const {
             {"height", world.height()},
             {"alive", alive},
             {"by_terrain", by_terrain},
+            {"infants", young},
             {"day_length", DAY_LENGTH},
             {"night_start", world.night_start()},  // the night runs east half the map's width from this column
             {"night_width", world.width() / 2}};
