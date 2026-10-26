@@ -211,7 +211,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"cost_share", agent.cost_share}, {"glut", agent.glut}, {"rot", agent.rot}, {"portions", agent.portions},
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
-        {"last_choice", agent.last_choice}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
+        {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
         {"last_comfort", agent.last_comfort},
     };
     json trail = json::array();
@@ -298,6 +298,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->last_senses = numbers.senses(senses);
     }
     agent->last_choice = record.at("last_choice").get<int>();
+    agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_wellbeing = record.at("last_wellbeing").get<double>();
     agent->reward = record.at("reward").get<double>();
     agent->last_comfort = record.at("last_comfort").get<double>();
