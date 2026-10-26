@@ -89,6 +89,11 @@ inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual tempera
 // top of its population, each at home there: the zone's usual temperature its home, and a terrain that suits it, the
 // first the surface's own (terrestrial on land, aquatic at sea) and the rest any that may live there.
 inline int BIOME_GROUPS = 2;
+// Each death is kept whole, for the probe and the graph's tooltips, for this many turns; the death report counts
+// every death since the world began as it happens (see DeathTally), and the tally lets go of the killers gone, but
+// the deadliest, every KILLERS_LET_GO turns.
+constexpr int RECENT_DEATH_TURNS = 1000;
+constexpr int KILLERS_LET_GO = 100;
 inline int BIOME_SIZE = 25;
 // 1: every brain lives on the GPUs, thinking and learning there in batches, in floats. 0: on the CPU, exactly as
 // the Python version. Read when a world is made.
@@ -741,12 +746,13 @@ public:
         return identifier >= lineage_first_ && identifier - lineage_first_ < static_cast<int>(lineage_.size());
     }
     int lineage_first() const { return lineage_first_; }
-    using DeathRecord = Death;  // each death, by the dead Bitzkey's identifier, back to the graph's start
+    using DeathRecord = Death;  // each death of the last RECENT_DEATH_TURNS turns, by the dead Bitzkey's identifier
     const DeathRecord* death_record(int identifier) const {
         const auto found = death_records_.find(identifier);
         return found == death_records_.end() ? nullptr : &found->second;
     }
-    std::vector<Death> deaths_so_far() const;  // every death from the graph's start to the turn it is at, rewound or not
+    std::vector<Death> deaths_so_far() const;  // every death of the last RECENT_DEATH_TURNS turns
+    const DeathTally& death_tally() const { return death_tally_; }  // every death since the world began, counted
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
     // The advanced rules were changed while the world runs: work out afresh what the world settled from them as
@@ -1045,6 +1051,8 @@ private:
     void take_census();
     // Forget the deaths before the graph's start, and the genomes of the Bitzkeys neither on the graph nor in the world.
     void forget_before(int start);
+    // Forget the deaths kept whole from before the last RECENT_DEATH_TURNS turns, and now and then the killers gone.
+    void forget_old_deaths();
     // Forget a death, unless another has since been recorded under its identifier.
     void forget_death(int turn, int identifier);
     // The deaths' order, oldest first, from the records alone, as a loaded world has them.
@@ -1087,6 +1095,7 @@ private:
     int lineage_first_ = 0;
     std::unordered_map<int, DeathRecord> death_records_;
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
+    DeathTally death_tally_;
     int turn_ = 0;
     int deaths_ = 0;
     DeathCauses death_causes_;

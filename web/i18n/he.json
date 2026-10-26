@@ -225,7 +225,7 @@
 "DEATH PENALTY": "עונש מוות",
 "DEATH REPORT": "דוח מוות",
 "Death report": "דוח מוות",
-"DEEPEST BRAIN": "המוח העמוק ביותר",
+"MOST NEURONS": "הכי הרבה נוירונים",
 "DEFEND": "להגן",
 "defended": "הגן",
 "DEFENDED: AGGRESSION": "הוגן: תוקפנות",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} מוכנים לייבוא ({*}; {#} עם מוחות שמורים, {#} עם מזג שמור), כל אחד מופיע כקבוצה של {#}-{#}. רק {#} הראשונים מתוך {#} בשימוש",
 "Search settings": "חיפוש הגדרות",
 "{#} found": "נמצאו {#}",
-"No settings match \"{*}\".": "אין הגדרות התואמות ל-\"{*}\"."
+"No settings match \"{*}\".": "אין הגדרות התואמות ל-\"{*}\".",
+"{#} neurons": "{#} נוירונים"
 }

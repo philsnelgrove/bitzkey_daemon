@@ -597,7 +597,7 @@ std::string Probe::brain_report_text(Simulation& world) const {
 
 std::string Probe::death_report_text(Simulation& world) const {
     std::string text;
-    for (const std::string& line : death_report_lines(world.deaths_so_far())) text += line + '\n';
+    for (const std::string& line : death_report_lines(world.death_tally())) text += line + '\n';
     return text;
 }
 

@@ -354,6 +354,19 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     }
     json seeds = json::array();
     for (const Simulation::Seed& seed : simulation.seeds_) seeds.push_back({seed.x, seed.y, genome_text(seed.dna), seed.generation, seed.sown});
+    // The death tally: its tables by cause, whom and doing, by species, and the killers it keeps.
+    const auto counts_of = [](const std::map<std::string, DeathTally::Counts, std::less<>>& rows) {
+        json table = json::object();
+        for (const auto& [label, counts] : rows) table[label] = counts;
+        return table;
+    };
+    const DeathTally& tally = simulation.death_tally_;
+    json by_killer = json::array();
+    for (const auto& [identifier, killer] : tally.by_killer) {
+        by_killer.push_back({identifier, static_cast<int>(killer.species), killer.kills, killer.doing});
+    }
+    json death_tally = {{"causes", counts_of(tally.causes)}, {"whom", tally.whom}, {"activities", counts_of(tally.activities)},
+                        {"killers", tally.killers}, {"by_killer", std::move(by_killer)}};
     json death_causes = json::object();
     for (std::size_t species = 0; species < simulation.death_causes_.size(); ++species) {
         if (simulation.death_causes_[species].empty()) continue;
@@ -411,7 +424,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"sea", std::move(sea)},
         {"rules", std::move(rules)},
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
-        {"death_causes", std::move(death_causes)},
+        {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
         {"grass", std::move(grass)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
@@ -628,6 +641,24 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             }
         }
         world.order_deaths();
+        world.death_tally_ = {};
+        if (const auto saved = record.find("death_tally"); saved != record.end()) {
+            const json& tally = *saved;
+            for (const auto& [label, counts] : tally.at("causes").items()) world.death_tally_.causes[label] = counts.get<DeathTally::Counts>();
+            world.death_tally_.whom = tally.at("whom").get<std::array<DeathTally::Counts, 4>>();
+            for (const auto& [label, counts] : tally.at("activities").items()) world.death_tally_.activities[label] = counts.get<DeathTally::Counts>();
+            world.death_tally_.killers = tally.at("killers").get<int>();
+            for (const json& killer : tally.at("by_killer")) {
+                DeathTally::Killer& kept = world.death_tally_.by_killer[killer.at(0).get<int>()];
+                kept.species = static_cast<Species>(killer.at(1).get<int>());
+                kept.kills = killer.at(2).get<int>();
+                for (const auto& [doing, count] : killer.at(3).items()) kept.doing[doing] = count.get<int>();
+            }
+        }
+        const bool untallied = record.find("death_tally") == record.end();  // saved before deaths were tallied
+        if (untallied) {  // tallied from those it kept whole
+            for (const auto& [turn, identifier] : world.death_order_) world.death_tally_.add(world.death_records_.at(identifier));
+        }
         world.agents_.clear();
         // Genomes saved before the terrain gene had nothing but spare bits there: they are terrestrial.
         const bool before_terrain = record.value("genome_version", 3) < 4;
@@ -654,6 +685,13 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.agents_[index]->cost_share = agent.at("cost_share").get<double>();
             world.agents_[index]->glut = agent.at("glut").get<double>();
             world.agents_[index]->guarded = agent.at("guarded").get<bool>();
+        }
+        if (untallied) {  // and then, as now, only the latest deaths kept whole, and only the killers still alive and the deadliest
+            world.forget_old_deaths();
+            world.death_tally_.let_go([&world](int identifier) {
+                const Bitzkey* killer = world.find_agent(identifier);
+                return killer && killer->alive();
+            });
         }
         return simulation;
     } catch (const json::exception& error) {

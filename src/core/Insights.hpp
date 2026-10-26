@@ -2,6 +2,7 @@
 // What the Bitzkeys have learned: recent choice statistics and brain probing.
 
 #include <array>
+#include <functional>
 #include <map>
 #include <optional>
 #include <span>
@@ -88,6 +89,27 @@ struct Death {
 };
 constexpr int DEADLIEST = 10;  // the killers the death report names
 
+// Every death since the world began, counted as it happens rather than kept one by one: by cause and the species of
+// the dead; who killed whom; what the killers were doing; and each killer's kills, for the living and for the DEADLIEST
+// of those gone (the rest let go, see let_go).
+struct DeathTally {
+    using Counts = std::array<int, 4>;  // by species, in SPECIES order
+    struct Killer {
+        Species species = Species::Plant;
+        int kills = 0;
+        std::map<std::string, int, std::less<>> doing;  // its kills by what it was doing
+    };
+    std::map<std::string, Counts, std::less<>> causes;      // by cause, by the species of the dead
+    std::array<Counts, 4> whom{};                           // by the species of the dead, by their killers'
+    std::map<std::string, Counts, std::less<>> activities;  // by what the killers were doing, by the killers' species
+    int killers = 0;                                        // how many Bitzkeys have ever killed
+    std::map<int, Killer> by_killer;                        // by identifier
+
+    void add(const Death& death);
+    // Forget the killers no longer `alive` but the DEADLIEST of them, so the tally doesn't grow with the run.
+    void let_go(const std::function<bool(int)>& alive);
+};
+
 // The death report's figures, for drawing as tables. Each row counts deaths by species, in SPECIES order.
 struct DeathReport {
     struct Row {
@@ -109,7 +131,8 @@ struct DeathReport {
     int killers = 0;                 // how many Bitzkeys have killed
     std::vector<Killer> deadliest;   // the DEADLIEST with the most kills
 };
-DeathReport death_report(const std::vector<Death>& deaths);
+DeathReport death_report(const DeathTally& tally);
+DeathReport death_report(const std::vector<Death>& deaths);  // these deaths alone, tallied
 
 // The two reports a viewer can open, each laid out as lines of text in a fixed-width font. Every death so far,
 // back to the world's start: a table of causes by the species of the dead, the most common first; who killed
@@ -117,6 +140,7 @@ DeathReport death_report(const std::vector<Death>& deaths);
 // and the deadliest killers, each with its kills by what it was doing. And one animal's brain probed with the
 // standard situations its species can meet, its chance of choosing each action open to it, with its temperament
 // now, the likeliest marked * and an action not open shown as a dot.
+std::vector<std::string> death_report_lines(const DeathTally& tally);
 std::vector<std::string> death_report_lines(const std::vector<Death>& deaths);
 struct BrainRow {
     std::string situation;

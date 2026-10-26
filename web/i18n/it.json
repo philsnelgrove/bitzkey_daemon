@@ -225,7 +225,7 @@
 "DEATH PENALTY": "Penalità di morte",
 "DEATH REPORT": "Rapporto sulle morti",
 "Death report": "Rapporto sulle morti",
-"DEEPEST BRAIN": "Cervello più profondo",
+"MOST NEURONS": "PIÙ NEURONI",
 "DEFEND": "Difendere",
 "defended": "si è difeso",
 "DEFENDED: AGGRESSION": "Difeso: aggressività",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} pronti da importare ({*}; {#} con cervello salvato, {#} con temperamento salvato), ognuno compare in un gruppo di {#}-{#}. Si usano solo i primi {#} di {#}",
 "Search settings": "Cerca impostazioni",
 "{#} found": "{#} trovate",
-"No settings match \"{*}\".": "Nessuna impostazione corrisponde a \"{*}\"."
+"No settings match \"{*}\".": "Nessuna impostazione corrisponde a \"{*}\".",
+"{#} neurons": "{#} neuroni"
 }

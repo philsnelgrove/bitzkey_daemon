@@ -871,6 +871,22 @@ void Simulation::take_census() {
     std::vector<int> identifiers;
     for (const Bitzkey* agent : living()) identifiers.push_back(agent->identifier);
     if (census_.record(turn_, std::move(identifiers))) forget_before(census_.snapshots().front().turn);
+    forget_old_deaths();
+}
+
+void Simulation::forget_old_deaths() {
+    const int start = turn_ - RECENT_DEATH_TURNS;
+    while (!death_order_.empty() && death_order_.front().first < start) {  // oldest first, so only those forgotten are looked at
+        const auto [turn, identifier] = death_order_.front();
+        death_order_.pop_front();
+        forget_death(turn, identifier);
+    }
+    if (turn_ % KILLERS_LET_GO == 0) {
+        death_tally_.let_go([this](int identifier) {
+            const Bitzkey* killer = find_agent(identifier);
+            return killer && killer->alive();
+        });
+    }
 }
 
 void Simulation::forget_before(int start) {
@@ -1911,8 +1927,9 @@ std::vector<Death> Simulation::deaths_so_far() const {
 }
 
 void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer, std::string_view activity) {
-    death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
-                                        killer ? killer->species : Species::Plant, std::string(activity)};
+    const Death& death = death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
+                                                             killer ? killer->species : Species::Plant, std::string(activity)};
+    death_tally_.add(death);
     death_order_.emplace_back(turn_, agent.identifier);
     if (killer && !agent.womb.empty() && (killer->species == Species::Predator || killer->species == Species::Omnivore)) {
         // A hunter that killed a mother carrying young feels remorse for it.

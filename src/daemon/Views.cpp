@@ -37,7 +37,7 @@ void put(std::string& out, T value) {
 // highest, or lowest where `lowest`.
 
 enum class StatKind { Mind, Body, Home, State };
-enum StateStat { Age, Children, Generation, Hunger, Health, Lifespan, Burn, Stomach, Depth, Herd, Changed };
+enum StateStat { Age, Children, Generation, Hunger, Health, Lifespan, Burn, Stomach, Neurons, Herd, Changed };
 struct ExemplarStat {
     const char* title;
     StatKind kind;
@@ -69,7 +69,7 @@ constexpr std::array<ExemplarStat, 50> EXEMPLAR_STATS = {{
     {"HEALTHIEST", StatKind::State, Health, false}, {"MOST WOUNDED", StatKind::State, Health, true},
     {"LONGEST LIFESPAN", StatKind::State, Lifespan, false}, {"SHORTEST LIFESPAN", StatKind::State, Lifespan, true},
     {"FASTEST METABOLISM", StatKind::State, Burn, false}, {"SLOWEST METABOLISM", StatKind::State, Burn, true},
-    {"BIGGEST STOMACH", StatKind::State, Stomach, false}, {"DEEPEST BRAIN", StatKind::State, Depth, false},
+    {"BIGGEST STOMACH", StatKind::State, Stomach, false}, {"MOST NEURONS", StatKind::State, Neurons, false},
     {"MOST HERD-MINDED", StatKind::State, Herd, false}, {"MOST CHANGED BY EXPERIENCE", StatKind::State, Changed, false},
 }};
 constexpr std::array<const char*, 4> HOMES = {"hot", "medium", "cold", "very cold"};
@@ -90,7 +90,7 @@ double exemplar_value(const Bitzkey& agent, const ExemplarStat& stat) {
         case Lifespan: return agent.lifespan;
         case Burn: return agent.burn;
         case Stomach: return agent.stomach;
-        case Depth: return agent.brain ? agent.brain->depth() : 0;
+        case Neurons: return agent.brain ? agent.brain->depth() * agent.brain->width() : 0;  // in its hidden layers
         case Herd: return agent.herd_instinct();
         default: {  // how far experience has moved its temperament from what it was born with
             std::vector<double> shifts;
@@ -120,7 +120,7 @@ std::string exemplar_text(const Bitzkey& agent, const ExemplarStat& stat) {
         case Lifespan: return "lifespan " + std::to_string(whole) + " turns";
         case Burn: return format("burn %.2f", value);
         case Stomach: return format("stomach %.2f", value);
-        case Depth: return "brain " + std::to_string(whole) + " deep";
+        case Neurons: return std::to_string(whole) + " neurons";
         case Herd: return format("herd instinct %.2f", value);
         default: return format("changed %.1f", value);
     }

@@ -428,6 +428,30 @@ TEST_CASE("deaths are counted by species and cause, and rewound") {
     CHECK(counted == killings);
     CHECK(total() == world_now.deaths());
     CHECK(static_cast<int>(world_now.deaths_so_far().size()) == world_now.deaths());
+    CHECK(death_report_lines(world_now.death_tally()) == lines);  // counted as they happened, the same as from them all
+}
+
+TEST_CASE("deaths are kept whole only for the latest turns, and the tally keeps only the deadliest killers gone") {
+    DeathTally tally;
+    for (int killer = 0; killer < DEADLIEST + 5; ++killer) {
+        for (int kill = 0; kill <= killer; ++kill) tally.add({"killed", Species::Grazer, 1, killer, Species::Predator, "hunting"});
+    }
+    tally.add({"starved", Species::Grazer, 1});
+    CHECK((tally.killers == DEADLIEST + 5 && tally.whom[1][3] == (DEADLIEST + 5) * (DEADLIEST + 6) / 2));
+    tally.let_go([](int identifier) { return identifier == 0; });  // the least deadly still alive
+    CHECK(tally.by_killer.size() == static_cast<std::size_t>(DEADLIEST + 1));
+    CHECK((tally.by_killer.contains(0) && !tally.by_killer.contains(1) && tally.by_killer.contains(DEADLIEST + 4)));
+    CHECK(tally.killers == DEADLIEST + 5);  // still counted
+    CHECK((tally.causes.at("starved")[1] == 1 && tally.activities.at("hunting")[3] == tally.whom[1][3]));
+
+    const double saved = CLIMATE_DAMAGE;
+    CLIMATE_DAMAGE = 0;  // a world that lasts
+    Simulation world(Simulation::Settings{20, 20, 40, 3});
+    for (int turn = 0; turn < RECENT_DEATH_TURNS + 50 && !world.ended(); ++turn) world.advance();
+    CLIMATE_DAMAGE = saved;
+    REQUIRE(world.turn() > RECENT_DEATH_TURNS);
+    for (const Death& death : world.deaths_so_far()) CHECK(death.turn >= world.turn() - RECENT_DEATH_TURNS);
+    CHECK(death_report(world.death_tally()).all.total == world.deaths());  // yet every death counted
 }
 
 TEST_CASE("each death records its cause, its killer and what the killer was doing") {

@@ -225,7 +225,7 @@
 "DEATH PENALTY": "मृत्यु दंड",
 "DEATH REPORT": "मृत्यु रिपोर्ट",
 "Death report": "मृत्यु रिपोर्ट",
-"DEEPEST BRAIN": "सबसे गहरा मस्तिष्क",
+"MOST NEURONS": "सबसे अधिक न्यूरॉन",
 "DEFEND": "बचाव",
 "defended": "बचाव किया",
 "DEFENDED: AGGRESSION": "बचाया गया: आक्रामकता",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} आयात के लिए तैयार ({*}; {#} सहेजे मस्तिष्क के साथ, {#} सहेजे स्वभाव के साथ), हर एक {#}-{#} के समूह में प्रकट होगा। {#6} में से केवल पहले {#5} उपयोग होंगे",
 "Search settings": "सेटिंग खोजें",
 "{#} found": "{#} मिले",
-"No settings match \"{*}\".": "\"{*}\" से कोई सेटिंग मेल नहीं खाती।"
+"No settings match \"{*}\".": "\"{*}\" से कोई सेटिंग मेल नहीं खाती।",
+"{#} neurons": "{#} न्यूरॉन"
 }

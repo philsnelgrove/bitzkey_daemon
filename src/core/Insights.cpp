@@ -388,51 +388,55 @@ std::string upper_case(std::string_view text) {
 
 std::string_view short_action(int action) { return SHORT_ACTIONS[static_cast<std::size_t>(action)]; }
 
-DeathReport death_report(const std::vector<Death>& deaths) {
+void DeathTally::add(const Death& death) {
+    causes[death.cause][static_cast<std::size_t>(death.species)] += 1;
+    if (death.killer < 0) return;
+    whom[static_cast<std::size_t>(death.species)][static_cast<std::size_t>(death.killer_species)] += 1;
+    activities[death.activity][static_cast<std::size_t>(death.killer_species)] += 1;
+    const auto [found, added] = by_killer.try_emplace(death.killer, Killer{death.killer_species});
+    killers += added;  // a killer let go of can kill no more, so none is counted twice
+    found->second.kills += 1;
+    found->second.doing[death.activity] += 1;
+}
+
+void DeathTally::let_go(const std::function<bool(int)>& alive) {
+    std::vector<std::pair<int, int>> gone;  // (kills, identifier)
+    for (const auto& [identifier, killer] : by_killer) {
+        if (!alive(identifier)) gone.emplace_back(killer.kills, identifier);
+    }
+    if (gone.size() <= static_cast<std::size_t>(DEADLIEST)) return;
+    std::stable_sort(gone.begin(), gone.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+    for (std::size_t index = DEADLIEST; index < gone.size(); ++index) by_killer.erase(gone[index].second);
+}
+
+DeathReport death_report(const DeathTally& tally) {
     DeathReport report;
-    // Rows by a key, the most common first, each counting its deaths by a column's species.
-    const auto tally = [&](auto key, auto column) {
-        std::map<std::string, DeathReport::Row> rows;
-        for (const Death& death : deaths) {
-            const std::optional<std::string> label = key(death);
-            if (!label) continue;
-            DeathReport::Row& row = rows.try_emplace(*label, DeathReport::Row{*label}).first->second;
-            row.counts[static_cast<std::size_t>(column(death))] += 1;
-            row.total += 1;
+    // Rows by a label, the most common first, each counting its deaths by species.
+    const auto ranked = [](const std::map<std::string, DeathTally::Counts, std::less<>>& rows) {
+        std::vector<DeathReport::Row> result;
+        for (const auto& [label, counts] : rows) {
+            DeathReport::Row row{label, counts};
+            for (const int count : counts) row.total += count;
+            if (row.total > 0) result.push_back(std::move(row));
         }
-        std::vector<DeathReport::Row> ranked;
-        for (auto& [label, row] : rows) ranked.push_back(std::move(row));
-        std::stable_sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.total > b.total; });
-        return ranked;
+        std::stable_sort(result.begin(), result.end(), [](const auto& a, const auto& b) { return a.total > b.total; });
+        return result;
     };
-    report.causes = tally([](const Death& death) { return std::optional<std::string>(death.cause); },
-                          [](const Death& death) { return death.species; });
-    std::map<int, std::vector<const Death*>> killers;
-    std::array<DeathReport::Row, 4> whom{};
-    for (const Death& death : deaths) {
-        report.all.counts[static_cast<std::size_t>(death.species)] += 1;
-        report.all.total += 1;
-        if (death.killer < 0) continue;
-        report.kills += 1;
-        DeathReport::Row& row = whom[static_cast<std::size_t>(death.species)];
-        row.counts[static_cast<std::size_t>(death.killer_species)] += 1;
-        row.total += 1;
-        killers[death.killer].push_back(&death);
+    report.causes = ranked(tally.causes);
+    for (const DeathReport::Row& row : report.causes) {
+        for (std::size_t species = 0; species < row.counts.size(); ++species) report.all.counts[species] += row.counts[species];
+        report.all.total += row.total;
     }
-    for (std::size_t species = 0; species < whom.size(); ++species) {
-        if (whom[species].total == 0) continue;
-        whom[species].label = std::string(SPECIES_ORDER[species]);
-        report.whom.push_back(whom[species]);
+    for (std::size_t species = 0; species < tally.whom.size(); ++species) {
+        DeathReport::Row row{std::string(SPECIES_ORDER[species]), tally.whom[species]};
+        for (const int count : row.counts) row.total += count;
+        report.kills += row.total;
+        if (row.total > 0) report.whom.push_back(std::move(row));
     }
-    report.activities = tally([](const Death& death) {
-                                  return death.killer >= 0 ? std::optional<std::string>(death.activity) : std::nullopt;
-                              },
-                              [](const Death& death) { return death.killer_species; });
-    report.killers = static_cast<int>(killers.size());
-    for (const auto& [killer, theirs] : killers) {
-        std::map<std::string, int> doing;
-        for (const Death* death : theirs) doing[death->activity] += 1;
-        DeathReport::Killer entry{killer, theirs.front()->killer_species, static_cast<int>(theirs.size()), {doing.begin(), doing.end()}};
+    report.activities = ranked(tally.activities);
+    report.killers = tally.killers;
+    for (const auto& [identifier, killer] : tally.by_killer) {
+        DeathReport::Killer entry{identifier, killer.species, killer.kills, {killer.doing.begin(), killer.doing.end()}};
         std::stable_sort(entry.doing.begin(), entry.doing.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
         report.deadliest.push_back(std::move(entry));
     }
@@ -441,8 +445,20 @@ DeathReport death_report(const std::vector<Death>& deaths) {
     return report;
 }
 
+DeathReport death_report(const std::vector<Death>& deaths) {
+    DeathTally tally;
+    for (const Death& death : deaths) tally.add(death);
+    return death_report(tally);
+}
+
 std::vector<std::string> death_report_lines(const std::vector<Death>& deaths) {
-    const DeathReport report = death_report(deaths);
+    DeathTally tally;
+    for (const Death& death : deaths) tally.add(death);
+    return death_report_lines(tally);
+}
+
+std::vector<std::string> death_report_lines(const DeathTally& tally) {
+    const DeathReport report = death_report(tally);
     const auto table = [](const std::string& title, const std::vector<DeathReport::Row>& rows, std::vector<std::string>& lines) {
         std::string heading = pad_right(title, 18);
         for (const auto species : SPECIES_ORDER) heading += pad_left(upper_case(species), 10);

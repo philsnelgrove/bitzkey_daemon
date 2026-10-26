@@ -345,7 +345,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
     server.Get("/api/deaths", guarded([&world](const httplib::Request&, httplib::Response& response) {
         auto lock = world.lock();
         const Simulation& simulation = world.simulation();
-        const DeathReport report = death_report(simulation.deaths_so_far());
+        const DeathReport report = death_report(simulation.death_tally());
         const auto rows = [](const std::vector<DeathReport::Row>& from) {
             Json list = Json::array();
             for (const DeathReport::Row& row : from) list.push_back({{"label", row.label}, {"counts", row.counts}, {"total", row.total}});

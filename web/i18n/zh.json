@@ -225,7 +225,7 @@
 "DEATH PENALTY": "死亡惩罚",
 "DEATH REPORT": "死亡报告",
 "Death report": "死亡报告",
-"DEEPEST BRAIN": "最深的大脑",
+"MOST NEURONS": "神经元最多",
 "DEFEND": "防御",
 "defended": "防御",
 "DEFENDED: AGGRESSION": "受保护：攻击性",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} 准备导入（{*}；{#} 个带已保存的大脑，{#} 个带已保存的性情），每个以 {#}-{#} 只为一群生成。仅使用 {#6} 个中的前 {#5} 个",
 "Search settings": "搜索设置",
 "{#} found": "找到 {#} 项",
-"No settings match \"{*}\".": "没有与“{*}”匹配的设置。"
+"No settings match \"{*}\".": "没有与“{*}”匹配的设置。",
+"{#} neurons": "{#} 个神经元"
 }

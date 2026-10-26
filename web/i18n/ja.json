@@ -225,7 +225,7 @@
 "DEATH PENALTY": "死のペナルティ",
 "DEATH REPORT": "死亡レポート",
 "Death report": "死亡レポート",
-"DEEPEST BRAIN": "最も深い脳",
+"MOST NEURONS": "ニューロン最多",
 "DEFEND": "防御",
 "defended": "防御した",
 "DEFENDED: AGGRESSION": "守られた：攻撃性",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} をインポート準備完了（{*}。保存された脳 {#}、保存された気質 {#}）、それぞれ {#}-{#} 体のグループで出現。{#6} 件中最初の {#5} 件のみ使用",
 "Search settings": "設定を検索",
 "{#} found": "{#} 件",
-"No settings match \"{*}\".": "「{*}」に一致する設定はありません。"
+"No settings match \"{*}\".": "「{*}」に一致する設定はありません。",
+"{#} neurons": "ニューロン {#} 個"
 }

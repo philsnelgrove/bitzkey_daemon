@@ -225,7 +225,7 @@
 "DEATH PENALTY": "Кара за смерть",
 "DEATH REPORT": "Звіт про смерті",
 "Death report": "Звіт про смерті",
-"DEEPEST BRAIN": "Найглибший мозок",
+"MOST NEURONS": "НАЙБІЛЬШЕ НЕЙРОНІВ",
 "DEFEND": "Захищатися",
 "defended": "захищався",
 "DEFENDED: AGGRESSION": "Захищений: агресія",
@@ -1184,5 +1184,6 @@
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} готові до імпорту ({*}; зі збереженим мозком: {#}, зі збереженим темпераментом: {#}), кожен з'являється групою {#}-{#}. Використовуються лише перші {#} з {#}",
 "Search settings": "Пошук налаштувань",
 "{#} found": "знайдено: {#}",
-"No settings match \"{*}\".": "Жодне налаштування не відповідає «{*}»."
+"No settings match \"{*}\".": "Жодне налаштування не відповідає «{*}».",
+"{#} neurons": "{#} нейронів"
 }
