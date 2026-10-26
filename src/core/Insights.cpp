@@ -244,6 +244,14 @@ std::string label_of(const Group& group) {
     return group_label(static_cast<Species>(species), trait, static_cast<Level>(level));
 }
 
+// Every situation asks about an animal rested and awake, standing where it stands now: an exhausted or sleeping one
+// can only rest, so its brain has learnt nothing else there, and asking it so would show nothing but resting.
+void awake(const Bitzkey& animal, Senses& senses) {
+    senses[SenseStamina] = 1.0;
+    senses[SenseNight] = animal.nocturnal ? 1.0 : 0.0;
+    senses[SenseSeaHere] = animal.wet;
+}
+
 }  // namespace
 
 std::string brain_report(int turn, std::span<const Bitzkey* const> animals, const Insights& insights) {
@@ -269,6 +277,7 @@ std::string brain_report(int turn, std::span<const Bitzkey* const> animals, cons
             for (const auto& [sense, value] : scenario.situation) senses[sense] = value;
             for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = animal->feeling(trait);
             gene_senses(animal->dna, senses);
+            awake(*animal, senses);
             Sample named{};
             for (const auto& [option, chance] : choice_odds(animal->brain->values(senses), options)) named[option] = chance;
             const Profile profile = animal->profile();
@@ -478,6 +487,7 @@ std::vector<BrainRow> brain_matrix(const Bitzkey& animal) {
         for (const auto& [sense, value] : scenario.situation) senses[sense] = value;
         for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = animal.feeling(trait);
         gene_senses(animal.dna, senses);
+        awake(animal, senses);
         const std::vector<int> options(scenario.actions.begin(), scenario.actions.end());
         rows.push_back({scenario.title, choice_odds(animal.brain->values(senses), options)});
     }

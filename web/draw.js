@@ -133,7 +133,8 @@ export function drawIcon(ctx, species, cx, cy, half, colour) {
 // once, onto a canvas of its own, and kept.
 const CHIP_EDGE = 0.32;
 const CHIP_INSERTS = 6;
-const chips = new Map();
+const chips = new Map();  // each look drawn, from the least to the most recently drawn
+const LOOKS_KEPT = 20000, LOOK_SHADES = 8;
 
 const scaled = (colour, factor) => colour.map(value => Math.max(0, Math.min(255, Math.round(value * factor))));
 const mixed = (from, to, share) => from.map((value, c) => Math.round(value + (to[c] - value) * share));
@@ -212,10 +213,14 @@ function drawChip(ctx, look, x, y, radius, ringWidth, alive) {
 export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, alive = true, opacity = 1) {
   if (opacity <= 0) return;
   const scale = window.devicePixelRatio || 1;
-  const key = `${look.dot}|${look.ring}|${look.social}|${look.species}|${radius}|${ringWidth}|${alive}|${scale}`;
+  // Each look drawn is kept, up to LOOKS_KEPT, the least recently drawn let go first: its colours to within
+  // LOOK_SHADES of each channel, so the nearly alike, as most Bitzkeys are, share one.
+  const shades = [look.dot, look.ring, look.social].map((colour) => colour.map((channel) => Math.floor(channel / LOOK_SHADES)).join(','));
+  const key = `${shades.join('|')}|${look.species}|${radius}|${ringWidth}|${alive}|${scale}`;
   let chip = chips.get(key);
-  if (!chip) {
-    if (chips.size > 20000) chips.clear();
+  if (chip) chips.delete(key);  // put back below, as the most recently drawn
+  else {
+    if (chips.size >= LOOKS_KEPT) chips.delete(chips.keys().next().value);
     const outer = radius + ringWidth, reach = Math.ceil(outer + Math.max(1, outer * 0.14) + outer * 0.35 + 3);
     chip = document.createElement('canvas');
     chip.width = chip.height = Math.ceil(2 * reach * scale);
@@ -223,8 +228,8 @@ export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, ali
     const own = chip.getContext('2d');
     own.scale(scale, scale);
     drawChip(own, look, reach, reach, radius, ringWidth, alive);
-    chips.set(key, chip);
   }
+  chips.set(key, chip);
   ctx.save();
   ctx.globalAlpha *= opacity;
   ctx.drawImage(chip, x - chip.reach, y - chip.reach, 2 * chip.reach, 2 * chip.reach);

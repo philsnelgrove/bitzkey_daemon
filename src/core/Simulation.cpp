@@ -1590,13 +1590,16 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         for (const int option : options) best = std::max(best, values[index][option]);
         targets[index] = rewards[index] + discount(agent) * best;
     }
+    const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
+        return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced);
+    };
     const auto teach = [&](std::size_t index) {
-        if (agents[index]->has_last_senses) learn(*agents[index], targets[index], rewards[index], true);
+        if (taught(index)) learn(*agents[index], targets[index], rewards[index], true);
     };
     if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
     else std::for_each(std::execution::par, indices.begin(), indices.end(), teach);
     for (std::size_t index = 0; index < agents.size(); ++index) {
-        if (agents[index]->has_last_senses && rewards[index] > 0) experience(*agents[index], Lesson);  // a choice that turned out well
+        if (taught(index) && rewards[index] > 0) experience(*agents[index], Lesson);  // a choice that turned out well
     }
     learn_queued();  // on the GPUs, every brain's lessons at once
     timings.learn += lap(clock);
@@ -1672,6 +1675,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.has_last_senses = true;
         agent.last_senses = plans[index].senses;
         agent.last_choice = choice;
+        agent.last_forced = options.size() == 1;
         agent.last_wellbeing = wellbeing(agent);
         agent.last_comfort = comforts[index];
         agent.reward = 0.0;

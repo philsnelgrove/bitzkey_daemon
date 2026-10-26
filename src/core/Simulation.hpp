@@ -263,6 +263,9 @@ inline double KILL_FOOD_LEARNING = 2.0;
 inline double PLANT_FOOD_LEARNING = 0.5;
 inline double BREED_LEARNING = 1.0;
 inline double COURT_LEARNING = 1.0;
+// Forced lessons: 1 learns from every turn, even one with no choice in it (resting through its night or exhausted,
+// panicking or frozen); 0 learns only from the turns it chose what to do.
+inline int FORCED_LESSONS = 1;
 // How much more, or less, a choice is learnt from: for the food it seeks, or the mate.
 double choice_learning(int choice);  // how much more, or less, a success from a choice is learnt from
 // How much a lesson from a choice counts: a success (an outcome above 0) by the choice's learning weight, a failure
@@ -549,6 +552,7 @@ struct Bitzkey {
     bool has_last_senses = false;
     Senses last_senses{};
     int last_choice = 0;
+    bool last_forced = false;  // whether it had no choice but last_choice
     double last_wellbeing = 0.0;
     double last_comfort = 0.0;  // how comfortable it felt at its last decision
     double reward = 0.0;
