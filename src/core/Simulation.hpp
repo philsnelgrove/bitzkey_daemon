@@ -8,6 +8,7 @@
 #include <exception>
 #include <filesystem>
 #include <functional>
+#include <future>
 #include <mutex>
 #include <memory>
 #include <optional>
@@ -29,6 +30,9 @@
 namespace bitzkey {
 
 constexpr int GRID_SIZE = 100;
+// A new world from the setup panel: twice as wide as it is tall, as a globe has it.
+constexpr int DEFAULT_WIDTH = 360;
+constexpr int DEFAULT_HEIGHT = 180;
 constexpr int INITIAL_POPULATION = 90;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
 inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows back each turn
@@ -1101,6 +1105,15 @@ private:
     DeathCauses death_causes_;
     int next_identifier_ = 0;
     std::vector<std::unique_ptr<Bitzkey>> agents_;
+    // Their identifiers as the cells were last indexed, in the same order, so one is found without reading each
+    // Bitzkey on the way; those born since lie beyond them. Emptied whenever any is let go, until indexed again.
+    std::vector<int> identifiers_;
+    // What the dead leave to be freed, their brains and bodies, freed on a thread of its own while the next turn
+    // runs: handing a crowded world's memory back takes as long as some of the thinking.
+    std::vector<std::shared_ptr<Brain>> dead_brains_;
+    std::vector<std::unique_ptr<Bitzkey>> dead_bodies_;
+    std::future<void> freeing_;
+    void free_the_dead();
     std::vector<std::unique_ptr<Bitzkey>> departed_;  // removed corpses, kept until the cells are re-indexed
     std::vector<std::vector<Bitzkey*>> cells_;
     std::vector<std::vector<Bitzkey*>> carrion_;

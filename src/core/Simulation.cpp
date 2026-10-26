@@ -862,8 +862,10 @@ void Simulation::take_turn() {
         if (agent->died_turn && turn_ - *agent->died_turn >= CORPSE_TURNS) departed_.push_back(std::move(agent));
     }
     std::erase_if(agents_, [](const std::unique_ptr<Bitzkey>& agent) { return !agent; });
+    identifiers_.clear();  // out of step with them now
     insights_.decay();
     take_census();
+    free_the_dead();
     timings.after += lap(clock);
 }
 
@@ -950,6 +952,8 @@ void Simulation::index_bands() {
 }
 
 void Simulation::index_cells() {
+    identifiers_.clear();
+    for (const auto& agent : agents_) identifiers_.push_back(agent->identifier);
     for (auto& cell : cells_) cell.clear();
     for (auto& cell : carrion_) cell.clear();
     carrion_count_ = 0;
@@ -1016,7 +1020,19 @@ void Simulation::index_cells() {
             }
         }
     }
+    for (auto& body : departed_) dead_bodies_.push_back(std::move(body));
     departed_.clear();
+}
+
+void Simulation::free_the_dead() {
+    if (freeing_.valid()) freeing_.wait();  // the last turn's, done first
+    if (dead_brains_.empty() && dead_bodies_.empty()) return;
+    freeing_ = std::async(std::launch::async, [brains = std::move(dead_brains_), bodies = std::move(dead_bodies_)]() mutable {
+        bodies.clear();
+        brains.clear();
+    });
+    dead_brains_.clear();
+    dead_bodies_.clear();
 }
 
 double Simulation::home_prey(const Bitzkey& predator) const {
@@ -1161,9 +1177,15 @@ bool Simulation::room_for_seedling(Cell cell) const {
     for (const Bitzkey* other : cells_[static_cast<std::size_t>(cell.y) * width_ + cell.x]) {
         if (other->alive()) return false;
     }
-    int crowding = 0;
-    for (const Bitzkey* other : nearby_cell(cell, 2, nullptr)) crowding += other->species == Species::Plant;
-    return crowding <= PLANT_CROWDING;
+    int crowding = 0;  // the living plants within two squares, counted until there are too many
+    for (const Offset& offset : nearby_offsets(2)) {
+        const auto* list = cell_if(cell.x + offset.dx, cell.y + offset.dy);
+        if (!list) continue;
+        for (const Bitzkey* other : *list) {
+            if (other->alive() && other->species == Species::Plant && ++crowding > PLANT_CROWDING) return false;
+        }
+    }
+    return true;
 }
 
 void Simulation::sprout(Dna dna, Cell cell, int generation) {
@@ -1177,18 +1199,19 @@ void Simulation::germinate() {
     // Seeds sprout once they have lain PLANT_GESTATION turns, their cell is at their temperature and
     // there is room, unless they have waited SEED_VIABILITY of a year, when they are dead.
     const double viable = SEED_VIABILITY * YEAR_LENGTH;
-    std::vector<Seed> waiting;
-    for (const Seed& seed : seeds_) {
+    std::size_t kept = 0;  // those still waiting, kept in their order at the front
+    for (std::size_t index = 0; index < seeds_.size(); ++index) {
+        const Seed seed = seeds_[index];
         if (turn_ - seed.sown >= viable) continue;
         if (turn_ - seed.sown >= PLANT_GESTATION &&
             std::abs(climate_[static_cast<std::size_t>(seed.y)] - decode_climate(seed.dna).temperature) < 0.5 &&
             suits(decode_terrain(seed.dna), {seed.x, seed.y}) && room_for_seedling({seed.x, seed.y})) {
             sprout(seed.dna, {seed.x, seed.y}, seed.generation);
         } else {
-            waiting.push_back(seed);
+            seeds_[kept++] = seed;
         }
     }
-    seeds_ = std::move(waiting);
+    seeds_.resize(kept);
 }
 
 void Simulation::sow(int tufts) {
@@ -1620,10 +1643,26 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
 }
 
 void Simulation::learn_witnessed() {
-    for (const Witnessed& seen : witnessed_) {
-        if (!seen.observer->brain || seen.rate <= 0) continue;  // not since dead
-        if (gpu_) queue_lesson(*seen.observer, seen.senses, seen.choice, seen.outcome, seen.rate, false, 0.0);
-        else seen.observer->own_brain().learn(seen.senses, seen.choice, seen.outcome, seen.rate);
+    if (gpu_) {
+        for (const Witnessed& seen : witnessed_) {
+            if (seen.observer->brain && seen.rate > 0) queue_lesson(*seen.observer, seen.senses, seen.choice, seen.outcome, seen.rate, false, 0.0);
+        }
+    } else {  // each observer its lessons in their order, on its own brain alone, so all at once on every core
+        std::vector<std::size_t> order(witnessed_.size());
+        std::iota(order.begin(), order.end(), std::size_t{0});
+        std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) { return witnessed_[a].observer < witnessed_[b].observer; });
+        std::vector<std::pair<std::size_t, std::size_t>> runs;  // each observer's lessons, [from, to) in `order`
+        for (std::size_t from = 0, to = 0; from < order.size(); from = to) {
+            while (to < order.size() && witnessed_[order[to]].observer == witnessed_[order[from]].observer) ++to;
+            runs.emplace_back(from, to);
+        }
+        std::for_each(std::execution::par, runs.begin(), runs.end(), [&](const std::pair<std::size_t, std::size_t>& run) {
+            for (std::size_t at = run.first; at < run.second; ++at) {
+                const Witnessed& seen = witnessed_[order[at]];
+                if (!seen.observer->brain || seen.rate <= 0) continue;  // not since dead
+                seen.observer->own_brain().learn(seen.senses, seen.choice, seen.outcome, seen.rate);
+            }
+        });
     }
     witnessed_.clear();
     learn_queued();
@@ -1942,20 +1981,19 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
             if (parent && parent->alive() && parent->brain) parent->reward -= PARENT_GRIEF * (0.5 + parent->feeling(Empathy));
         }
     }
-    if (agent.brain && agent.has_last_senses) {
-        // A slow death (old age, starving or the cold or heat) is not its last choice's doing: the health it lost on
-        // the way has taught its lessons already.
-        const bool sudden = !slow_death(cause);
-        const double outcome = agent.reward + wellbeing(agent) - agent.last_wellbeing - (sudden ? DEATH_PENALTY : 0.0);
-        if (!gpu_) learn(agent, outcome, outcome);  // on the GPU, a brain about to go learns nothing that lasts
-        if (sudden) witness(agent, -DEATH_PENALTY);  // its herd sees it fail
-    }
-    agent.brain.reset();
+    // Its herd sees a sudden death fail; a slow one (old age, starving or the cold or heat) is not its last choice's
+    // doing. Its own brain learns nothing from it, as it goes with it.
+    if (agent.brain && agent.has_last_senses && !slow_death(cause)) witness(agent, -DEATH_PENALTY);
+    if (agent.brain) dead_brains_.push_back(std::move(agent.brain));
+    agent.memories.clear();
     if (gpu_ && agent.gpu >= 0) {
         gpu_->detach(agent.gpu);
         agent.gpu = -1;
     }
-    agent.womb.clear();  // the young it carried die with it
+    for (Bitzkey::Young& young : agent.womb) {  // the young it carried die with it
+        if (young.brain) dead_brains_.push_back(std::move(young.brain));
+    }
+    agent.womb.clear();
     agent.due_turn.reset();
     agent.health = std::min(agent.health, 0.0);  // whatever the cause, a recorded death leaves it dead
     agent.died_turn = turn_;
@@ -2497,7 +2535,14 @@ std::vector<Bitzkey*> Simulation::nearby_cell(Cell cell, int radius, const Bitzk
 }
 
 Bitzkey* Simulation::find_agent(int identifier) const {
-    const auto found = std::lower_bound(agents_.begin(), agents_.end(), identifier,
+    // Among those indexed, by their identifiers alone; then among those born since, by their own.
+    const std::size_t indexed = identifiers_.size() <= agents_.size() ? identifiers_.size() : 0;
+    const auto among = std::lower_bound(identifiers_.begin(), identifiers_.begin() + static_cast<std::ptrdiff_t>(indexed), identifier);
+    if (among != identifiers_.begin() + static_cast<std::ptrdiff_t>(indexed) && *among == identifier) {
+        Bitzkey* agent = agents_[static_cast<std::size_t>(among - identifiers_.begin())].get();
+        if (agent && agent->identifier == identifier) return agent;
+    }
+    const auto found = std::lower_bound(agents_.begin() + static_cast<std::ptrdiff_t>(indexed), agents_.end(), identifier,
                                         [](const std::unique_ptr<Bitzkey>& agent, int wanted) { return agent->identifier < wanted; });
     return found != agents_.end() && (*found)->identifier == identifier ? found->get() : nullptr;
 }
@@ -2759,16 +2804,21 @@ double Simulation::rival_weight(const Bitzkey& hunter, const Bitzkey& other) {
 
 void Simulation::witness(const Bitzkey& actor, double outcome) {
     if (!actor.has_last_senses) return;
-    for (Bitzkey* observer : nearby(actor, MAX_SIGHT)) {
-        if (!observer->brain || !society(*observer, actor) || distance(observer->x, observer->y, actor.x, actor.y) > observer->sight) {
-            continue;
+    for (const Offset& offset : nearby_offsets(MAX_SIGHT)) {  // as nearby() would list them, in the same order
+        const auto* list = cell_if(actor.x + offset.dx, actor.y + offset.dy);
+        if (!list) continue;
+        for (Bitzkey* observer : *list) {
+            if (observer == &actor || !observer->alive() || !observer->brain || !society(*observer, actor) ||
+                distance(observer->x, observer->y, actor.x, actor.y) > observer->sight) {
+                continue;
+            }
+            const double heed = observer->feeling(Empathy) * observer->intelligence() *
+                                (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
+            witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
+            observer->reward += SOCIAL_MOOD * heed * outcome;
+            if (outcome > 0) observer->seen_success = 1.0;
+            else observer->seen_failure = 1.0;
         }
-        const double heed = observer->feeling(Empathy) * observer->intelligence() *
-                            (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
-        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
-        observer->reward += SOCIAL_MOOD * heed * outcome;
-        if (outcome > 0) observer->seen_success = 1.0;
-        else observer->seen_failure = 1.0;
     }
 }
 

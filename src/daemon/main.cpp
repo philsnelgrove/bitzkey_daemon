@@ -49,6 +49,8 @@ int main(int argc, char** argv) {
         // The world as the daemon last stopped, carried on, and kept again as it stops: deploys and restarts lose nothing.
         const auto kept = config.data_dir / "worlds" / ("autosave" + std::string(WORLD_SUFFIX));
         Simulation::Settings first;  // a new world, and the setup's starting values: with the sea, as the desktop's
+        first.width = DEFAULT_WIDTH;
+        first.height = DEFAULT_HEIGHT;
         first.ocean = DEFAULT_OCEAN;
         World world(first, !config.start_paused && !std::filesystem::exists(kept), config.data_dir);
         try {
