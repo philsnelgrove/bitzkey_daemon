@@ -1186,5 +1186,13 @@
 "{#} found": "знайдено: {#}",
 "No settings match \"{*}\".": "Жодне налаштування не відповідає «{*}».",
 "{#} neurons": "{#} нейронів",
-"Zoomed out too far to see anybody": "Занадто віддалено, щоб когось побачити"
+"Zoomed out too far to see anybody": "Занадто віддалено, щоб когось побачити",
+"SIZE HUNGER": "ГОЛОД РОЗМІРУ",
+"SIZE STARVING": "ВИСНАЖЕННЯ РОЗМІРУ",
+"SMALL HIDING": "СХОВАНКА МАЛИХ",
+"SMALL MATURITY": "ДОРОСЛІШАННЯ МАЛИХ",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "велике тіло спалює в {#} + це помножене на квадрат розміру разів більше їжі (розмір як частка діапазону: удвічі більше в найбільших)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "голодуючи, тіло виснажується в {#} + це помножене на розмір разів швидше (удвічі швидше в найбільших)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "удар мисливця зовсім минає мале тварину з імовірністю це помножене на квадрат її малості (ніколи в найбільших)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "найменші лишаються малюками таку частку часу, яку дало б їм життя, більші довше, найбільші весь"
 }

@@ -1186,5 +1186,13 @@
 "{#} found": "找到 {#} 项",
 "No settings match \"{*}\".": "没有与“{*}”匹配的设置。",
 "{#} neurons": "{#} 个神经元",
-"Zoomed out too far to see anybody": "缩得太远，看不到任何个体"
+"Zoomed out too far to see anybody": "缩得太远，看不到任何个体",
+"SIZE HUNGER": "体型饥饿",
+"SIZE STARVING": "体型饥荒",
+"SMALL HIDING": "小体隐藏",
+"SMALL MATURITY": "小体早熟",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "大体型消耗的食物是 {#} + 此值乘以体型平方倍（体型按其范围的比例：最大者加倍）",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "挨饿时，身体衰弱的速度是 {#} + 此值乘以体型倍（最大者快一倍）",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "猎手的攻击以此值乘以小体程度平方的概率完全落空（最大者从不）",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "最小者的幼年期是其寿命所定长度的此比例，越大越长，最大者为全部"
 }

@@ -262,6 +262,7 @@ void Bitzkey::derive() {
     stomach = STOMACH[0] + (STOMACH[1] - STOMACH[0]) * size;
     burn = metabolism * (0.45 + 0.18 * physique(Strength) + 0.24 * physique(Speed) +
                          0.12 * (physique(Weapons) + physique(Armour)));
+    if (species != Species::Plant) burn *= 1 + SIZE_HUNGER * size * size;  // a large body is hungry work (Size hunger)
     if (species != Species::Plant) {  // and a cleverer animal's brain burns more (Brain cost)
         const double cost = BRAIN_COST * (species == Species::Predator ? PREDATOR_BRAIN_COST : 1.0);
         burn = burn * (1 + cost * inborn[Intellect] / TRAIT_MAX);
@@ -835,7 +836,7 @@ void Simulation::take_turn() {
         const double felt = plant ? std::max(0.0, std::min(steps, 2 * (steps - 1))) : steps;
         if (felt > 0) agent->health -= CLIMATE_DAMAGE * felt * share * agent->max_health;
         const bool starving = agent->hunger >= 100;
-        if (starving) agent->health -= STARVING_DAMAGE * agent->max_health;  // it wastes away
+        if (starving) agent->health -= STARVING_DAMAGE * (1 + SIZE_STARVING * agent->physique(Size)) * agent->max_health;  // it wastes away, the larger the faster
         if (agent->health <= 0) {  // starving, and hungrier out of its temperature, it died of exposure
             die(*agent, starving && !hungrier ? "starved" : exposure(*agent, here));
             continue;
@@ -2354,6 +2355,14 @@ double Simulation::armed(const Bitzkey& animal) {
 }
 
 void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activity) {
+    if (victim.species != Species::Plant && SMALL_HIDING > 0 && victim.body[Size] < TRAIT_MAX) {  // a small animal may slip away
+        const double smallness = 1 - victim.physique(Size);
+        if (random_.random() < SMALL_HIDING * smallness * smallness) {
+            agent.last_action = "missed";
+            exhausted(agent);
+            return;
+        }
+    }
     const double empathy = agent.feeling(Empathy);
     const double joy = FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * empathy) * (1 - 0.75 * agent.feeling(Tolerance));
     double blow = damage(agent, victim);

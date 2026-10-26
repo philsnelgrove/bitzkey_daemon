@@ -1186,5 +1186,13 @@
 "{#} found": "{#} trovate",
 "No settings match \"{*}\".": "Nessuna impostazione corrisponde a \"{*}\".",
 "{#} neurons": "{#} neuroni",
-"Zoomed out too far to see anybody": "Troppo lontano per vedere qualcuno"
+"Zoomed out too far to see anybody": "Troppo lontano per vedere qualcuno",
+"SIZE HUNGER": "FAME DELLA TAGLIA",
+"SIZE STARVING": "INEDIA DELLA TAGLIA",
+"SMALL HIDING": "NASCONDIGLIO DEI PICCOLI",
+"SMALL MATURITY": "MATURITÀ DEI PICCOLI",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "un corpo grande brucia {#} + questo per la sua taglia al quadrato tanto cibo (la taglia come quota della sua gamma: il doppio al più grande)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "affamato, un corpo deperisce {#} + questo per la sua taglia volte più in fretta (il doppio al più grande)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "il colpo di un cacciatore manca del tutto un animale piccolo con questo per la sua piccolezza al quadrato come probabilità (mai al più grande)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "i più piccoli restano cuccioli questa quota del tempo che la loro vita darebbe, i più grandi di più, il più grande tutto"
 }

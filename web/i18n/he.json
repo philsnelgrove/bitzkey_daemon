@@ -1186,5 +1186,13 @@
 "{#} found": "נמצאו {#}",
 "No settings match \"{*}\".": "אין הגדרות התואמות ל-\"{*}\".",
 "{#} neurons": "{#} נוירונים",
-"Zoomed out too far to see anybody": "רחוק מדי כדי לראות מישהו"
+"Zoomed out too far to see anybody": "רחוק מדי כדי לראות מישהו",
+"SIZE HUNGER": "רעב הגודל",
+"SIZE STARVING": "הרעבת הגודל",
+"SMALL HIDING": "מחבוא הקטנים",
+"SMALL MATURITY": "בגרות הקטנים",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "גוף גדול שורף {#} + זה כפול ריבוע גודלו פעמים יותר מזון (הגודל כחלק מטווחו: פי שניים אצל הגדול ביותר)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "ברעב, גוף נחלש {#} + זה כפול גודלו פעמים מהר יותר (פי שניים אצל הגדול ביותר)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "מכת צייד מחטיאה לגמרי חיה קטנה בסיכוי של זה כפול ריבוע קטנותה (לעולם לא אצל הגדול ביותר)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "הקטנים ביותר הם צאצאים חלק זה מהזמן שאורך חייהם היה נותן, הגדולים יותר, הגדול ביותר את כולו"
 }

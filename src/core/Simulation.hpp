@@ -77,6 +77,15 @@ inline int SPAWN_SPREAD = 2;
 inline int CELL_SPACE = 10;
 // Full hunger doesn't kill at once: a starving Bitzkey loses this share of its full health each turn.
 inline double STARVING_DAMAGE = 0.1;
+// What a large body costs, against all it gains, so that size isn't simply better: it burns 1 + SIZE_HUNGER times its
+// size squared as much (a share of the size range: twice as much at the largest, by default); it wastes away
+// 1 + SIZE_STARVING times its size as fast starving; a hunter's blow misses a small animal outright with a chance of
+// SMALL_HIDING times its smallness squared (40% at the smallest, none at the largest); and the smallest are infants
+// SMALL_MATURITY as long as their lifespans would make them, rising to the whole of it at the largest.
+inline double SIZE_HUNGER = 1.0;
+inline double SIZE_STARVING = 1.0;
+inline double SMALL_HIDING = 0.4;
+inline double SMALL_MATURITY = 0.5;
 // Meat lasts: the share of its fullness that is meat empties at this share of the usual rate.
 // Meat lasts seven times as long as plant food: a meal of meat a week to a meal of plants a day. An omnivore's mixed
 // fullness empties at the mix of the two rates.
@@ -598,13 +607,14 @@ struct Bitzkey {
         if (feeble != feeble_at_age()) derive();
     }
     // Whether it is an animal in its infancy: the first FEEBLE_YOUTH of its lifespan, a predator's PREDATOR_INFANCY as long.
-    bool infant() const {
-        return species != Species::Plant && age < FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0) * lifespan;
+    // How long its infancy lasts, in turns: FEEBLE_YOUTH of its lifespan (a predator's PREDATOR_INFANCY as long), the
+    // smallest SMALL_MATURITY of that, the larger more of it.
+    double infancy() const {
+        const double maturity = SMALL_MATURITY + (1 - SMALL_MATURITY) * share(body[Size]);
+        return FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0) * maturity * lifespan;
     }
-    bool feeble_at_age() const {
-        const double infancy = FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0);  // a predator's is shorter
-        return species != Species::Plant && (age < infancy * lifespan || age > AGEING * lifespan);
-    }
+    bool infant() const { return species != Species::Plant && age < infancy(); }
+    bool feeble_at_age() const { return species != Species::Plant && (age < infancy() || age > AGEING * lifespan); }
     double feeling(int trait) const { return share(mind[trait]); }
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
     // PREDATOR_INTELLIGENCE times over, up to the full range.

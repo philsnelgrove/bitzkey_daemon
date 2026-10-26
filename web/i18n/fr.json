@@ -1186,5 +1186,13 @@
 "{#} found": "{#} trouvé(s)",
 "No settings match \"{*}\".": "Aucun réglage ne correspond à « {*} ».",
 "{#} neurons": "{#} neurones",
-"Zoomed out too far to see anybody": "Trop dézoomé pour voir qui que ce soit"
+"Zoomed out too far to see anybody": "Trop dézoomé pour voir qui que ce soit",
+"SIZE HUNGER": "FAIM DE LA TAILLE",
+"SIZE STARVING": "FAMINE DE LA TAILLE",
+"SMALL HIDING": "CACHETTE DES PETITS",
+"SMALL MATURITY": "MATURITÉ DES PETITS",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "un grand corps brûle {#} + ceci fois sa taille au carré autant de nourriture (la taille en part de son étendue : deux fois plus au plus grand)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "affamé, un corps dépérit {#} + ceci fois sa taille aussi vite (deux fois plus vite au plus grand)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "le coup d'un chasseur manque tout à fait un petit animal avec ceci fois sa petitesse au carré pour chance (jamais au plus grand)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "les plus petits sont jeunes cette part du temps que leur durée de vie leur donnerait, les plus grands davantage, le plus grand tout"
 }

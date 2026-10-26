@@ -1186,5 +1186,13 @@
 "{#} found": "{#} encontrados",
 "No settings match \"{*}\".": "Ningún ajuste coincide con «{*}».",
 "{#} neurons": "{#} neuronas",
-"Zoomed out too far to see anybody": "Demasiado alejado para ver a nadie"
+"Zoomed out too far to see anybody": "Demasiado alejado para ver a nadie",
+"SIZE HUNGER": "HAMBRE DEL TAMAÑO",
+"SIZE STARVING": "INANICIÓN DEL TAMAÑO",
+"SMALL HIDING": "ESCONDITE DE LOS PEQUEÑOS",
+"SMALL MATURITY": "MADUREZ DE LOS PEQUEÑOS",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "un cuerpo grande quema {#} + esto por su tamaño al cuadrado tanta comida (el tamaño como parte de su rango: el doble en el más grande)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "hambriento, un cuerpo se consume {#} + esto por su tamaño veces más rápido (el doble en el más grande)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "el golpe de un cazador falla del todo a un animal pequeño con esto por su pequeñez al cuadrado como probabilidad (nunca en el más grande)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "los más pequeños son crías esta parte del tiempo que su vida les daría, los mayores más, el más grande todo"
 }

@@ -1186,5 +1186,13 @@
 "{#} found": "znaleziono: {#}",
 "No settings match \"{*}\".": "Żadne ustawienie nie pasuje do „{*}”.",
 "{#} neurons": "{#} neuronów",
-"Zoomed out too far to see anybody": "Zbyt oddalono, by kogokolwiek zobaczyć"
+"Zoomed out too far to see anybody": "Zbyt oddalono, by kogokolwiek zobaczyć",
+"SIZE HUNGER": "GŁÓD ROZMIARU",
+"SIZE STARVING": "GŁODZENIE ROZMIARU",
+"SMALL HIDING": "KRYJÓWKA MAŁYCH",
+"SMALL MATURITY": "DOJRZAŁOŚĆ MAŁYCH",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "duże ciało spala {#} + tyle razy jego rozmiar do kwadratu więcej pożywienia (rozmiar jako część zakresu: dwa razy więcej u największych)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "głodne ciało marnieje {#} + tyle razy jego rozmiar szybciej (dwa razy szybciej u największych)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "cios łowcy całkiem chybia małe zwierzę z szansą tyle razy jego małość do kwadratu (nigdy u największych)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "najmniejsze są młode przez taką część czasu, jaką dałaby im długość życia, większe dłużej, największe całą"
 }

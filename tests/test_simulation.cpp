@@ -1945,3 +1945,48 @@ TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother ca
     simulation.die(second, "killed", &hunter, "hunting");  // the father carried none
     CHECK(hunter.reward == 0.0);
 }
+
+TEST_CASE("a large body costs: it is hungrier, starves faster, matures later, and can't hide from a hunter") {
+    const Dna small_dna = encode_dna(Species::Grazer, {{"size", 0}}), large_dna = encode_dna(Species::Grazer, {{"size", 7}});
+    SIZE_HUNGER = 0.0;
+    const Bitzkey small_plain(1, small_dna, 0, 0), large_plain(2, large_dna, 0, 0);
+    SIZE_HUNGER = 1.0;
+    const Bitzkey small(3, small_dna, 0, 0), large(4, large_dna, 0, 0);
+    CHECK(small.burn == doctest::Approx(small_plain.burn));  // size 0: no more than it was
+    CHECK(large.burn == doctest::Approx(2 * large_plain.burn));  // size 7: twice as hungry
+
+    FEEBLE_YOUTH = 0.1;
+    SMALL_MATURITY = 0.5;
+    const Bitzkey young_small(5, small_dna, 0, 0), young_large(6, large_dna, 0, 0);
+    CHECK(young_small.infancy() == doctest::Approx(0.1 * 0.5 * young_small.lifespan));  // half as long as its lifespan makes it
+    CHECK(young_large.infancy() == doctest::Approx(0.1 * young_large.lifespan));        // the largest, the whole of it
+    FEEBLE_YOUTH = 0.0;
+
+    Simulation simulation = world();
+    Bitzkey& starving_small = simulation.add_agent(small_dna, 3, 3);
+    Bitzkey& starving_large = simulation.add_agent(large_dna, 9, 9);
+    simulation.index_cells();
+    for (Bitzkey* agent : {&starving_small, &starving_large}) agent->hunger = 100;
+    const double small_before = starving_small.health / starving_small.max_health, large_before = starving_large.health / starving_large.max_health;
+    const double climate_damage = CLIMATE_DAMAGE;
+    CLIMATE_DAMAGE = 0;  // starving alone
+    simulation.take_turn();
+    CLIMATE_DAMAGE = climate_damage;
+    const double small_lost = small_before - starving_small.health / starving_small.max_health;
+    const double large_lost = large_before - starving_large.health / starving_large.max_health;
+    // The largest wastes away twice as fast; resting through the turn heals each a little back, the small more.
+    CHECK(large_lost > 2 * small_lost);
+
+    SMALL_HIDING = 1.0;  // at the smallest, a blow always misses; at the largest, never
+    Simulation hunt = world();
+    Bitzkey& hunter = hunt.add_agent(encode_dna(Species::Predator, {{"strength", 7}, {"weapons", 7}}), 5, 5);
+    Bitzkey& tiny = hunt.add_agent(small_dna, 5, 6);
+    Bitzkey& huge = hunt.add_agent(large_dna, 6, 5);
+    hunt.index_cells();
+    const double tiny_health = tiny.health, huge_health = huge.health;
+    hunt.attack(hunter, tiny);
+    CHECK((tiny.health == tiny_health && hunter.last_action == "missed"));
+    hunt.attack(hunter, huge);
+    CHECK(huge.health < huge_health);
+    SMALL_HIDING = 0.0;
+}

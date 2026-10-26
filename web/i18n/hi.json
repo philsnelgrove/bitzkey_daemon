@@ -1186,5 +1186,13 @@
 "{#} found": "{#} मिले",
 "No settings match \"{*}\".": "\"{*}\" से कोई सेटिंग मेल नहीं खाती।",
 "{#} neurons": "{#} न्यूरॉन",
-"Zoomed out too far to see anybody": "बहुत दूर ज़ूम आउट है, कोई दिखाई नहीं देता"
+"Zoomed out too far to see anybody": "बहुत दूर ज़ूम आउट है, कोई दिखाई नहीं देता",
+"SIZE HUNGER": "आकार की भूख",
+"SIZE STARVING": "आकार की भुखमरी",
+"SMALL HIDING": "छोटों का छिपना",
+"SMALL MATURITY": "छोटों की परिपक्वता",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "बड़ा शरीर {#} + यह गुना आकार के वर्ग जितना अधिक भोजन जलाता है (आकार अपनी सीमा के हिस्से के रूप में: सबसे बड़े में दोगुना)",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "भूखा शरीर {#} + यह गुना आकार जितनी तेज़ी से क्षीण होता है (सबसे बड़े में दोगुनी तेज़ी)",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "शिकारी का वार छोटे जानवर को यह गुना उसकी लघुता के वर्ग की संभावना से पूरी तरह चूक जाता है (सबसे बड़े में कभी नहीं)",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "सबसे छोटे अपनी आयु से तय शैशव के इस हिस्से तक शिशु रहते हैं, बड़े अधिक, सबसे बड़े पूरा"
 }

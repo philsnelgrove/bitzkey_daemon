@@ -20,6 +20,7 @@ struct Grown : doctest::IReporter {
         // a test says so.
         bitzkey::DEFAULT_YEAR_LENGTH = bitzkey::YEAR_LENGTH = 360;
         bitzkey::SLEEP = 0;
+        bitzkey::SMALL_HIDING = 0.0;  // a test's hunter strikes what it strikes at, unless a test says so
     }
     void report_query(const doctest::QueryData&) override {}
     void test_run_start() override {}

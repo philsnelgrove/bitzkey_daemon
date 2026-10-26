@@ -1186,5 +1186,13 @@
 "{#} found": "{#} 件",
 "No settings match \"{*}\".": "「{*}」に一致する設定はありません。",
 "{#} neurons": "ニューロン {#} 個",
-"Zoomed out too far to see anybody": "離れすぎて誰も見えません"
+"Zoomed out too far to see anybody": "離れすぎて誰も見えません",
+"SIZE HUNGER": "体の大きさの空腹",
+"SIZE STARVING": "体の大きさの飢え",
+"SMALL HIDING": "小さな体の隠れ",
+"SMALL MATURITY": "小さな体の成熟",
+"a large body burns {#} + this times its size squared as much food (size a share of its range: twice as much at the largest)": "大きな体は {#} + この値×大きさの二乗倍の食べ物を消費する（大きさは範囲に対する割合：最大で2倍）",
+"starving, a body wastes away {#} + this times its size as fast (twice as fast at the largest)": "飢えると体は {#} + この値×大きさ倍の速さで衰える（最大で2倍の速さ）",
+"a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)": "狩る者の一撃は、この値×小ささの二乗の確率で小さな動物を完全に外す（最大のものには外れない）",
+"the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole": "最も小さいものは寿命から決まる幼年期のこの割合だけ幼く、大きいほど長く、最大のものはすべて"
 }
