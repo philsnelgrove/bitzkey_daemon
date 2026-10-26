@@ -1941,6 +1941,21 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseSeaHere] = agent.wet;
     senses[SenseStamina] = agent.stamina / FULL_STAMINA;
     senses[SenseNight] = night(agent.x);
+    if (agent.infant()) {  // its nearest living parent in sight, and which way it lies
+        const Bitzkey* nearest = nullptr;
+        for (const int parent : {agent.mother, agent.father}) {
+            const Bitzkey* found = parent >= 0 ? find_agent(parent) : nullptr;
+            if (found && found->alive() && distance(found->x, found->y, agent.x, agent.y) <= sight &&
+                (!nearest || distance(found->x, found->y, agent.x, agent.y) < distance(nearest->x, nearest->y, agent.x, agent.y))) {
+                nearest = found;
+            }
+        }
+        if (nearest) {
+            senses[SenseParentCloseness] = closeness(agent, cell_of(nearest), sight);
+            senses[SenseParentEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
+            senses[SenseParentSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
+        }
+    }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
             const Heading& way = HEADINGS[static_cast<std::size_t>(heading)];

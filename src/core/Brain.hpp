@@ -75,6 +75,11 @@ enum Sense : int {
     SenseShoreWest,
     SenseStamina,          // 1 fresh, falling to 0 exhausted, when it can only rest
     SenseNight,            // 1 when it is night where it stands
+    // An infant's nearest living parent within its sight: 1 beside it, falling to 0 at the edge of its sight, and 0 with
+    // none in sight or grown; and which way it lies, -1 to 1, west to east and north to south:
+    SenseParentCloseness,
+    SenseParentEast,
+    SenseParentSouth,
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -101,7 +106,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
     "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near",
-    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "night", "aggression", "libido", "curiosity",
+    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "night", "parent_closeness", "parent_east", "parent_south", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

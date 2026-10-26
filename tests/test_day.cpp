@@ -148,3 +148,26 @@ TEST_CASE("an infant beside a parent is sheltered from the climate") {
     CHECK_FALSE(simulation.sheltered(near));  // no shelter from a dead parent
     FEEBLE_YOUTH = 0.0;
 }
+
+TEST_CASE("an infant senses how close its nearest living parent is, and which way") {
+    FEEBLE_YOUTH = 0.5;  // infants for half their lives, in this test
+    Simulation simulation(Simulation::Settings{20, 20, 0, 1});
+    Bitzkey& mother = simulation.add_agent(animal(false), 5, 5);
+    Bitzkey& child = simulation.add_agent(animal(false), 7, 5);
+    Bitzkey& orphan = simulation.add_agent(animal(false), 15, 15);
+    child.mother = mother.identifier;
+    mother.age = static_cast<int>(mother.lifespan * 0.6);  // grown
+    for (Bitzkey* agent : {&mother, &child, &orphan}) agent->derive();
+    simulation.index_cells();
+    CHECK(simulation.sheltered(child));  // two squares off, within reach
+    const Senses senses = simulation.sense(child).senses;
+    const double sight = child.sight;
+    CHECK(senses[SenseParentCloseness] == doctest::Approx(std::min(1.0, 1 - 1 / sight)));
+    CHECK(senses[SenseParentEast] == doctest::Approx(-2 / sight));  // she is to its west
+    CHECK(senses[SenseParentSouth] == 0.0);
+    for (Bitzkey* other : {&orphan, &mother}) {  // no parent, or grown
+        const Senses none = simulation.sense(*other).senses;
+        CHECK((none[SenseParentCloseness] == 0.0 && none[SenseParentEast] == 0.0 && none[SenseParentSouth] == 0.0));
+    }
+    FEEBLE_YOUTH = 0.0;
+}

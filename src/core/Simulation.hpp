@@ -393,7 +393,7 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 inline int DAY_LENGTH = 8;
 inline int SLEEP = 1;
 // An infant within this many squares of a living parent is sheltered: the climate's extra hunger and harm pass it by.
-constexpr int SHELTER_REACH = 1;
+constexpr int SHELTER_REACH = 2;
 constexpr int DAYS_IN_YEAR = 360;
 inline int DEFAULT_YEAR_LENGTH = 8 * DAYS_IN_YEAR;  // a new world's, unless its settings say otherwise
 inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its year length setting
