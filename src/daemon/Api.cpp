@@ -81,9 +81,9 @@ std::set<int> identifiers(const Json& list) {
 
 GraphView graph_view(const Json& request, const Simulation& simulation) {
     GraphView view;
-    const int frontier = simulation.frontier();
-    view.first = std::max(0, std::min(frontier, request.value("first", 0)));
-    view.last = std::max(view.first, std::min(frontier, request.value("last", frontier)));
+    const int latest = simulation.turn();
+    view.first = std::max(0, std::min(latest, request.value("first", 0)));
+    view.last = std::max(view.first, std::min(latest, request.value("last", latest)));
     view.bars = std::max(1, std::min(2000, request.value("bars", 180)));
     view.height = std::max(1, std::min(2000, request.value("height", 400)));
     view.part = std::max(0, std::min(2, request.value("part", request.value("dot", false) ? 1 : 0)));
@@ -418,16 +418,9 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
             else world.play(!world.playing());
         } else if (action == "step") {
             world.step();
-        } else if (action == "rewind") {
-            world.rewind();
         } else if (action == "speed") {
             world.set_speed(given.value("speed", world.speed()));
             note = std::string("Speed ") + SPEED_LABELS[static_cast<std::size_t>(world.speed())] + ".";
-        } else if (action == "seek") {
-            const int turn = given.value("turn", simulation.turn());
-            world.seek(turn);
-            note = turn < simulation.turn() ? format("The history reaches back only to turn %d; moved there.", simulation.turn())
-                                            : format("Moved to turn %d.", simulation.turn());
         } else if (action == "restart") {
             world.restart();
             note = "A new world, from the same settings.";

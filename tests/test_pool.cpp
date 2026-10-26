@@ -192,7 +192,7 @@ TEST_CASE("a world thinks through its workers, keeps on when one fails, and take
             world.pool().add("127.0.0.1", second_port, "");
             world.adopt_pool();
             CHECK(world.pool().bound());
-            CHECK(world.simulation().on_gpu());  // its brains elsewhere: no rewinding, as on the GPUs
+            CHECK(world.simulation().on_gpu());  // its brains elsewhere, as on the GPUs
         }
         const bool joined = await([&] { return worker_in(world, first_port)["state"] == "working" && worker_in(world, second_port)["state"] == "working"; });
         INFO([&] { auto lock = world.lock(); return world.pool().list().dump(); }());

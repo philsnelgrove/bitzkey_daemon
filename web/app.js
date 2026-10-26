@@ -82,7 +82,7 @@ function say(text) {
   }, MESSAGE_MS);
 }
 
-const HINT = 'SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   ' +
+const HINT = 'SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   ' +
              'G  graph   E  export   R  restart   ESC  new world';
 
 // ---------------------------------------------------------------------------------------------
@@ -240,9 +240,7 @@ function drawHeader() {
     population.replaceChildren(...SPECIES.map(name => element('div', { class: 'row' }, element('span', {}, upper(name)), element('span', {}, '0'))));
   }
   SPECIES.forEach((name, index) => { population.children[index].lastChild.textContent = state.species[index]; });
-  let history = `HISTORY  ${state.turn}/${state.frontier}`;
-  if (state.earliest) history += `  FROM ${state.earliest}`;
-  $('history').textContent = history;
+  $('history').textContent = `TURN  ${state.turn}`;
 }
 
 function updateExportButton() {
@@ -1244,7 +1242,6 @@ document.addEventListener('keydown', event => {
   const handled = () => event.preventDefault();
   if (key === ' ') { handled(); control('toggle'); }
   else if (key === 'ArrowRight') { handled(); control('step'); }
-  else if (key === 'ArrowLeft') { handled(); control('rewind'); }
   else if (key === '+' || key === '=') control('speed', { speed: Math.min(state.speed + 1, SPEED_COUNT - 1) });
   else if (key === '-' || key === '_') control('speed', { speed: Math.max(state.speed - 1, 0) });
   else if (key === 'r' || key === 'R') confirmRestart();
@@ -1262,7 +1259,6 @@ document.addEventListener('keydown', event => {
 
 $('play').onclick = () => control('toggle');
 $('step').onclick = () => control('step');
-$('rewind').onclick = () => control('rewind');
 $('faster').onclick = () => control('speed', { speed: Math.min(app.state.speed + 1, SPEED_COUNT - 1) });
 $('slower').onclick = () => control('speed', { speed: Math.max(app.state.speed - 1, 0) });
 $('show-insights').onclick = toggleInsights;

@@ -679,17 +679,6 @@ TEST_CASE("a pack learns from a kill, and what it saw is an input that fades") {
     CHECK(mate.seen_success == doctest::Approx(SOCIAL_MEMORY));
 }
 
-TEST_CASE("waiting seeds rewind and replay with the world") {
-    Simulation simulation(Simulation::Settings{40, 40, 60, 4});
-    while (simulation.seeds().empty() && simulation.turn() < 300 && !simulation.ended()) simulation.advance();  // until some seeds wait
-    const std::vector<Simulation::Seed> seeds = simulation.seeds();
-    const int turn = simulation.turn();
-    CHECK(!seeds.empty());
-    simulation.seek(turn / 2);
-    simulation.seek(turn);
-    CHECK(simulation.seeds() == seeds);
-}
-
 TEST_CASE("groups spawn where their home temperature is usual") {
     for (const std::uint64_t seed : {1, 2, 3}) {
         const Simulation simulation(Simulation::Settings{100, 100, 90, seed});

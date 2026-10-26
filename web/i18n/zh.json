@@ -930,7 +930,7 @@
 "sought carrion": "寻找腐肉",
 "sought plants": "寻找植物",
 "SOUTHERN WINTER": "南方冬季",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  暂停   -/+  速度   LEFT / RIGHT  倒回 / 单步   滚轮 / Z  缩放   I  洞察   B  报告   G  图表   E  导出   R  重新开始   ESC  新世界",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  暂停   -/+  速度   RIGHT  单步   滚轮 / Z  缩放   I  洞察   B  报告   G  图表   E  导出   R  重新开始   ESC  新世界",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "每格的空间；一个 Bitzkey 占 {#} + 其体型，没有空间的格子里不会出生、移入或生成",
 "SPAWN AT HOME": "在家乡生成",
 "SPAWN SPREAD": "生成分散度",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} 太大，无法导入。",
 "{*} must be up to 8 hex digits": "{*} 最多为 8 位十六进制数字",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} 准备导入（{*}；{#} 个带已保存的大脑，{#} 个带已保存的性情），每个以 {#}-{#} 只为一群生成",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} 准备导入（{*}；{#} 个带已保存的大脑，{#} 个带已保存的性情），每个以 {#}-{#} 只为一群生成。仅使用 {#6} 个中的前 {#5} 个"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} 准备导入（{*}；{#} 个带已保存的大脑，{#} 个带已保存的性情），每个以 {#}-{#} 只为一群生成。仅使用 {#6} 个中的前 {#5} 个",
+"Search settings": "搜索设置",
+"{#} found": "找到 {#} 项",
+"No settings match \"{*}\".": "没有与“{*}”匹配的设置。"
 }

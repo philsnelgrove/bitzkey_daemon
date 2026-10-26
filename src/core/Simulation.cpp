@@ -432,7 +432,6 @@ Simulation::Simulation(Settings settings)
                     bitzkey.mind);
     }
     take_census();
-    record();
 }
 
 std::vector<Bitzkey*> Simulation::living() const {
@@ -692,58 +691,7 @@ void remove_stale_histories() {
     }
 }
 
-std::vector<int> Simulation::history_turns() const {
-    std::vector<int> turns;
-    for (const Snapshot& held : history_) turns.push_back(held.turn);
-    return turns;
-}
-
-void Simulation::record() {
-    // Keep a copy of the newest turn, then let the oldest go while the history holds more than
-    // HISTORY_TURNS turns or HISTORY_MEMORY gigabytes.
-    frontier_ = turn_;
-    if (!history_.empty() && history_.back().turn == turn_) {  // recorded again, as it now is
-        history_bytes_ -= history_.back().bytes;
-        history_.pop_back();
-    }
-    if (gpu_) {  // brains change only on the GPUs, so there is no rewinding: the present alone, copied from nothing
-        history_.clear();
-        history_bytes_ = 0;
-        history_.push_back(Snapshot{turn_});
-        return;
-    }
-    Snapshot held{turn_, deaths_, next_identifier_, {}, grass_, seeds_, random_.getstate(), insights_.snapshot(), death_causes_};
-    held.agents.reserve(agents_.size());
-    for (const auto& agent : agents_) {
-        held.agents.push_back(*agent);
-        held.bytes += AGENT_BYTES + agent->brain_bytes();
-    }
-    history_bytes_ += held.bytes;
-    history_.push_back(std::move(held));
-    while (history_.size() > 1 &&
-           (gpu_ || (HISTORY_TURNS < HISTORY_ALL && history_.size() > static_cast<std::size_t>(HISTORY_TURNS)) ||
-            static_cast<double>(history_bytes_) > HISTORY_MEMORY * static_cast<double>(std::uintmax_t{1} << 30))) {
-        history_bytes_ -= history_.front().bytes;
-        for (Bitzkey& gone : history_.front().agents) {  // brains nothing else holds, kept to copy into
-            if (gone.brain && gone.brain.use_count() == 1) spare_brains_.push_back(std::move(gone.brain));
-        }
-        history_.pop_front();
-    }
-    if (spare_brains_.size() > agents_.size()) spare_brains_.resize(agents_.size());  // no more than a world could use
-}
-
 std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, int x, int y) {
-    if (turn_ < frontier_) {
-        while (!history_.empty() && history_.back().turn > turn_) {
-            history_bytes_ -= history_.back().bytes;
-            history_.pop_back();
-        }
-        while (!death_order_.empty() && death_order_.back().first > turn_) {  // deaths in the future let go
-            const auto [turn, identifier] = death_order_.back();
-            death_order_.pop_back();
-            forget_death(turn, identifier);
-        }
-    }
     std::vector<Bitzkey*> deployed;
     for (const Imported& bitzkey : bitzkeys) {
         const int space = 1 + decode_body(bitzkey.dna)[Size];
@@ -758,7 +706,6 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
     }
     census_.forget_from(turn_);  // this turn again, as it now is
     take_census();
-    record();
     return deployed;
 }
 
@@ -769,51 +716,9 @@ void Simulation::rules_changed() {
     for (auto& agent : agents_) agent->derive();
 }
 
-void Simulation::restore(const Snapshot& held) {
-    turn_ = held.turn;
-    deaths_ = held.deaths;
-    next_identifier_ = held.next_identifier;
-    for (auto& agent : agents_) departed_.push_back(std::move(agent));
-    agents_.clear();
-    for (const Bitzkey& agent : held.agents) {
-        agents_.push_back(std::make_unique<Bitzkey>(agent));
-        agents_.back()->derive();  // under the rules as they now stand, which may have changed since
-    }
-    grass_ = held.grass;
-    seeds_ = held.seeds;
-    random_.setstate(held.random);
-    insights_.restore(held.insights);
-    death_causes_ = held.death_causes;
-    update_climate();
-    index_cells();
-}
-
-void Simulation::close() {
-    history_.clear();
-    history_bytes_ = 0;
-}
-
-void Simulation::seek(int target) {
-    target = std::max(earliest(), std::min(frontier_, target));
-    if (target != turn_) restore(history_[static_cast<std::size_t>(target - earliest())]);
-}
-
-bool Simulation::rewind() {
-    if (turn_ <= earliest()) return false;
-    seek(turn_ - 1);
-    return true;
-}
-
 void Simulation::advance() {
-    if (turn_ < frontier_) {
-        seek(turn_ + 1);
-        return;
-    }
     if (end_reason() != EndReason::None) return;
     take_turn();
-    auto clock = std::chrono::steady_clock::now();
-    record();
-    timings.record += lap(clock);
     if (on_turn) on_turn(*this);
 }
 
@@ -1354,19 +1259,7 @@ bool Simulation::night(int x) const {
 }
 
 Brain& Simulation::learning_brain(Bitzkey& agent) {
-    if (agent.brain.use_count() > 1) {
-        std::shared_ptr<Brain> copy;
-        {
-            std::lock_guard held(*spare_lock_);
-            if (!spare_brains_.empty()) {
-                copy = std::move(spare_brains_.back());
-                spare_brains_.pop_back();
-            }
-        }
-        if (copy) *copy = *agent.brain;  // into the spare's memory, as far as it is the same shape
-        else copy = std::make_shared<Brain>(*agent.brain);
-        agent.brain = std::move(copy);
-    }
+    if (agent.brain.use_count() > 1) agent.brain = std::make_shared<Brain>(*agent.brain);
     return *agent.brain;
 }
 
@@ -1449,8 +1342,6 @@ void Simulation::leave_gpu(const std::exception& error) {
     }
     lessons_.clear();
     lesson_senses_.clear();
-    history_.clear();  // a GPU world keeps no copies to rewind to; from the next turn it does
-    history_bytes_ = 0;
     gpu_status_ = std::string("thinking on the CPU: the GPU failed (") + error.what() + ")";
 }
 
@@ -1467,9 +1358,6 @@ void Simulation::use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::strin
     for (const auto& agent : agents_) {
         if (agent->alive()) attach(*agent);
     }
-    history_.clear();
-    history_bytes_ = 0;
-    frontier_ = turn_;  // the turns ahead, rewound from, are let go with the history
 }
 
 const Brain* Simulation::engine_brain(int handle) const {

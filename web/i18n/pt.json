@@ -930,7 +930,7 @@
 "sought carrion": "procurava carniça",
 "sought plants": "procurava plantas",
 "SOUTHERN WINTER": "Inverno no sul",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pausa   -/+  velocidade   LEFT / RIGHT  voltar / avançar   RODA / Z  zoom   I  análises   B  relatório   G  gráfico   E  exportar   R  reiniciar   ESC  novo mundo",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pausa   -/+  velocidade   RIGHT  avançar   RODA / Z  zoom   I  análises   B  relatório   G  gráfico   E  exportar   R  reiniciar   ESC  novo mundo",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "vagas numa casa; um Bitzkey ocupa {#} + seu tamanho, e nenhum nasce, se move ou aparece numa casa sem espaço",
 "SPAWN AT HOME": "Surgir em casa",
 "SPAWN SPREAD": "Dispersão ao surgir",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} é grande demais para importar.",
 "{*} must be up to 8 hex digits": "{*} deve ter no máximo 8 dígitos hexadecimais",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} pronto(s) para importar ({*}; {#} com cérebro salvo, {#} com temperamento salvo), cada um surge num grupo de {#}-{#}",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} pronto(s) para importar ({*}; {#} com cérebro salvo, {#} com temperamento salvo), cada um surge num grupo de {#}-{#}. Só os primeiros {#} de {#} são usados"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} pronto(s) para importar ({*}; {#} com cérebro salvo, {#} com temperamento salvo), cada um surge num grupo de {#}-{#}. Só os primeiros {#} de {#} são usados",
+"Search settings": "Procurar definições",
+"{#} found": "{#} encontradas",
+"No settings match \"{*}\".": "Nenhuma definição corresponde a \"{*}\"."
 }

@@ -25,7 +25,7 @@ export function openGraph(app, onClose) {
   let panning = null;               // a drag with the right or middle button: where, which, the view and floor then, moved
   let image = null;                 // the bars as last drawn by the daemon
   let requestKey = '', loading = false, again = false;
-  let press = null, scrub = null, mouse = null, hovered = null, hoverTimer = null, hoverAsked = '';
+  let press = null, mouse = null, hovered = null, hoverTimer = null, hoverAsked = '';
   let closed = false;
 
   const canvas = element('canvas');
@@ -56,7 +56,7 @@ export function openGraph(app, onClose) {
   document.body.append(shade, tooltip);
 
   const state = () => app.state;
-  const frontier = () => state().frontier;
+  const latest = () => state().turn;
 
   // ---- Layout and time
 
@@ -69,9 +69,9 @@ export function openGraph(app, onClose) {
     return { x: chart.x, y: chart.y + chart.h + GAP, w: chart.w, h: TIMELINE };
   }
   function window_() {
-    if (!view) return [0, frontier()];
-    if (pinned) return [Math.max(0, frontier() - (view[1] - view[0])), frontier()];
-    return [Math.max(0, view[0]), Math.min(frontier(), view[1])];
+    if (!view) return [0, latest()];
+    if (pinned) return [Math.max(0, latest() - (view[1] - view[0])), latest()];
+    return [Math.max(0, view[0]), Math.min(latest(), view[1])];
   }
   function turnAt(x) {
     const chart = chartRect(), [first, last] = window_();
@@ -84,7 +84,7 @@ export function openGraph(app, onClose) {
   }
   function zoom(notches, x) {
     const [first, last] = window_();
-    const span = last - first + 1, whole = frontier() + 1;
+    const span = last - first + 1, whole = latest() + 1;
     const newSpan = Math.max(MIN_VIEW, pyRound(span * ZOOM_STEP ** notches));
     if (newSpan >= whole) {
       view = null;
@@ -99,7 +99,7 @@ export function openGraph(app, onClose) {
     let newFirst = pyRound(centre - (centre - first) * newSpan / span);
     newFirst = Math.max(0, Math.min(whole - newSpan, newFirst));
     view = [newFirst, newFirst + newSpan - 1];
-    pinned = view[1] >= frontier();
+    pinned = view[1] >= latest();
   }
   function zoomHeight(notches, y) {
     // As the map zooms: the population under the pointer stays put.
@@ -119,9 +119,9 @@ export function openGraph(app, onClose) {
       const [first, last] = started.view;
       const span = last - first + 1;
       const shift = pyRound((to.x - started.x) * span / Math.max(1, chart.w));
-      const newFirst = Math.max(0, Math.min(frontier() + 1 - span, first - shift));
+      const newFirst = Math.max(0, Math.min(latest() + 1 - span, first - shift));
       view = [newFirst, newFirst + span - 1];
-      pinned = view[1] >= frontier();
+      pinned = view[1] >= latest();
     }
     setFloor(started.floor + (to.y - started.y) / Math.max(1, chart.h) / heightZoom);
   }
@@ -135,9 +135,9 @@ export function openGraph(app, onClose) {
     if (!view) return;
     const [first, last] = window_();
     const span = last - first + 1;
-    const newFirst = Math.max(0, Math.min(frontier() + 1 - span, first + notches * Math.max(1, Math.floor(span / 10))));
+    const newFirst = Math.max(0, Math.min(latest() + 1 - span, first + notches * Math.max(1, Math.floor(span / 10))));
     view = [newFirst, newFirst + span - 1];
-    pinned = view[1] >= frontier();
+    pinned = view[1] >= latest();
   }
 
   function graphView() {
@@ -302,7 +302,7 @@ export function openGraph(app, onClose) {
     ctx.strokeStyle = 'rgb(54,68,62)';
     ctx.strokeRect(timeline.x + 0.5, timeline.y + 0.5, timeline.w - 1, timeline.h - 1);
     let middle = !view ? `TURN ${Math.floor((first + last) / 2)}`
-                       : `TURNS ${first} - ${last}  (ZOOM x${((frontier() + 1) / (last - first + 1)).toFixed(1)})`;
+                       : `TURNS ${first} - ${last}  (ZOOM x${((latest() + 1) / (last - first + 1)).toFixed(1)})`;
     if (heightZoom > 1) middle += `  (HEIGHT x${heightZoom.toFixed(1)})`;
     ctx.fillStyle = 'rgb(149,170,150)';
     ctx.textBaseline = 'middle';
@@ -310,7 +310,7 @@ export function openGraph(app, onClose) {
     ctx.textAlign = 'left'; ctx.fillText(`TURN ${first}`, timeline.x + 8, y);
     ctx.textAlign = 'center'; ctx.fillText(middle, timeline.x + timeline.w / 2, y);
     ctx.textAlign = 'right'; ctx.fillText(`TURN ${last}`, timeline.x + timeline.w - 8, y);
-    for (const [turn, colour] of [[state().turn, 'rgb(245,238,206)'], [scrub, 'rgb(238,183,110)']]) {
+    for (const [turn, colour] of [[state().turn, 'rgb(245,238,206)']]) {
       if (turn === null || turn < first || turn > last) continue;
       const x = xOf(turn);
       ctx.strokeStyle = colour;
@@ -330,7 +330,6 @@ export function openGraph(app, onClose) {
     const s = state();
     let chosen = app.selection.size ? `${app.selection.size} selected` : 'Nothing selected';
     if (sort !== 0 && sorts) chosen = `The living sorted by ${sorts[sort].toLowerCase()}, lowest at the bottom.     ${chosen}`;
-    if (s.turn < s.frontier) chosen = `Rewound to turn ${s.turn} of ${s.frontier}.     ${chosen}`;
     else if (s.ended) chosen = `${s.end_note}     ${chosen}`;
     if (!hovered) return chosen;
     if (!hovered.alive) {
@@ -411,7 +410,6 @@ export function openGraph(app, onClose) {
   canvas.addEventListener('mousemove', event => {
     lastClient = { x: event.clientX, y: event.clientY };
     mouse = point(event);
-    if (scrub !== null) scrub = turnAt(mouse.x);
     if (panning && (panning.moved || Math.max(Math.abs(mouse.x - panning.x), Math.abs(mouse.y - panning.y)) >= DRAG_THRESHOLD)) {
       panning.moved = true;
       drag(panning, mouse);
@@ -419,7 +417,7 @@ export function openGraph(app, onClose) {
     }
     if (!tooltip.hidden) placeTooltip();
     hover();
-    if (press || scrub !== null) draw();
+    if (press) draw();
   });
   canvas.addEventListener('mouseleave', () => {
     mouse = null;
@@ -434,9 +432,6 @@ export function openGraph(app, onClose) {
     if ((event.button === 1 || event.button === 2) && (inside(p, chart) || inside(p, timeline))) {
       event.preventDefault();  // no autoscroll for the middle button
       panning = { x: p.x, y: p.y, button: event.button, view: window_(), floor, moved: false };
-    } else if (event.button === 0 && inside(p, timeline)) {
-      scrub = turnAt(p.x);
-      draw();
     } else if (event.button === 0 && inside(p, chart)) {
       press = { x: p.x, y: p.y, shift: event.shiftKey, ctrl: event.ctrlKey || event.metaKey };
       tooltip.hidden = true;
@@ -444,18 +439,10 @@ export function openGraph(app, onClose) {
   });
   const onUp = async event => {
     if ((event.button === 1 || event.button === 2) && panning) {
-      const ended = panning;
       panning = null;
-      if (ended.button === 2 && !ended.moved) seek(turnAt(ended.x));  // a right-click, not a pan
       return;
     }
     if (event.button !== 0) return;
-    if (scrub !== null) {
-      const turn = turnAt(point(event).x);
-      scrub = null;
-      seek(turn);
-      return;
-    }
     if (!press || !image) return;
     const p = point(event), started = press;
     press = null;
@@ -497,17 +484,6 @@ export function openGraph(app, onClose) {
     } else result = new Set(picked);
     app.selectAll(result);
     redraw();
-  }
-
-  async function seek(turn) {
-    try {
-      const result = await api('/api/control', { action: 'seek', turn });
-      note.textContent = result.note;
-      app.say(result.note);
-      app.refresh();
-    } catch (error) {
-      note.textContent = error.message;
-    }
   }
 
   async function renew() {
@@ -562,7 +538,7 @@ export function openGraph(app, onClose) {
   return {
     update() {
       load();
-      if (scrub === null && !press) draw();
+      if (!press) draw();
     },
     close,
   };

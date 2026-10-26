@@ -26,7 +26,7 @@ using json = nlohmann::json;
 static_assert(std::endian::native == std::endian::little, "world files hold little-endian numbers");
 
 // Rules that say how this computer runs a world rather than how the world unfolds: loading keeps the user's own.
-constexpr std::array<std::string_view, 3> MACHINE_RULES = {"USE_GPU", "HISTORY_TURNS", "HISTORY_MEMORY"};
+constexpr std::array<std::string_view, 1> MACHINE_RULES = {"USE_GPU"};
 constexpr int OLD_WIDTH = 34;  // neurons in each hidden layer of a brain saved without a width
 
 std::string genome_text(Dna dna) {
@@ -655,9 +655,6 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.agents_[index]->glut = agent.at("glut").get<double>();
             world.agents_[index]->guarded = agent.at("guarded").get<bool>();
         }
-        world.history_.clear();
-        world.history_bytes_ = 0;
-        world.record();
         return simulation;
     } catch (const json::exception& error) {
         throw std::runtime_error(std::string("The world file is incomplete (") + error.what() + ").");

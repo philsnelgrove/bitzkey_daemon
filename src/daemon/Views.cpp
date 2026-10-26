@@ -217,8 +217,6 @@ Json state(World& world) {
         {"width", simulation.width()},
         {"height", simulation.height()},
         {"turn", turn},
-        {"frontier", simulation.frontier()},
-        {"earliest", simulation.earliest()},
         {"year", year(turn)},
         {"year_length", YEAR_LENGTH},
         {"cell_space", CELL_SPACE},  // the spaces of a map square, each Bitzkey taking 1 + its size

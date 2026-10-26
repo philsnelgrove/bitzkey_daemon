@@ -59,19 +59,6 @@ bool World::step() {
     return simulation_->turn() != before;
 }
 
-bool World::rewind() {
-    playing_ = false;
-    const bool moved = simulation_->rewind();
-    touch();
-    return moved;
-}
-
-void World::seek(int turn) {
-    playing_ = false;
-    simulation_->seek(turn);
-    touch();
-}
-
 void World::new_world(Simulation::Settings settings, rules::Values rules) {
     rules::apply(rules);  // the advanced rules hold for this world and its restarts
     auto made = std::make_unique<Simulation>(settings);  // may throw, leaving the present world as it is

@@ -930,7 +930,7 @@
 "sought carrion": "मुर्दा मांस खोजा",
 "sought plants": "पौधे खोजे",
 "SOUTHERN WINTER": "दक्षिणी सर्दी",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  रोकें   -/+  गति   LEFT / RIGHT  पीछे / एक कदम   व्हील / Z  ज़ूम   I  अंतर्दृष्टि   B  रिपोर्ट   G  ग्राफ़   E  निर्यात   R  फिर से शुरू   ESC  नई दुनिया",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  रोकें   -/+  गति   RIGHT  एक कदम   व्हील / Z  ज़ूम   I  अंतर्दृष्टि   B  रिपोर्ट   G  ग्राफ़   E  निर्यात   R  फिर से शुरू   ESC  नई दुनिया",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "एक खाने में जगहें; Bitzkey {#} + अपना आकार लेता है, और बिना जगह वाले खाने में न कोई जन्मता, न जाता, न प्रकट होता है",
 "SPAWN AT HOME": "घर पर प्रकट होना",
 "SPAWN SPREAD": "प्रकट होने का फैलाव",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} आयात के लिए बहुत बड़ा है।",
 "{*} must be up to 8 hex digits": "{*} अधिकतम 8 hex अंकों का होना चाहिए",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} आयात के लिए तैयार ({*}; {#} सहेजे मस्तिष्क के साथ, {#} सहेजे स्वभाव के साथ), हर एक {#}-{#} के समूह में प्रकट होगा",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} आयात के लिए तैयार ({*}; {#} सहेजे मस्तिष्क के साथ, {#} सहेजे स्वभाव के साथ), हर एक {#}-{#} के समूह में प्रकट होगा। {#6} में से केवल पहले {#5} उपयोग होंगे"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} आयात के लिए तैयार ({*}; {#} सहेजे मस्तिष्क के साथ, {#} सहेजे स्वभाव के साथ), हर एक {#}-{#} के समूह में प्रकट होगा। {#6} में से केवल पहले {#5} उपयोग होंगे",
+"Search settings": "सेटिंग खोजें",
+"{#} found": "{#} मिले",
+"No settings match \"{*}\".": "\"{*}\" से कोई सेटिंग मेल नहीं खाती।"
 }

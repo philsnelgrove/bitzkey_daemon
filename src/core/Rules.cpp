@@ -38,14 +38,12 @@ std::vector<Rule> make_rules() {
         {"CORPSE_PLANT", "World", "Corpse plant", "chance an animal's body that rots away entirely leaves the seed of a new plant", 0.0, 1.0, 0.05, false, &CORPSE_PLANT},
         {"CELL_SPACE", "World", "Square space", "spaces in a square; a Bitzkey takes 1 + its size, and none is born, moves or spawns into a square without room", 1, 80, 1, true, &CELL_SPACE},
         {"SPAWN_SPREAD", "World", "Spawn spread", "a starting group appears within this many cells of its centre", 0, 4, 1, true, &SPAWN_SPREAD},
-        {"USE_GPU", "World", "Think on the GPU", "C++ only: 1 thinks and learns on every GPU found, in floats, with no rewinding; 0 on the CPU, exactly", 0, 1, 1, true, &USE_GPU},
+        {"USE_GPU", "World", "Think on the GPU", "C++ only: 1 thinks and learns on every GPU found, in floats; 0 on the CPU, exactly", 0, 1, 1, true, &USE_GPU},
         {"DAY_LENGTH", "World", "Day length", "turns in a day; night covers half the map and moves round it once a day", 2, 100, 1, true, &DAY_LENGTH},
         {"SLEEP", "World", "Sleep", "1: an animal rests through its night (the dark if diurnal, the light if nocturnal) unless startled awake; 0: never forced to", 0, 1, 1, true, &SLEEP},
         {"BIOME_GROUPS", "World", "Biome groups", "a world started with any Bitzkeys has this many more groups at home in every biome, each stretch of land or sea in a climate zone; 0: none", 0, 10, 1, true, &BIOME_GROUPS},
         {"BIOME_SIZE", "World", "Biome size", "the fewest squares a stretch of land or sea in a climate zone needs to count as a biome", 1, 1000, 5, true, &BIOME_SIZE},
         {"SPAWN_AT_HOME", "World", "Spawn at home", "1: starting and imported groups appear where their home temperature is usual; 0: anywhere", 0, 1, 1, true, &SPAWN_AT_HOME},
-        {"HISTORY_TURNS", "World", "History turns", "turns of the world kept whole, to rewind the map to; at the top, all", 1, HISTORY_ALL, 10, true, &HISTORY_TURNS},
-        {"HISTORY_MEMORY", "World", "History memory", "most memory, in GB, the rewind history may take", 0.1, 64.0, 0.1, false, &HISTORY_MEMORY},
         {"GRAPH_TURNS", "World", "Graph turns", "turns of the past the graph and death report cover; deaths and genomes older than that are forgotten", 1000, 2000000, 1000, true, &GRAPH_TURNS},
         {"LIFESPAN_YEARS.0", "Bodies", "Lifespan, shortest", "years of life expected for the smallest bodies, plant or animal", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[0]},
         {"LIFESPAN_YEARS.1", "Bodies", "Lifespan, middle", "years of life expected for middling bodies", 0.5, 30.0, 0.5, false, &LIFESPAN_YEARS[1]},
@@ -322,8 +320,6 @@ std::string locked(std::string_view key, bool running) {
 }
 
 std::string_view warning(std::string_view key) {
-    if (key == "HISTORY_TURNS") return "MEMORY: each turn kept holds the whole world, about 200 KB a brain (some 20 MB a turn with 100 animals), up to the history memory limit";
-    if (key == "HISTORY_MEMORY") return "MEMORY: keep this well below your computer's free memory, or Bitzkey will slow to a crawl or crash";
     return {};
 }
 
@@ -384,7 +380,6 @@ Values changed(const Values& values) {
 }
 
 std::string shown(const Rule& rule, double value) {
-    if (rule.key == "HISTORY_TURNS" && value >= rule.maximum) return "ALL";  // its top keeps every turn
     if (rule.integer) return std::to_string(static_cast<long long>(value));
     char text[32];
     std::snprintf(text, sizeof text, "%.6g", value);

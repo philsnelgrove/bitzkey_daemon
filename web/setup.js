@@ -3,6 +3,7 @@
 // it replaces the daemon's world for everyone viewing it.
 
 import { api, element, dialog, remembered, remember, upper, plural } from './common.js';
+import { tr } from './i18n.js';
 import { bitzkeyCanvas, dotRadius, SPECIES, TEMPERATURES, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS } from './draw.js';
 import { details, look } from './inspector.js';
 import { saveWorld, loadWorld } from './worlds.js';
@@ -433,12 +434,25 @@ export async function openDesigner({ start = null, subtitle = 'DESIGN A BITZKEY'
 // `onClose` is told when it closes.
 // The advanced rules: every rule, by group, from `changed` (the rules changed from the defaults). `onApply` is given
 // every value and answers with a problem, or null once it has applied them. `running`: the rules of the world running
-// on the map, rather than of the next new world, so the rules a running world can't change are greyed out.
+// on the map, rather than of the next new world, so the rules a running world can't change are greyed out. A search
+// box at the top narrows the list as it is typed into (see ruleMatches).
+
+// Whether a rule answers a search: every word of it in the rule's name, description, group or key, in English or in
+// the language shown, whatever their case. An empty search finds every rule.
+export function ruleMatches(rule, search) {
+  const seen = [rule.label, rule.hint, rule.group].flatMap(text => [text, tr(text)]).concat(rule.key).join('\n').toLowerCase();
+  return search.toLowerCase().split(/\s+/).filter(Boolean).every(word => seen.includes(word));
+}
+
 export function openRules({ ruleList, changed, running = false, onApply, onClose = () => {} }) {
   const values = Object.fromEntries(ruleList.map(rule => [rule.key, rule.key in changed ? changed[rule.key] : rule.default]));
   const lockOf = rule => rule.locked || (running ? rule.world_locked : '');  // why it can't be changed here, if it can't
   const ruleInputs = new Map();
+  const ruleRows = new Map(), headings = new Map();  // each rule's row, and each group's heading, to hide as searched
   let focused = ruleList[0]?.key;
+  const search = element('input', { class: 'rule-search', type: 'search', spellcheck: false, placeholder: 'Search settings' });
+  const found = element('span', { class: 'rule-found' });
+  const nothing = element('div', { class: 'rule-nothing', hidden: true });
   const lead = element('div', { class: 'lead' });
   const advancedNote = element('div', { class: 'screen-note' });
   const list = element('div', { class: 'scroll', style: { flex: '1' } });
@@ -452,6 +466,20 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
     for (const rule of ruleList) ruleInputs.get(rule.key).classList.toggle('changed', values[rule.key] !== rule.default);
     const chosen = ruleList.find(rule => rule.key === focused);
     advancedNote.textContent = chosen?.warning || 'UP/DOWN  choose   +/- adjust (SHIFT x10)   ENTER  apply   ESC  cancel';
+  };
+  const find = () => {  // the rules answering the search, as it is typed: the rest hidden, and groups with none of them
+    const wanted = search.value.trim();
+    let count = 0;
+    const groups = new Set();
+    for (const rule of ruleList) {
+      const shows = ruleMatches(rule, wanted);
+      ruleRows.get(rule.key).hidden = !shows;
+      if (shows) { count += 1; groups.add(rule.group); }
+    }
+    for (const [name, heading] of headings) heading.hidden = !groups.has(name);
+    found.textContent = wanted ? `${count} found` : '';
+    nothing.hidden = count > 0;
+    nothing.textContent = `No settings match "${wanted}".`;
     advancedNote.classList.toggle('warn', Boolean(chosen?.warning));
   };
   const clamp = (rule, value) => Math.max(rule.minimum, Math.min(rule.maximum, rule.integer ? Math.round(value) : value));
@@ -466,7 +494,9 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
   for (const rule of ruleList) {
     if (rule.group !== group) {
       group = rule.group;
-      list.append(element('div', { class: 'group-heading' }, upper(group)));
+      const heading = element('div', { class: 'group-heading' }, upper(group));
+      headings.set(group, heading);
+      list.append(heading);
     }
     const input = element('input', { inputmode: 'decimal', disabled: Boolean(lockOf(rule)) });
     input.value = shown(rule, values[rule.key]);
@@ -477,7 +507,7 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
     });
     ruleInputs.set(rule.key, input);
     const warned = !lockOf(rule) && rule.warning;
-    list.append(numberRow({
+    const row = numberRow({
       label: rule.label, input, locked: Boolean(lockOf(rule)),
       hint: lockOf(rule) || (warned ? `WARNING  ${rule.hint}` : rule.hint),
       hintClass: lockOf(rule) ? 'lock' : warned ? 'warn' : '',
@@ -487,8 +517,12 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
         input.value = shown(rule, values[rule.key]);
         refresh();
       },
-    }));
+    });
+    ruleRows.set(rule.key, row);
+    list.append(row);
   }
+  list.append(nothing);
+  search.addEventListener('input', find);
   const advancedShade = screen('advanced', panel => {
     panel.append(
       element('div', { class: 'screen-title' }, element('b', {}, 'BITZKEY'), element('span', {}, running ? 'THIS WORLD  /  ADVANCED RULES' : 'NEW WORLD  /  ADVANCED RULES')),
@@ -508,7 +542,9 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
           refresh();
         } }, 'RESET ALL')),
       element('div', { class: 'lead natural-law' }, "These are the settings for what might be called 'natural law'.  They have been carefully balanced to produce a world with fair chances for all.  Messing with any of them can produce unpredictable results.  Have fun!"),
-      lead, list,
+      lead,
+      element('div', { class: 'rule-search-box' }, search, found),
+      list,
       element('div', { class: 'screen-foot' },
         element('button', { onclick: closeAdvanced }, 'CANCEL'),
         element('button', { class: 'primary', onclick: applyAdvanced }, 'APPLY')),
@@ -527,11 +563,14 @@ export function openRules({ ruleList, changed, running = false, onApply, onClose
   }
   function onAdvancedKey(event) {
     if (!onTop(advancedShade)) return;
-    if (event.key === 'Escape') { event.preventDefault(); closeAdvanced(); }
+    if (event.key === 'Escape' && search.value) { event.preventDefault(); search.value = ''; find(); search.focus(); }  // cleared first
+    else if (event.key === 'Escape') { event.preventDefault(); closeAdvanced(); }
+    else if (event.key === 'f' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); search.focus(); search.select(); }
     else if (event.key === 'Enter') { event.preventDefault(); applyAdvanced(); }
     else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && event.target instanceof HTMLInputElement) {
       event.preventDefault();
-      const all = [...ruleInputs.values()].filter(input => !input.disabled);
+      const all = [...ruleInputs.entries()].filter(([key, input]) => !input.disabled && !ruleRows.get(key).hidden).map(([, input]) => input);
+      if (!all.length) return;
       const next = all[(all.indexOf(event.target) + (event.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length];
       next.focus();
       next.select();

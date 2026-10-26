@@ -930,7 +930,7 @@
 "sought carrion": "buscaba carroña",
 "sought plants": "buscaba plantas",
 "SOUTHERN WINTER": "Invierno en el sur",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pausa   -/+  velocidad   LEFT / RIGHT  retroceder / avanzar   RUEDA / Z  zoom   I  análisis   B  informe   G  gráfico   E  exportar   R  reiniciar   ESC  mundo nuevo",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pausa   -/+  velocidad   RIGHT  avanzar   RUEDA / Z  zoom   I  análisis   B  informe   G  gráfico   E  exportar   R  reiniciar   ESC  mundo nuevo",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "huecos en una casilla; un Bitzkey ocupa {#} + su tamaño, y ninguno nace, se mueve ni aparece en una casilla sin sitio",
 "SPAWN AT HOME": "Aparecer en su hábitat",
 "SPAWN SPREAD": "Dispersión al aparecer",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} es demasiado grande para importarlo.",
 "{*} must be up to 8 hex digits": "{*} debe tener como máximo 8 dígitos hexadecimales",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} listo(s) para importar ({*}; {#} con cerebro guardado, {#} con temperamento guardado), cada uno aparece en un grupo de {#}-{#}",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} listo(s) para importar ({*}; {#} con cerebro guardado, {#} con temperamento guardado), cada uno aparece en un grupo de {#}-{#}. Solo se usan los primeros {#} de {#}"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} listo(s) para importar ({*}; {#} con cerebro guardado, {#} con temperamento guardado), cada uno aparece en un grupo de {#}-{#}. Solo se usan los primeros {#} de {#}",
+"Search settings": "Buscar ajustes",
+"{#} found": "{#} encontrados",
+"No settings match \"{*}\".": "Ningún ajuste coincide con «{*}»."
 }

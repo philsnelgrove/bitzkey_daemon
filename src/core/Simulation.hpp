@@ -90,18 +90,9 @@ inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual tempera
 // first the surface's own (terrestrial on land, aquatic at sea) and the rest any that may live there.
 inline int BIOME_GROUPS = 2;
 inline int BIOME_SIZE = 25;
-// The history is kept in memory: the world at each of the latest HISTORY_TURNS turns, whole, so the map
-// can be rewound to any of them at once, with nothing to replay. When a crowded world's brains make them
-// large, fewer are kept, so they fit HISTORY_MEMORY gigabytes; the newest turn is always kept. Older turns live on
-// only in the colour graph.
-inline int HISTORY_TURNS = 100;
-// 1: every brain lives on the GPUs, thinking and learning there in batches, in floats; with brains
-// that change only there, the history keeps only the present. 0: on the CPU, exactly as the Python
-// version. Read when a world is made.
+// 1: every brain lives on the GPUs, thinking and learning there in batches, in floats. 0: on the CPU, exactly as
+// the Python version. Read when a world is made.
 inline int USE_GPU = 0;
-constexpr int HISTORY_ALL = 5000;  // at this many history turns or more, every turn is kept, so far as the memory allows
-inline double HISTORY_MEMORY = 1.0;  // GB, near enough
-constexpr std::uintmax_t AGENT_BYTES = 1000;  // what a Bitzkey takes in the history, besides its brain, near enough
 // Earlier versions kept the history on disk, in folders among the temporary files.
 constexpr std::string_view HISTORY_PREFIX = "bitzkey-history-";  // their names start so
 constexpr int STALE_HISTORY_HOURS = 24;  // one left this long by a run that never closed it is cleared away
@@ -707,7 +698,6 @@ public:
     int width() const { return width_; }
     int height() const { return height_; }
     int turn() const { return turn_; }
-    int frontier() const { return frontier_; }
     int deaths() const { return deaths_; }
     // Every death so far, by species and then cause.
     using DeathCauses = std::array<std::map<std::string, int, std::less<>>, 4>;
@@ -783,18 +773,12 @@ public:
     const std::vector<int>& grass_rows() const { return grass_rows_; }  // the rows where grass grows at all
     void set_grass_regrowth(double tufts) { grass_regrowth_ = tufts; }
 
-    // Step one turn: on through the recorded run, or simulating a new turn, unless it has ended.
+    // Step one turn, simulating it, unless the world has ended.
     void advance();
-    // Called after each new turn is simulated, not as the history is replayed: to watch the world as it goes.
+    // Called after each new turn is simulated: to watch the world as it goes.
     std::function<void(const Simulation&)> on_turn;
-    // Move the world to any turn the history keeps, from the earliest to the latest simulated, by
-    // bringing it back from its file.
-    void seek(int target);
-    bool rewind();
-    int earliest() const { return history_.empty() ? turn_ : history_.front().turn; }  // the oldest turn kept
-    void close();  // let the history go: the world can't be rewound after
     EndReason end_reason() const;
-    bool ended() const { return turn_ == frontier_ && end_reason() != EndReason::None; }
+    bool ended() const { return end_reason() != EndReason::None; }
 
     // The rest is public so tests can drive single steps, as the Python tests do.
     void take_turn();
@@ -867,7 +851,7 @@ public:
     bool on_gpu() const { return gpu_ != nullptr; }
     // Milliseconds spent on each part of the turns so far, for finding where the time goes.
     struct Timings {
-        double upkeep = 0, sense = 0, think = 0, learn = 0, choose = 0, act = 0, after = 0, record = 0;
+        double upkeep = 0, sense = 0, think = 0, learn = 0, choose = 0, act = 0, after = 0;
         // Within acting: each action's share, how often it was taken, and the lessons of what herds saw.
         std::array<double, ACTION_COUNT> actions{};
         std::array<long long, ACTION_COUNT> taken{};
@@ -876,10 +860,10 @@ public:
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do
     // The GPUs failed (out of memory, most likely): every brain comes back from them, as far as it still can, and the
-    // world thinks on the CPU from here on, rather than stop. Its rewind history starts again with the next turn.
+    // world thinks on the CPU from here on, rather than stop.
     void leave_gpu(const std::exception& error);
     // Think from here on with `engine`, or on the CPU without one: every living brain is brought back from the engine
-    // it is on, as it now is, and put on the new one. Its rewind history starts again with the next turn.
+    // it is on, as it now is, and put on the new one.
     void use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::string status);
     // The brain whose handle on the engine this is, as it was last brought back from it; none if no living brain's.
     const Brain* engine_brain(int handle) const;
@@ -922,8 +906,6 @@ public:
     // bite or not: it eats UPROOT_MEALS times a bite's meal, and the plant loses UPROOT_BITE health,
     // often all it has. An armed plant still strikes back.
     void uproot(Bitzkey& agent, Bitzkey& plant);
-    std::vector<int> history_turns() const;  // the turns the history keeps
-    std::uintmax_t history_bytes() const { return history_bytes_; }  // the memory they take, near enough
     // The climate zones from top to bottom, each the rows it covers outside the winters.
     std::vector<std::vector<int>> zones() const;
     void alert(Bitzkey& agent, const Bitzkey& about);  // alert its herd to a hunter, or a fresh kill
@@ -1040,19 +1022,6 @@ public:
 
 private:
     friend struct WorldFile;  // which saves the world whole, and loads it back
-    struct Snapshot {  // the world at a turn, whole
-        int turn = 0;
-        int deaths = 0;
-        int next_identifier = 0;
-        std::vector<Bitzkey> agents;  // their brains shared until they next learn
-        std::vector<int> grass;
-        std::vector<Seed> seeds;
-        PyRandom::State random;
-        Insights::State insights;
-        DeathCauses death_causes;
-        std::uintmax_t bytes = 0;  // the memory it takes, near enough
-    };
-
     std::vector<int> group_sizes(int population);
     // Lay out the sea over `ocean` percent of the map, from its own stream of `seed`: smooth noise, the lowest of it sea.
     void make_sea(double ocean, std::uint64_t seed);
@@ -1073,12 +1042,10 @@ private:
                      const std::optional<PartialMind>& mind = std::nullopt, bool native = false,
                      const std::vector<int>& rows = {}, const std::vector<Cell>* biome = nullptr);
     void perform(Bitzkey& agent, int action, Situation& situation);  // the action itself
-    void record();
-    void restore(const Snapshot& held);  // as a copy, so the history's stays as it was
     void take_census();
     // Forget the deaths before the graph's start, and the genomes of the Bitzkeys neither on the graph nor in the world.
     void forget_before(int start);
-    // Forget a death, unless a branch taken after rewinding has since recorded another under its identifier.
+    // Forget a death, unless another has since been recorded under its identifier.
     void forget_death(int turn, int identifier);
     // The deaths' order, oldest first, from the records alone, as a loaded world has them.
     void order_deaths();
@@ -1181,16 +1148,8 @@ private:
     void sync(std::span<Bitzkey* const> agents);  // these brains back from the GPUs, each once a turn
     // Put a brain on the GPUs, unless they have failed.
     void attach(Bitzkey& agent);
-    std::deque<Snapshot> history_;      // every turn kept, oldest first
-    // Brains a turn let go of held nothing else, kept to copy brains into rather than make new ones: in a crowded
-    // world every brain that learns is copied from the one the history keeps, hundreds of megabytes a turn, and
-    // making and freeing them is slower than all the learning. The lock guards them while brains learn at once.
-    std::vector<std::shared_ptr<Brain>> spare_brains_;
-    std::unique_ptr<std::mutex> spare_lock_ = std::make_unique<std::mutex>();  // held apart, so the world can still move
-    // A brain of its own to learn on: its own if nothing else holds it, else a copy, into a spare brain if there is one.
+    // A brain of its own to learn on: its own if nothing else holds it (a group deployed together shares one), else a copy.
     Brain& learning_brain(Bitzkey& agent);
-    std::uintmax_t history_bytes_ = 0;  // the memory they take, near enough
-    int frontier_ = 0;
 };
 
 }  // namespace bitzkey

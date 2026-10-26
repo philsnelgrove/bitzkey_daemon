@@ -424,8 +424,6 @@ Json Probe::settings(Simulation& world) const {
             {"population_cap", world.population_cap() ? Json(*world.population_cap()) : Json(nullptr)},
             {"mind_mutation", world.mind_mutation()},
             {"body_mutation", world.body_mutation()},
-            {"earliest", world.earliest()},
-            {"frontier", world.frontier()},
             {"ended", world.ended()},
             {"deaths", world.deaths()},
             {"next_identifier", world.next_identifier()},
@@ -433,8 +431,7 @@ Json Probe::settings(Simulation& world) const {
             {"gpu_status", world.gpu_status()},
             {"grass_regrowth", world.grass_regrowth()},
             {"ocean", world.ocean()},
-            {"sea_squares", std::count(world.sea_map().begin(), world.sea_map().end(), 1)},
-            {"history_bytes", world.history_bytes()}};
+            {"sea_squares", std::count(world.sea_map().begin(), world.sea_map().end(), 1)}};
 }
 
 Json Probe::climate(Simulation& world) const {
@@ -615,7 +612,7 @@ Json Probe::timings(Simulation& world) const {
     }
     return {{"turn", world.turn()},
             {"ms_total", {{"upkeep", took.upkeep}, {"sense", took.sense}, {"think", took.think}, {"learn", took.learn},
-                          {"choose", took.choose}, {"act", took.act}, {"after", took.after}, {"record", took.record}}},
+                          {"choose", took.choose}, {"act", took.act}, {"after", took.after}}},
             {"acting", actions}};
 }
 

@@ -67,8 +67,6 @@ public:
     void play(bool on);
     void set_speed(int speed);
     bool step();    // a turn on, paused
-    bool rewind();  // a turn back, paused
-    void seek(int turn);
     // A new world from these settings and advanced rules, replacing the present one.
     void new_world(Simulation::Settings settings, rules::Values rules);
     void restart();  // the same settings again

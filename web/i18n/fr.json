@@ -930,7 +930,7 @@
 "sought carrion": "cherchait une charogne",
 "sought plants": "cherchait des plantes",
 "SOUTHERN WINTER": "Hiver au sud",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pause   -/+  vitesse   LEFT / RIGHT  reculer / avancer   MOLETTE / Z  zoom   I  analyses   B  rapport   G  graphique   E  export   R  recommencer   ESC  nouveau monde",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  pause   -/+  vitesse   RIGHT  avancer   MOLETTE / Z  zoom   I  analyses   B  rapport   G  graphique   E  export   R  recommencer   ESC  nouveau monde",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "places dans une case ; un Bitzkey en prend {#} + sa taille, et aucun ne naît, ne se déplace ni n'apparaît dans une case sans place",
 "SPAWN AT HOME": "Apparition chez soi",
 "SPAWN SPREAD": "Dispersion à l'apparition",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} est trop volumineux pour être importé.",
 "{*} must be up to 8 hex digits": "{*} doit comporter au plus 8 chiffres hexadécimaux",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} prêt(s) à importer ({*} ; {#} avec cerveau enregistré, {#} avec tempérament enregistré), chacun apparaissant en groupe de {#}-{#}",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} prêt(s) à importer ({*} ; {#} avec cerveau enregistré, {#} avec tempérament enregistré), chacun apparaissant en groupe de {#}-{#}. Seuls les {#} premiers sur {#} sont utilisés"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} prêt(s) à importer ({*} ; {#} avec cerveau enregistré, {#} avec tempérament enregistré), chacun apparaissant en groupe de {#}-{#}. Seuls les {#} premiers sur {#} sont utilisés",
+"Search settings": "Rechercher des réglages",
+"{#} found": "{#} trouvé(s)",
+"No settings match \"{*}\".": "Aucun réglage ne correspond à « {*} »."
 }

@@ -28,7 +28,7 @@ public:
     // doubles and every other snapshot goes. Snapshots older than GRAPH_TURNS go; returns whether
     // any did.
     bool record(int turn, std::vector<int> identifiers);
-    // Drop snapshots of turns from `turn` on: a future abandoned by rewinding.
+    // Drop snapshots of turns from `turn` on: that turn again, as it now is.
     void forget_from(int turn);
     // Who was alive at the latest snapshot on or before `turn`.
     std::span<const int> at(int turn) const;

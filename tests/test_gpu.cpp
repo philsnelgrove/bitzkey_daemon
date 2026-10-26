@@ -109,7 +109,6 @@ TEST_CASE("a world thinks on the GPUs, keeps only the present, and brings brains
     USE_GPU = use;
     REQUIRE(simulation.on_gpu());
     for (int turn = 0; turn < 20; ++turn) simulation.advance();
-    CHECK(simulation.history_turns().size() == 1);  // with brains only on the GPUs, no rewinding
     Bitzkey* thinker = nullptr;
     for (Bitzkey* agent : simulation.living()) {
         if (agent->brain) thinker = agent;
@@ -141,6 +140,4 @@ TEST_CASE("a world whose GPU fails thinks on the CPU from there, rather than sto
     CHECK(world.gpu_status() == "thinking on the CPU: the GPU failed (Vulkan: allocating GPU memory failed (-2))");
     for (int turn = 0; turn < 10; ++turn) world.advance();
     CHECK(world.turn() == 20);
-    CHECK(world.rewind());  // it keeps a history again
-    CHECK(world.turn() == 19);
 }

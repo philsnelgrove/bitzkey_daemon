@@ -20,7 +20,7 @@ TEST_CASE("a world loaded carries on exactly as it would have") {
     const std::string data = WorldFile::bytes(world);
     const auto loaded = WorldFile::from_bytes(data);
     CHECK(WorldFile::bytes(*loaded) == data);  // every Bitzkey, brain, seed and tuft as it was
-    CHECK((loaded->turn() == world.turn() && loaded->frontier() == world.turn() && loaded->earliest() == world.turn()));
+    CHECK(loaded->turn() == world.turn());
     for (int turn = 0; turn < 30; ++turn) {
         world.advance();
         loaded->advance();
@@ -29,14 +29,14 @@ TEST_CASE("a world loaded carries on exactly as it would have") {
 }
 
 TEST_CASE("a world brings its rules, but not how this computer runs it") {
-    rules::Values values = {{"CORPSE_TURNS", 60}, {"HISTORY_TURNS", 50}};
+    rules::Values values = {{"CORPSE_TURNS", 60}, {"USE_GPU", 0}};
     rules::apply(values);
     Simulation world(Simulation::Settings{20, 20, 10, 2});
     const std::string data = WorldFile::bytes(world);
-    rules::apply({{"HISTORY_TURNS", 80}});
+    rules::apply({{"USE_GPU", 1}});
     WorldFile::from_bytes(data);
     CHECK(rules::current().at("CORPSE_TURNS") == 60);
-    CHECK(rules::current().at("HISTORY_TURNS") == 80);
+    CHECK(rules::current().at("USE_GPU") == 1);
     rules::apply({});
 }
 

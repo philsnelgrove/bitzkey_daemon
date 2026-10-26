@@ -129,9 +129,6 @@ TEST_CASE("the world turns on its own while playing, and waits while paused") {
         auto lock = world.lock();
         CHECK(world.simulation().turn() > 1);
         world.play(false);
-        const int turn = world.simulation().turn();
-        world.seek(1);
-        CHECK(world.simulation().turn() <= turn);
     }
     std::filesystem::remove_all(folder);
 }
@@ -190,7 +187,7 @@ TEST_CASE("the colour graph is drawn bar by bar, and finds who lies under a poin
         for (int turn = 0; turn < 20; ++turn) world.step();
         Simulation& simulation = world.simulation();
         Graph graph;
-        GraphView view{0, simulation.frontier(), 10, 100, false, 0};
+        GraphView view{0, simulation.turn(), 10, 100, false, 0};
         const std::string data = graph.image(simulation, view, {});
         CHECK(data.substr(0, 4) == "BZG1");
         const auto bars = read<std::uint32_t>(data, 4);

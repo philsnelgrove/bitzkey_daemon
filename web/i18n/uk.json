@@ -930,7 +930,7 @@
 "sought carrion": "шукав падло",
 "sought plants": "шукав рослини",
 "SOUTHERN WINTER": "Зима на півдні",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  пауза   -/+  швидкість   LEFT / RIGHT  назад / крок   КОЛІЩАТКО / Z  масштаб   I  аналітика   B  звіт   G  графік   E  експорт   R  перезапуск   ESC  новий світ",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  пауза   -/+  швидкість   RIGHT  крок   КОЛІЩАТКО / Z  масштаб   I  аналітика   B  звіт   G  графік   E  експорт   R  перезапуск   ESC  новий світ",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "місця в клітинці; Bitzkey займає {#} + свій розмір, і ніхто не народжується, не заходить і не з'являється в клітинці без місця",
 "SPAWN AT HOME": "Поява вдома",
 "SPAWN SPREAD": "Розкид появи",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} завеликий для імпорту.",
 "{*} must be up to 8 hex digits": "{*} має містити не більше 8 шістнадцяткових цифр",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} готові до імпорту ({*}; зі збереженим мозком: {#}, зі збереженим темпераментом: {#}), кожен з'являється групою {#}-{#}",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} готові до імпорту ({*}; зі збереженим мозком: {#}, зі збереженим темпераментом: {#}), кожен з'являється групою {#}-{#}. Використовуються лише перші {#} з {#}"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} готові до імпорту ({*}; зі збереженим мозком: {#}, зі збереженим темпераментом: {#}), кожен з'являється групою {#}-{#}. Використовуються лише перші {#} з {#}",
+"Search settings": "Пошук налаштувань",
+"{#} found": "знайдено: {#}",
+"No settings match \"{*}\".": "Жодне налаштування не відповідає «{*}»."
 }

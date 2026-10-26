@@ -930,7 +930,7 @@
 "sought carrion": "חיפש נבלה",
 "sought plants": "חיפש צמחים",
 "SOUTHERN WINTER": "חורף בדרום",
-"SPACE  pause   -/+  speed   LEFT / RIGHT  rewind / step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  השהיה   -/+  מהירות   LEFT / RIGHT  אחורה / צעד   גלגלת / Z  זום   I  תובנות   B  דוח   G  גרף   E  ייצוא   R  הפעלה מחדש   ESC  עולם חדש",
+"SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   G  graph   E  export   R  restart   ESC  new world": "SPACE  השהיה   -/+  מהירות   RIGHT  צעד   גלגלת / Z  זום   I  תובנות   B  דוח   G  גרף   E  ייצוא   R  הפעלה מחדש   ESC  עולם חדש",
 "spaces in a square; a Bitzkey takes {#} + its size, and none is born, moves or spawns into a square without room": "מקומות במשבצת; Bitzkey תופס {#} + גודלו, ואף אחד לא נולד, נע או מופיע במשבצת ללא מקום",
 "SPAWN AT HOME": "הופעה בבית",
 "SPAWN SPREAD": "פיזור הופעה",
@@ -1181,5 +1181,8 @@
 "{*} is too large to import.": "{*} גדול מדי לייבוא.",
 "{*} must be up to 8 hex digits": "{*} חייב להיות עד 8 ספרות hex",
 "{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}": "{*} מוכנים לייבוא ({*}; {#} עם מוחות שמורים, {#} עם מזג שמור), כל אחד מופיע כקבוצה של {#}-{#}",
-"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} מוכנים לייבוא ({*}; {#} עם מוחות שמורים, {#} עם מזג שמור), כל אחד מופיע כקבוצה של {#}-{#}. רק {#} הראשונים מתוך {#} בשימוש"
+"{*} ready to import ({*}; {#} with saved brains, {#} with saved temperaments), each spawning as a group of {#}-{#}. Only the first {#} of {#} are used": "{*} מוכנים לייבוא ({*}; {#} עם מוחות שמורים, {#} עם מזג שמור), כל אחד מופיע כקבוצה של {#}-{#}. רק {#} הראשונים מתוך {#} בשימוש",
+"Search settings": "חיפוש הגדרות",
+"{#} found": "נמצאו {#}",
+"No settings match \"{*}\".": "אין הגדרות התואמות ל-\"{*}\"."
 }

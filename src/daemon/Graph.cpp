@@ -76,7 +76,7 @@ void Graph::build(const Simulation& simulation, const GraphView& view) {
     // present shows it exactly. Stacked by species, plants at the bottom; within each, by the sort's
     // trait if there is one, then similar colours together. A trait sorts only the living, the dead
     // being remembered by their colour alone, beneath them.
-    const std::vector<long long> key = {simulation.turn(), simulation.frontier(), static_cast<long long>(simulation.census().snapshots().size()),
+    const std::vector<long long> key = {simulation.turn(), static_cast<long long>(simulation.census().snapshots().size()),
                                         static_cast<long long>(simulation.agents().size()), simulation.deaths(), simulation.next_identifier(),
                                         view.part, view.sort, view.first, view.last, view.bars,
                                         static_cast<long long>(reinterpret_cast<std::uintptr_t>(&simulation))};

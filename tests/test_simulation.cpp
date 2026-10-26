@@ -33,7 +33,7 @@ Dna flipped(Dna dna, std::uint64_t bits, std::uint32_t social = 0) { return {dna
 
 }  // namespace
 
-TEST_CASE("a seeded world replays exactly, and seeking repeats the recorded run") {
+TEST_CASE("a seeded world replays exactly") {
     Simulation first(Simulation::Settings{40, 40, 60, 11});
     Simulation second(Simulation::Settings{40, 40, 60, 11});
     for (int turn = 0; turn < 40; ++turn) {
@@ -45,17 +45,6 @@ TEST_CASE("a seeded world replays exactly, and seeking repeats the recorded run"
         CHECK(first.agents()[index]->hunger == second.agents()[index]->hunger);
         CHECK(first.agents()[index]->x == second.agents()[index]->x);
     }
-    std::vector<double> hunger_at_25;
-    first.seek(25);
-    for (const auto& agent : first.agents()) hunger_at_25.push_back(agent->hunger);
-    first.seek(40);
-    first.seek(25);
-    std::vector<double> again;
-    for (const auto& agent : first.agents()) again.push_back(agent->hunger);
-    CHECK(hunger_at_25 == again);
-    first.seek(40);
-    CHECK(first.agents().size() == second.agents().size());
-    CHECK(first.agents().back()->hunger == second.agents().back()->hunger);
 }
 
 TEST_CASE("random populations spawn in groups of three to five sharing a genome") {
@@ -437,16 +426,8 @@ TEST_CASE("deaths are counted by species and cause, and rewound") {
         counted += std::stoi(line->substr(line->find_last_of(' ') + 1));
     }
     CHECK(counted == killings);
-    const auto later = world_now.death_causes();
-    world_now.seek(world_now.turn() - 20);
     CHECK(total() == world_now.deaths());
-    while (world_now.turn() < world_now.frontier()) world_now.advance();
-    CHECK(world_now.death_causes() == later);  // replayed, not counted twice
     CHECK(static_cast<int>(world_now.deaths_so_far().size()) == world_now.deaths());
-    world_now.seek(world_now.turn() - 20);
-    CHECK(static_cast<int>(world_now.deaths_so_far().size()) == world_now.deaths());  // the report as it was then
-    world_now.deploy({}, 5, 5);  // a rewound world changed lets its future go, and the deaths in it
-    CHECK(world_now.deaths_so_far().size() == static_cast<std::size_t>(world_now.deaths()));
 }
 
 TEST_CASE("each death records its cause, its killer and what the killer was doing") {
@@ -1056,81 +1037,6 @@ TEST_CASE("a starving grazer with food scarce may uproot a plant beside it") {
     CHECK_FALSE(offered(simulation.sense(omnivore), Uproot));  // grazers only
 }
 
-TEST_CASE("the latest turns are kept in memory and reached at once exactly") {
-    const double saved = CLIMATE_DAMAGE;
-    CLIMATE_DAMAGE = 0;  // a world that lasts
-    Simulation simulation(Simulation::Settings{20, 20, 30, 4});
-    const auto state = [&simulation] {
-        std::string text;
-        for (const auto& agent : simulation.agents()) {
-            char line[160];
-            std::snprintf(line, sizeof line, "%d %d %d %.17g %.17g %s %zu|", agent->identifier, agent->x, agent->y, agent->hunger,
-                          agent->health, std::string(agent->last_action).c_str(), agent->trail.size());
-            text += line;
-            if (agent->brain) {
-                Senses senses{};
-                senses.fill(0.4);
-                char value[32];
-                std::snprintf(value, sizeof value, "%.17g|", agent->brain->values(senses)[3]);
-                text += value;
-            }
-        }
-        return text + std::to_string(simulation.grass_tufts());
-    };
-    std::vector<std::string> recorded = {state()};
-    for (int turn = 1; turn <= 60; ++turn) {
-        simulation.advance();
-        recorded.push_back(state());
-    }
-    std::vector<int> every(61);
-    std::iota(every.begin(), every.end(), 0);
-    CHECK(simulation.history_turns() == every);
-    for (const int target : {37, 3, 0, 59, 60, 17, 18, 60}) {  // every one at once, with no replaying
-        simulation.seek(target);
-        CHECK(simulation.turn() == target);
-        CHECK(state() == recorded[static_cast<std::size_t>(target)]);
-    }
-    simulation.seek(57);
-    simulation.advance();  // stepping on through the recorded run brings back each turn
-    CHECK(state() == recorded[58]);
-    simulation.seek(60);
-    simulation.advance();  // and from the latest, the world carries on
-    CHECK(simulation.frontier() == 61);
-    simulation.close();
-    CHECK(simulation.history_turns().empty());
-    CLIMATE_DAMAGE = saved;
-}
-
-TEST_CASE("the history keeps only the latest turns and fits its memory") {
-    const double saved = CLIMATE_DAMAGE;
-    const int turns = HISTORY_TURNS;
-    const double memory = HISTORY_MEMORY;
-    CLIMATE_DAMAGE = 0;  // a world that lasts
-    HISTORY_TURNS = 10;
-    Simulation simulation(Simulation::Settings{20, 20, 30, 4});
-    for (int turn = 0; turn < 40; ++turn) simulation.advance();
-    std::vector<int> latest(10);
-    std::iota(latest.begin(), latest.end(), 31);
-    CHECK(simulation.history_turns() == latest);
-    simulation.seek(0);  // as far back as it reaches
-    CHECK(simulation.turn() == 31);
-    CHECK_FALSE(simulation.rewind());
-    simulation.seek(40);
-    HISTORY_TURNS = HISTORY_ALL;  // "all": every turn from here on
-    for (int turn = 0; turn < 20; ++turn) simulation.advance();
-    CHECK(simulation.history_turns().size() == 30);
-    simulation.seek(60);
-    HISTORY_MEMORY = 1e-9;  // far too little: only the newest is kept
-    simulation.advance();
-    CHECK(simulation.history_turns() == std::vector<int>{61});
-    std::uintmax_t brains = 0;
-    for (const auto& agent : simulation.agents()) brains += AGENT_BYTES + agent->brain_bytes();
-    CHECK(simulation.history_bytes() == brains);
-    HISTORY_TURNS = turns;
-    HISTORY_MEMORY = memory;
-    CLIMATE_DAMAGE = saved;
-}
-
 TEST_CASE("no body is left without a recorded death, even when moving, striking and seeding starve") {
     const double go = GO_EFFORT, strike = STRIKE_EFFORT;
     const double seed_cost = SEED_COST, seed_hunger = SEED_HUNGER;
@@ -1238,13 +1144,8 @@ TEST_CASE("deploying puts five of each around a cell, with their brains and mind
         CHECK(agent->mind[Fear] == doctest::Approx(animal.mind[Fear]).epsilon(1e-3));
     }
     CHECK(simulation.turn() == turn);  // between turns
-    CHECK(simulation.history_turns().back() == turn);  // this turn, recorded again, as it now is
-    for (int step = 0; step < 3; ++step) simulation.advance();
-    simulation.seek(turn + 1);  // rewound: deploying lets the future go
-    simulation.deploy({bitzkey}, 20, 20);
-    CHECK((simulation.frontier() == turn + 1 && simulation.history_turns().back() == turn + 1));
     simulation.advance();
-    CHECK(simulation.turn() == turn + 2);
+    CHECK(simulation.turn() == turn + 1);
 }
 
 TEST_CASE("breeding is the greatest pleasure, courting into reach the next, and failing costs nothing") {
