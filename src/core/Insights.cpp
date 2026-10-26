@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <execution>
+#include <numeric>
 #include <map>
 #include <tuple>
 
@@ -71,6 +73,23 @@ void Insights::record(Species species, const Profile& traits, std::span<const in
         for (const int action : options) offered_[key(species, group, level, action)] += 1;
         chosen_[key(species, group, level, choice)] += 1;
     }
+}
+
+void Insights::record_all(std::size_t count, const std::function<std::optional<Choice>(std::size_t)>& chose) {
+    std::vector<std::optional<Choice>> choices(count);
+    std::vector<std::size_t> indices(count);
+    std::iota(indices.begin(), indices.end(), std::size_t{0});
+    std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) { choices[index] = chose(index); });
+    std::array<int, GROUPS> groups;
+    std::iota(groups.begin(), groups.end(), 0);
+    std::for_each(std::execution::par, groups.begin(), groups.end(), [&](int group) {
+        for (const std::optional<Choice>& made : choices) {
+            if (!made) continue;
+            const int level = group == 0 ? 0 : static_cast<int>(band(made->traits[group - 1]));
+            for (const int action : made->options) offered_[key(made->species, group, level, action)] += 1;
+            chosen_[key(made->species, group, level, made->choice)] += 1;
+        }
+    });
 }
 
 void Insights::decay() {

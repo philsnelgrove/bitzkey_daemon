@@ -929,6 +929,42 @@ public:
     void sow(int tufts);
     void experience(Bitzkey& agent, int event);
     std::vector<Bitzkey*> nearby(const Bitzkey& agent, int radius) const;
+    // The Bitzkeys nearby() lists, in its order, walked one by one without making the list: for a loop that only
+    // reads them, or changes nothing that decides who is nearby or alive while it walks.
+    class Around {
+    public:
+        class iterator {
+        public:
+            Bitzkey* operator*() const { return (*list_)[inner_]; }
+            iterator& operator++() {
+                ++inner_;
+                settle();
+                return *this;
+            }
+            bool operator!=(const iterator& other) const { return offset_ != other.offset_ || inner_ != other.inner_; }
+
+        private:
+            friend class Around;
+            iterator(const Around& around, std::size_t offset) : around_(&around), offset_(offset) {}
+            void settle();  // on to the next one living, and not the one left out, or to the end
+            const Around* around_;
+            std::size_t offset_;
+            std::size_t inner_ = 0;
+            const std::vector<Bitzkey*>* list_ = nullptr;
+        };
+        iterator begin() const;
+        iterator end() const;
+
+    private:
+        friend class Simulation;
+        Around(const Simulation& simulation, Cell cell, int radius, const Bitzkey* except)
+            : simulation_(simulation), cell_(cell), radius_(radius), except_(except) {}
+        const Simulation& simulation_;
+        Cell cell_;
+        int radius_;
+        const Bitzkey* except_;
+    };
+    Around around(const Bitzkey& agent, int radius) const { return Around(*this, {agent.x, agent.y}, radius, &agent); }
     // The Bitzkey of this identifier, living or dead, while the world still holds it; agents_ stays in the order
     // they were made, so it is found by halving.
     Bitzkey* find_agent(int identifier) const;

@@ -50,6 +50,15 @@ public:
 
     Insights();
     void record(Species species, const Profile& traits, std::span<const int> options, int choice);
+    // Many choices at once, the same as recording each in its order: every trait's counts kept apart, so each is
+    // counted on a core of its own. `chose(index)` gives the index-th choice, or none for one not its own.
+    struct Choice {
+        Species species;
+        Profile traits;
+        std::span<const int> options;
+        int choice;
+    };
+    void record_all(std::size_t count, const std::function<std::optional<Choice>(std::size_t)>& chose);
     void decay();
     Rate rate(int action, Species species, std::optional<int> trait = std::nullopt, Level level = Level::Low) const;
     std::vector<Extreme> extremes(int action, int count = 3, bool lowest = true) const;
