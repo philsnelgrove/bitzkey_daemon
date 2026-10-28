@@ -444,11 +444,12 @@ TEST_CASE("deaths are kept whole only for the latest turns, and the tally keeps 
     CHECK(tally.killers == DEADLIEST + 5);  // still counted
     CHECK((tally.causes.at("starved")[1] == 1 && tally.activities.at("hunting")[3] == tally.whom[1][3]));
 
-    const double saved = CLIMATE_DAMAGE;
-    CLIMATE_DAMAGE = 0;  // a world that lasts
-    Simulation world(Simulation::Settings{20, 20, 40, 2});
+    const double saved = CLIMATE_DAMAGE, starving = STARVING_DAMAGE;
+    CLIMATE_DAMAGE = STARVING_DAMAGE = 0;  // a world that lasts, whatever the platform's chance
+    Simulation world(Simulation::Settings{20, 20, 40, 3});
     for (int turn = 0; turn < RECENT_DEATH_TURNS + 50 && !world.ended(); ++turn) world.advance();
     CLIMATE_DAMAGE = saved;
+    STARVING_DAMAGE = starving;
     REQUIRE(world.turn() > RECENT_DEATH_TURNS);
     for (const Death& death : world.deaths_so_far()) CHECK(death.turn >= world.turn() - RECENT_DEATH_TURNS);
     CHECK(death_report(world.death_tally()).all.total == world.deaths());  // yet every death counted
