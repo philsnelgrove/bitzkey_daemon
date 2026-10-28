@@ -32,34 +32,34 @@ std::pair<int, int> dark_and_light(const Simulation& simulation) {
 
 }  // namespace
 
-TEST_CASE("a new world's year is 360 days of eight turns, and lifespans in years grow with it") {
-    CHECK(DAY_LENGTH == 8);
-    CHECK(8 * DAYS_IN_YEAR == 2880);
+TEST_CASE("a new world's year is 360 days of 24 turns, and lifespans in years grow with it") {
+    CHECK(DAY_LENGTH == 24);
+    CHECK(24 * DAYS_IN_YEAR == 8640);
     Simulation::Settings settings{20, 20, 0, 1};
-    settings.year_length = 8 * DAYS_IN_YEAR;
+    settings.year_length = 24 * DAYS_IN_YEAR;
     const Simulation world(settings);
-    CHECK(YEAR_LENGTH == 2880);
+    CHECK(YEAR_LENGTH == 8640);
     const Bitzkey smallest(0, encode_dna(Species::Grazer, {{"size", 0}}), 0, 0);
-    CHECK(smallest.lifespan == doctest::Approx(LIFESPAN_YEARS[0] * 2880));  // three years, of 360 days
+    CHECK(smallest.lifespan == doctest::Approx(LIFESPAN_YEARS[0] * 8640));  // three years, of 360 days
 }
 
 TEST_CASE("night covers half the map, top to bottom, and moves west round it once a day") {
-    Simulation simulation(Simulation::Settings{40, 20, 0, 1});
-    std::vector<int> dark_turns(40, 0);
+    Simulation simulation(Simulation::Settings{48, 20, 0, 1});
+    std::vector<int> dark_turns(48, 0);
     int previous = simulation.night_start();
     for (int turn = 0; turn < DAY_LENGTH; ++turn) {
         int dark = 0;
-        for (int x = 0; x < 40; ++x) {
+        for (int x = 0; x < 48; ++x) {
             dark += simulation.night(x);
             dark_turns[static_cast<std::size_t>(x)] += simulation.night(x);
         }
-        CHECK(dark == 20);  // half the columns
+        CHECK(dark == 24);  // half the columns
         simulation.take_turn();
-        if (turn + 1 < DAY_LENGTH) CHECK(simulation.night_start() == (previous - 40 / DAY_LENGTH + 40) % 40);  // a step west
+        if (turn + 1 < DAY_LENGTH) CHECK(simulation.night_start() == (previous - 48 / DAY_LENGTH + 48) % 48);  // a step west
         previous = simulation.night_start();
     }
     CHECK(std::all_of(dark_turns.begin(), dark_turns.end(), [](int turns) { return turns == DAY_LENGTH / 2; }));  // half of each day
-    CHECK(simulation.night_start() == Simulation(Simulation::Settings{40, 20, 0, 1}).night_start());  // round again in a day
+    CHECK(simulation.night_start() == Simulation(Simulation::Settings{48, 20, 0, 1}).night_start());  // round again in a day
 }
 
 TEST_CASE("an animal rests through its night, the diurnal in the dark and the nocturnal in the light") {

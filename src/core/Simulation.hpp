@@ -54,13 +54,16 @@ inline double FLIGHT_HUNGER = 0.25;
 inline double AMPHIBIOUS_SPEED = 0.5;
 inline double AMPHIBIOUS_COOLDOWN = 2.0;
 inline double AVIAN_SEED_REACH = 2.0;
-// Stamina, 0 to 100: every action but rest tires an animal, and resting restores REST_RECOVERY a turn: on the whole,
-// an animal spends it in five turns of acting and gets it back in three of rest, a day of eight turns. Any other
-// action costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more (a flyer's FLIGHT_FATIGUE times that), each
-// blow it strikes STRIKE_FATIGUE and mating BREED_FATIGUE (each parent); a flyer over the sea, where it can't rest,
-// tires HOVER_FATIGUE a turn more. An animal with no stamina left can only rest, and a flyer exhausted over the sea
-// drowns. An amphibious animal tires AMPHIBIOUS_FATIGUE times as fast at everything.
-inline double REST_RECOVERY = 34;
+// Stamina, 0 to 100: every action but rest tires an animal, and resting restores it. Its pace follows the day: of the
+// half of each day an animal is awake, the average one acts ACTIVE_SHARE and rests the rest, spending its stamina in
+// the one and getting it back in the other, however many turns a day is (see stamina_pace and rest_recovery). Before
+// that pace is applied, any action but rest costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more
+// (a flyer's FLIGHT_FATIGUE times that), each blow it strikes STRIKE_FATIGUE and mating BREED_FATIGUE (each parent);
+// a flyer over the sea, where it can't rest, tires HOVER_FATIGUE a turn more; an average turn of acting costs
+// TYPICAL_FATIGUE. An animal with no stamina left can only rest, and a flyer exhausted over the sea drowns. An
+// amphibious animal tires AMPHIBIOUS_FATIGUE times as fast at everything.
+inline double ACTIVE_SHARE = 2.0 / 3;
+constexpr double TYPICAL_FATIGUE = 20;  // an action and two squares' going
 inline double ACTION_FATIGUE = 10;
 inline double STEP_FATIGUE = 5;
 inline double FLIGHT_FATIGUE = 2.0;
@@ -68,9 +71,11 @@ inline double STRIKE_FATIGUE = 50;
 inline double BREED_FATIGUE = 75;
 inline double HOVER_FATIGUE = 5;
 inline double AMPHIBIOUS_FATIGUE = 2.0;
-// What tiring by `cost` takes from an animal: an amphibious one's AMPHIBIOUS_FATIGUE times as much.
+// What tiring by `cost` takes from an animal: at the day's pace, and an amphibious one's AMPHIBIOUS_FATIGUE times as much.
 inline double fatigue(const Bitzkey& agent, double cost);
 constexpr double FULL_STAMINA = 100;
+double stamina_pace();   // the share of the listed fatigue an action costs, for a day of DAY_LENGTH turns
+double rest_recovery();  // stamina a turn's rest restores
 inline int SPAWN_SPREAD = 2;
 // A square holds CELL_SPACE spaces, and every Bitzkey, plant or animal, takes 1 + its size of them. Bitzkeys share a
 // square, and meet there as they would alongside, but none is born, moves or spawns into one without room for it.
@@ -92,7 +97,7 @@ inline double SMALL_MATURITY = 0.5;
 inline double MEAT_DIGESTION = 1.0 / 7;
 // Feeble: an animal in its infancy (the first FEEBLE_YOUTH of its lifespan) or its old age (past AGEING of it)
 // has every body trait, and its health, at FEEBLE_SHARE of its own.
-inline double FEEBLE_YOUTH = 1.0 / 30;  // 36 turns for the smallest, as when they lived a year and were infants a tenth of it
+inline double FEEBLE_YOUTH = 1.0 / 30;  // 36 days for the smallest, as when they lived a year and were infants a tenth of it
 inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
@@ -123,7 +128,7 @@ void remove_stale_histories();
 std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
-inline int CORPSE_TURNS = 30;
+inline int CORPSE_TURNS = 90;  // under four days
 inline double CORPSE_PLANT = 0.1;  // chance an animal's body that rots away entirely leaves the seed of a new plant where it lay
 inline double BREED_RESERVE = 0;
 inline double MATE_RING_DIFFERENCE = 0.05;
@@ -133,7 +138,7 @@ inline double LITTER_SIZE_WEIGHT = 0.5;
 inline double SMALL_LITTERS = 2.0;  // the smallest bodies' litters are this many times the usual, falling evenly to the usual for the largest
 // Turns an animal carries its young, from mating to birth: from the first for the smallest body to the
 // second for the largest, evenly between, rounded half up.
-inline std::array<int, 2> GESTATION = {10, 50};
+inline std::array<int, 2> GESTATION = {30, 150};  // a day and a quarter to six and a quarter days
 // Heat: an animal is fertile only while in heat, a stretch of the turns before its next winter, the winter of the row
 // it stands in. Heat ends HEAT_CLOSEST of a year before that winter, and HEAT_FORESIGHT more for the most patient, who
 // breed further from it; it begins HEAT_LENGTH of a year before it ends. No animal is in heat through its own winter,
@@ -187,7 +192,7 @@ inline double PREGNANT_REMORSE = 1.0;
 // if it had made the herd-mate's last choice itself, and feels it, by its empathy times its intellect.
 inline double SOCIAL_LEARNING = 1.0;  // how fast it learns from what it sees, beside learning from its own choices
 inline double SOCIAL_MOOD = 0.3;      // how much what it sees moves its mood
-inline double SOCIAL_MEMORY = 0.8;    // the share of a seen success or failure it still senses a turn later
+inline double SOCIAL_MEMORY = 0.93;   // the share of a seen success or failure it still senses a turn later (0.8 every three hours)
 inline double OTHER_KIND = 0.4;
 // The social background's traits. Loyalty: whenever it can herd, an animal values keeping to its herd this much
 // more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
@@ -208,7 +213,7 @@ inline double KINSHIP_SHUN = 0.8;
 // MEMORY_TURNS at the best memory, fewer the poorer. Resilience: the most resilient get over a herd-mate's failure
 // faster, and fear a bad experience less, by up to this share, the least resilient slower and more. Moodiness:
 // experience moves the moodiest temperament by up to this share more, the steadiest by this share less.
-inline int MEMORY_TURNS = 100;
+inline int MEMORY_TURNS = 300;
 inline double RESILIENCE = 0.5;
 inline double MOODINESS = 0.5;
 inline double LEARNING_RATE = 0.027;
@@ -329,7 +334,7 @@ inline double KIND_DIFFERENCE = 0.25;
 inline int FORAGE_RADIUS = 6;
 inline double FOOD_NEEDED = 0.0;  // 0: no limit, and litters don't follow food
 inline double UPROOT_FOOD = 3.0;  // a starving grazer uproots a plant only with fewer meals a mouth than this about it
-inline double BREED_COOLDOWN = 1.0;  // grazers' and omnivores' share of the usual rest after breeding, 20 turns for the least fertile to 5 for the most
+inline double BREED_COOLDOWN = 1.0;  // grazers' and omnivores' share of the usual rest after breeding, 60 turns for the least fertile to 15 for the most
 inline double PREDATOR_BREED_COOLDOWN = 0.5;  // the same for predators: a short rest
 inline double PREDATOR_FOOD_NEEDED = 0.0;  // the same for predators: none, so the food about them never stops them breeding
 // Plants each grazer needs in its home band, the climate band of its home temperature nearest it, shared
@@ -365,7 +370,7 @@ inline double CARRION_MEAT_FOR_SIZE = 50;
 inline double GRAZER_SPEED = 1.5;
 inline int FLEE_RANGE = 3;          // a hunter is only worth fleeing within this many steps, unless alarmed
 inline double HERD_VIGILANCE = 0.5; // how far three herd-mates close by, at full instinct, shrink that range
-inline double GRASS_OUTLOOK = 150;  // judging grass before breeding, count what regrows in this many turns
+inline double GRASS_OUTLOOK = 450;  // judging grass before breeding, count what regrows in this many turns
 inline double STANDING_GRASS = 0.25;  // and this share of the grass standing now
 inline double GRASS_MEAL = 18;  // hunger a tuft of grass sates: about a tenth of a middle-sized kill
 // A plant is eaten in portions, a bite each: every bite sates PLANT_MEAL hunger (and PLANT_MEAL_FOR_SIZE more for the
@@ -374,7 +379,7 @@ inline double PLANT_MEAL = 70;
 inline double PLANT_MEAL_FOR_SIZE = 0;
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
-inline int PLANT_RECOVERY = 8;
+inline int PLANT_RECOVERY = 24;  // a day
 // A desperate grazer, starving with food scarce about it, may uproot a plant beside it: it eats this
 // many times a bite's meal, and tears this much of the plant's health away, recovering or not.
 inline int UPROOT_HUNGER = 80;  // starving: hunger at least this
@@ -402,12 +407,12 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // columns from the top to the bottom, and moves west round it once a day. With SLEEP, an animal rests through its
 // night, the dark for the diurnal and the light for the nocturnal (see the activity gene): it may only rest, but for
 // fleeing a hunter or striking back at what struck it, startled awake, and a flyer over the sea, which can't rest.
-inline int DAY_LENGTH = 8;
+inline int DAY_LENGTH = 24;  // a turn is an hour
 inline int SLEEP = 1;
 // An infant within this many squares of a living parent is sheltered: the climate's extra hunger and harm pass it by.
 constexpr int SHELTER_REACH = 2;
-constexpr int DAYS_IN_YEAR = 360;
-inline int DEFAULT_YEAR_LENGTH = 8 * DAYS_IN_YEAR;  // a new world's, unless its settings say otherwise
+constexpr int DAYS_IN_YEAR = 360;  // four seasons of 90 days
+inline int DEFAULT_YEAR_LENGTH = 24 * DAYS_IN_YEAR;  // a new world's, unless its settings say otherwise
 inline int YEAR_LENGTH = DEFAULT_YEAR_LENGTH;  // each world sets it from its year length setting
 inline double ARCTIC_SHARE = 0.2;
 inline double EQUATOR_SHARE = 0.2;
@@ -416,22 +421,23 @@ inline double WINTER_EQUATOR_SHARE = 0.05;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
 inline double CLIMATE_DAMAGE = 0.025;  // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
-inline int GRASS_DIEBACK = 20;     // where it isn't medium, a cell's grass loses a tuft every this many turns
-// The weather turns in waves, one in each climate zone, all setting off together as the season turns,
-// so no zone waits on another. In each, a winter washes in from the side toward its hemisphere's edge
-// toward the equator, and as it ends ebbs back the way it came, over this share of each season. The wave moves in bands of WAVE_BAND
-// rows; at its front, WAVE_FRONT bands stand part way between the old weather and the new, in even
-// steps, so the change comes as a staircase. The climate's effects move with it.
-inline double SEASON_TURNING = 0.1;
+inline int GRASS_DIEBACK = 60;     // where it isn't medium, a cell's grass loses a tuft every this many turns
+// The weather turns in waves, one in each climate zone, all setting off together, so no zone waits on
+// another. In each, a winter washes in from the side toward its hemisphere's edge toward the equator
+// over the first SEASON_TURNING of its season, stays through the middle, and ebbs back the way it came
+// over the last SEASON_TURNING (at most half each). The wave moves in bands of WAVE_BAND rows; at its
+// front, WAVE_FRONT bands stand part way between the old weather and the new, in even steps, so the
+// change comes as a staircase. The climate's effects move with it.
+inline double SEASON_TURNING = 0.4;
 inline int WAVE_BAND = 2;
 inline int WAVE_FRONT = 4;
 // A dead animal is a fresh kill, not yet carrion, through the turn it died and FRESH_KILL_TURNS more;
 // then it starts to rot. A predator or omnivore may eat a fresh kill of what it lives on whole,
 // FRESH_KILL_MEALS times the meal of making the kill, and nothing is left.
-inline int FRESH_KILL_TURNS = 3;
+inline int FRESH_KILL_TURNS = 9;
 inline double FRESH_KILL_MEALS = 3.0;
 inline double SEED_VIABILITY = 0.75;  // years a seed that falls where it can't grow stays able to germinate
-inline int PLANT_GESTATION = 10;  // turns a seed lies in the ground before it can sprout
+inline int PLANT_GESTATION = 30;  // turns a seed lies in the ground before it can sprout
 inline double STARTING_TOLERANCE = 0.1;  // the chance a random starting genome carries each tolerance flag
 inline double HARDINESS = 0.5;  // the share of exposure's extra hunger and damage an animal tolerant of it suffers
 inline double FRAILTY = 2.0;    // the share an animal tolerant of the other extreme suffers
@@ -451,11 +457,11 @@ int season_temperature(int y, int height, int quarter);  // a row's settled temp
 // second and fourth quarters), and ebbs back the other way (the third and first).
 std::pair<int, int> zone_rows(int y, int height);  // the first and last rows of a row's climate zone
 std::pair<int, int> wave_band(int y, int height, int quarter);
-// How far the season's wave has come: 0 as a season begins, 1 once SEASON_TURNING of it has passed.
-// The world's first season starts settled.
+// How far a winter's wave has washed in: 0 as the winter begins, 1 once SEASON_TURNING of it has
+// passed; always 1 in the mild seasons.
 double season_progress(int turn);
-// A row's temperature on a turn, from 0 (hot) to 3 (very cold): its season's, though early in a
-// season, until the season's wave has passed it, the last season's or part way between the two.
+// A row's temperature on a turn, from 0 (hot) to 3 (very cold): its mild one, its winter's, or part
+// way between the two while a winter's wave washes in or ebbs out across it.
 double temperature_at(int y, int height, int turn);
 // A cell's fixed share, 0 to 1, below which a row's shortfall from medium makes its grass die back.
 double dieback_threshold(int x, int y);
@@ -503,7 +509,7 @@ struct Bitzkey {
     bool wet = false;  // in the sea, as the world keeps it while it moves
     double hunger = 0.0;
     double health = 100.0;
-    double stamina = FULL_STAMINA;  // spent by acting, restored by resting (see REST_RECOVERY)
+    double stamina = FULL_STAMINA;  // spent by acting, restored by resting (see ACTIVE_SHARE)
     int age = 0;
     int cooldown = 0;
     std::string_view last_action = "new";
@@ -668,6 +674,7 @@ struct Bitzkey {
 };
 
 inline double fatigue(const Bitzkey& agent, double cost) {
+    cost *= stamina_pace();
     return agent.terrain == Terrain::Amphibious ? cost * AMPHIBIOUS_FATIGUE : cost;
 }
 
@@ -888,7 +895,7 @@ public:
     void use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::string status);
     // The brain whose handle on the engine this is, as it was last brought back from it; none if no living brain's.
     const Brain* engine_brain(int handle) const;
-    void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed, and tires (see REST_RECOVERY)
+    void act(Bitzkey& agent, int action, Situation& situation);  // and remembers where it fed, and tires (see ACTIVE_SHARE)
     // How clearly it remembers a place: 1 the turn it happened, fading to nothing over MEMORY_TURNS times its
     // memory; 0 when it has nothing to remember.
     double remembered(const Bitzkey& agent, const std::optional<Place>& memory) const;

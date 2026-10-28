@@ -231,18 +231,18 @@ TEST_CASE("acting tires an animal, flying the more, and resting restores it") {
     gull.derive();
     Simulation::Situation nothing;
     simulation.act(walker, walk_onto(simulation, shore, false), nothing);  // a square: the action and the step
-    CHECK(walker.stamina == doctest::Approx(FULL_STAMINA - ACTION_FATIGUE - STEP_FATIGUE));
+    CHECK(walker.stamina == doctest::Approx(FULL_STAMINA - (ACTION_FATIGUE + STEP_FATIGUE) * stamina_pace()));
     simulation.act(gull, walk_onto(simulation, shore, false), nothing);
-    CHECK(gull.stamina == doctest::Approx(FULL_STAMINA - ACTION_FATIGUE - STEP_FATIGUE * FLIGHT_FATIGUE));
+    CHECK(gull.stamina == doctest::Approx(FULL_STAMINA - (ACTION_FATIGUE + STEP_FATIGUE * FLIGHT_FATIGUE) * stamina_pace()));
     Bitzkey& frog = simulation.add_agent(of(Species::Grazer, Terrain::Amphibious), shore.x, shore.y);
     simulation.act(frog, walk_onto(simulation, shore, false), nothing);  // twice the walker's
-    CHECK(frog.stamina == doctest::Approx(FULL_STAMINA - 2 * (ACTION_FATIGUE + STEP_FATIGUE)));
+    CHECK(frog.stamina == doctest::Approx(FULL_STAMINA - 2 * (ACTION_FATIGUE + STEP_FATIGUE) * stamina_pace()));
     frog.stamina = 30;
     simulation.act(frog, Rest, nothing);  // but rests back as fast
-    CHECK(frog.stamina == doctest::Approx(30 + REST_RECOVERY));
+    CHECK(frog.stamina == doctest::Approx(30 + rest_recovery()));
     walker.stamina = 30;
     simulation.act(walker, Rest, nothing);
-    CHECK(walker.stamina == doctest::Approx(30 + REST_RECOVERY));
+    CHECK(walker.stamina == doctest::Approx(30 + rest_recovery()));
     walker.stamina = 95;
     simulation.act(walker, Rest, nothing);
     CHECK(walker.stamina == FULL_STAMINA);
@@ -255,7 +255,7 @@ TEST_CASE("an exhausted animal can only rest, and a flyer can't rest at sea, whe
     walker.stamina = 0;
     simulation.think(walker);
     CHECK(walker.last_action == "rested");
-    CHECK(walker.stamina == REST_RECOVERY);
+    CHECK(walker.stamina == rest_recovery());
     Bitzkey& gull = simulation.add_agent(of(Species::Grazer, Terrain::Avian), shore.x + 1, shore.y);
     const auto options = simulation.sense(gull).options;
     CHECK(std::find(options.begin(), options.end(), Rest) == options.end());

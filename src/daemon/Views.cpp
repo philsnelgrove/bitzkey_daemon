@@ -153,7 +153,7 @@ const std::array<Setting, 10> SETTINGS = {{
      "no limit"},
     {"mind_mutation", "Mind mutation", "mind mutations a birth carries: 0 none, 50 about 1.5, 100 three", 0, 100, 5},
     {"body_mutation", "Body mutation", "percent chance a birth flips one body gene: 0 stable, 100 always", 0, 100, 5},
-    {"year_length", "Year length", "turns in a year, of four seasons; a day is 8 turns, and lifespans are counted in years", 32, 28800, 80},
+    {"year_length", "Year length", "turns in a year, of four seasons; a day is 24 turns, an hour each, and lifespans are counted in years", 32, 86400, 240},
 }};
 
 Json setting_value(const Simulation::Settings& settings, std::string_view key) {

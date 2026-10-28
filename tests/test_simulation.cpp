@@ -446,7 +446,7 @@ TEST_CASE("deaths are kept whole only for the latest turns, and the tally keeps 
 
     const double saved = CLIMATE_DAMAGE;
     CLIMATE_DAMAGE = 0;  // a world that lasts
-    Simulation world(Simulation::Settings{20, 20, 40, 3});
+    Simulation world(Simulation::Settings{20, 20, 40, 2});
     for (int turn = 0; turn < RECENT_DEATH_TURNS + 50 && !world.ended(); ++turn) world.advance();
     CLIMATE_DAMAGE = saved;
     REQUIRE(world.turn() > RECENT_DEATH_TURNS);
@@ -1933,7 +1933,7 @@ TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother ca
     Bitzkey& second = simulation.add_agent(dna, 5, 6);
     simulation.index_cells();
     simulation.breed(first, second);
-    CHECK((first.cooldown == static_cast<int>(20 * BREED_COOLDOWN) && second.cooldown == first.cooldown));  // the least fertile rest longest
+    CHECK((first.cooldown == static_cast<int>(60 * BREED_COOLDOWN) && second.cooldown == first.cooldown));  // the least fertile rest longest
     CHECK(!first.can_breed());
 
     Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 6, 5);

@@ -104,11 +104,11 @@ TEST_CASE("a world sets the year length for seasons and lifespans") {
 TEST_CASE("each hemisphere and the equator are a step colder in its winter") {
     const OldBands old_bands;
     // the second quarter, once the wave has passed, and the fourth
-    CHECK(rows_on(150) == bands({{VeryCold, 20}, {Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}}));
-    CHECK(rows_on(330) == bands({{Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}, {VeryCold, 20}}));
+    CHECK(rows_on(135) == bands({{VeryCold, 20}, {Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}}));
+    CHECK(rows_on(315) == bands({{Cold, 20}, {Medium, 20}, {Medium, 20}, {Cold, 20}, {VeryCold, 20}}));
     const std::vector<double> normal = bands({{Cold, 20}, {Medium, 20}, {Hot, 20}, {Medium, 20}, {Cold, 20}});
     for (const int turn : {10, 240, 420}) CHECK(rows_on(turn) == normal);  // the mild quarters
-    CHECK(rows_on(510) == rows_on(150));  // the next year repeats
+    CHECK(rows_on(495) == rows_on(135));  // the next year repeats
 }
 
 TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the way it came") {
@@ -133,10 +133,10 @@ TEST_CASE("every zone's winter washes in at once in a wave, and ebbs back the wa
     }
     for (int y = 60; y < 100; ++y) CHECK(temperature_at(y, 100, 117) == (y < 80 ? medium : cold));  // the south: no change
 
-    CHECK((temperature_at(59, 100, 207) == hot && temperature_at(0, 100, 207) == very_cold));  // ebbing back from the equator
-    CHECK(temperature_at(24, 100, 207) == doctest::Approx(cold - 0.35));  // the temperate zone's eighth band from the equator
+    CHECK((temperature_at(59, 100, 162) == hot && temperature_at(0, 100, 162) == very_cold));  // ebbing back from the equator
+    CHECK(temperature_at(24, 100, 162) == doctest::Approx(cold - 0.35));  // the temperate zone's eighth band from the equator
     CHECK((temperature_at(99, 100, 297) == very_cold && temperature_at(40, 100, 297) == hot));  // the south's, up from the bottom
-    CHECK((temperature_at(99, 100, 387) == very_cold && temperature_at(41, 100, 387) == hot));  // and ebbing back down to it
+    CHECK((temperature_at(99, 100, 342) == very_cold && temperature_at(41, 100, 342) == hot));  // and ebbing back down to it
     CHECK(temperature_at(70, 100, 0) == medium);  // the world's first season is settled
     const double saved = SEASON_TURNING;
     SEASON_TURNING = 0;
@@ -562,7 +562,7 @@ TEST_CASE("the year starts mild") {
 
 TEST_CASE("grass grows only where it is medium now") {
     const OldBands old_bands;
-    Simulation simulation = world_at(150);  // the north's winter: its temperate zone is cold, the equator medium
+    Simulation simulation = world_at(135);  // the north's winter: its temperate zone is cold, the equator medium
     simulation.sow(3000);
     std::set<int> rows;
     for (int y = 0; y < 100; ++y) {

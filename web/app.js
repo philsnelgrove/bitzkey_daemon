@@ -32,6 +32,15 @@ function marked(agent) {
   return agent.identifier === app.selectedId || app.selection.has(agent.identifier) ||
     app.exportList.some(entry => entry.identifier === agent.identifier);
 }
+// Whether a Bitzkey is drawn, `least` the smallest size the zoom shows: plants only while PLANTS is on, and every
+// size while LOD MANAGER is off.
+function shownAt(agent, least) {
+  if (marked(agent)) return true;
+  if (!plants && agent.species === 0) return false;
+  return !lod || agent.size >= least;
+}
+// Whether one not drawn counts as too small to see from this far out, rather than a plant hidden.
+const tooSmall = agent => plants || agent.species !== 0;
 // Every Bitzkey in view too small to draw from this far out: say so, in the middle of the view.
 function sayTooFar(ctx, view) {
   const text = tr(TOO_FAR);
@@ -85,6 +94,8 @@ const GLOBE_TEXTURE = 1600;   // the map drawn onto it from a picture about this
 const STACK_SPACING = 0.7;    // a stack's Bitzkeys each this share of the one below's radius above it, its face showing
 let globe = false;
 let blind = false;            // neither map nor globe drawn, to spare the time
+let lod = true;               // the level of detail hides the smaller Bitzkeys zoomed out; off, every size shows from any altitude
+let plants = true;            // plants are drawn
 let globeYaw = 0, globeTilt = 0.35, globeZoom = 1;
 let turnFrom = null;          // a drag on the globe: where it began, and its turn then
 let globeLook = null;         // where each pixel of the disc lies on the map, kept while its size and tilt stay
@@ -416,7 +427,7 @@ function drawMap() {
   }
   const [smallest, largest] = mapDotRadii(cell);
   const least = smallestShown(mapZoom, 1, MAP_ZOOM_MAX);
-  const shown = agent => agent.size >= least || marked(agent);
+  const shown = agent => shownAt(agent, least);
   const reach = (px, py) => px > -largest * 3 && py > -largest * 3 && px < view.w + largest * 3 && py < view.h + largest * 3;
   const centre = (x, y) => [geometry.x + (x + 0.5) * cell, geometry.y + (y + 0.5) * cell];
   ctx.save();
@@ -435,7 +446,10 @@ function drawMap() {
   for (const agent of frame.agents) {
     const [px, py] = centre(agent.x, agent.y);
     if (!reach(px, py)) continue;
-    if (!shown(agent)) { hidden += 1; continue; }  // too small to see from this far out
+    if (!shown(agent)) {  // too small to see from this far out, or a plant hidden
+      if (tooSmall(agent)) hidden += 1;
+      continue;
+    }
     drawn += 1;
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
@@ -661,12 +675,16 @@ const globeFrame = document.createElement('canvas');
 const viewButtons = element('div', { class: 'view-buttons' },
   element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); } }, 'MAP'),
   element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); } }, 'GLOBE'),
-  element('button', { class: 'view-blind', onclick: () => { blind = true; showViewButtons(); drawMap(); } }, 'BLIND'));
+  element('button', { class: 'view-blind', onclick: () => { blind = true; showViewButtons(); drawMap(); } }, 'BLIND'),
+  element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'),
+  element('button', { class: 'view-plants', onclick: () => { plants = !plants; showViewButtons(); drawMap(); } }, 'PLANTS'));
 $('map-holder').append(viewButtons);
 function showViewButtons() {
   viewButtons.querySelector('.view-map').classList.toggle('on', !globe && !blind);
   viewButtons.querySelector('.view-globe').classList.toggle('on', globe && !blind);
   viewButtons.querySelector('.view-blind').classList.toggle('on', blind);
+  viewButtons.querySelector('.view-lod').classList.toggle('on', lod);
+  viewButtons.querySelector('.view-plants').classList.toggle('on', plants);
 }
 showViewButtons();
 
@@ -773,9 +791,9 @@ function drawGlobe(frame, ctx, view) {
   const least = smallestShown(globeZoom, 0.5, GLOBE_ZOOM_MAX);
   let drawn = 0, hidden = 0;
   for (const stack of stacks) {
-    const members = stack.members.filter(agent => agent.size >= least || marked(agent)).sort((a, b) => b.size - a.size);
+    const members = stack.members.filter(agent => shownAt(agent, least)).sort((a, b) => b.size - a.size);
     drawn += members.length;
-    hidden += stack.members.length - members.length;  // too small to see from this far out
+    hidden += stack.members.filter(agent => !shownAt(agent, least) && tooSmall(agent)).length;  // too small to see from this far out
     const shrink = 0.55 + 0.45 * stack.depth;  // foreshortened toward the edge
     let lift = 0;
     for (const agent of members) {

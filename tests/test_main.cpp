@@ -20,6 +20,16 @@ struct Grown : doctest::IReporter {
         // a test says so.
         bitzkey::DEFAULT_YEAR_LENGTH = bitzkey::YEAR_LENGTH = 360;
         bitzkey::SLEEP = 0;
+        // and count other spans in the turns of the eight-turn days they were written for, unless a test says so.
+        bitzkey::CORPSE_TURNS = 30;
+        bitzkey::GESTATION = {10, 50};
+        bitzkey::FRESH_KILL_TURNS = 3;
+        bitzkey::PLANT_GESTATION = 10;
+        bitzkey::PLANT_RECOVERY = 8;
+        bitzkey::GRASS_DIEBACK = 20;
+        bitzkey::GRASS_OUTLOOK = 150;
+        bitzkey::MEMORY_TURNS = 100;
+        bitzkey::SOCIAL_MEMORY = 0.8;
         bitzkey::SMALL_HIDING = 0.0;  // a test's hunter strikes what it strikes at, unless a test says so
     }
     void report_query(const doctest::QueryData&) override {}

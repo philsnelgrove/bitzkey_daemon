@@ -336,6 +336,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .view-buttons { position: absolute; top: -20px; left: 0; display: flex; gap: 6px; z-index: 2; }
 .view-buttons button { padding: 1px 10px; font-size: 11px; font-weight: bold; }
 .view-buttons button.on { background: rgb(131, 205, 143); color: rgb(19, 26, 27); }
+.view-buttons .view-lod { margin-left: 12px; }  /* the toggles stand apart from the views */
 body.hud-hidden #header, body.hud-hidden #footer, body.hud-hidden #sidebar, body.hud-hidden .exemplars,
 body.hud-hidden .view-buttons { display: none; }
 body.hud-hidden #main { height: 100%; }

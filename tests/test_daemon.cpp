@@ -317,7 +317,7 @@ TEST_CASE("the web API shows the world and steers it") {
         }
         CHECK_FALSE(post(client, "/api/rules/world", {{"rules", {{"LITTER_RANGE.0", 9}, {"LITTER_RANGE.1", 2}}}})["problems"].empty());
         post(client, "/api/rules/world", {{"rules", Json::object()}});
-        CHECK(CORPSE_TURNS == 30);
+        CHECK(CORPSE_TURNS == rules::defaults().at("CORPSE_TURNS"));
 
         const Json designed = post(client, "/api/design", {{"ring", "00000001"}, {"dot", "00000000"}, {"social", "0000ABCD"}});
         CHECK(designed["species"] == "grazer");

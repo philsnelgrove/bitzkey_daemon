@@ -59,7 +59,7 @@ TEST_CASE("applying sets constants, arrays and tables, and resets the rest") {
 TEST_CASE("values are clamped, whole-number rules rounded") {
     Restore restore;
     rules::apply({{"CORPSE_TURNS", 10'000}, {"AGEING", -3.0}, {"SEED_REACH", 2.5}});
-    CHECK(CORPSE_TURNS == 500);
+    CHECK(CORPSE_TURNS == 1500);
     CHECK(AGEING == 0.0);
     CHECK(SEED_REACH == 2);  // half to even, as Python rounds
 }

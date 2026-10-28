@@ -208,25 +208,43 @@ std::pair<int, int> wave_band(int y, int height, int quarter) {
     return {offset / WAVE_BAND, (last - first) / WAVE_BAND + 1};
 }
 
+namespace {
+
+double season_into(int turn) {  // the share of its season gone
+    return static_cast<double>(turn % YEAR_LENGTH * 4 - season(turn) * YEAR_LENGTH) / YEAR_LENGTH;
+}
+
+double turning() { return std::min(0.5, SEASON_TURNING); }  // the wave in and the ebb never overlap
+
+}  // namespace
+
 double season_progress(int turn) {
-    const int quarter = season(turn);
-    if ((turn < YEAR_LENGTH && quarter == 0) || SEASON_TURNING <= 0) return 1.0;
-    const double into = static_cast<double>(turn % YEAR_LENGTH * 4 - quarter * YEAR_LENGTH) / YEAR_LENGTH;  // share of the season gone
-    return std::min(1.0, into / SEASON_TURNING);
+    if (season(turn) % 2 == 0 || turning() <= 0) return 1.0;  // the mild seasons are settled throughout
+    return std::min(1.0, season_into(turn) / turning());
 }
 
 double temperature_at(int y, int height, int turn) {
     const int quarter = season(turn);
-    const int now = season_temperature(y, height, quarter);
-    const double progress = season_progress(turn);
-    if (progress >= 1) return now;
-    const int before = season_temperature(y, height, (quarter + 3) % 4);
-    if (now == before) return now;
-    const auto [band, bands] = wave_band(y, height, quarter);
+    const int mild = zone_temperature(y, height);
+    if (!in_winter(y, height, quarter)) return mild;
+    const int winter = mild + 1;
+    const double into = season_into(turn);
+    if (turning() <= 0 || (into >= turning() && into < 1 - turning())) return winter;
+    // Washing in, from the edge toward the equator, or ebbing back the way it came.
+    const bool ebbing = into >= 1 - turning();
+    const double progress = ebbing ? (into - (1 - turning())) / turning() : into / turning();
+    const auto [band, bands] = wave_band(y, height, ebbing ? (quarter + 1) % 4 : quarter);
     const double reach = progress * (bands + WAVE_FRONT);  // how far the front has come, in bands
     const double turned = std::min(1.0, std::max(0.0, (reach - band) / WAVE_FRONT));
-    return before + (now - before) * turned;
+    return ebbing ? winter - turned : mild + turned;
 }
+
+// The average animal spends its stamina over its waking half day's ACTIVE_SHARE and gets it back over the rest.
+double stamina_pace() {
+    return FULL_STAMINA / (TYPICAL_FATIGUE * std::max(1.0, DAY_LENGTH / 2.0 * ACTIVE_SHARE));
+}
+
+double rest_recovery() { return FULL_STAMINA / std::max(1.0, DAY_LENGTH / 2.0 * (1 - ACTIVE_SHARE)); }
 
 double dieback_threshold(int x, int y) {
     return static_cast<double>((static_cast<long long>(x) * 7919 + static_cast<long long>(y) * 104729) % 1000) / 1000;
@@ -2162,7 +2180,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     }
     if (!agent.alive()) return;
     if (did == "rested") {
-        agent.stamina = std::min(FULL_STAMINA, agent.stamina + REST_RECOVERY);
+        agent.stamina = std::min(FULL_STAMINA, agent.stamina + rest_recovery());
         return;
     }
     // Tired by what it did: each square it went (flying, the more so), each blow struck, and keeping aloft over the sea.
@@ -2660,7 +2678,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         Bitzkey& parent = *pair[index];
         parent.hunger += costs[index];
         const double rest = parent.species == Species::Predator ? PREDATOR_BREED_COOLDOWN : BREED_COOLDOWN;
-        parent.cooldown = static_cast<int>(py_round((20 - 15 * parent.physique(Fertility)) * rest *
+        parent.cooldown = static_cast<int>(py_round((60 - 45 * parent.physique(Fertility)) * rest *
                                                     (parent.terrain == Terrain::Amphibious ? AMPHIBIOUS_COOLDOWN : 1.0)));
         parent.children += litter;
         parent.stamina = std::max(0.0, parent.stamina - fatigue(parent, BREED_FATIGUE));
