@@ -57,7 +57,7 @@ struct Offset {
     int dx, dy;
 };
 
-// Every offset within MAX_SIGHT, nearest first (by distance, then dx, then dy).
+// Every offset within MAX_SIGHT, nearest first (by distance, then dx, then dy); a search mirrors them by its tie_side.
 std::vector<Offset> make_sight_offsets() {
     std::vector<Offset> offsets;
     for (int dx = -MAX_SIGHT; dx <= MAX_SIGHT; ++dx) {
@@ -2855,13 +2855,17 @@ bool Simulation::step(Bitzkey& agent, int x, int y) {
     return true;
 }
 
+Simulation::Side Simulation::tie_side(const Bitzkey& agent) const {
+    const int turns = agent.identifier + turn_;
+    return {turns & 1 ? -1 : 1, turns & 2 ? -1 : 1};
+}
+
 std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) const {
     const double worst = agent.climate_steps(in_bounds(agent.x, agent.y) ? temperature(agent.y) : Medium);
+    const Side side = tie_side(agent);
     for (const Offset& offset : SIGHT_WITHIN[static_cast<std::size_t>(sight)]) {
-        if (grass_at(agent.x + offset.dx, agent.y + offset.dy) > 0 && can_enter(agent, Cell{agent.x + offset.dx, agent.y + offset.dy}) &&
-            agent.climate_steps(temperature(agent.y + offset.dy)) <= worst) {
-            return Cell{agent.x + offset.dx, agent.y + offset.dy};
-        }
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
+        if (grass_at(x, y) > 0 && can_enter(agent, Cell{x, y}) && agent.climate_steps(temperature(y)) <= worst) return Cell{x, y};
     }
     return std::nullopt;
 }
@@ -2872,8 +2876,9 @@ double Simulation::warmth(const Bitzkey& agent, int y) const {
 
 Bitzkey* Simulation::nearest_carrion(const Bitzkey& agent, int sight) const {
     if (carrion_count_ == 0) return nullptr;
+    const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
-        const int x = agent.x + offset.dx, y = agent.y + offset.dy;
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
         if (!in_bounds(x, y)) continue;
         for (Bitzkey* corpse : carrion_[static_cast<std::size_t>(y) * width_ + x]) {
             if (corpse->meat > 0 && agent.can_be(corpse->wet)) return corpse;
@@ -2884,8 +2889,9 @@ Bitzkey* Simulation::nearest_carrion(const Bitzkey& agent, int sight) const {
 
 Bitzkey* Simulation::nearest_kill(const Bitzkey& agent, int sight) const {
     if (kill_count_ == 0) return nullptr;
+    const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
-        const int x = agent.x + offset.dx, y = agent.y + offset.dy;
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
         if (!in_bounds(x, y)) continue;
         for (Bitzkey* corpse : kills_[static_cast<std::size_t>(y) * width_ + x]) {
             if (feeds_on(agent, *corpse) && agent.can_be(corpse->wet)) return corpse;
@@ -2901,10 +2907,11 @@ Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int pr
     const bool hunted = agent.species != Species::Plant;
     const bool browses = agent.species == Species::Grazer || agent.species == Species::Omnivore;
     const bool courts = agent.can_breed();
+    const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(std::max(sight, prey_sight))]) {
         const bool far = std::abs(offset.dx) + std::abs(offset.dy) > sight;  // beyond its sight but for prey
         if ((seen.quarry || !hunts) && (far || ((seen.hunter || !hunted) && (seen.suitor || !courts) && (seen.flora || !browses)))) break;
-        const auto* list = cell_if(agent.x + offset.dx, agent.y + offset.dy);
+        const auto* list = cell_if(agent.x + side.x * offset.dx, agent.y + side.y * offset.dy);
         if (!list) continue;
         for (Bitzkey* other : *list) {
             if (other == &agent || !other->alive()) continue;
@@ -2967,8 +2974,9 @@ void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
 void Simulation::move_away(Bitzkey& agent, const Bitzkey& threat) {
     int cells = 0;
     for (int taken = 0, pace = agent.pace(); taken < pace; ++taken) {
-        const int dx = agent.x >= threat.x ? 1 : -1;
-        const int dy = agent.y >= threat.y ? 1 : -1;
+        const Side side = tie_side(agent);  // straight in line with it, either way
+        const int dx = agent.x == threat.x ? side.x : agent.x > threat.x ? 1 : -1;
+        const int dy = agent.y == threat.y ? side.y : agent.y > threat.y ? 1 : -1;
         if (!step(agent, py_mod(agent.x + dx, width_), within(agent.y + dy))) break;
         ++cells;
     }

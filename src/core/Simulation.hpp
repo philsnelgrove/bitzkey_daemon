@@ -808,6 +808,12 @@ public:
     bool ended() const { return end_reason() != EndReason::None; }
 
     // The rest is public so tests can drive single steps, as the Python tests do.
+    // Which way an animal breaks ties between targets equally near, or flees one straight in line: east (1) or west (-1),
+    // south (1) or north (-1), turning with its number and the turn, so no way is favoured.
+    struct Side {
+        int x, y;
+    };
+    Side tie_side(const Bitzkey& agent) const;
     void take_turn();
     // The rows a group's centre may fall in whose usual temperature is `home`, or nearest it: a very cold
     // home has no zone of its own outside the winters, so it takes the arctic.

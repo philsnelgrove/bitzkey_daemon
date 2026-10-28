@@ -1991,3 +1991,21 @@ TEST_CASE("a large body costs: it is hungrier, starves faster, matures later, an
     CHECK(huge.health < huge_health);
     SMALL_HIDING = 0.0;
 }
+
+TEST_CASE("ties between targets equally near favour no side: east and west, north and south, each half the time") {
+    Simulation simulation = world();
+    simulation.grass_cell(4, 5) = simulation.grass_cell(6, 5) = 1;  // west and east, one step each
+    std::set<int> columns, sides;
+    for (int index = 0; index < 4; ++index) {
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+        columns.insert(simulation.sense(grazer).situation.grass->x);
+        sides.insert(simulation.tie_side(grazer).x * 2 + simulation.tie_side(grazer).y);
+    }
+    CHECK(columns == std::set<int>{4, 6});
+    CHECK(sides.size() == 4);  // four animals in a row: every pairing of east or west with north or south
+    simulation.clear_grass();
+    simulation.grass_cell(5, 4) = simulation.grass_cell(5, 6) = 1;  // north and south
+    std::set<int> rows;
+    for (int index = 0; index < 4; ++index) rows.insert(simulation.sense(simulation.add_agent(encode_dna(Species::Grazer), 5, 5)).situation.grass->y);
+    CHECK(rows == std::set<int>{4, 6});
+}
