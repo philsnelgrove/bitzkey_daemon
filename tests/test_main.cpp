@@ -30,6 +30,7 @@ struct Grown : doctest::IReporter {
         bitzkey::GRASS_OUTLOOK = 150;
         bitzkey::MEMORY_TURNS = 100;
         bitzkey::SOCIAL_MEMORY = 0.8;
+        bitzkey::WEATHER_GRACE = 0.0;  // the weather harms a test's animals at once, unless a test says so
         bitzkey::SMALL_HIDING = 0.0;  // a test's hunter strikes what it strikes at, unless a test says so
     }
     void report_query(const doctest::QueryData&) override {}

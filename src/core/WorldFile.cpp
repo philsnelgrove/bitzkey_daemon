@@ -201,6 +201,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"alarm", optional_value(agent.alarm)},
         {"kill_alert", agent.kill_alert ? json::array({agent.kill_alert->x, agent.kill_alert->y}) : json(nullptr)},
         {"seen_success", agent.seen_success}, {"seen_failure", agent.seen_failure},
+        {"weathered", agent.weathered},
         {"herd_assailant", optional_value(agent.herd_assailant)},
         {"food_memory", agent.food_memory ? json::array({agent.food_memory->x, agent.food_memory->y, agent.food_memory->turn})
                                           : json(nullptr)},
@@ -271,6 +272,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     if (const json& alert = record.at("kill_alert"); !alert.is_null()) agent->kill_alert = Cell{alert.at(0).get<int>(), alert.at(1).get<int>()};
     agent->seen_success = record.at("seen_success").get<double>();
     agent->seen_failure = record.at("seen_failure").get<double>();
+    agent->weathered = record.value("weathered", 0.0);  // worlds saved before the weather's grace
     agent->herd_assailant = optional_int(record.at("herd_assailant"));
     for (const auto& [name, place] : {std::pair{"food_memory", &agent->food_memory}, std::pair{"danger_memory", &agent->danger_memory}}) {
         if (const json& value = record.at(name); !value.is_null()) *place = Place{value.at(0).get<int>(), value.at(1).get<int>(), value.at(2).get<int>()};

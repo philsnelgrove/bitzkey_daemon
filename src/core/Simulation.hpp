@@ -422,6 +422,7 @@ inline double POLAR_SHARE = 0.025;  // at the top and again at the bottom: 5% of
 inline double WINTER_EQUATOR_SHARE = 0.05;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
 inline double CLIMATE_DAMAGE = 0.025;  // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
+inline double WEATHER_GRACE = 4.0;  // days an animal endures out of its temperature, uneasy but unharmed, before the weather harms it; half as long for the least resilient, half as long again for the most
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
 inline int GRASS_DIEBACK = 60;     // where it isn't medium, a cell's grass loses a tuft every this many turns
 // The weather turns in waves, one in each climate zone, all setting off together, so no zone waits on
@@ -533,6 +534,7 @@ struct Bitzkey {
     std::optional<Cell> kill_alert;     // where a pack-mate alerted it to a fresh kill since it last acted
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
+    double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
     std::optional<int> herd_assailant;  // what struck a herd-mate close by, from alongside it
     std::optional<Place> food_memory;    // where it last fed
     std::optional<Place> danger_memory;  // where it was last struck

@@ -852,7 +852,10 @@ void Simulation::take_turn() {
         // A tenth of its health a step, part steps in part; a plant takes one step in its stride, and is
         // hurt more and more as the weather turns toward a second, to full harm two away.
         const double felt = plant ? std::max(0.0, std::min(steps, 2 * (steps - 1))) : steps;
-        if (felt > 0) agent->health -= CLIMATE_DAMAGE * felt * share * agent->max_health;
+        // An animal endures the weather awhile, uneasy but unharmed, the more resilient the longer.
+        const double grace = plant ? 0.0 : WEATHER_GRACE * DAY_LENGTH * (0.5 + agent->feeling(Resilience));
+        agent->weathered = felt > 0 ? agent->weathered + 1 : std::max(0.0, agent->weathered - 1);
+        if (felt > 0 && agent->weathered > grace) agent->health -= CLIMATE_DAMAGE * felt * share * agent->max_health;
         const bool starving = agent->hunger >= 100;
         if (starving) agent->health -= STARVING_DAMAGE * (1 + SIZE_STARVING * agent->physique(Size)) * agent->max_health;  // it wastes away, the larger the faster
         if (agent->health <= 0) {  // starving, and hungrier out of its temperature, it died of exposure

@@ -247,6 +247,25 @@ TEST_CASE("a step from home doubles an animal's food, and two steps also hurt") 
     CHECK(two_away.health < 0.83 * two_away.max_health);
 }
 
+TEST_CASE("an animal endures the weather unharmed through its grace, the more resilient the longer, and regains it at home") {
+    const HarshClimate harsh;
+    WEATHER_GRACE = 1.0;  // a day: twelve turns for the least resilient, thirty-six for the most
+    Simulation simulation = world_at(239);
+    Bitzkey& frail = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 30, 30);
+    Bitzkey& stoic = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 50, 30);
+    frail.mind[Resilience] = 0;
+    stoic.mind[Resilience] = 7;
+    for (Bitzkey* agent : {&frail, &stoic}) agent->weathered = 12;  // its grace spent, for the least resilient
+    simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+    simulation.take_turn();
+    CHECK(frail.health < 0.93 * frail.max_health);  // past its grace: harmed
+    CHECK(stoic.health == stoic.max_health);        // uneasy, but unharmed
+    CHECK(stoic.weathered == 13);
+    stoic.climate.temperature = Medium;  // home again
+    simulation.take_turn();
+    CHECK(stoic.weathered == 12);  // a turn of grace regained
+}
+
 TEST_CASE("starving out of its temperature is dying of exposure") {
     Simulation simulation = world_at(240);
     Bitzkey& away = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 20, 50);  // on the equator: too hot
