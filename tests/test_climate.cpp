@@ -264,6 +264,16 @@ TEST_CASE("an animal endures the weather unharmed through its grace, the more re
     stoic.climate.temperature = Medium;  // home again
     simulation.take_turn();
     CHECK(stoic.weathered == 12);  // a turn of grace regained
+    Bitzkey& hardy = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"heat_tolerance", 1}}), 70, 30);  // the medium row is hotter than its home
+    hardy.mind[Resilience] = 0;
+    hardy.weathered = 12;  // past the grace of the least resilient, but twice that hardy to the heat
+    simulation.take_turn();
+    CHECK(hardy.health == hardy.max_health);
+    frail.climate.cold = true;  // hardy to the cold, not the heat it is out in
+    frail.health = frail.max_health;
+    frail.weathered = 12;
+    simulation.take_turn();
+    CHECK(frail.health < frail.max_health);
 }
 
 TEST_CASE("starving out of its temperature is dying of exposure") {
