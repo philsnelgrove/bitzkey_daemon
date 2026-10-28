@@ -1798,6 +1798,9 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
     for (ActingTile& tile : tiles) {
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
+    for (ActingTile& tile : tiles) {
+        for (const auto& [parent, young] : tile.feeding) feed_young(*parent, young);
+    }
     return true;
 }
 
@@ -1981,6 +1984,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     const double fed_at = remembered(agent, agent.food_memory);
     if (agent.food_memory) s.revisit = Cell{agent.food_memory->x, agent.food_memory->y};
     available[Revisit] = fed_at > 0 && !(s.revisit->x == agent.x && s.revisit->y == agent.y);  // back to where it last fed
+    // Its own infants within its sight, which it may feed once one of them is hungry.
+    if (agent.children) {
+        for (Bitzkey* other : around(agent, sight)) {
+            if ((other->mother == agent.identifier || other->father == agent.identifier) && other->infant()) s.young.push_back(other);
+        }
+    }
+    available[FeedYoung] = !agent.infant() && std::any_of(s.young.begin(), s.young.end(), [](const Bitzkey* child) { return child->hunger >= FEED_HUNGER; });
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -2038,12 +2048,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseHomeFood] = home_food_sense(agent);
     senses[SenseHomeDirection] = home ? (home->y > agent.y ? 1.0 : -1.0) : 0.0;
     senses[SenseHomeDistance] = home_distance;
-    int young = 0;  // its own young, still infants, within its sight
-    if (agent.children) {
-        for (const Bitzkey* other : around(agent, sight)) {
-            young += (other->mother == agent.identifier || other->father == agent.identifier) && other->infant();
-        }
-    }
+    const int young = static_cast<int>(s.young.size());  // its own young, still infants, within its sight
     senses[SenseYoungNear] = std::min(3, young) / 3.0;
     senses[SenseSeaHere] = agent.wet;
     senses[SenseStamina] = agent.stamina / FULL_STAMINA;
@@ -2315,6 +2320,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             move_toward(agent, s.revisit->x, s.revisit->y);
             agent.last_action = "revisited";
             break;
+        case FeedYoung:
+            feed_young(agent, s.young);
+            break;
         case GoNorth:
         case GoSouth:
         case GoEast:
@@ -2380,6 +2388,21 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
         die(plant, "uprooted", &agent, "uprooting");
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
+    }
+}
+
+void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young) {
+    // Its infants within its sight are fed full, at no cost to it, and it is glad of it, the more the hungrier they
+    // were. Its young may lie in other tiles, so a parent feeds them once every tile has acted.
+    parent.last_action = "fed its young";
+    if (acting_) {
+        acting_->feeding.emplace_back(&parent, young);
+        return;
+    }
+    for (Bitzkey* child : young) {
+        if (!child->alive()) continue;
+        parent.reward += FEEDING_JOY * (0.5 + parent.feeling(Empathy)) * std::min(100.0, child->hunger) / 100;
+        child->hunger = 0;
     }
 }
 

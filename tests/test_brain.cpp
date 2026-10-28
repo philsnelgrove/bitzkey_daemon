@@ -291,11 +291,11 @@ TEST_CASE("a child's brain is its parents' nudged by normal mutations of the mut
 TEST_CASE("a child's brain is made exactly as the Python version makes it from the same seed") {
     PyRandom rng(7);
     const Brain first = Brain::random(rng, 2, 40), second = Brain::random(rng, 3, 45);
-    const Brain child = Brain::inherit(first, second, rng, 3, 45);
+    const Brain child = Brain::inherit(first, second, rng, 3, 45, 0.05);
     const std::vector<double> found = {child.layers[0].row(3)[11], child.layers[0].row(44)[89], child.layers[1].biases[20],
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
-    CHECK(found == std::vector<double>{-0.14411972319226085, 0.028635322352853272, 0.02765551971214163, -0.22395272119116622,
-                                       -0.1644552763290203, -0.0361372212601713});
-    CHECK(rng.random() == 0.9146720129959067);  // one draw of the world's for the child
+    CHECK(found == std::vector<double>{-0.15983579101927251, 0.092250751175896234, -0.097734976568545115, -0.097151955572367998,
+                                       -0.011420547423109582, -0.019905365281007829});
+    CHECK(rng.random() == 0.20169522729508749);  // one draw of the world's for the child
 }

@@ -83,12 +83,12 @@ enum Sense : int {
     SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert, Revisit };
-constexpr int ACTION_COUNT = 24;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert, Revisit, FeedYoung };
+constexpr int ACTION_COUNT = 25;
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west", "alert",
-    "revisit"};
+    "revisit", "feed_young"};
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
 constexpr int SenseBody = SenseInborn + TEMPERAMENT_COUNT;  // then its ring's traits, 0..1 (species 0 plant to 1 predator)
 constexpr int SenseHomeTemperature = SenseBody + BODY_TRAIT_COUNT;  // then its climate genes: home 0 hot to 1 very cold,
@@ -122,7 +122,7 @@ constexpr int BASE_WIDTH = 38;  // neurons in each hidden layer, up to an intell
 constexpr int WIDTH_STEP = 5;   // neurons more in each layer for each point of intellect beyond MAX_DEPTH
 constexpr int MAX_WIDTH = BASE_WIDTH + WIDTH_STEP * (TRAIT_MAX - MAX_DEPTH);
 inline double TEMPERATURE = 0.2;
-inline double MUTATION = 0.05;
+inline double MUTATION = 0.0;
 inline double SMART_TRACE_DECAY = 0.95;  // lambda at the highest intellect: the clever trace credit further back
 inline double PATIENT_DISCOUNT = 0.99;  // gamma at the highest patience: how far ahead the patient look
 inline double IMPATIENT_DISCOUNT = 0.9;  // and at the lowest: even the least patient look some ten turns ahead

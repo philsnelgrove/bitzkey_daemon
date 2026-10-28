@@ -234,6 +234,9 @@ const std::vector<Scenario>& scenarios() {
         {"Starving, food scarce, a plant beside them",
          {{SenseHunger, 0.85}, {SenseHealth, 1}, {SensePlantCloseness, 1}, {SenseAge, 0.2}},
          {Uproot, Browse, Rest, GoEast, GoWest}, GRAZER_ONLY},
+        {"Fed and safe, its hungry infants about it",
+         {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseYoungNear, 2.0 / 3}, {SenseAge, 0.3}},
+         {FeedYoung, Rest, GoEast, GoWest}, ANIMAL_LIST},
         {"Nothing around", {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseAge, 0.2}}, {Rest, GoEast, GoWest}, ANIMAL_LIST},
     };
     return list;
@@ -394,7 +397,7 @@ namespace {
 constexpr std::array<std::string_view, 4> SPECIES_ORDER = {"plant", "grazer", "omnivore", "predator"};
 constexpr std::array<std::string_view, ACTION_COUNT> SHORT_ACTIONS = {
     "eat", "forage", "browse", "uproot", "scaven", "feast", "rest", "court", "breed", "hunt", "attack", "defend", "flee", "herd",
-    "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "alert"};
+    "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "alert", "revisit", "feed"};
 constexpr int CELL = 7;        // characters to a column of figures
 constexpr int SITUATION = 42;  // characters to the situations' column
 

@@ -12,7 +12,7 @@
 
 const uint INPUTS = 105u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
-const uint ACTIONS = 24u;
+const uint ACTIONS = 25u;
 const uint MAX_DEPTH = 4u;
 const uint THREADS = 64u;
 

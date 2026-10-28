@@ -95,6 +95,8 @@ struct Reader {
     // For a world saved with other senses: how many it saved, and where each sensed now lies among them, or -1.
     std::size_t saved_inputs = INPUT_SIZE;
     std::vector<int> sense_from;
+    // For a world saved before the latest actions were added (they are only ever added at the end): how many it saved.
+    std::size_t saved_actions = ACTION_COUNT;
 
     // One set of saved senses at `at`, or one neuron's weights from them, as this version's senses.
     void read_senses(std::size_t at, double* into) const {
@@ -128,13 +130,16 @@ struct Reader {
             at += neurons;
             layers.push_back(std::move(layer));
         }
-        for (auto& row : output_weights) {
-            row.resize(neurons);
+        for (std::size_t action = 0; action < output_weights.size(); ++action) {  // an action added since starts unweighted
+            std::vector<double>& row = output_weights[action];
+            row.assign(neurons, 0.0);
+            if (action >= saved_actions) continue;
             std::memcpy(row.data(), take(at, neurons), sizeof(double) * neurons);
             at += neurons;
         }
-        std::memcpy(output_biases.data(), take(at, ACTION_COUNT), sizeof(double) * ACTION_COUNT);
-        at += ACTION_COUNT;
+        output_biases.fill(0.0);
+        std::memcpy(output_biases.data(), take(at, saved_actions), sizeof(double) * saved_actions);
+        at += saved_actions;
     }
     // The brain saved at `record`, resized to fit the genome `dna` if it was saved another shape.
     std::shared_ptr<Brain> brain(const json& record, Dna dna) const {
@@ -495,9 +500,15 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             throw std::runtime_error("This world file is format " + record.value("format", json(nullptr)).dump() + "; this version reads format " +
                                      std::to_string(WORLD_FORMAT) + ".");
         }
-        if (record.at("actions") != names(ACTIONS) || record.at("temperament") != names(TEMPERAMENT)) {
+        // Actions are only ever added at the end, so a world saved before one was added holds the first of them.
+        const json& actions = record.at("actions");
+        const json now_actions = names(ACTIONS);
+        const bool earlier = actions.is_array() && actions.size() <= now_actions.size() &&
+                             std::equal(actions.begin(), actions.end(), now_actions.begin());
+        if (!earlier || record.at("temperament") != names(TEMPERAMENT)) {
             throw std::runtime_error("This world was saved by a version of Bitzkey whose brains sense or act differently.");
         }
+        reader.saved_actions = actions.size();
         // Brains saved with other senses are read by name: a sense they lacked starts with no weight, and
         // one no longer sensed is let go.
         if (const json& saved = record.at("senses"); saved != names(SENSES)) {

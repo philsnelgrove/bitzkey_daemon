@@ -2032,3 +2032,31 @@ TEST_CASE("ties between targets equally near favour no side: east and west, nort
     for (int index = 0; index < 4; ++index) rows.insert(simulation.sense(simulation.add_agent(encode_dna(Species::Grazer), 5, 5)).situation.grass->y);
     CHECK(rows == std::set<int>{4, 6});
 }
+
+TEST_CASE("a parent feeds its hungry infants within its sight full, at no cost to it, and is glad of it") {
+    FEEBLE_YOUTH = 1.0 / 30;  // infants again
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hungry = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    Bitzkey& peckish = simulation.add_agent(encode_dna(Species::Grazer), 10, 11);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer), 9, 10);
+    parent.age = static_cast<int>(parent.lifespan / 2);
+    parent.children = 2;
+    for (Bitzkey* child : {&hungry, &peckish}) child->mother = parent.identifier;
+    for (Bitzkey* young : {&hungry, &peckish, &stranger}) young->age = 0;
+    hungry.hunger = 80;
+    peckish.hunger = 10;
+    stranger.hunger = 90;
+    parent.hunger = 40;
+    parent.reward = 0;
+    auto sensed = simulation.sense(parent);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), FeedYoung) != sensed.options.end());
+    simulation.act(parent, FeedYoung, sensed.situation);
+    CHECK((hungry.hunger == 0 && peckish.hunger == 0));  // its own, all fed full
+    CHECK(stranger.hunger == 90);                        // not another's
+    CHECK(parent.hunger == 40);                          // at no cost
+    CHECK(parent.reward == doctest::Approx(FEEDING_JOY * (0.5 + parent.feeling(Empathy)) * 0.9));
+    CHECK(parent.last_action == "fed its young");
+    auto again = simulation.sense(parent);
+    CHECK(std::find(again.options.begin(), again.options.end(), FeedYoung) == again.options.end());  // none hungry now
+}

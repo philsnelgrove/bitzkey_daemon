@@ -123,6 +123,8 @@ std::vector<Rule> make_rules() {
         {"FEAR_DREAD", "Feelings", "Fear dread", "dread of hunters nearby, scaled by fear", 0.0, 5.0, 0.05, false, &FEAR_DREAD},
         {"UNEASE", "Feelings", "Unease", "how much an intolerant animal minds other species close by", 0.0, 5.0, 0.05, false, &UNEASE},
         {"CLIMATE_UNEASE", "Feelings", "Climate unease", "discomfort two steps from home, half that one step; less if hardy", 0.0, 5.0, 0.05, false, &CLIMATE_UNEASE},
+        {"FEEDING_JOY", "Feelings", "Feeding joy", "how glad a parent is of feeding a starving infant of its own, in proportion for one less hungry; more if empathetic", 0.0, 5.0, 0.05, false, &FEEDING_JOY},
+        {"FEED_HUNGER", "Breeding", "Feeding hunger", "how hungry one of its infants within its sight must be for a parent to feed them all, at no cost to it", 0.0, 100.0, 5.0, false, &FEED_HUNGER},
         {"PARENT_JOY", "Feelings", "Parent joy", "how glad a parent is of three or more of its own infants within its sight; more if empathetic", 0.0, 5.0, 0.05, false, &PARENT_JOY},
         {"PREGNANT_REMORSE", "Feelings", "Pregnant remorse", "how much a hunter regrets killing a mother carrying young; more if empathetic", 0.0, 10.0, 0.1, false, &PREGNANT_REMORSE},
         {"PARENT_GRIEF", "Feelings", "Parent grief", "how much a parent grieves when one of its infants dies, wherever; more if empathetic", 0.0, 10.0, 0.1, false, &PARENT_GRIEF},

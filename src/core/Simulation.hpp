@@ -184,6 +184,8 @@ inline double EMPATHY_PAIN = 0.15;
 // and a half times as much with its empathy. Neither tells it what to do: what keeps its young alive is for its
 // brain to learn.
 inline double PARENT_JOY = 0.3;
+inline double FEEDING_JOY = 0.2;  // how glad a parent is of feeding a starving infant of its own, and in proportion for one less hungry; more if empathetic
+inline double FEED_HUNGER = 25.0;  // a parent may feed its infants within its sight once one of them is this hungry
 inline double PARENT_GRIEF = 2.0;
 // A hunter that kills a mother carrying young feels remorse, by half again and up to one and a half times as much
 // with its empathy: a lesson, not a law.
@@ -848,6 +850,7 @@ public:
         Bitzkey* flora = nullptr;
         Bitzkey* alert_to = nullptr;  // what it may alert its herd to
         std::optional<Cell> revisit;  // where it last fed, to go back to
+        std::vector<Bitzkey*> young;  // its own infants within its sight, to feed
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
         int kin = 0;
@@ -952,7 +955,8 @@ public:
     void uproot(Bitzkey& agent, Bitzkey& plant);
     // The climate zones from top to bottom, each the rows it covers outside the winters.
     std::vector<std::vector<int>> zones() const;
-    void alert(Bitzkey& agent, const Bitzkey& about);  // alert its herd to a hunter, or a fresh kill
+    void alert(Bitzkey& agent, const Bitzkey& about);
+    void feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young);  // its infants about it fed full, at no cost to it  // alert its herd to a hunter, or a fresh kill
     void scavenge(Bitzkey& agent, Bitzkey& corpse);
     void feast(Bitzkey& agent, Bitzkey& corpse);
     void eat_portion(Bitzkey& corpse);  // a portion of a body eaten: once the last is, the body is gone at the turn's end
@@ -1245,6 +1249,7 @@ private:
         std::vector<DeathNote> deaths;
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
+        std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<Conception> conceptions;
         std::vector<std::shared_ptr<Brain>> dead_brains;
         int kills = 0, kills_gone = 0, carrion_gone = 0;
