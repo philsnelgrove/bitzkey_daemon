@@ -405,7 +405,7 @@ Simulation::Simulation(Settings settings)
         std::random_device device;
         seed = (static_cast<std::uint64_t>(device()) << 32) | device();
     }
-    random_.seed(seed);
+    rng().seed(seed);
     if (!(0 <= settings.ocean && settings.ocean <= 100)) throw std::invalid_argument("The sea must cover between 0 and 100 percent.");
     ocean_ = settings.ocean;
     if (ocean_ > 0) make_sea(ocean_, seed);
@@ -422,14 +422,14 @@ Simulation::Simulation(Settings settings)
     sow(initial_grass);
     const std::vector<int> sizes = group_sizes(settings.population);
     std::vector<int> species;
-    for (std::size_t group = 0; group < sizes.size(); ++group) species.push_back(static_cast<int>(random_.randrange(4)));
+    for (std::size_t group = 0; group < sizes.size(); ++group) species.push_back(static_cast<int>(rng().randrange(4)));
     const std::vector<std::vector<int>> homes = plant_homes(species);
     for (std::size_t group = 0; group < sizes.size(); ++group) {
-        spawn_group(make_dna(random_, species[group]), sizes[group], nullptr, std::nullopt, true, homes[group]);
+        spawn_group(make_dna(rng(), species[group]), sizes[group], nullptr, std::nullopt, true, homes[group]);
     }
     if (settings.population > 0) spawn_biomes();
     for (const Imported& bitzkey : settings.imported) {
-        spawn_group(bitzkey.dna, static_cast<int>(random_.randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
+        spawn_group(bitzkey.dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
                     bitzkey.mind);
     }
     take_census();
@@ -459,7 +459,7 @@ std::vector<int> Simulation::group_sizes(int population) {
     std::vector<int> sizes;
     int remaining = population;
     while (remaining > largest) {
-        const int size = static_cast<int>(random_.randint(smallest, std::min(largest, remaining - smallest)));
+        const int size = static_cast<int>(rng().randint(smallest, std::min(largest, remaining - smallest)));
         sizes.push_back(size);
         remaining -= size;
     }
@@ -590,23 +590,23 @@ void Simulation::spawn_biomes() {
         const bool wet = sea(biome.front().x, biome.front().y);
         const int home = zone_temperature(biome.front().y, height_);
         for (int group = 0; group < BIOME_GROUPS; ++group) {
-            Dna dna = make_dna(random_, static_cast<int>(random_.randrange(4)));
+            Dna dna = make_dna(rng(), static_cast<int>(rng().randrange(4)));
             dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;
             // The first the surface's own; the rest any terrain that may live there.
             static constexpr std::array<Terrain, 3> land = {Terrain::Terrestrial, Terrain::Avian, Terrain::Amphibious};
             static constexpr std::array<Terrain, 3> water = {Terrain::Aquatic, Terrain::Avian, Terrain::Amphibious};
             const auto& fitting = wet ? water : land;
-            dna = with_terrain(dna, group == 0 ? fitting[0] : fitting[static_cast<std::size_t>(random_.randrange(3))]);
-            spawn_group(dna, static_cast<int>(random_.randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), nullptr, std::nullopt, true, {}, &biome);
+            dna = with_terrain(dna, group == 0 ? fitting[0] : fitting[static_cast<std::size_t>(rng().randrange(3))]);
+            spawn_group(dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), nullptr, std::nullopt, true, {}, &biome);
         }
     }
 }
 
 std::optional<Cell> Simulation::group_centre(Terrain terrain, const std::vector<int>& rows) {
     for (int tries = 0; tries < 1000; ++tries) {
-        const int x = static_cast<int>(random_.randrange(SPAWN_SPREAD, width_ - SPAWN_SPREAD));
-        const int y = rows.empty() ? static_cast<int>(random_.randrange(SPAWN_SPREAD, height_ - SPAWN_SPREAD))
-                                   : rows[static_cast<std::size_t>(random_.randrange(static_cast<std::int64_t>(rows.size())))];
+        const int x = static_cast<int>(rng().randrange(SPAWN_SPREAD, width_ - SPAWN_SPREAD));
+        const int y = rows.empty() ? static_cast<int>(rng().randrange(SPAWN_SPREAD, height_ - SPAWN_SPREAD))
+                                   : rows[static_cast<std::size_t>(rng().randrange(static_cast<std::int64_t>(rows.size())))];
         if (suits(terrain, Cell{x, y})) return Cell{x, y};
     }
     return std::nullopt;
@@ -620,13 +620,13 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
     if (native && !has_sea()) dna = with_terrain(dna, Terrain::Terrestrial);
     const std::vector<int> rows = !given_rows.empty() || !SPAWN_AT_HOME ? given_rows : home_rows(decode_climate(dna).temperature);
     const Terrain terrain = decode_terrain(dna);
-    const std::optional<Cell> centre = biome ? (*biome)[static_cast<std::size_t>(random_.randrange(static_cast<std::int64_t>(biome->size())))]
+    const std::optional<Cell> centre = biome ? (*biome)[static_cast<std::size_t>(rng().randrange(static_cast<std::int64_t>(biome->size())))]
                                              : group_centre(terrain, rows);
     if (!centre) return;  // nowhere it could live
     const int x = centre->x, y = centre->y;
     if (native) {  // tolerance is rare at the start
         for (const std::uint64_t flag : {HEAT_TOLERANCE, COLD_TOLERANCE}) {
-            dna.bits = random_.random() < STARTING_TOLERANCE ? dna.bits | flag : dna.bits & ~flag;
+            dna.bits = rng().random() < STARTING_TOLERANCE ? dna.bits | flag : dna.bits & ~flag;
         }
     }
     if (native && decode_body(dna)[SpeciesTrait] == static_cast<int>(Species::Plant)) {
@@ -635,8 +635,8 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
     }
     const int space = 1 + decode_body(dna)[Size];
     for (int member = 0; member < size; ++member) {
-        const int dx = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-        const int dy = static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+        const int dx = static_cast<int>(rng().randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+        const int dy = static_cast<int>(rng().randint(-SPAWN_SPREAD, SPAWN_SPREAD));
         Cell aim{py_mod(x + dx, width_), y + dy};
         if (biome && std::find(biome->begin(), biome->end(), aim) == biome->end()) aim = Cell{x, y};  // kept in its biome
         if (const auto spot = spot_near(aim, space, terrain)) {  // only where there is room
@@ -655,7 +655,7 @@ Bitzkey& Simulation::add_agent(Dna dna, int x, int y, std::shared_ptr<Brain> bra
     }
     if (agent->species != Species::Plant) {  // plants need no brain
         const auto [depth, width] = brain_shape(agent->dna);
-        if (!brain) brain = std::make_shared<Brain>(Brain::random(random_, depth, width));
+        if (!brain) brain = std::make_shared<Brain>(Brain::random(rng(), depth, width));
         else if (brain->depth() != depth || brain->width() != width) brain = std::make_shared<Brain>(brain->resized(depth, width));
         agent->brain = std::move(brain);
         attach(*agent);
@@ -697,8 +697,8 @@ std::vector<Bitzkey*> Simulation::deploy(const std::vector<Imported>& bitzkeys, 
     for (const Imported& bitzkey : bitzkeys) {
         const int space = 1 + decode_body(bitzkey.dna)[Size];
         for (int member = 0; member < DEPLOY_GROUP; ++member) {
-            const int cell_x = x + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
-            const int cell_y = y + static_cast<int>(random_.randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+            const int cell_x = x + static_cast<int>(rng().randint(-SPAWN_SPREAD, SPAWN_SPREAD));
+            const int cell_y = y + static_cast<int>(rng().randint(-SPAWN_SPREAD, SPAWN_SPREAD));
             if (const auto spot = spot_near(Cell{cell_x, cell_y}, space, decode_terrain(bitzkey.dna))) {  // only where there is room
                 deployed.push_back(&add_agent(bitzkey.dna, spot->x, spot->y, bitzkey.brain ? std::make_shared<Brain>(*bitzkey.brain) : nullptr,
                                               bitzkey.mind));
@@ -786,7 +786,7 @@ void Simulation::take_turn() {
     plants_ = static_cast<int>(std::count_if(order.begin(), order.end(),
                                              [](const Bitzkey* agent) { return agent->species == Species::Plant; }));
     population_ = static_cast<int>(order.size()) - plants_;
-    random_.shuffle(order);
+    rng().shuffle(order);
     // What each needs that no other changes this turn's upkeep, on every core at once: whether its season to breed has
     // come, and the living parents near enough to shelter it (positions stay put until the animals act, so only
     // whether they are still alive when its turn comes is left to see).
@@ -873,14 +873,14 @@ void Simulation::take_turn() {
     wither_grass();
     const double whole = std::floor(grass_regrowth_);
     const double fraction = grass_regrowth_ - whole;
-    sow(static_cast<int>(whole) + ((fraction != 0.0 && random_.random() < fraction) ? 1 : 0));
+    sow(static_cast<int>(whole) + ((fraction != 0.0 && rng().random() < fraction) ? 1 : 0));
     for (auto& agent : agents_) {
         // no longer fresh by next turn: it rots
         if (agent->died_turn && turn_ - *agent->died_turn >= FRESH_KILL_TURNS) agent->meat = std::max(0.0, agent->meat - agent->rot);
     }
     for (const auto& agent : agents_) {  // bodies rotted away, not eaten to the last portion, may feed a new plant
         if (agent->died_turn && turn_ - *agent->died_turn >= CORPSE_TURNS && agent->species != Species::Plant && agent->portions > 0 &&
-            CORPSE_PLANT && random_.random() < CORPSE_PLANT) {
+            CORPSE_PLANT && rng().random() < CORPSE_PLANT) {
             seed_corpse(*agent);
         }
     }
@@ -1137,18 +1137,18 @@ void Simulation::seed_plant(Bitzkey& plant) {
     // Plants compete for light: the more plants grow within LIGHT_RADIUS, the less likely a plant
     // is to seed, and with LIGHT_LIMIT it doesn't.
     const double least = SEED_CHANCE[0], most = SEED_CHANCE[1];
-    const double roll = random_.random();
+    const double roll = rng().random();
     const double chance = least + (most - least) * plant.physique(Fertility);
     if (roll >= chance) return;
     int shade = 0;
     for (const Bitzkey* other : around(plant, LIGHT_RADIUS)) shade += other->species == Species::Plant;
     if (roll >= chance * std::max(0.0, 1 - static_cast<double>(shade) / LIGHT_LIMIT)) return;
     const int reach = plant.terrain == Terrain::Avian ? std::min(MAX_SIGHT, static_cast<int>(SEED_REACH * AVIAN_SEED_REACH)) : SEED_REACH;
-    const Offset offset = SIGHT_OFFSETS[static_cast<std::size_t>(random_.randrange(seed_offsets(reach)))];
+    const Offset offset = SIGHT_OFFSETS[static_cast<std::size_t>(rng().randrange(seed_offsets(reach)))];
     if (plant.y + offset.dy < 0 || plant.y + offset.dy >= height_) return;  // off the top or bottom of the map: the seed is lost
     const Cell cell{py_mod(plant.x + offset.dx, width_), plant.y + offset.dy};
     if (!room_for_seedling(cell)) return;
-    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, random_, std::nullopt, mind_mutation_, body_mutation_, has_sea()));
+    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, rng(), std::nullopt, mind_mutation_, body_mutation_, has_sea()));
     if (!suits(decode_terrain(dna), cell)) return;  // fallen in the sea, or on the land, where it can't grow
     plant.hunger += SEED_COST;
     plant.children += 1;
@@ -1181,7 +1181,7 @@ void Simulation::nurse(Bitzkey& agent) {
 void Simulation::seed_corpse(const Bitzkey& corpse) {
     // A random plant genome, at home in the temperature where the body lay, and in its sea or on its land; it sprouts
     // as any seed does.
-    Dna dna = make_dna(random_, static_cast<int>(Species::Plant));
+    Dna dna = make_dna(rng(), static_cast<int>(Species::Plant));
     dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) |
                static_cast<std::uint64_t>(zone_temperature(corpse.y, height_)) << TEMPERATURE_SHIFT;
     dna = with_terrain(dna, sea(corpse.x, corpse.y) ? Terrain::Aquatic : Terrain::Terrestrial);
@@ -1269,8 +1269,8 @@ void Simulation::sow(int tufts) {
         }
     }
     for (int tuft = 0; tuft < tufts; ++tuft) {
-        const int x = static_cast<int>(random_.randrange(width_));
-        const auto reached = std::upper_bound(grass_reach_.begin(), grass_reach_.end(), random_.random() * grass_reach_.back());
+        const int x = static_cast<int>(rng().randrange(width_));
+        const auto reached = std::upper_bound(grass_reach_.begin(), grass_reach_.end(), rng().random() * grass_reach_.back());
         const std::size_t row = std::min(static_cast<std::size_t>(reached - grass_reach_.begin()), grass_rows_.size() - 1);
         const int y = grass_rows_[row];
         const std::size_t at = static_cast<std::size_t>(y) * width_ + x;
@@ -1488,7 +1488,7 @@ bool Simulation::dies_of_age(Bitzkey& agent) {
     const double onset = AGEING * agent.lifespan;
     if (agent.age <= onset) return false;
     const double steepness = 2 * std::log(2.0) / std::pow(agent.lifespan - onset, 2.0);
-    return random_.random() < steepness * (agent.age - onset);
+    return rng().random() < steepness * (agent.age - onset);
 }
 
 void Simulation::think(Bitzkey& agent) { think_all({&agent}); }
@@ -1580,7 +1580,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         std::vector<int>& options = plans[index].options;
         if (primal_fear(agent, situation.hunter)) {
             // Overcome: it panics, fleeing the hunter, or freezes where it stands, whatever its brain wants.
-            if (random_.random() < PRIMAL_FREEZE * (1 - agent.intelligence())) {
+            if (rng().random() < PRIMAL_FREEZE * (1 - agent.intelligence())) {
                 situation.frozen = true;
                 options = {Rest};
             } else {
@@ -1593,7 +1593,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             situation.panic = true;
             options = {Flee};
         }
-        rolls[index] = random_.random();
+        rolls[index] = rng().random();
     }
     std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
         Bitzkey& agent = *agents[index];
@@ -1676,7 +1676,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         sync(breeding);
     }
     timings.choose += lap(clock);
-    for (std::size_t index = 0; index < agents.size(); ++index) {  // each in turn, in the world as those before it left it
+    const bool tiled = act_in_tiles(agents, choices, plans);
+    if (tiled) clock = std::chrono::steady_clock::now();
+    for (std::size_t index = 0; !tiled && index < agents.size(); ++index) {  // each in turn, in the world as those before it left it
         if (!agents[index]->alive()) continue;
         act(*agents[index], choices[index], plans[index].situation);
         const double took = lap(clock);
@@ -1692,6 +1694,74 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     const double witnessed = lap(clock);
     timings.witnessed += witnessed;
     timings.act += witnessed;
+}
+
+thread_local Simulation::ActingTile* Simulation::acting_ = nullptr;
+
+bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans) {
+    // The map parted into tiles, coloured as a chessboard of four colours, the tiles of a colour acting all at once, a
+    // colour at a time. A tile is wider than what an animal acting may touch (as far as it goes, and a little more for
+    // a blow and those beside it) and what it may look at (as far as it sees), together, so no two tiles acting at once
+    // touch, or look at, the same squares or animals. Within a tile, its animals act in the turn's order, by the
+    // tile's own stream of chance, drawn from the world's in the tiles' order. What reaches further (the herds' seeing
+    // a death, alarms, parents' grief, conceptions, the deaths' records) is noted and done when all have acted.
+    if (gpu_ || agents.empty()) return false;
+    int fastest = 0;
+    for (const Bitzkey* agent : agents) fastest = std::max(fastest, agent->pace());
+    const int touches = fastest + HUNT_STEPS + 3, looks = std::max({MAX_SIGHT, FORAGE_RADIUS, ALARM_REACH});
+    const int side = touches + looks + 1;
+    int columns = width_ / side;
+    columns -= columns % 2;  // even, so the colours alternate round the east-west wrap
+    const int rows = height_ / side;
+    if (columns < 2 || rows < 1) return false;
+    const int tile_width = width_ / columns, tile_height = height_ / rows;
+    std::vector<ActingTile> tiles(static_cast<std::size_t>(columns * rows));
+    for (ActingTile& tile : tiles) tile.rng.seed(random_.getrandbits(64));
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        const Bitzkey& agent = *agents[index];
+        const int column = std::min(columns - 1, py_mod(agent.x, width_) / tile_width);
+        const int row = std::min(rows - 1, std::max(0, agent.y) / tile_height);
+        tiles[static_cast<std::size_t>(column * rows + row)].members.push_back(index);
+    }
+    for (int colour = 0; colour < 4; ++colour) {
+        std::vector<ActingTile*> now;
+        for (int column = colour % 2; column < columns; column += 2) {
+            for (int row = colour / 2; row < rows; row += 2) now.push_back(&tiles[static_cast<std::size_t>(column * rows + row)]);
+        }
+        std::for_each(std::execution::par, now.begin(), now.end(), [&](ActingTile* tile) {
+            acting_ = tile;
+            auto clock = std::chrono::steady_clock::now();
+            for (const std::size_t index : tile->members) {
+                if (!agents[index]->alive()) continue;
+                act(*agents[index], choices[index], plans[index].situation);
+                const double took = lap(clock);
+                tile->took[static_cast<std::size_t>(choices[index])] += took;
+                tile->taken[static_cast<std::size_t>(choices[index])] += 1;
+                tile->acting += took;
+            }
+            acting_ = nullptr;
+        });
+    }
+    // What reached beyond the tiles, in the tiles' order.
+    for (ActingTile& tile : tiles) {
+        for (const ActingTile::DeathNote& death : tile.deaths) record_death(*death.agent, death.cause, death.killer, death.killer_species, death.activity);
+        kill_count_ = kill_count_ + static_cast<std::size_t>(tile.kills) - static_cast<std::size_t>(tile.kills_gone);
+        carrion_count_ -= static_cast<std::size_t>(tile.carrion_gone);
+        for (auto& brain : tile.dead_brains) dead_brains_.push_back(std::move(brain));
+        for (Conception& young : tile.conceptions) conceptions_.push_back(std::move(young));
+        for (std::size_t action = 0; action < tile.took.size(); ++action) {
+            timings.actions[action] += tile.took[action];
+            timings.taken[action] += tile.taken[action];
+        }
+        timings.act += tile.acting;
+    }
+    for (ActingTile& tile : tiles) {
+        for (const auto& [actor, outcome] : tile.witnessed) witness(*actor, outcome);
+    }
+    for (ActingTile& tile : tiles) {
+        for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
+    }
+    return true;
 }
 
 void Simulation::learn_witnessed() {
@@ -1785,6 +1855,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
+    if (s.suitor) s.suitor_at = Cell{s.suitor->x, s.suitor->y};
     s.flora = seen.flora;
     for (Bitzkey* other : neighbors) {
         if (agent.assailant && other->identifier == *agent.assailant) {
@@ -2017,33 +2088,51 @@ std::vector<Death> Simulation::deaths_so_far() const {
     return deaths;
 }
 
-void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer, std::string_view activity) {
-    const Death& death = death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer ? killer->identifier : -1,
-                                                             killer ? killer->species : Species::Plant, std::string(activity)};
+void Simulation::record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity) {
+    const Death& death = death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer, killer >= 0 ? killer_species : Species::Plant,
+                                                             std::string(activity)};
     death_tally_.add(death);
     death_order_.emplace_back(turn_, agent.identifier);
-    if (killer && !agent.womb.empty() && (killer->species == Species::Predator || killer->species == Species::Omnivore)) {
-        // A hunter that killed a mother carrying young feels remorse for it.
-        Bitzkey* hunter = find_agent(killer->identifier);
-        if (hunter && hunter->alive() && hunter->brain) hunter->reward -= PREGNANT_REMORSE * (0.5 + hunter->feeling(Empathy));
-    }
     if (agent.infant()) {  // its parents grieve, wherever they are, and learn from it what came before
         for (const int identifier : {agent.mother, agent.father}) {
             Bitzkey* parent = identifier >= 0 ? find_agent(identifier) : nullptr;
             if (parent && parent->alive() && parent->brain) parent->reward -= PARENT_GRIEF * (0.5 + parent->feeling(Empathy));
         }
     }
+    deaths_ += 1;
+    death_causes_[static_cast<std::size_t>(agent.species)][std::string(cause)] += 1;
+    if (agent.species == Species::Plant) {
+        plants_ -= 1;
+    } else {
+        population_ -= 1;
+    }
+}
+
+void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* killer, std::string_view activity) {
+    ActingTile* tile = acting_;
+    if (tile) {
+        tile->deaths.push_back({&agent, std::string(cause), killer ? killer->identifier : -1, killer ? killer->species : Species::Plant,
+                                std::string(activity)});
+    } else {
+        record_death(agent, cause, killer ? killer->identifier : -1, killer ? killer->species : Species::Plant, activity);
+    }
+    if (killer && !agent.womb.empty() && (killer->species == Species::Predator || killer->species == Species::Omnivore)) {
+        // A hunter that killed a mother carrying young feels remorse for it.
+        Bitzkey* hunter = find_agent(killer->identifier);
+        if (hunter && hunter->alive() && hunter->brain) hunter->reward -= PREGNANT_REMORSE * (0.5 + hunter->feeling(Empathy));
+    }
     // Its herd sees a sudden death fail; a slow one (old age, starving or the cold or heat) is not its last choice's
     // doing. Its own brain learns nothing from it, as it goes with it.
     if (agent.brain && agent.has_last_senses && !slow_death(cause)) witness(agent, -DEATH_PENALTY);
-    if (agent.brain) dead_brains_.push_back(std::move(agent.brain));
+    std::vector<std::shared_ptr<Brain>>& dead_brains = tile ? tile->dead_brains : dead_brains_;
+    if (agent.brain) dead_brains.push_back(std::move(agent.brain));
     agent.memories.clear();
     if (gpu_ && agent.gpu >= 0) {
         gpu_->detach(agent.gpu);
         agent.gpu = -1;
     }
     for (Bitzkey::Young& young : agent.womb) {  // the young it carried die with it
-        if (young.brain) dead_brains_.push_back(std::move(young.brain));
+        if (young.brain) dead_brains.push_back(std::move(young.brain));
     }
     agent.womb.clear();
     agent.due_turn.reset();
@@ -2056,14 +2145,8 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     agent.portions = agent.species == Species::Plant ? 0 : 1 + agent.trait(Size);
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
-        ++kill_count_;
-    }
-    deaths_ += 1;
-    death_causes_[static_cast<std::size_t>(agent.species)][std::string(cause)] += 1;
-    if (agent.species == Species::Plant) {
-        plants_ -= 1;
-    } else {
-        population_ -= 1;
+        if (tile) ++tile->kills;
+        else ++kill_count_;
     }
 }
 
@@ -2138,10 +2221,14 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             agent.last_action = "rested";
             break;
         case Court: {
+            // Toward where it saw its suitor; the suitor itself is looked at only if it was seen within sight (the
+            // mating call reaches further), as one further off can't come within reach this turn.
             Bitzkey& suitor = *s.suitor;
-            move_toward(agent, suitor.x, suitor.y);
+            const Cell seen = s.suitor_at.value_or(Cell{suitor.x, suitor.y});
+            const bool near = distance(seen.x, seen.y, agent.x, agent.y) <= MAX_SIGHT;
+            move_toward(agent, seen.x, seen.y);
             agent.last_action = "courted";
-            if (suitor.alive() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH && may_breed(agent, suitor)) {
+            if (near && suitor.alive() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH && may_breed(agent, suitor)) {
                 agent.reward += mating_joy(agent, COURT_JOY);  // courted into reach, to breed
             }
             break;
@@ -2263,6 +2350,11 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
     // Its herd within its sight: a grazer alerts them to the hunter it sees, so they may flee it from further
     // than they would; a hunter to the fresh kill it sees, so they may come to feast on it. A herd-mate heeds
     // it only from TRUST_REACH times its trust times its own sight away, or nearer.
+    if (acting_) {
+        acting_->alerts.emplace_back(&agent, &about);
+        agent.last_action = "alerted";
+        return;
+    }
     bool heeded = false;
     for (Bitzkey* other : around(agent, agent.sight)) {
         if (!herd_mate(agent, *other) ||
@@ -2321,7 +2413,9 @@ void Simulation::eat_portion(Bitzkey& corpse) {
         const auto found = std::find(bodies->begin(), bodies->end(), &corpse);
         if (found != bodies->end()) {
             bodies->erase(found);
-            --*count;
+            if (!acting_) --*count;
+            else if (count == &kill_count_) ++acting_->kills_gone;
+            else ++acting_->carrion_gone;
         }
     }
 }
@@ -2357,7 +2451,7 @@ double Simulation::armed(const Bitzkey& animal) {
 void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activity) {
     if (victim.species != Species::Plant && SMALL_HIDING > 0 && victim.body[Size] < TRAIT_MAX) {  // a small animal may slip away
         const double smallness = 1 - victim.physique(Size);
-        if (random_.random() < SMALL_HIDING * smallness * smallness) {
+        if (rng().random() < SMALL_HIDING * smallness * smallness) {
             agent.last_action = "missed";
             exhausted(agent);
             return;
@@ -2463,7 +2557,7 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     const bool coward = victim.species == Species::Omnivore && COWARDLY_OMNIVORES != 0;  // an omnivore struck always breaks
     const double chance = std::max(victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied,
                                    CARRION_COWARDICE * victim.scavenger());  // and a carrion-eater, the more so the more it is one
-    if (coward || random_.random() < chance) {
+    if (coward || rng().random() < chance) {
         victim.panicked = true;
         experience(victim, Panicked);
     }
@@ -2479,7 +2573,7 @@ bool Simulation::primal_fear(Bitzkey& agent, const Bitzkey* hunter) {
         if (lopsided > 0) {
             const double chance =
                 PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0) * agent.unafraid();
-            if (random_.random() < chance) {
+            if (rng().random() < chance) {
                 agent.primal_fear = true;
                 experience(agent, Panicked);
             }
@@ -2549,15 +2643,15 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         // The child's mind starts at the average of its parents' current minds, mutated, and its
         // dot is written from that mind, so experience is inherited and shows. Its brain, a mix of
         // its parents', is as deep as its own inborn intellect makes it.
-        const Mind mind = inherit_mind(first.mind, second.mind, random_, mind_mutation_);
-        Dna dna = evolved(first.dna, cross(first.dna, second.dna, random_, mind, MIND_MUTATION_CHANCE, body_mutation_, has_sea()));
+        const Mind mind = inherit_mind(first.mind, second.mind, rng(), mind_mutation_);
+        Dna dna = evolved(first.dna, cross(first.dna, second.dna, rng(), mind, MIND_MUTATION_CHANCE, body_mutation_, has_sea()));
         if (first.species == Species::Predator || second.species == Species::Predator) {
             dna = predator_dna(dna);  // a predator's young are predators, whatever crossing over or a mutation made
         }
         const auto [depth, width] = brain_shape(dna);
         auto brain = std::make_shared<Brain>();  // made in conceive(), with the turn's other young
         const bool born_hunter = static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Predator && first.species != Species::Predator;
-        conceptions_.push_back({brain, first.brain, second.brain, random_.getrandbits(64), depth, width, born_hunter});
+        (acting_ ? acting_->conceptions : conceptions_).push_back({brain, first.brain, second.brain, rng().getrandbits(64), depth, width, born_hunter});
         first.womb.push_back({dna, mind, std::move(brain), given / litter, generation, second.identifier});
     }
     first.due_turn = turn_ + gestation(first.trait(Size));
@@ -2893,6 +2987,10 @@ double Simulation::rival_weight(const Bitzkey& hunter, const Bitzkey& other) {
 
 void Simulation::witness(const Bitzkey& actor, double outcome) {
     if (!actor.has_last_senses) return;
+    if (acting_) {
+        acting_->witnessed.emplace_back(&actor, outcome);
+        return;
+    }
     for (const Offset& offset : nearby_offsets(MAX_SIGHT)) {  // as nearby() would list them, in the same order
         const auto* list = cell_if(actor.x + offset.dx, actor.y + offset.dy);
         if (!list) continue;

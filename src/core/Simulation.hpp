@@ -823,6 +823,7 @@ public:
         Bitzkey* quarry = nullptr;
         Bitzkey* hunter = nullptr;
         Bitzkey* suitor = nullptr;
+        std::optional<Cell> suitor_at;  // where it was when seen
         std::optional<Cell> grass;
         bool grass_here = false;
         Bitzkey* carrion = nullptr;
@@ -1206,6 +1207,36 @@ private:
         bool born_hunter;  // a predator of other parents, bringing eating to hunting and uprooting to feasting
     };
     std::vector<Conception> conceptions_;
+    // A tile of the map, its animals acting on a core of its own (see act_in_tiles): its own stream of chance, and what
+    // they do that reaches beyond it, kept to be done once every tile has acted.
+    struct ActingTile {
+        PyRandom rng;
+        std::vector<std::size_t> members;  // their places in the turn's order, in that order
+        struct DeathNote {
+            Bitzkey* agent;
+            std::string cause;
+            int killer;
+            Species killer_species;
+            std::string activity;
+        };
+        std::vector<DeathNote> deaths;
+        std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
+        std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
+        std::vector<Conception> conceptions;
+        std::vector<std::shared_ptr<Brain>> dead_brains;
+        int kills = 0, kills_gone = 0, carrion_gone = 0;
+        std::array<double, ACTION_COUNT> took{};
+        std::array<long long, ACTION_COUNT> taken{};
+        double acting = 0;
+    };
+    static thread_local ActingTile* acting_;  // the tile this core is acting for, if any
+    // The stream of chance: the acting tile's, else the world's own.
+    PyRandom& rng() { return acting_ ? acting_->rng : random_; }
+    // The turn's choices acted out tile by tile, on every core: returns false, having done nothing, when the world is
+    // too small to part, or thinks on the GPUs, to be acted out one by one instead.
+    bool act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans);
+    // A death written down: its record and tally, the counts, and the parents' grief.
+    void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;
     std::deque<Senses> lesson_senses_;  // what each queued lesson sensed, kept still while it waits
