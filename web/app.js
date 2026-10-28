@@ -11,6 +11,7 @@ import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
 import { saveWorld } from './worlds.js';
 import { openWorkers, showWorkerPanel } from './workers.js';
+import './sound.js';  // a button pressed clicks
 
 await startLanguages();  // before anything is drawn, so it appears in the chosen language
 
