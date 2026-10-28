@@ -91,14 +91,14 @@ inline double STARVING_DAMAGE = 0.1;
 inline double SIZE_HUNGER = 1.0;
 inline double SIZE_STARVING = 1.0;
 inline double SMALL_HIDING = 0.4;
-inline double SMALL_MATURITY = 0.5;
+inline double SMALL_MATURITY = 0.1;  // the smallest an infant some 4 days, the largest 360
 // Meat lasts: the share of its fullness that is meat empties at this share of the usual rate.
 // Meat lasts seven times as long as plant food: a meal of meat a week to a meal of plants a day. An omnivore's mixed
 // fullness empties at the mix of the two rates.
 inline double MEAT_DIGESTION = 1.0 / 7;
 // Feeble: an animal in its infancy (the first FEEBLE_YOUTH of its lifespan) or its old age (past AGEING of it)
 // has every body trait, and its health, at FEEBLE_SHARE of its own.
-inline double FEEBLE_YOUTH = 1.0 / 30;  // 36 days for the smallest, as when they lived a year and were infants a tenth of it
+inline double FEEBLE_YOUTH = 1.0 / 30;  // 360 days for the largest; the smallest SMALL_MATURITY of their 36
 inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click

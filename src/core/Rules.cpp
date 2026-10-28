@@ -54,7 +54,7 @@ std::vector<Rule> make_rules() {
         {"SIZE_HUNGER", "Bodies", "Size hunger", "a large body burns 1 + this times its size squared as much food (size a share of its range: twice as much at the largest)", 0.0, 5.0, 0.1, false, &SIZE_HUNGER},
         {"SIZE_STARVING", "Bodies", "Size starving", "starving, a body wastes away 1 + this times its size as fast (twice as fast at the largest)", 0.0, 5.0, 0.1, false, &SIZE_STARVING},
         {"SMALL_HIDING", "Bodies", "Small hiding", "a hunter's blow misses a small animal outright with this times its smallness squared as a chance (none at the largest)", 0.0, 1.0, 0.05, false, &SMALL_HIDING},
-        {"SMALL_MATURITY", "Bodies", "Small maturity", "the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole", 0.1, 1.0, 0.05, false, &SMALL_MATURITY},
+        {"SMALL_MATURITY", "Bodies", "Small maturity", "the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole", 0.01, 1.0, 0.01, false, &SMALL_MATURITY},
         {"FEEBLE_YOUTH", "Bodies", "Feeble youth", "an animal is feeble, an infant, for this share of its lifespan (1/30: 36 days for the smallest)", 0.0, 0.5, 0.001, false, &FEEBLE_YOUTH},
         {"PREDATOR_INFANCY", "Bodies", "Predator infancy", "a predator is an infant this share as long as other animals", 0.0, 1.0, 0.05, false, &PREDATOR_INFANCY},
         {"FEEBLE_SHARE", "Bodies", "Feeble share", "a feeble animal's body traits and health are at this share of its own", 0.1, 1.0, 0.05, false, &FEEBLE_SHARE},
