@@ -997,6 +997,7 @@ async function openDeathReport() {
     const causes = rows(data.causes);
     causes.push([element('td', { class: 'total' }, 'ALL'), ...[...data.all, data.total].map(count => element('td', { class: 'total' }, String(count)))]);
     const tables = [{ header: header('CAUSE'), rows: causes }];
+    if (data.ages && data.ages.length) tables.push({ heading: 'Age at death, by species', header: header('AGE'), rows: rows(data.ages) });
     if (data.kills) {
       tables.push(
         { heading: `Who killed whom: ${data.kills} killed, by the species of the dead (rows) and of their killers (columns)`,

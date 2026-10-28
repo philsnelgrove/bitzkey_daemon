@@ -368,7 +368,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         by_killer.push_back({identifier, static_cast<int>(killer.species), killer.kills, killer.doing});
     }
     json death_tally = {{"causes", counts_of(tally.causes)}, {"whom", tally.whom}, {"activities", counts_of(tally.activities)},
-                        {"killers", tally.killers}, {"by_killer", std::move(by_killer)}};
+                        {"killers", tally.killers}, {"by_killer", std::move(by_killer)}, {"ages", tally.ages}};
     json death_causes = json::object();
     for (std::size_t species = 0; species < simulation.death_causes_.size(); ++species) {
         if (simulation.death_causes_[species].empty()) continue;
@@ -650,6 +650,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.death_tally_.whom = tally.at("whom").get<std::array<DeathTally::Counts, 4>>();
             for (const auto& [label, counts] : tally.at("activities").items()) world.death_tally_.activities[label] = counts.get<DeathTally::Counts>();
             world.death_tally_.killers = tally.at("killers").get<int>();
+            if (const auto ages = tally.find("ages"); ages != tally.end()) world.death_tally_.ages = ages->get<std::array<DeathTally::Counts, 8>>();  // counted since
             for (const json& killer : tally.at("by_killer")) {
                 DeathTally::Killer& kept = world.death_tally_.by_killer[killer.at(0).get<int>()];
                 kept.species = static_cast<Species>(killer.at(1).get<int>());

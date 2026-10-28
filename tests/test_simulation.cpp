@@ -431,6 +431,29 @@ TEST_CASE("deaths are counted by species and cause, and rewound") {
     CHECK(death_report_lines(world_now.death_tally()) == lines);  // counted as they happened, the same as from them all
 }
 
+TEST_CASE("deaths are counted by age at death, in bands of days, the youngest first") {
+    DeathTally tally;
+    for (const int days : {0, 5, 9, 45, 400, 2000, -1}) tally.add({"starved", Species::Grazer, 1, -1, Species::Plant, "", days});
+    tally.add({"killed", Species::Predator, 1, -1, Species::Plant, "", 100});
+    const DeathReport report = death_report(tally);
+    std::vector<std::pair<std::string, int>> rows;
+    for (const DeathReport::Row& row : report.ages) rows.emplace_back(row.label, row.total);
+    CHECK(rows == std::vector<std::pair<std::string, int>>{
+                      {"under a day", 1}, {"1-9 days", 2}, {"30-89 days", 1}, {"90-179 days", 1}, {"1-2 years", 1}, {"over 2 years", 1}});
+    CHECK(report.ages[3].counts[3] == 1);  // the predator
+    const auto lines = death_report_lines(tally);
+    CHECK(std::find(lines.begin(), lines.end(), "AGE AT DEATH, by species") != lines.end());
+}
+
+TEST_CASE("an animal's age at death is recorded in days") {
+    Simulation simulation(Simulation::Settings{20, 20, 0, 1});
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    grazer.age = 3 * DAY_LENGTH + 1;
+    grazer.health = 0;
+    simulation.die(grazer, "starved");
+    CHECK(simulation.deaths_so_far().back().age_days == 3);
+}
+
 TEST_CASE("deaths are kept whole only for the latest turns, and the tally keeps only the deadliest killers gone") {
     DeathTally tally;
     for (int killer = 0; killer < DEADLIEST + 5; ++killer) {

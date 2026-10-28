@@ -2127,7 +2127,7 @@ std::vector<Death> Simulation::deaths_so_far() const {
 
 void Simulation::record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity) {
     const Death& death = death_records_[agent.identifier] = {std::string(cause), agent.species, turn_, killer, killer >= 0 ? killer_species : Species::Plant,
-                                                             std::string(activity)};
+                                                             std::string(activity), agent.age / DAY_LENGTH};
     death_tally_.add(death);
     death_order_.emplace_back(turn_, agent.identifier);
     if (agent.infant()) {  // its parents grieve, wherever they are, and learn from it what came before

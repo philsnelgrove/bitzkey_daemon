@@ -95,12 +95,17 @@ struct Death {
     int killer = -1;
     Species killer_species = Species::Plant;
     std::string activity;
+    int age_days = -1;  // how many days it lived; -1 unknown
 };
 constexpr int DEADLIEST = 10;  // the killers the death report names
 
 // Every death since the world began, counted as it happens rather than kept one by one: by cause and the species of
 // the dead; who killed whom; what the killers were doing; and each killer's kills, for the living and for the DEADLIEST
 // of those gone (the rest let go, see let_go).
+// The bands the death report counts ages at death in, the first days each starts at, and their names.
+inline constexpr std::array<int, 8> AGE_BANDS = {0, 1, 10, 30, 90, 180, 360, 720};
+inline constexpr std::array<const char*, 8> AGE_BAND_NAMES = {"under a day", "1-9 days", "10-29 days", "30-89 days",
+                                                              "90-179 days", "180-359 days", "1-2 years", "over 2 years"};
 struct DeathTally {
     using Counts = std::array<int, 4>;  // by species, in SPECIES order
     struct Killer {
@@ -113,6 +118,7 @@ struct DeathTally {
     std::map<std::string, Counts, std::less<>> activities;  // by what the killers were doing, by the killers' species
     int killers = 0;                                        // how many Bitzkeys have ever killed
     std::map<int, Killer> by_killer;                        // by identifier
+    std::array<Counts, 8> ages{};                           // by age at death (AGE_BANDS), by the species of the dead
 
     void add(const Death& death);
     // Forget the killers no longer `alive` but the DEADLIEST of them, so the tally doesn't grow with the run.
@@ -139,6 +145,7 @@ struct DeathReport {
     std::vector<Row> activities;     // what the killers were doing, the most common first, by the killers' species
     int killers = 0;                 // how many Bitzkeys have killed
     std::vector<Killer> deadliest;   // the DEADLIEST with the most kills
+    std::vector<Row> ages;           // by age at death, youngest first, the bands with any deaths
 };
 DeathReport death_report(const DeathTally& tally);
 DeathReport death_report(const std::vector<Death>& deaths);  // these deaths alone, tallied

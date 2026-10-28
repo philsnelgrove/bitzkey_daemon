@@ -204,23 +204,23 @@ const std::vector<Scenario>& scenarios() {
         // so the report shows whether brains follow the warmth senses or only a habit of one direction.
         {"Too cold, warmer to the south",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseClimateDiscomfort, 0.5}, {SenseComfortCloseness, 0.6},
-          {SenseWarmth, -0.5}, {SenseWarmthNorth, -1}, {SenseLatitude, -0.3}, {SenseAge, 0.2}},
+          {SenseWarmth, -0.5}, {SenseWarmthNorth, -1}, {SenseHomeDirection, 1}, {SenseHomeDistance, 0.3}, {SenseLatitude, -0.3}, {SenseAge, 0.2}},
          {GoNorth, GoSouth, WalkNorth, WalkSouth, GoEast, GoWest, Rest}, ANIMAL_LIST},
         {"Too cold, warmer to the north",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseClimateDiscomfort, 0.5}, {SenseComfortCloseness, 0.6},
-          {SenseWarmth, -0.5}, {SenseWarmthSouth, -1}, {SenseLatitude, 0.3}, {SenseAge, 0.2}},
+          {SenseWarmth, -0.5}, {SenseWarmthSouth, -1}, {SenseHomeDirection, -1}, {SenseHomeDistance, 0.3}, {SenseLatitude, 0.3}, {SenseAge, 0.2}},
          {GoNorth, GoSouth, WalkNorth, WalkSouth, GoEast, GoWest, Rest}, ANIMAL_LIST},
         {"Too hot, cooler to the north",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseClimateDiscomfort, 0.5}, {SenseComfortCloseness, 0.6},
-          {SenseWarmth, 0.5}, {SenseWarmthSouth, 0.5}, {SenseLatitude, 0.1}, {SenseAge, 0.2}},
+          {SenseWarmth, 0.5}, {SenseWarmthSouth, 0.5}, {SenseHomeDirection, -1}, {SenseHomeDistance, 0.3}, {SenseLatitude, 0.1}, {SenseAge, 0.2}},
          {GoNorth, GoSouth, WalkNorth, WalkSouth, GoEast, GoWest, Rest}, ANIMAL_LIST},
         {"Too hot, cooler to the south",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseClimateDiscomfort, 0.5}, {SenseComfortCloseness, 0.6},
-          {SenseWarmth, 0.5}, {SenseWarmthNorth, 0.5}, {SenseLatitude, -0.1}, {SenseAge, 0.2}},
+          {SenseWarmth, 0.5}, {SenseWarmthNorth, 0.5}, {SenseHomeDirection, 1}, {SenseHomeDistance, 0.3}, {SenseLatitude, -0.1}, {SenseAge, 0.2}},
          {GoNorth, GoSouth, WalkNorth, WalkSouth, GoEast, GoWest, Rest}, ANIMAL_LIST},
         {"Far too cold, warmer to the south",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseClimateDiscomfort, 1}, {SenseComfortCloseness, 0.3},
-          {SenseWarmth, -1}, {SenseWarmthNorth, -1}, {SenseWarmthSouth, -0.5}, {SenseLatitude, -0.5}, {SenseAge, 0.2}},
+          {SenseWarmth, -1}, {SenseWarmthNorth, -1}, {SenseWarmthSouth, -0.5}, {SenseHomeDirection, 1}, {SenseHomeDistance, 0.6}, {SenseLatitude, -0.5}, {SenseAge, 0.2}},
          {GoNorth, GoSouth, WalkNorth, WalkSouth, GoEast, GoWest, Rest}, ANIMAL_LIST},
         {"At home, cold coming from the north",
          {{SenseHunger, 0.3}, {SenseHealth, 1}, {SenseComfortCloseness, 1}, {SenseWarmthNorth, -0.5}, {SenseLatitude, -0.3}, {SenseAge, 0.2}},
@@ -409,6 +409,11 @@ std::string_view short_action(int action) { return SHORT_ACTIONS[static_cast<std
 
 void DeathTally::add(const Death& death) {
     causes[death.cause][static_cast<std::size_t>(death.species)] += 1;
+    if (death.age_days >= 0) {
+        std::size_t band = AGE_BANDS.size() - 1;
+        while (band > 0 && death.age_days < AGE_BANDS[band]) --band;
+        ages[band][static_cast<std::size_t>(death.species)] += 1;
+    }
     if (death.killer < 0) return;
     whom[static_cast<std::size_t>(death.species)][static_cast<std::size_t>(death.killer_species)] += 1;
     activities[death.activity][static_cast<std::size_t>(death.killer_species)] += 1;
@@ -453,6 +458,11 @@ DeathReport death_report(const DeathTally& tally) {
         if (row.total > 0) report.whom.push_back(std::move(row));
     }
     report.activities = ranked(tally.activities);
+    for (std::size_t band = 0; band < tally.ages.size(); ++band) {
+        DeathReport::Row row{AGE_BAND_NAMES[band], tally.ages[band]};
+        for (const int count : row.counts) row.total += count;
+        if (row.total > 0) report.ages.push_back(std::move(row));
+    }
     report.killers = tally.killers;
     for (const auto& [identifier, killer] : tally.by_killer) {
         DeathReport::Killer entry{identifier, killer.species, killer.kills, {killer.doing.begin(), killer.doing.end()}};
@@ -492,6 +502,10 @@ std::vector<std::string> death_report_lines(const DeathTally& tally) {
     table("CAUSE", report.causes, lines);
     table("", {report.all}, lines);
     lines.erase(lines.end() - 2);  // the totals beneath the causes, under the one heading
+    if (!report.ages.empty()) {
+        lines.insert(lines.end(), {"", "AGE AT DEATH, by species"});
+        table("AGE", report.ages, lines);
+    }
     if (report.kills == 0) {
         lines.insert(lines.end(), {"", "Nothing has killed anything yet."});
         return lines;

@@ -360,7 +360,7 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         }
         reply(response, {{"turn", simulation.turn()}, {"deaths", simulation.deaths()}, {"species", SPECIES},
                          {"causes", rows(report.causes)}, {"all", report.all.counts}, {"total", report.all.total},
-                         {"kills", report.kills}, {"whom", rows(report.whom)}, {"activities", rows(report.activities)},
+                         {"kills", report.kills}, {"whom", rows(report.whom)}, {"ages", rows(report.ages)}, {"activities", rows(report.activities)},
                          {"killers", report.killers}, {"deadliest", deadliest}});
     }));
 
