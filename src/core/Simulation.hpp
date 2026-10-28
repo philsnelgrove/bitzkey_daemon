@@ -177,7 +177,7 @@ inline double GO_EFFORT = 0.25;
 inline double FEAR_DREAD = 0.3;
 inline double UNEASE = 0.1;
 inline double CLIMATE_UNEASE = 2.0;  // discomfort two or more steps from home, half that one step; less for the hardy
-inline double HOMEWARD_UNEASE = 1.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
+inline double HOMEWARD_UNEASE = 3.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
 inline double EMPATHY_PAIN = 0.15;
 // Parental attachment: a parent is glad of its own young, still infants, within its sight, up to PARENT_JOY with
 // three or more, and grieves PARENT_GRIEF when one of them dies, wherever it is; both by half again and up to one
