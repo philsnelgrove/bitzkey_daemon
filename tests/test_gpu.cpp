@@ -109,14 +109,14 @@ TEST_CASE("a world thinks on the GPUs, keeps only the present, and brings brains
     USE_GPU = use;
     REQUIRE(simulation.on_gpu());
     for (int turn = 0; turn < 20; ++turn) simulation.advance();
-    Bitzkey* thinker = nullptr;
+    std::vector<std::pair<Bitzkey*, Brain>> before;  // every brain as the CPU last had it
     for (Bitzkey* agent : simulation.living()) {
-        if (agent->brain) thinker = agent;
+        if (agent->brain) before.push_back({agent, *agent->brain});
     }
-    REQUIRE(thinker);
-    const Brain before = *thinker->brain;
+    REQUIRE(!before.empty());
     simulation.sync_brains();
-    CHECK_FALSE(*thinker->brain == before);  // it learnt on the GPU, and that has come back
+    const auto changed = std::count_if(before.begin(), before.end(), [](const auto& kept) { return !(*kept.first->brain == kept.second); });
+    CHECK(changed * 2 > static_cast<std::ptrdiff_t>(before.size()));  // most learnt on the GPU (not the newborn), and that has come back
 }
 
 TEST_CASE("think on the GPU is locked, greyed out, only where there is no GPU") {
@@ -141,3 +141,4 @@ TEST_CASE("a world whose GPU fails thinks on the CPU from there, rather than sto
     for (int turn = 0; turn < 10; ++turn) world.advance();
     CHECK(world.turn() == 20);
 }
+

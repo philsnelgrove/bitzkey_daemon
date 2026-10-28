@@ -2,6 +2,7 @@
 // Turn-based Bitzkey world and its deterministic history.
 
 #include <array>
+#include <cmath>
 #include <map>
 #include <cstdint>
 #include <deque>
@@ -408,6 +409,7 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // night, the dark for the diurnal and the light for the nocturnal (see the activity gene): it may only rest, but for
 // fleeing a hunter or striking back at what struck it, startled awake, and a flyer over the sea, which can't rest.
 inline int DAY_LENGTH = 24;  // a turn is an hour
+constexpr int FORESIGHT_DAY = 8;  // the day the Mind rules' discounts and trace decays are set for (see discount)
 inline int SLEEP = 1;
 // An infant within this many squares of a living parent is sheltered: the climate's extra hunger and harm pass it by.
 constexpr int SHELTER_REACH = 2;
@@ -907,10 +909,16 @@ public:
     double remembered(const Bitzkey& agent, const std::optional<Place>& memory) const;
     double comfort(const Bitzkey& agent, const Situation& situation) const;
     double wellbeing(const Bitzkey& agent) const;
-    // How much the future counts against the present: more for the patient.
+    // How much the future counts against the present, a turn: more for the patient. The discounts and trace decays are
+    // set for a turn of a FORESIGHT_DAY-turn day, and kept to the same span of days whatever the day's length.
     static double discount(const Bitzkey& agent) {
-        return IMPATIENT_DISCOUNT + (PATIENT_DISCOUNT - IMPATIENT_DISCOUNT) * agent.feeling(Patience);
+        return per_turn(IMPATIENT_DISCOUNT + (PATIENT_DISCOUNT - IMPATIENT_DISCOUNT) * agent.feeling(Patience));
     }
+    // How much of a choice's credit carries on to the next, a turn, beside the discount: more for the clever.
+    static double trace_decay(const Bitzkey& agent) {
+        return per_turn(TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
+    }
+    static double per_turn(double rate) { return std::pow(rate, static_cast<double>(FORESIGHT_DAY) / DAY_LENGTH); }
     // How much warmer than home a row feels, as a sense: 0.5 a step, from -1 (two or more steps too
     // cold) to 1 (two or more too hot).
     double warmth(const Bitzkey& agent, int y) const;

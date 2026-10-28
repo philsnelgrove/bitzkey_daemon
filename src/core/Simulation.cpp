@@ -1369,7 +1369,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
     const double weight = lesson_weight(agent.last_choice, outcome);
     if (gpu_) {
         if (rate > 0) {
-            const double decay = discount(agent) * (TRACE_DECAY + (SMART_TRACE_DECAY - TRACE_DECAY) * agent.intelligence());
+            const double decay = discount(agent) * trace_decay(agent);
             queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * weight, true, decay);
             for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
                 const Bitzkey::Memory& memory = agent.memories[index];
@@ -1377,8 +1377,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             }
         }
     } else {
-        learning_brain(agent).learn_traced(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent),
-                                       agent.intelligence());
+        learning_brain(agent).learn_traced_by(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent) * trace_decay(agent));
         for (std::size_t index = first; count && index < agent.memories.size(); ++index) {
             const Bitzkey::Memory& memory = agent.memories[index];
             agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * memory.weight);
@@ -1533,30 +1532,44 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
     }
     timings.sense += lap(clock);
-    std::vector<Values> values;  // one batch of brains
+    // A brain idle this turn isn't asked: one that can only rest (asleep with nothing to startle it, or spent), with no
+    // lesson waiting on what it values now, its last turn having been as forced. Nothing it would say is used.
+    std::vector<char> idle(agents.size());
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        const Bitzkey& agent = *agents[index];
+        const std::vector<int>& options = plans[index].options;
+        const bool startled = std::find(options.begin(), options.end(), Flee) != options.end() ||
+                              std::find(options.begin(), options.end(), Defend) != options.end();
+        const bool forced = agent.exhausted() || (SLEEP && resting_time(agent) && !agent.aloft_at_sea() && !startled);
+        const bool lesson = agent.has_last_senses && (FORCED_LESSONS || !agent.last_forced);
+        idle[index] = forced && !lesson;
+    }
+    std::vector<std::size_t> asked;  // the rest
+    for (const std::size_t index : indices) {
+        if (!idle[index]) asked.push_back(index);
+    }
+    std::vector<Values> values(agents.size(), Values{});  // one batch of brains; the idle's left at nothing
     std::vector<double> comforts;
-    values.reserve(agents.size());
     comforts.reserve(agents.size());
     if (gpu_) {  // every brain at once, on the GPUs
         std::vector<gpu::BrainEngine::Handle> handles;
         std::vector<Senses> senses;
-        handles.reserve(agents.size());
-        senses.reserve(agents.size());
-        for (std::size_t index = 0; index < agents.size(); ++index) {
+        handles.reserve(asked.size());
+        senses.reserve(asked.size());
+        for (const std::size_t index : asked) {
             handles.push_back(agents[index]->gpu);
             senses.push_back(plans[index].senses);
         }
-        values.resize(agents.size());
+        std::vector<Values> batch(asked.size());
         try {
-            gpu_->values(handles, senses, values);
+            if (!asked.empty()) gpu_->values(handles, senses, batch);
+            for (std::size_t place = 0; place < asked.size(); ++place) values[asked[place]] = batch[place];
         } catch (const std::runtime_error& error) {
             leave_gpu(error);  // and this turn's thinking is done on the CPU, below
-            values.clear();
         }
     }
     if (!gpu_) {  // on every core at once, each brain reading only itself
-        values.resize(agents.size());
-        std::for_each(std::execution::par, indices.begin(), indices.end(),
+        std::for_each(std::execution::par, asked.begin(), asked.end(),
                       [&](std::size_t index) { values[index] = agents[index]->brain->values(plans[index].senses); });
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
