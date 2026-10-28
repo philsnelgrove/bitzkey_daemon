@@ -134,6 +134,7 @@ std::vector<Rule> make_rules() {
         {"SOCIAL_LEARNING", "Society", "Social learning", "how much a herd-mate's success or failure seen teaches, by empathy and intellect", 0.0, 3.0, 0.05, false, &SOCIAL_LEARNING},
         {"SOCIAL_MOOD", "Society", "Social mood", "how much a herd-mate's success or failure seen moves the mood", 0.0, 3.0, 0.05, false, &SOCIAL_MOOD},
         {"SOCIAL_MEMORY", "Society", "Social memory", "share of a seen success or failure still sensed a turn later", 0.0, 1.0, 0.05, false, &SOCIAL_MEMORY},
+        {"PARENTAL_INSTINCT", "Mind", "Parental instinct", "how much more a parent values feeding its young, times the hungriest one's hunger, and more if empathetic", 0.0, 20.0, 0.5, false, &PARENTAL_INSTINCT},
         {"LOYALTY_PULL", "Society", "Loyalty pull", "how much more an animal values keeping to its herd, times its loyalty", 0.0, 5.0, 0.05, false, &LOYALTY_PULL},
         {"DOMINANCE_EASE", "Society", "Dominance ease", "share less a crowded territory troubles the most dominant, and more the most submissive", 0.0, 1.0, 0.05, false, &DOMINANCE_EASE},
         {"TRUST_HEED", "Society", "Trust heed", "share more the most trusting take in what herd-mates do, and less the least", 0.0, 1.0, 0.05, false, &TRUST_HEED},

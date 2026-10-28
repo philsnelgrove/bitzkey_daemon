@@ -28,7 +28,7 @@ int corpses_kept(int turns) {
 }  // namespace
 
 TEST_CASE("every default is within its rule and of its kind") {
-    CHECK(rules::all().size() == 271);
+    CHECK(rules::all().size() == 272);
     for (const rules::Rule& rule : rules::all()) {
         CAPTURE(rule.key);
         const double value = rules::defaults().at(rule.key);

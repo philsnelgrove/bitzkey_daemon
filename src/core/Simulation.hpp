@@ -34,7 +34,7 @@ constexpr int GRID_SIZE = 100;
 // A new world from the setup panel: twice as wide as it is tall, as a globe has it.
 constexpr int DEFAULT_WIDTH = 360;
 constexpr int DEFAULT_HEIGHT = 180;
-constexpr int INITIAL_POPULATION = 90;
+constexpr int INITIAL_POPULATION = 300;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
 inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows back each turn
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
@@ -44,7 +44,7 @@ constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group o
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
 // The sea: a new world's share of the map under it, in percent, and how broad its land and sea are, as a share of the
 // map's width (smaller, and they break into more and smaller islands and seas). East and west, the coasts wrap round.
-constexpr double DEFAULT_OCEAN = 200.0 / 3;
+constexpr double DEFAULT_OCEAN = 33.0;
 constexpr double CONTINENT_BREADTH = 0.25;
 // Terrain. An avian animal's size, weapons and armour count AVIAN_BODY of its genes' (light enough to fly), and it burns
 // FLIGHT_HUNGER more food; the terrestrial and aquatic can hunt or attack it only while it rests. An amphibious animal
@@ -201,6 +201,7 @@ inline double OTHER_KIND = 0.4;
 // more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
 // a territory's crowding troubles the dominant less and the submissive more, by up to this share.
 inline double LOYALTY_PULL = 0.25;
+inline double PARENTAL_INSTINCT = 10.0;  // how much more a parent values feeding its young, times their hunger and its empathy
 inline double INFANT_HERDING = 1.0;  // how much more an infant values keeping to its kind, and it herds once a cell from their middle
 inline int NURSING_REACH = 2;        // each turn, a grown animal feeds the hungriest infant of its kind this close, a turn's burn of food,
 inline int NURSING_LIMIT = 80;       // while it stays below this hunger itself

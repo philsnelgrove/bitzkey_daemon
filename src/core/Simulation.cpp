@@ -1667,6 +1667,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         valued[Attack] -= CARRION_AVERSION * scavenger;
         valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
         if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
+        if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {  // the instinct to feed its hungry young
+            double hungriest = 0.0;
+            for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
+            valued[FeedYoung] += PARENTAL_INSTINCT * (0.5 + agent.feeling(Empathy)) * hungriest / 100;
+        }
         const auto odds = choice_odds(valued, options);
         double roll = rolls[index];
         int choice = options.back();
