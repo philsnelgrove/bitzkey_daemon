@@ -164,16 +164,16 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         world.step();
         const Simulation& simulation = world.simulation();
         const std::string data = frame(simulation);
-        CHECK(data.substr(0, 4) == "BZF1");
+        CHECK(data.substr(0, 4) == "BZF2");
         CHECK(read<std::uint32_t>(data, 4) == 30);
         CHECK(read<std::uint32_t>(data, 8) == 30);
         CHECK(read<std::uint32_t>(data, 12) == 1);
         const auto agents = read<std::uint32_t>(data, 16), trails = read<std::uint32_t>(data, 20);
         CHECK(agents == simulation.agents().size());
-        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 33 + trails * 8);
+        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8);
         const std::size_t first = 24 + 4 * 30 + 30 * 30;
         CHECK(read<std::uint32_t>(data, first) == static_cast<std::uint32_t>(simulation.agents()[0]->identifier));
-        CHECK(read<std::uint32_t>(data, first + 29) == social_word(simulation.agents()[0]->dna));  // its social background, last
+        CHECK(read<std::uint32_t>(data, first + 20) == social_word(simulation.agents()[0]->dna));  // its social background, last
     }
     std::filesystem::remove_all(folder);
 }
@@ -235,7 +235,7 @@ TEST_CASE("the web API shows the world and steers it") {
 
         const auto frame = client.Get("/api/frame");
         REQUIRE(frame);
-        CHECK(frame->body.substr(0, 4) == "BZF1");
+        CHECK(frame->body.substr(0, 4) == "BZF2");
 
         int identifier = 0;
         {

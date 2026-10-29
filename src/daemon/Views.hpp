@@ -22,13 +22,15 @@ Json state(World& world);
 std::string end_note(const Simulation& simulation);
 
 // The map as it is this turn, little-endian:
-//   "BZF1", u32 width, u32 height, u32 turn, u32 agent count, u32 trail cell count;
+//   "BZF2", u32 width, u32 height, u32 turn, u32 agent count, u32 trail cell count;
 //   width x height f32 each row's temperature (one per row: height of them);
 //   width x height bytes, 1 where a cell has grass;
-//   per agent: u32 identifier, u16 x, u16 y, u8 dot r g b, u8 ring r g b, u8 species, u8 size,
-//              u8 flags (1 alive), u8 opacity (0 to 255), u32 mind word, u32 body word;
+//   per agent (24 bytes): u32 identifier, u16 x, u16 y, u8 species, u8 size, u8 flags (1 alive),
+//              u8 opacity (0 to 255), u32 mind word, u32 body word, u32 social word (its colours come from these);
 //   per trail cell: u32 agent index, u16 x, u16 y.
 std::string frame(const Simulation& simulation);
+// Data gzipped, to send with Content-Encoding: gzip; empty when the daemon was built without zlib.
+std::string gzipped(const std::string& data);
 
 // A Bitzkey as the inspector shows it. `known` is false for a genome alone (in the catalog, or the
 // designer): its state is not shown. `here` is the temperature where it stands.

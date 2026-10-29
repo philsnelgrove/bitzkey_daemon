@@ -7,9 +7,12 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <chrono>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -92,8 +95,23 @@ public:
     // world, whichever it is.
     net::Probe& probe() { return probe_; }
 
+    // What viewers are served without waiting for the lock: made once after each change by the turning thread, while
+    // someone has looked lately. The frame, gzipped when the daemon can, and the state, as sent.
+    struct Snapshot {
+        std::uint64_t version = 0;
+        std::shared_ptr<const std::string> frame, frame_gzip, state;
+    };
+    using Publisher = std::function<Snapshot(World&)>;  // makes one, with the lock held
+    void set_publisher(Publisher publisher);
+    void viewed() { last_viewed_ = std::chrono::steady_clock::now().time_since_epoch().count(); }
+    // The latest snapshot, if it is of the world as it is now (or none).
+    std::optional<Snapshot> fresh_snapshot();
+    // The first snapshot after `after`, waiting up to `limit` for one; the latest, newer or not, if none comes.
+    Snapshot next_snapshot(std::uint64_t after, std::chrono::milliseconds limit);
+
 private:
     void run();
+    void publish();  // with the lock held
 
     std::unique_ptr<Pool> pool_;      // first, so it outlasts the world that thinks through it
     std::unique_ptr<Worker> worker_;
@@ -106,9 +124,14 @@ private:
     net::Probe probe_;
     bool playing_ = true;
     int speed_ = 0;
-    std::uint64_t version_ = 1;
+    std::atomic<std::uint64_t> version_{1};  // read without the lock, by viewers checking their snapshot
     std::uint64_t world_number_ = 1;
     std::atomic<bool> stopping_ = false;
+    Publisher publisher_;
+    std::mutex snapshot_mutex_;
+    std::condition_variable snapshot_changed_;
+    Snapshot snapshot_;
+    std::atomic<std::int64_t> last_viewed_{0};
     std::thread thread_;  // last, so it starts once the rest is ready
 };
 

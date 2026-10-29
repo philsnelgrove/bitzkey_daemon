@@ -89,6 +89,8 @@ add_library(bitzkey_net STATIC
 target_compile_definitions(bitzkey_net PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
 target_link_libraries(bitzkey_net PUBLIC bitzkey_core httplib::httplib)
 
+find_package(ZLIB QUIET)  # gzipped frames for the web page, when there is zlib to make them with
+
 add_executable(bitzkey_daemon
     src/daemon/main.cpp
     src/daemon/Config.cpp
@@ -133,3 +135,12 @@ target_link_libraries(bitzkey_tests PRIVATE bitzkey_net doctest::doctest)
 
 include(GNUInstallDirs)
 install(TARGETS bitzkey_daemon RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+if(ZLIB_FOUND)
+    foreach(target bitzkey_daemon bitzkey_tests)
+        if(TARGET ${target})
+            target_compile_definitions(${target} PRIVATE BITZKEY_ZLIB)
+            target_link_libraries(${target} PRIVATE ZLIB::ZLIB)
+        endif()
+    endforeach()
+endif()

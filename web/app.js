@@ -62,7 +62,7 @@ const MAP_DRAG_THRESHOLD = 5;
 const TRAIL_OPACITY = 0.5;
 const POLL_MS = 120;
 const SLOW_POLL_MS = 1000;
-const FRAME_MS = 500;  // the map and the graph refresh at most twice a second, however fast the world runs
+const FRAME_MS = 250;  // the map and the graph refresh at most four times a second, however fast the world runs
 const MESSAGE_MS = 5000;
 const SPEED_COUNT = 5;
 
@@ -87,6 +87,7 @@ export const app = {
 };
 
 let shownVersion = -1;
+let heardVersion = -1;  // the latest version the daemon has told of
 let shownWorld = -1;
 let mapZoom = 1;
 let mapCentre = null;     // [x, y] in cells, or null for the middle
@@ -171,7 +172,11 @@ let workerMode = false;  // a worker shows only its own panel, and fetches nothi
 
 async function poll(force = false) {
   try {
-    const state = await api('/api/state');
+    // The next state as soon as the world has one (the daemon waits a while for it), or this one when asked to
+    // (only once what it shows is all it has heard of: a frame held back is fetched without waiting)
+    const waiting = !force && shownVersion >= 0 && shownVersion === heardVersion;
+    const state = await api(waiting ? `/api/state?after=${shownVersion}` : '/api/state');
+    heardVersion = state.version;
     $('lost').hidden = true;
     if (state.about && window.bitzkeyAbout !== state.about) {  // the version running and the cores it thinks on
       window.bitzkeyAbout = state.about;
@@ -218,6 +223,20 @@ async function loadFrame() {
   }
 }
 
+// A genome word's colour: its four bytes as cyan, magenta, yellow and black ink, as the daemon reads them.
+const wordColours = new Map();
+function colourOfWord(word) {
+  let colour = wordColours.get(word);
+  if (!colour) {
+    const black = word & 255;
+    const channel = ink => pyRound((255 - ink) * (255 - black) / 255);
+    colour = [channel(word >>> 24), channel((word >>> 16) & 255), channel((word >>> 8) & 255)];
+    if (wordColours.size > 50000) wordColours.clear();
+    wordColours.set(word, colour);
+  }
+  return colour;
+}
+
 function parseFrame(view) {
   const width = view.getUint32(4, true), height = view.getUint32(8, true);
   const turn = view.getUint32(12, true), count = view.getUint32(16, true), trailCount = view.getUint32(20, true);
@@ -228,19 +247,20 @@ function parseFrame(view) {
   offset += width * height;
   const agents = new Array(count);
   const living = new Map();
-  for (let index = 0; index < count; ++index, offset += 33) {
+  for (let index = 0; index < count; ++index, offset += 24) {
+    const social = view.getUint32(offset + 20, true);
     const agent = {
       identifier: view.getUint32(offset, true),
       x: view.getUint16(offset + 4, true),
       y: view.getUint16(offset + 6, true),
-      dot: [view.getUint8(offset + 8), view.getUint8(offset + 9), view.getUint8(offset + 10)],
-      ring: [view.getUint8(offset + 11), view.getUint8(offset + 12), view.getUint8(offset + 13)],
-      social: [view.getUint8(offset + 14), view.getUint8(offset + 15), view.getUint8(offset + 16)],
-      species: view.getUint8(offset + 17),
-      size: view.getUint8(offset + 18),
-      alive: view.getUint8(offset + 19) === 1,
-      opacity: view.getUint8(offset + 20) / 255,
-      terrain: (view.getUint32(offset + 29, true) >>> TERRAIN_SHIFT) & 3,  // from its social word
+      species: view.getUint8(offset + 8),
+      size: view.getUint8(offset + 9),
+      alive: view.getUint8(offset + 10) === 1,
+      opacity: view.getUint8(offset + 11) / 255,
+      dot: colourOfWord(view.getUint32(offset + 12, true)),  // its colours, from its genome's words
+      ring: colourOfWord(view.getUint32(offset + 16, true)),
+      social: colourOfWord(social),
+      terrain: (social >>> TERRAIN_SHIFT) & 3,
       trail: [],
     };
     agents[index] = agent;

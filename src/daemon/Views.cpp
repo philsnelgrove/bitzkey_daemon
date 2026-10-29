@@ -1,5 +1,9 @@
 #include "daemon/Views.hpp"
 
+#ifdef BITZKEY_ZLIB
+#include <zlib.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -251,8 +255,8 @@ std::string frame(const Simulation& simulation) {
         for (const auto& [x, y] : agent->trail) trail_cells += !(x == agent->x && y == agent->y);
     }
     std::string out;
-    out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 33 + trail_cells * 8);
-    out += "BZF1";
+    out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 24 + trail_cells * 8);
+    out += "BZF2";
     put<std::uint32_t>(out, static_cast<std::uint32_t>(width));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(height));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(simulation.turn()));
@@ -263,14 +267,9 @@ std::string frame(const Simulation& simulation) {
         for (int x = 0; x < width; ++x) out.push_back(static_cast<char>((simulation.grass_at(x, y) > 0 ? 1 : 0) | (simulation.sea(x, y) ? 2 : 0)));  // and the sea
     }
     for (const auto& agent : agents) {
-        const Rgb dot = color_from_word(mind_word(agent->dna)), ring = color_from_word(body_word(agent->dna)),
-                  social = color_from_word(social_word(agent->dna));
         put<std::uint32_t>(out, static_cast<std::uint32_t>(agent->identifier));
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->x));
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->y));
-        for (const int channel : {dot.r, dot.g, dot.b, ring.r, ring.g, ring.b, social.r, social.g, social.b}) {
-            out.push_back(static_cast<char>(channel));
-        }
         out.push_back(static_cast<char>(agent->species));
         out.push_back(static_cast<char>(agent->body[Size]));
         out.push_back(static_cast<char>(agent->alive() ? 1 : 0));
@@ -617,6 +616,25 @@ Json import_check(const std::string& text) {
     } catch (const std::exception& error) {
         return {{"ok", false}, {"count", 0}, {"summary", std::string("Can't import: ") + error.what()}};
     }
+}
+
+std::string gzipped(const std::string& data) {
+#ifdef BITZKEY_ZLIB
+    z_stream stream{};
+    if (deflateInit2(&stream, Z_BEST_SPEED, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) return {};  // 16: a gzip header
+    std::string out(deflateBound(&stream, static_cast<uLong>(data.size())), '\0');
+    stream.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
+    stream.avail_in = static_cast<uInt>(data.size());
+    stream.next_out = reinterpret_cast<Bytef*>(out.data());
+    stream.avail_out = static_cast<uInt>(out.size());
+    const int result = deflate(&stream, Z_FINISH);
+    out.resize(stream.total_out);
+    deflateEnd(&stream);
+    return result == Z_STREAM_END ? out : std::string();
+#else
+    (void)data;
+    return {};
+#endif
 }
 
 }  // namespace bitzkey::daemon

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -54,6 +55,9 @@ std::string content_type(const std::string& path) {
     if (extension == "json") return JSON_TYPE;
     return "application/octet-stream";
 }
+
+// How long a page asking for the next state is kept waiting for one, within its own patience (10 seconds).
+constexpr std::chrono::milliseconds LONG_POLL{8000};
 
 void reply(httplib::Response& response, const Json& value, int status = 200) {
     response.status = status;
@@ -168,6 +172,14 @@ std::string death_note(const Simulation& simulation, int identifier) {
 }  // namespace
 
 void install_routes(httplib::Server& server, World& world, const std::filesystem::path& web_dir) {
+    world.set_publisher([](World& turned) {  // what each turn's viewers are served, made by the turning thread
+        World::Snapshot made;
+        auto data = std::make_shared<std::string>(frame(turned.simulation()));
+        made.frame_gzip = std::make_shared<std::string>(gzipped(*data));
+        made.frame = std::move(data);
+        made.state = std::make_shared<std::string>(state(turned).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
+        return made;
+    });
     // Turn a handler's exceptions into a message for the page, rather than a dropped connection.
     const auto guarded = [](auto handler) {
         return [handler](const httplib::Request& request, httplib::Response& response) {
@@ -202,9 +214,21 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
 
     // ---- The world as it is
 
-    server.Get("/api/state", guarded([&world](const httplib::Request&, httplib::Response& response) {
+    server.Get("/api/state", guarded([&world](const httplib::Request& request, httplib::Response& response) {
         if (world.worker().on()) {
             reply(response, {{"mode", "worker"}, {"about", about()}, {"worker", world.worker().status()}});
+            return;
+        }
+        // With ?after=VERSION, it waits (a while) for a newer one: the page hears of each turn as it comes
+        world.viewed();
+        if (request.has_param("after")) {
+            const World::Snapshot next = world.next_snapshot(std::stoull(request.get_param_value("after")), LONG_POLL);
+            if (next.state) {
+                response.set_content(*next.state, JSON_TYPE);
+                return;
+            }
+        } else if (const auto fresh = world.fresh_snapshot()) {
+            response.set_content(*fresh->state, JSON_TYPE);
             return;
         }
         auto lock = world.lock();
@@ -303,7 +327,17 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         reply(response, world.worker().status());
     }));
 
-    server.Get("/api/frame", guarded([&world](const httplib::Request&, httplib::Response& response) {
+    server.Get("/api/frame", guarded([&world](const httplib::Request& request, httplib::Response& response) {
+        world.viewed();
+        if (const auto fresh = world.fresh_snapshot()) {  // as made after the turn, without waiting for the lock
+            if (fresh->frame_gzip && !fresh->frame_gzip->empty() && request.get_header_value("Accept-Encoding").find("gzip") != std::string::npos) {
+                response.set_header("Content-Encoding", "gzip");
+                response.set_content(*fresh->frame_gzip, BINARY_TYPE);
+            } else {
+                response.set_content(*fresh->frame, BINARY_TYPE);
+            }
+            return;
+        }
         std::string data;
         {
             auto lock = world.lock();

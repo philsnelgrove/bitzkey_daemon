@@ -13,6 +13,11 @@
 namespace bitzkey::daemon {
 
 namespace {
+// How long after a viewer last looked the world keeps making snapshots for them.
+constexpr auto SNAPSHOT_INTEREST = std::chrono::seconds(60);
+}  // namespace
+
+namespace {
 constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed, the longest the lock is held at once
 }
 
@@ -38,7 +43,43 @@ void World::adopt_pool() {
 
 World::~World() {
     stopping_ = true;
+    snapshot_changed_.notify_all();
     if (thread_.joinable()) thread_.join();
+}
+
+void World::set_publisher(Publisher publisher) {
+    std::lock_guard lock(mutex_);
+    publisher_ = std::move(publisher);
+}
+
+std::optional<World::Snapshot> World::fresh_snapshot() {
+    std::lock_guard lock(snapshot_mutex_);
+    if (!snapshot_.state || snapshot_.version != version_) return std::nullopt;
+    return snapshot_;
+}
+
+World::Snapshot World::next_snapshot(std::uint64_t after, std::chrono::milliseconds limit) {
+    viewed();
+    std::unique_lock lock(snapshot_mutex_);
+    snapshot_changed_.wait_for(lock, limit, [&] { return stopping_ || (snapshot_.state && snapshot_.version > after); });
+    return snapshot_;
+}
+
+void World::publish() {
+    // Only while viewed lately: a world nobody watches isn't packed up every turn.
+    const auto since = std::chrono::steady_clock::now().time_since_epoch() - std::chrono::steady_clock::duration(last_viewed_.load());
+    if (!publisher_ || since > SNAPSHOT_INTEREST) return;
+    {
+        std::lock_guard lock(snapshot_mutex_);
+        if (snapshot_.state && snapshot_.version == version_) return;
+    }
+    Snapshot made = publisher_(*this);
+    made.version = version_;
+    {
+        std::lock_guard lock(snapshot_mutex_);
+        snapshot_ = std::move(made);
+    }
+    snapshot_changed_.notify_all();
 }
 
 void World::play(bool on) {
@@ -145,6 +186,7 @@ void World::run() {
                     ++version_;
                 }
             }
+            publish();  // for viewers, without the lock
         } catch (const std::exception& error) {  // the world pauses, and the daemon keeps serving it, rather than stop
             std::fprintf(stderr, "bitzkey_daemon: the world paused at turn %d: %s\n", simulation_->turn(), error.what());
             std::lock_guard lock(mutex_);
