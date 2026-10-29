@@ -5,7 +5,7 @@
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, EXPORTING, RING_WIDTH, SPECIES } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -417,6 +417,21 @@ function drawMap() {
       ctx.fill();
     }
   }
+  {  // each climate band named where it starts, at the left of what is seen, so the zones read without colour
+    ctx.font = '11px "Segoe UI", sans-serif';
+    ctx.textBaseline = 'top';
+    let lastZone = -1;
+    for (let y = 0; y < frame.height; ++y) {
+      const zone = Math.max(0, Math.min(HOMES.length - 1, Math.round(frame.temperatures[y])));
+      if (zone === lastZone) continue;
+      lastZone = zone;
+      const top = Math.max(geometry.y + y * cell, 0) + 2, left = Math.max(geometry.x, 0) + 4;
+      ctx.fillStyle = 'rgb(0,0,0)';
+      ctx.fillText(HOMES[zone], left + 1, top + 1);
+      ctx.fillStyle = 'rgb(240,244,236)';
+      ctx.fillText(HOMES[zone], left, top);
+    }
+  }
   const day = app.state?.day_length;
   if (day) {  // the night, a shadow over half the map's columns, moving west round it once a day, as the daemon has it
     const width = frame.width, columns = Math.floor(width / 2);
@@ -547,9 +562,27 @@ function selectAll(picked) {
   drawExemplars();
 }
 
+const HOMES = ['hot', 'medium', 'cold', 'very cold'];
+
 function select(identifier) {
   selectAll(new Set([identifier]));
 }
+
+// Tab: the next living Bitzkey by identifier after the one selected, Shift+Tab the one before, round to the first
+function stepSelection(way) {
+  const identifiers = (app.frame?.agents ?? []).filter(agent => agent.alive).map(agent => agent.identifier).sort((a, b) => a - b);
+  if (!identifiers.length) return;
+  const at = app.selectedId;
+  let next = identifiers[0];
+  if (at !== null && at !== undefined) {
+    if (way > 0) next = identifiers.find(identifier => identifier > at) ?? identifiers[0];
+    else next = [...identifiers].reverse().find(identifier => identifier < at) ?? identifiers[identifiers.length - 1];
+  }
+  select(next);
+}
+
+const TEXT_SIZES = [1, 1.25, 1.5, 2];
+let textSize = 0;
 
 map.addEventListener('mousedown', event => {
   if (!app.frame) return;
@@ -984,7 +1017,9 @@ function showTables(title, note, tables) {
         element('table', { class: 'report-table' },
           element('thead', {}, element('tr', {}, header.map(cell => element('th', {}, cell)))),
           element('tbody', {}, rows.map(row => element('tr', {}, row.map(cell =>
-            cell instanceof Node ? cell : element('td', {}, cell))))))])),
+            cell instanceof Node ? cell : /%\s*$/.test(String(cell))  // a share shaded by its size: a heatmap
+              ? element('td', { style: { background: heat(Math.max(0, Math.min(1, parseFloat(cell) / 100))) } }, cell)
+              : element('td', {}, cell))))))])),
       element('div', { class: 'dialog-buttons' }, element('button', { class: 'primary', onclick: close }, 'CLOSE'))));
   document.body.append(shade);
   document.addEventListener('keydown', onKey, true);
@@ -1025,7 +1060,7 @@ async function inspectBrains(identifier) {
       return [element('td', { class: 'situation' }, row.situation), ...data.actions.map(action => {
         const chance = row.chances[action.name];
         if (chance === undefined) return element('td', { class: 'closed' }, '·');
-        return element('td', { class: action.name === best ? 'best' : '' }, `${Math.round(chance * 100)}%`);
+        return element('td', { class: action.name === best ? 'best' : '', style: { background: heat(chance) } }, `${Math.round(chance * 100)}%`);
       })];
     });
     showTable(`Brains of #${pad3(identifier)}, ${data.species}`,
@@ -1301,7 +1336,17 @@ document.addEventListener('keydown', event => {
   if (!state) return;
   const key = event.key;
   const handled = () => event.preventDefault();
-  if (key === ' ') { handled(); control('toggle'); }
+  if (key === 'F8') { handled(); settings.colourBlindSafe = !settings.colourBlindSafe; drawMap(); }  // colour-blind safe colours
+  else if (key === 'F9') {  // larger text: 100, 125, 150, 200%
+    handled();
+    textSize = (textSize + 1) % TEXT_SIZES.length;
+    for (const id of ['details', 'insights', 'sidebar']) {
+      const panel = document.getElementById(id);
+      if (panel) panel.style.zoom = TEXT_SIZES[textSize];
+    }
+  }
+  else if (key === 'Tab') { handled(); stepSelection(event.shiftKey ? -1 : 1); }
+  else if (key === ' ') { handled(); control('toggle'); }
   else if (key === 'ArrowRight') { handled(); control('step'); }
   else if (key === '+' || key === '=') control('speed', { speed: Math.min(state.speed + 1, SPEED_COUNT - 1) });
   else if (key === '-' || key === '_') control('speed', { speed: Math.max(state.speed - 1, 0) });

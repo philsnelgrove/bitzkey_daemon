@@ -3,7 +3,7 @@
 
 import { element, pad3, upper } from './common.js';
 import { tr } from './i18n.js';
-import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css } from './draw.js';
+import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css, shownColour } from './draw.js';
 
 const SHORT = ['hot', 'medium', 'cold', 'v. cold'];
 
@@ -25,6 +25,11 @@ function columns(text) {
   return width;
 }
 const pad = (text, width) => text + ' '.repeat(Math.max(1, width - columns(text)));
+// A bar under a trait: filled to `value` of the most, a tick at `born` if given, so a change shows at a glance
+const traitBar = (value, born) => element('div', { class: 'trait-bar' },
+  element('i', { style: { width: `${Math.max(0, Math.min(1, value / TRAIT_MAX)) * 100}%` } }),
+  born === undefined ? null : element('b', { style: { left: `${Math.max(0, Math.min(1, born / TRAIT_MAX)) * 100}%` } }));
+const TRAIT_MAX = 7;
 const row = (cls, text) => element('div', { class: cls, 'data-no-translate': '' }, text);
 
 export function details(agent, { large = 0 } = {}) {
@@ -35,7 +40,9 @@ export function details(agent, { large = 0 } = {}) {
     bitzkeyCanvas(look(agent), radius, large ? Math.round(large / 4) : 2, agent.alive !== false || !known),
     element('span', { class: 'details-name' }, `#${pad3(agent.identifier)}  ${upper(agent.species)}${agent.terrain ? '  ' + upper(agent.terrain) : ''}${agent.nocturnal === undefined ? '' : agent.nocturnal ? '  NOCTURNAL' : '  DIURNAL'}`),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
-  panel.append(element('div', { class: 'mono small' }, `DOT ${agent.dot} RING ${agent.ring} SOCIAL ${agent.social}`));
+  panel.append(element('div', { class: 'mono small swatches' }, ...[['DOT', agent.dot, agent.dot_rgb], ['RING', agent.ring, agent.ring_rgb],
+    ['SOCIAL', agent.social, agent.social_rgb]].map(([name, hex, rgb]) =>  // its three colours as swatches, the hex beside each
+    element('span', {}, element('i', { class: 'swatch', style: { background: rgb ? css(shownColour(rgb)) : 'none' } }), `${name} ${hex} `))));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
   const temperament = (heading, names, first) => {
     // As wide as the longest name in this language needs, and never narrower than the English.
@@ -46,11 +53,14 @@ export function details(agent, { large = 0 } = {}) {
       const born = agent.inborn[first + index];
       if (!known) {
         column.append(row('mono small', `${pad(tr(name), width)}${String(born).padStart(2)}`));
+        column.append(traitBar(born, born));
         return;
       }
       const now = agent.mind[first + index];
       const shift = Math.abs(now - born) < 0.25 ? 'same' : now > born ? 'up' : 'down';
-      column.append(row(`mono small ${shift}`, `${pad(tr(name), width)}${String(born).padStart(2)}${fixed(now, 1).padStart(5)}`));
+      const change = shift === 'same' ? ' ' : shift === 'up' ? '+' : '-';  // not by colour alone
+      column.append(row(`mono small ${shift}`, `${pad(tr(name), width)}${String(born).padStart(2)}${fixed(now, 1).padStart(5)}${change}`));
+      column.append(traitBar(now, born));
     });
     column.width = width;
     return column;
@@ -63,7 +73,8 @@ export function details(agent, { large = 0 } = {}) {
   const cells = BODY_TRAITS.slice(1).map((name, index) => `${pad(tr(name), bodyWidth)}${String(agent.body[index + 1]).padStart(2)}`);
   cells.push(`${pad(tr('burn'), 7)}${fixed(agent.burn, 2).padStart(5)}`);
   for (let row = 0; row < cells.length; row += 3) {
-    body.append(element('div', { class: 'mono small same body-row', 'data-no-translate': '' }, ...cells.slice(row, row + 3).map(cell => element('span', {}, cell))));
+    body.append(element('div', { class: 'mono small same body-row', 'data-no-translate': '' }, ...cells.slice(row, row + 3).map((cell, index) =>
+      element('span', {}, cell, row + index < BODY_TRAITS.length - 1 ? traitBar(agent.body[row + index + 1]) : null))));
   }
   panel.append(body);
 

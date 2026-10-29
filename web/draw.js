@@ -28,6 +28,21 @@ export const MIND_TRAITS = ['aggression', 'libido', 'curiosity', 'fear', 'appeti
 export const SOCIAL_TRAITS = ['sociability', 'empathy', 'tolerance', 'loyalty', 'dominance', 'trust', 'kinship'];
 export const BODY_TRAITS = ['species', 'size', 'strength', 'armour', 'weapons', 'speed', 'sight', 'fertility', 'litter', 'carrion'];
 
+// Colour-blind safe colours (F8): genome colours with the red-green differences a deuteranope or protanope loses moved
+// into lightness and blue-yellow, where they can be seen (a "daltonize" correction), as the desktop app's.
+export const settings = { colourBlindSafe: false };
+
+export function shownColour([r, g, b]) {
+  if (!settings.colourBlindSafe) return [r, g, b];
+  const seenR = 0.625 * r + 0.375 * g, seenG = 0.7 * r + 0.3 * g, seenB = 0.3 * g + 0.7 * b;  // as a deuteranope sees it
+  const lostR = r - seenR, lostG = g - seenG, lostB = b - seenB;
+  const clamp = value => Math.round(Math.min(255, Math.max(0, value)));
+  return [clamp(r), clamp(g + 0.7 * lostR + lostG), clamp(b + 0.7 * lostR + lostB)];
+}
+
+// A share, 0 to 1, as a heatmap cell's shade
+export const heat = share => css([30, Math.round(40 + 48 * share), Math.round(40 + 78 * share)]);
+
 export const css = ([r, g, b], alpha = 1) => alpha >= 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
 
 // Python's round: halves to even.
@@ -212,6 +227,7 @@ function drawChip(ctx, look, x, y, radius, ringWidth, alive) {
 
 export function drawBitzkey(ctx, look, x, y, radius, ringWidth = RING_WIDTH, alive = true, opacity = 1) {
   if (opacity <= 0) return;
+  look = { ...look, dot: shownColour(look.dot), ring: shownColour(look.ring), social: shownColour(look.social) };
   const scale = window.devicePixelRatio || 1;
   // Each look drawn is kept, up to LOOKS_KEPT, the least recently drawn let go first: its colours to within
   // LOOK_SHADES of each channel, so the nearly alike, as most Bitzkeys are, share one.

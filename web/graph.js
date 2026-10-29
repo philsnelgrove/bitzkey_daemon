@@ -4,7 +4,7 @@
 // along the timeline, and picks Bitzkeys by click or box, sharing the pick with the map.
 
 import { api, binary, element, upper, plural, pad3 } from './common.js';
-import { drawIcon, SPECIES, pyRound } from './draw.js';
+import { drawIcon, SPECIES, pyRound, shownColour } from './draw.js';
 import { details } from './inspector.js';
 
 const BAR_PIXELS = 5;
@@ -19,7 +19,7 @@ const LEFT = 64, RIGHT = 4, TOP = 20, TIMELINE = 24, GAP = 4;
 let sorts = null;
 
 export function openGraph(app, onClose) {
-  let part = 0, sort = 0;  // whose colours: 0 the ring's, 1 the dot's, 2 the social background's
+  let part = 0, sort = 0;  // whose colours: 0 the ring's, 1 the dot's, 2 the social background's, 3 the species'
   let view = null, pinned = false;  // the turns shown when zoomed in, and whether that keeps to the latest
   let heightZoom = 1, floor = 0;    // how far zoomed into the height, and the share of the full height at the bottom
   let panning = null;               // a drag with the right or middle button: where, which, the view and floor then, moved
@@ -187,9 +187,11 @@ export function openGraph(app, onClose) {
     for (let bar = 0; bar < bars; ++bar) {
       for (let y = 0; y < height; ++y, offset += 3) {
         const at = (y * bars + bar) * 4;
-        pixels.data[at] = data.getUint8(offset);
-        pixels.data[at + 1] = data.getUint8(offset + 1);
-        pixels.data[at + 2] = data.getUint8(offset + 2);
+        const [r, g, b] = part === 3 ? [data.getUint8(offset), data.getUint8(offset + 1), data.getUint8(offset + 2)]
+          : shownColour([data.getUint8(offset), data.getUint8(offset + 1), data.getUint8(offset + 2)]);
+        pixels.data[at] = r;
+        pixels.data[at + 1] = g;
+        pixels.data[at + 2] = b;
         pixels.data[at + 3] = 255;
       }
     }
@@ -215,7 +217,7 @@ export function openGraph(app, onClose) {
     ctx.clearRect(0, 0, width, height);
     const chart = chartRect(), timeline = timelineRect();
     const s = state();
-    title.textContent = `COLOUR GRAPH  /  ${['RING / BODY', 'DOT / MIND', 'SOCIAL BACKGROUND'][part]}`;
+    title.textContent = `COLOUR GRAPH  /  ${['RING / BODY', 'DOT / MIND', 'SOCIAL BACKGROUND', 'SPECIES'][part]}`;
     mapButton.hidden = !s.ended;
     ctx.fillStyle = 'rgb(30,40,40)';
     ctx.fillRect(chart.x, chart.y, chart.w, chart.h);
@@ -498,7 +500,7 @@ export function openGraph(app, onClose) {
     if (shades[shades.length - 1] !== shade) return;  // the catalog is open over it
     if (event.target instanceof HTMLSelectElement) return;
     const key = event.key.toLowerCase();
-    if (key === 'tab') { event.preventDefault(); part = (part + 1) % 3; redraw(); }
+    if (key === 'tab') { event.preventDefault(); part = (part + 1) % 4; redraw(); }
     else if (key === 'c') app.exportIdentifiers([...app.selection], false);
     else if (key === 's') app.exportIdentifiers([...app.selection], true);
     else if (key === 'k') app.catalogIdentifiers([...app.selection]);
