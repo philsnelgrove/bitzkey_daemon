@@ -13,6 +13,7 @@
 const uint INPUTS = 105u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
 const uint ACTIONS = 25u;
+const float VALUE_SCALE = 0.01;  // a brain holds its values in hundredths (Brain.hpp)
 const uint MAX_DEPTH = 4u;
 const uint THREADS = 64u;
 

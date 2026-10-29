@@ -34,6 +34,6 @@ void main() {
     if (thread < ACTIONS) {
         float sum = 0.0;
         for (uint neuron = 0u; neuron < push.width; ++neuron) sum += weights[outputs_of(base) + neuron * ACTIONS + thread] * layers[below][neuron];
-        values[request * ACTIONS + thread] = sum + weights[output_biases_of(base) + thread];
+        values[request * ACTIONS + thread] = (sum + weights[output_biases_of(base) + thread]) / VALUE_SCALE;
     }
 }

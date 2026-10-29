@@ -31,7 +31,7 @@ TEST_CASE("a new brain is reluctant to set off in any direction") {
     HEADING_RELUCTANCE = saved;
     for (int action = 0; action < ACTION_COUNT; ++action) {
         const bool heading = action >= GoNorth && action <= WalkWest;
-        CHECK(reluctant.output_biases[action] == doctest::Approx(eager.output_biases[action] - (heading ? saved : 0.0)));
+        CHECK(reluctant.output_biases[action] == doctest::Approx(eager.output_biases[action] - (heading ? saved * VALUE_SCALE : 0.0)));  // held in hundredths
     }
 }
 
@@ -297,7 +297,7 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
     CHECK(found == std::vector<double>{-0.15983579101927251, 0.092250751175896234, -0.097734976568545115, -0.097151955572367998,
-                                       -0.011420547423109582, -0.019905365281007829});
+                                       -0.00011420547423109583, -0.00019905365281007838});  // the output layer held in hundredths
     CHECK(rng.random() == 0.20169522729508749);  // one draw of the world's for the child
 }
 
@@ -322,9 +322,29 @@ TEST_CASE("a brain that read its senses uncentred, made to read them centred, va
     for (int action = 0; action < ACTION_COUNT; ++action) {
         double before = brain.output_biases[action];
         for (std::size_t neuron = 0; neuron < activation.size(); ++neuron) before += brain.output_weights[action][neuron] * activation[neuron];
-        CHECK(values[action] == doctest::Approx(before).epsilon(1e-12));
+        CHECK(values[action] == doctest::Approx(before / VALUE_SCALE).epsilon(1e-12));  // held in hundredths, given whole
     }
     CHECK(read_sense(SenseHunger, 0.0) == -1.0);
     CHECK(read_sense(SenseHunger, 1.0) == 1.0);
     CHECK(read_sense(SenseLatitude, -0.4) == -0.4);  // already -1..1
+}
+
+TEST_CASE("a brain made to hold its values in hundredths values everything as before, and exports them whole") {
+    PyRandom rng(4);
+    Brain brain = Brain::random(rng, 2, BASE_WIDTH);
+    Senses senses{};
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) senses[sense] = rng.random();
+    const Values before = brain.values(senses);
+    // As a brain saved before held them: whole.
+    for (auto& row : brain.output_weights) {
+        for (double& weight : row) weight /= VALUE_SCALE;
+    }
+    for (double& bias : brain.output_biases) bias /= VALUE_SCALE;
+    brain.scale_values();
+    const Values after = brain.values(senses), imported = Brain::from_record(brain.to_record()).values(senses);
+    for (int action = 0; action < ACTION_COUNT; ++action) {
+        CHECK(after[action] == doctest::Approx(before[action]).epsilon(1e-12));
+        CHECK(imported[action] == doctest::Approx(before[action]).epsilon(1e-4));  // rounded for export
+    }
+    CHECK(std::abs(brain.output_biases[Eat]) < 0.01);  // held small
 }

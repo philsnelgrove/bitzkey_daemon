@@ -138,6 +138,10 @@ inline double TRACE_DECAY = 0.7;  // lambda: how much of each earlier choice's c
 // A new brain values setting off in a direction this much below its other actions, so an untaught
 // brain doesn't march straight away from its range, its herd and its food before it has learned where to go.
 inline double HEADING_RELUCTANCE = 0.5;
+// A brain holds its values in hundredths: what an action is worth over the turns it looks ahead runs to ten and more,
+// and its neurons, each between -1 and 1, would jam at their limits to make that much, the same whatever it senses.
+// Held small, the output layer makes them of neurons free to follow the senses. It gives and learns them whole.
+constexpr double VALUE_SCALE = 0.01;
 constexpr int RECORD_DIGITS = 6;  // decimal places kept when a brain is exported
 // A new brain's output weights are drawn within this of zero: smaller the wider its layers, so its
 // untaught values spread as they did when layers were twelve neurons wide.
@@ -212,6 +216,9 @@ public:
     // Made to read the senses centred (read_sense), from a brain that read them as they were, choosing just as before;
     // what it was learning from lets go.
     void centre_inputs();
+    // Made to hold its values in hundredths (VALUE_SCALE), from a brain that held them whole, valuing just as before;
+    // what it was learning from lets go.
+    void scale_values();
 
     Values values(const Senses& inputs) const;
     // Move one action's value toward a target, with the error clipped for stability, back through

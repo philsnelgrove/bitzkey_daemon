@@ -62,7 +62,7 @@ void main() {
         if (thread == 0u) {
             float sum = 0.0;
             for (uint neuron = 0u; neuron < push.width; ++neuron) sum += weights[outputs + neuron * ACTIONS + lesson.action] * activation(top, neuron);
-            shared_error = clamp(sum + weights[output_biases + lesson.action] - lesson.target, -1.0, 1.0);
+            shared_error = clamp((sum + weights[output_biases + lesson.action]) / VALUE_SCALE - lesson.target, -1.0, 1.0);
         }
         barrier();
         const float error = shared_error;
@@ -70,7 +70,7 @@ void main() {
         if (lesson.traced == 0u) {  // a plain lesson: move this action's value toward the target
             if (thread < push.width) gradient[thread] = error * weights[outputs + thread * ACTIONS + lesson.action];
             barrier();
-            if (thread < push.width) weights[outputs + thread * ACTIONS + lesson.action] -= lesson.rate * error * activation(top, thread);
+            if (thread < push.width) weights[outputs + thread * ACTIONS + lesson.action] -= lesson.rate * error * VALUE_SCALE * activation(top, thread);
             barrier();
             for (int layer = int(push.depth) - 1; layer >= 0; --layer) {
                 const uint at = uint(layer);
@@ -95,17 +95,17 @@ void main() {
                 }
                 barrier();
             }
-            if (thread == 0u) weights[output_biases + lesson.action] -= lesson.rate * error;
+            if (thread == 0u) weights[output_biases + lesson.action] -= lesson.rate * error * VALUE_SCALE;
             barrier();
         } else {  // TD(lambda): every trace fades and gains how this action's value moves with it
             for (uint entry = thread; entry < ACTIONS * push.width; entry += THREADS) {
                 float trace = traces[outputs + entry] * lesson.decay;
-                if (entry % ACTIONS == lesson.action) trace += activation(top, entry / ACTIONS);
+                if (entry % ACTIONS == lesson.action) trace += VALUE_SCALE * activation(top, entry / ACTIONS);
                 traces[outputs + entry] = trace;
             }
             for (uint action = thread; action < ACTIONS; action += THREADS) {
                 float trace = traces[output_biases + action] * lesson.decay;
-                if (action == lesson.action) trace += 1.0;
+                if (action == lesson.action) trace += VALUE_SCALE;
                 traces[output_biases + action] = trace;
             }
             if (thread < push.width) gradient[thread] = weights[outputs + thread * ACTIONS + lesson.action];

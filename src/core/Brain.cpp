@@ -218,6 +218,7 @@ Brain Brain::random(PyRandom& rng, int depth, int width) {
     for (const int heading : {GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest}) {
         brain.output_biases[heading] -= HEADING_RELUCTANCE;
     }
+    brain.scale_values();  // valuing as it would whole
     return brain;
 }
 
@@ -262,12 +263,12 @@ Brain Brain::inherit(const Brain& first, const Brain& second, std::uint64_t seed
             for (double& weight : layer.weights) weight += mutation * stream.normal();
         }
         for (auto& row : child.output_weights) {
-            for (double& weight : row) weight += mutation * stream.normal();
+            for (double& weight : row) weight += mutation * VALUE_SCALE * stream.normal();  // as much as in whole values
         }
         for (Layer& layer : child.layers) {
             for (double& bias : layer.biases) bias += mutation * stream.normal();
         }
-        for (double& bias : child.output_biases) bias += mutation * stream.normal();
+        for (double& bias : child.output_biases) bias += mutation * VALUE_SCALE * stream.normal();
     }
     return child;
 }
@@ -298,6 +299,14 @@ void Brain::centre_inputs() {
     traces.reset();
 }
 
+void Brain::scale_values() {
+    for (auto& row : output_weights) {
+        for (double& weight : row) weight *= VALUE_SCALE;
+    }
+    for (double& bias : output_biases) bias *= VALUE_SCALE;
+    traces.reset();
+}
+
 std::vector<std::vector<double>> Brain::activations(const Senses& inputs) const {
     std::vector<std::vector<double>> found;
     found.reserve(layers.size() + 1);
@@ -320,7 +329,7 @@ Values Brain::values(const Senses& inputs) const {
     Values values{};
     for (int action = 0; action < ACTION_COUNT; ++action) {
         const double sum = dot(output_weights[action].data(), top.data(), top.size());
-        values[action] = sum + output_biases[action];
+        values[action] = (sum + output_biases[action]) / VALUE_SCALE;
     }
     return values;
 }
@@ -331,11 +340,12 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
     const std::vector<double>& top = found.back();
     const int width = this->width();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
-    const double error = std::max(-1.0, std::min(1.0, sum + output_biases[action] - target));
+    const double error = std::max(-1.0, std::min(1.0, (sum + output_biases[action]) / VALUE_SCALE - target));
     std::vector<double> gradient(static_cast<std::size_t>(width));
     for (int neuron = 0; neuron < width; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][static_cast<std::size_t>(neuron)];
+    const double output_step = learning_rate * error * VALUE_SCALE;  // the output layer moves the whole value as it would
     for (int neuron = 0; neuron < width; ++neuron) {
-        output_weights[action][static_cast<std::size_t>(neuron)] -= learning_rate * error * top[static_cast<std::size_t>(neuron)];
+        output_weights[action][static_cast<std::size_t>(neuron)] -= output_step * top[static_cast<std::size_t>(neuron)];
     }
     for (int index = depth() - 1; index >= 0; --index) {
         Layer& layer = layers[static_cast<std::size_t>(index)];
@@ -361,7 +371,7 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
             }
         }
     }
-    output_biases[action] -= learning_rate * error;
+    output_biases[action] -= output_step;
 }
 
 void Brain::learn_traced(const Senses& inputs, int action, double target, double learning_rate, double discount,
@@ -380,13 +390,14 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
     const std::vector<std::vector<double>> found = activations(inputs);
     const std::vector<double>& top = found.back();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
-    const double error = std::max(-1.0, std::min(1.0, sum + output_biases[action] - target));
+    const double error = std::max(-1.0, std::min(1.0, (sum + output_biases[action]) / VALUE_SCALE - target));
     for (auto& row : traces->output_weights) {
         for (double& trace : row) trace *= decay;
     }
-    for (int neuron = 0; neuron < width; ++neuron) traces->output_weights[action][static_cast<std::size_t>(neuron)] += top[static_cast<std::size_t>(neuron)];
+    // The output layer's traces gather in hundredths, so it moves the whole value as it would.
+    for (int neuron = 0; neuron < width; ++neuron) traces->output_weights[action][static_cast<std::size_t>(neuron)] += VALUE_SCALE * top[static_cast<std::size_t>(neuron)];
     for (double& trace : traces->output_biases) trace *= decay;
-    traces->output_biases[action] += 1.0;
+    traces->output_biases[action] += VALUE_SCALE;
     std::vector<double> gradient(output_weights[action].begin(), output_weights[action].end());
     for (int index = depth() - 1; index >= 0; --index) {
         const Layer& layer = layers[static_cast<std::size_t>(index)];
@@ -451,9 +462,19 @@ nlohmann::ordered_json Brain::to_record() const {
         entry["biases"] = rounded(layer.biases.begin(), layer.biases.end());
         record["layers"].push_back(std::move(entry));
     }
+    // The output layer exported whole, as it values (it is held in hundredths), lest rounding lose it.
+    const auto whole = [](const auto& numbers) {
+        std::vector<double> scaled(numbers.begin(), numbers.end());
+        for (double& number : scaled) number /= VALUE_SCALE;
+        return scaled;
+    };
     record["output_weights"] = json::array();
-    for (const auto& row : output_weights) record["output_weights"].push_back(rounded(row.begin(), row.end()));
-    record["output_biases"] = rounded(output_biases.begin(), output_biases.end());
+    for (const auto& row : output_weights) {
+        const std::vector<double> scaled = whole(row);
+        record["output_weights"].push_back(rounded(scaled.begin(), scaled.end()));
+    }
+    const std::vector<double> biases = whole(output_biases);
+    record["output_biases"] = rounded(biases.begin(), biases.end());
     return record;
 }
 
@@ -548,6 +569,7 @@ Brain Brain::from_record(const nlohmann::json& record) {
         brain.output_biases[action] = found == action_at.end() ? 0.0 : output_bias[found->second];
     }
     if (!record.value("centred_senses", false)) brain.centre_inputs();  // exported before brains read their senses centred
+    brain.scale_values();  // its output layer exported whole, held in hundredths
     return brain;
 }
 
