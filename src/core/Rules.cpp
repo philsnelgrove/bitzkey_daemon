@@ -173,6 +173,7 @@ std::vector<Rule> make_rules() {
         {"MATING_CALL", "Mind", "Mating call", "how much more a predator ready to breed values breeding, or else courting a mate it sees", 0.0, 5.0, 0.05, false, &MATING_CALL},
         {"MATING_CALL_RANGE", "Mind", "Mating call range", "times its sight a predator ready to breed seeks a mate, when it sees none", 0.0, MAX_MATING_CALL_RANGE, 0.25, false, &MATING_CALL_RANGE},
         {"OMNIVORE_MATING_CALL", "Mind", "Mating call, omnivores", "how much more an omnivore ready to breed values breeding, or else courting", 0.0, 5.0, 0.05, false, &OMNIVORE_MATING_CALL},
+        {"FIRST_BREEDING_INSTINCT", "Mind", "First breeding instinct", "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting", 0.0, 10.0, 0.25, false, &FIRST_BREEDING_INSTINCT},
         {"HUNTER_BREEDING_COST", "Mind", "Breeding cost, hunters", "share of the usual breeding cost a predator or omnivore pays", 0.0, 1.0, 0.05, false, &HUNTER_BREEDING_COST},
         {"GRAZER_BREEDING_COST", "Mind", "Breeding cost, grazers", "share of the usual breeding cost a grazer pays", 0.0, 1.0, 0.05, false, &GRAZER_BREEDING_COST},
         {"SCARCE_POPULATION", "Mind", "Scarce population", "below this many living, a species' breeding cost begins to fall", 1, 2000, 10, true, &SCARCE_POPULATION},

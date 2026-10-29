@@ -928,6 +928,22 @@ TEST_CASE("even the dullest animal learns, at the learning floor") {
     CHECK(lesson(0.25) > 0.001);
 }
 
+TEST_CASE("a world's first Bitzkeys, their brains untrained, have an instinct to breed; their young don't") {
+    FIRST_BREEDING_INSTINCT = 3.0;
+    Simulation simulation = world_at(239);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
+    grazer.age = static_cast<int>(0.5 * grazer.lifespan);  // grown, and ready
+    grazer.grow();
+    REQUIRE(grazer.can_breed());
+    const std::vector<int> options = {Eat, Breed};
+    for (const int generation : {0, 1}) {
+        grazer.generation = generation;
+        Values valued{};
+        add_instincts(grazer, valued, options, 0, 0);
+        CHECK(valued[Breed] == doctest::Approx(generation == 0 ? 3.0 : 0.0));
+    }
+}
+
 TEST_CASE("a parent's instinct closes on its best other option, however much its brain values things") {
     PARENTAL_INSTINCT = 2.0;
     Simulation simulation = world_at(239);

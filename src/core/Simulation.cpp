@@ -2616,9 +2616,10 @@ void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> op
         valued[Attack] += urge;
         valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
     }
-    const double call = agent.species == Species::Predator  ? MATING_CALL
-                        : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL
-                                                             : 0.0;
+    double call = agent.species == Species::Predator  ? MATING_CALL
+                  : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL
+                                                       : 0.0;
+    if (agent.generation == 0) call += FIRST_BREEDING_INSTINCT;  // the first of a world, their brains untrained, have an instinct to breed besides
     if (call > 0 && agent.can_breed()) {
         // The mating call: to breed if it can, else to court a mate it seeks.
         const bool can = std::find(options.begin(), options.end(), Breed) != options.end();

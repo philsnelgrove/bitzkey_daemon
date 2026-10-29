@@ -240,6 +240,7 @@ inline double MATING_CALL = 0.5;      // how much more a predator ready to breed
 inline double MATING_CALL_RANGE = 2.0;    // a predator ready to breed that sees no mate seeks one this many times its sight off
 constexpr double MAX_MATING_CALL_RANGE = 3.0;
 inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
+inline double FIRST_BREEDING_INSTINCT = 3.0;  // how much more one of a world's first, ready to breed, values breeding, or else courting
 inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
 inline double GRAZER_BREEDING_COST = 0.5;   // share of the usual breeding cost a grazer pays
 inline double PREDATOR_STING = 0.5;         // share of a victim's spines a predator striking it takes
