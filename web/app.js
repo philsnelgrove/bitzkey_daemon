@@ -652,7 +652,7 @@ function showSquare() {
   const used = here.reduce((total, agent) => total + 1 + agent.size, 0);
   squarePanel.replaceChildren(
     element('div', { class: 'square-title' }, `SQUARE (${square[0]}, ${square[1]})   ${used}/${app.state?.cell_space ?? 10} SPACES`),
-    here.map(agent => element('div', {
+    ...here.map(agent => element('div', {
       class: agent.identifier === app.selectedId ? 'square-row chosen' : 'square-row',
       onclick: () => { select(agent.identifier); showSquare(); },
     }, `#${pad3(agent.identifier)}  ${upper(SPECIES[agent.species])}   size ${agent.size}  ·  ${1 + agent.size} spaces`)));
