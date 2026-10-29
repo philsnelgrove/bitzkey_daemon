@@ -1001,6 +1001,12 @@ void Simulation::index_cells() {
     if (band_of_row_.size() != static_cast<std::size_t>(height_)) index_bands();
     const std::size_t band_count = band_of_row_.empty() ? 0 : static_cast<std::size_t>(band_of_row_.back()) + 1;
     band_plants_.assign(band_count, 0);
+    band_grass_.assign(band_count, 0.0);
+    for (int y = 0; y < height_ && band_count; ++y) {  // each band's standing grass
+        double tufts = 0.0;
+        for (int x = 0; x < width_; ++x) tufts += grass_at(x, y);
+        band_grass_[static_cast<std::size_t>(band_of_row_[static_cast<std::size_t>(y)])] += tufts;
+    }
     band_grazers_.assign(band_count, 0);
     band_prey_.assign(band_count, 0);
     band_predators_.assign(band_count, 0);
@@ -1110,7 +1116,7 @@ double Simulation::home_fed(const Bitzkey& agent) const {
         if (band_omnivores_.empty()) return 0.0;  // none before the cells are first indexed
         const auto band = static_cast<std::size_t>(home_band_[static_cast<std::size_t>(agent.climate.temperature)][static_cast<std::size_t>(agent.y)]);
         const double mouths = std::max(1, band_omnivores_[band]);
-        return 0.5 * fed_share(band_plants_[band] / mouths, PLANTS_PER_GRAZER) +
+        return 0.5 * fed_share(band_plant_food(band, Species::Omnivore) / mouths, PLANTS_PER_GRAZER) +
                0.5 * fed_share(band_omnivore_prey_[band] / mouths, PREY_PER_PREDATOR);
     }
     if (agent.species == Species::Plant) return 0.0;
@@ -1120,7 +1126,12 @@ double Simulation::home_fed(const Bitzkey& agent) const {
 double Simulation::home_plants(const Bitzkey& grazer) const {
     if (band_plants_.empty()) return 0.0;  // none before the cells are first indexed
     const auto band = static_cast<std::size_t>(home_band_[static_cast<std::size_t>(grazer.climate.temperature)][static_cast<std::size_t>(grazer.y)]);
-    return static_cast<double>(band_plants_[band]) / std::max(1, band_grazers_[band]);
+    return band_plant_food(band, Species::Grazer) / std::max(1, band_grazers_[band]);
+}
+
+double Simulation::band_plant_food(std::size_t band, Species species) const {
+    const double grass = band < band_grass_.size() ? band_grass_[band] : 0.0;
+    return band_plants_[band] + GRAZING[static_cast<std::size_t>(species)] * STANDING_GRASS * grass / PLANT_MEALS;
 }
 
 bool Simulation::heat(const Bitzkey& agent) const {

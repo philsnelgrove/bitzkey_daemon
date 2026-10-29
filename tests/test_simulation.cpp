@@ -1608,6 +1608,18 @@ TEST_CASE("an omnivore struck always breaks, and a predator is never overcome by
     for (int roll = 0; roll < 50; ++roll) CHECK_FALSE(simulation.primal_fear(small, &brute));  // never overcome
 }
 
+TEST_CASE("the grass of a grazer's or omnivore's home band counts toward its plants, as well as it digests grass") {
+    Simulation simulation = world(30);  // temperate bands: rows 6-11 and 18-23
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 15, 8);
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore), 16, 8);
+    simulation.index_cells();
+    CHECK(simulation.home_plants(grazer) == 0.0);  // no plants, no grass
+    for (const int x : {2, 3, 4, 5}) simulation.grass_cell(x, 7) = 4;  // sixteen tufts in its band
+    simulation.index_cells();
+    CHECK(simulation.home_plants(grazer) == doctest::Approx(GRAZING[1] * STANDING_GRASS * 16 / PLANT_MEALS));
+    CHECK(simulation.home_fed(omnivore) > 0.0);  // half its share from plants: the grass as plants, less well digested
+}
+
 TEST_CASE("an omnivore's litters follow the plants and prey at home, half each") {
     const double small_litters = SMALL_LITTERS, newborn_food = NEWBORN_FOOD, plants = PLANTS_PER_GRAZER, prey = PREY_PER_PREDATOR;
     SMALL_LITTERS = 1.0;

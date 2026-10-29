@@ -40,7 +40,7 @@ inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
-inline int GRAZER_SPAWN_GROUP = 50;  // a new world's grazers spawn in groups this large, so the hunters' prey outnumber them
+inline int GRAZER_SPAWN_GROUP = 30;  // a new world's grazers spawn in groups this large, so the hunters' prey outnumber them
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
 // The sea: a new world's share of the map under it, in percent, and how broad its land and sea are, as a share of the
@@ -1174,6 +1174,9 @@ public:
     // Whether its home band holds the food a mouth needs to breed: plants for a grazer, prey for a predator, both
     // together, half each, for an omnivore.
     bool well_fed(const Bitzkey& agent) const { return home_fed(agent) >= 1 / full_litter(agent); }
+    // A band's plants, and its grass as plants: the share of the standing grass a grazer counts on (STANDING_GRASS), as
+    // well as this species digests it (GRAZING), in a plant's meals (PLANT_MEALS).
+    double band_plant_food(std::size_t band, Species species) const;
     // Whether a hunter's prey species, all together, have grown so few (under RARE_PREY percent of its own species' numbers) that it spares them
     // by not breeding.
     bool prey_rare(const Bitzkey& agent) const;
@@ -1295,6 +1298,7 @@ private:
     std::vector<double> growth_;       // each row's share of medium, where grass grows
     std::vector<int> band_of_row_;     // the climate band each row lies in, top to bottom
     std::vector<std::vector<int>> home_band_;  // by home temperature and row: the home band nearest
+    std::vector<double> band_grass_;   // the grass standing in each band, in tufts
     std::vector<int> band_plants_;     // the plants in each band, and the grazers at home there,
     std::vector<int> band_grazers_;    // as the cells were last indexed
     std::vector<int> band_prey_;       // the prey in each band, and the predators at home there, likewise
