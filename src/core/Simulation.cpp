@@ -451,6 +451,12 @@ Simulation::Simulation(Settings settings)
         spawn_group(bitzkey.dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
                     bitzkey.mind);
     }
+    for (const auto& agent : agents_) {  // the first of a world are grown: just past their infancy, at full health
+        if (agent->species == Species::Plant) continue;
+        agent->age = static_cast<int>(std::ceil(agent->infancy()));
+        agent->grow();
+        agent->health = agent->max_health;
+    }
     take_census();
 }
 

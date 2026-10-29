@@ -1353,6 +1353,23 @@ TEST_CASE("an infant has half its body and health, and grows out of it; plants a
     CHECK(seedling.trait(Weapons) == 6);
 }
 
+TEST_CASE("the first Bitzkeys of a world start grown") {
+    const double youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;
+    Simulation::Settings settings{30, 30, 40, 3};
+    Simulation simulation(settings);
+    int animals = 0;
+    for (const auto& agent : simulation.agents()) {
+        if (agent->species == Species::Plant) continue;
+        ++animals;
+        CHECK_FALSE(agent->infant());
+        CHECK_FALSE(agent->feeble);
+        CHECK(agent->health == doctest::Approx(agent->max_health));
+    }
+    CHECK(animals > 0);
+    FEEBLE_YOUTH = youth;
+}
+
 TEST_CASE("no frail Bitzkey breeds: neither an infant nor the old") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;
