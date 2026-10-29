@@ -348,3 +348,19 @@ body.hud-hidden #board { padding: 8px; }
 .trait-bar b { position: absolute; top: -1px; width: 2px; height: 4px; margin-left: -1px; background: rgb(230, 236, 226); }
 .body-row span { display: inline-block; }
 .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 3px; vertical-align: -1px; border: 1px solid rgb(190, 190, 190); }
+
+/* The inspector's head: its name, then its colour chits and terrain; and the popups the mouse brings up over them */
+.details-title { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.details .swatches { display: flex; gap: 12px; align-items: center; }
+.details .swatches .chit { cursor: help; }
+.details .swatches .terrain { margin-left: auto; font-family: inherit; color: rgb(211, 219, 201); }
+.details .traits > div[class*="mono"], .details .body-row span { cursor: help; }
+.hover-popup { position: fixed; z-index: 1000; pointer-events: none; max-width: 340px; padding: 10px 12px; border-radius: 6px;
+  background: rgb(19, 26, 27); border: 1px solid rgb(131, 205, 143); color: rgb(211, 219, 201); font-size: 15px; line-height: 1.35; }
+.hover-popup .popup-title { font-size: 17px; font-weight: bold; color: rgb(229, 239, 220); margin-bottom: 4px; }
+.hover-popup .popup-value { color: rgb(131, 205, 143); margin-bottom: 6px; }
+.hover-popup .mono { font-family: Consolas, monospace; font-size: 12px; white-space: pre; }
+.hover-popup .popup-label { color: rgb(149, 170, 150); margin-top: 2px; }
+.hover-popup table.genes { font-family: Consolas, monospace; font-size: 12px; border-collapse: collapse; margin-top: 4px; }
+.hover-popup table.genes td { padding: 0 8px 0 0; white-space: pre; }
+.hover-popup table.genes td:nth-child(3), .hover-popup table.genes td:nth-child(4) { text-align: right; }

@@ -125,7 +125,7 @@ function say(text) {
 }
 
 const HINT = 'SPACE  pause   -/+  speed   RIGHT  step   WHEEL / Z  zoom   I  insights   B  report   ' +
-             'G  graph   E  export   R  restart   ESC  new world';
+             'G  graph   E  export   R  restart   TAB  next   F8  colour-blind   F9  text size   ESC  new world';
 
 // ---------------------------------------------------------------------------------------------
 // Fetching the world

@@ -42,7 +42,7 @@ export function openGraph(app, onClose) {
       element('button', { onclick: () => app.exportIdentifiers([...app.selection], false) }, 'COPY'),
       element('button', { onclick: () => app.exportIdentifiers([...app.selection], true) }, 'SAVE')),
     element('div', { class: 'graph-sub' },
-      element('span', {}, 'Every Bitzkey alive over time, in its own colour.    TAB  ring / dot / social    C  copy    S  save    K  catalog    G or ESC  close'),
+      element('span', {}, 'Every Bitzkey alive over time, in its own colour.    TAB  ring / dot / social / species    C  copy    S  save    K  catalog    G or ESC  close'),
       note),
     element('div', { class: 'graph-canvas' }, canvas),
     element('div', { class: 'graph-bottom' }, describe,
