@@ -1998,8 +1998,8 @@ TEST_CASE("a large body costs: it is hungrier, starves faster, matures later, an
     CLIMATE_DAMAGE = climate_damage;
     const double small_lost = small_before - starving_small.health / starving_small.max_health;
     const double large_lost = large_before - starving_large.health / starving_large.max_health;
-    // The largest wastes away twice as fast; resting through the turn heals each a little back, the small more.
-    CHECK(large_lost > 2 * small_lost);
+    // The largest wastes away twice as fast; resting through the turn, if it does, heals each a little back, the small more.
+    CHECK(large_lost >= 2 * small_lost - 1e-9);
 
     SMALL_HIDING = 1.0;  // at the smallest, a blow always misses; at the largest, never
     Simulation hunt = world();

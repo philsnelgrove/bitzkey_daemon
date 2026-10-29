@@ -97,6 +97,7 @@ struct Reader {
     std::vector<int> sense_from;
     // For a world saved before the latest actions were added (they are only ever added at the end): how many it saved.
     std::size_t saved_actions = ACTION_COUNT;
+    bool uncentred = false;  // saved before brains read their senses centred: each is made to, choosing as before
 
     // One set of saved senses at `at`, or one neuron's weights from them, as this version's senses.
     void read_senses(std::size_t at, double* into) const {
@@ -155,6 +156,7 @@ struct Reader {
             read_layers(at, depth, width, traces.layers, traces.output_weights, traces.output_biases);
             brain->traces = std::move(traces);
         }
+        if (uncentred) brain->centre_inputs();
         const auto [fit_depth, fit_width] = brain_shape(dna);
         if (depth != fit_depth || width != fit_width) brain = std::make_shared<Brain>(brain->resized(fit_depth, fit_width));
         return brain;
@@ -423,7 +425,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         rules[key] = rule && rule->integer ? json(static_cast<long long>(value)) : json(value);
     }
     const json record = {
-        {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"actions", names(ACTIONS)},
+        {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"actions", names(ACTIONS)},
         {"temperament", names(TEMPERAMENT)},
         {"settings", {{"width", simulation.width_}, {"height", simulation.height_}, {"population_cap", optional_value(simulation.population_cap_)},
                       {"mind_mutation", simulation.mind_mutation_}, {"body_mutation", simulation.body_mutation_},
@@ -509,6 +511,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             throw std::runtime_error("This world was saved by a version of Bitzkey whose brains sense or act differently.");
         }
         reader.saved_actions = actions.size();
+        reader.uncentred = !record.value("centred_senses", false);
         // Brains saved with other senses are read by name: a sense they lacked starts with no weight, and
         // one no longer sensed is let go.
         if (const json& saved = record.at("senses"); saved != names(SENSES)) {

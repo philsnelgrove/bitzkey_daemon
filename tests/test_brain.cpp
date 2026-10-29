@@ -233,7 +233,7 @@ TEST_CASE("there are 105 senses, and a narrower saved brain loads as saved, valu
     for (auto& row : output) for (double& weight : row) weight = uniform(engine);
     std::vector<double> output_biases(ACTION_COUNT);
     for (double& bias : output_biases) bias = uniform(engine);
-    nlohmann::json record = {{"senses", SENSES}, {"actions", ACTIONS}, {"output_weights", output}, {"output_biases", output_biases}};
+    nlohmann::json record = {{"senses", SENSES}, {"centred_senses", true}, {"actions", ACTIONS}, {"output_weights", output}, {"output_biases", output_biases}};
     record["layers"] = nlohmann::json::array();
     for (int index = 0; index < 2; ++index) record["layers"].push_back({{"weights", weights[index]}, {"biases", biases[index]}});
     const Brain loaded = Brain::from_record(record);
@@ -241,6 +241,7 @@ TEST_CASE("there are 105 senses, and a narrower saved brain loads as saved, valu
     Senses senses{};
     for (double& sense : senses) sense = uniform(engine) + 0.5;
     std::vector<double> activation(senses.begin(), senses.end());
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) activation[static_cast<std::size_t>(sense)] = read_sense(sense, senses[sense]);  // as a brain reads them
     for (int index = 0; index < 2; ++index) {
         std::vector<double> next(narrow);
         for (int neuron = 0; neuron < narrow; ++neuron) {
@@ -298,4 +299,32 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
     CHECK(found == std::vector<double>{-0.15983579101927251, 0.092250751175896234, -0.097734976568545115, -0.097151955572367998,
                                        -0.011420547423109582, -0.019905365281007829});
     CHECK(rng.random() == 0.20169522729508749);  // one draw of the world's for the child
+}
+
+TEST_CASE("a brain that read its senses uncentred, made to read them centred, values everything just as before") {
+    PyRandom rng(3);
+    Brain brain = Brain::random(rng, 2, BASE_WIDTH);
+    Senses senses{};
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) senses[sense] = signed_sense(sense) ? rng.uniform(-1, 1) : rng.random();
+    // Its values as it read them before: the senses as they are, through its layers.
+    std::vector<double> activation(senses.begin(), senses.end());
+    for (const Layer& layer : brain.layers) {
+        std::vector<double> next(static_cast<std::size_t>(layer.neurons()));
+        for (int neuron = 0; neuron < layer.neurons(); ++neuron) {
+            double sum = layer.biases[static_cast<std::size_t>(neuron)];
+            for (int input = 0; input < layer.reads; ++input) sum += layer.row(neuron)[input] * activation[static_cast<std::size_t>(input)];
+            next[static_cast<std::size_t>(neuron)] = std::tanh(sum);
+        }
+        activation = next;
+    }
+    brain.centre_inputs();
+    const Values values = brain.values(senses);
+    for (int action = 0; action < ACTION_COUNT; ++action) {
+        double before = brain.output_biases[action];
+        for (std::size_t neuron = 0; neuron < activation.size(); ++neuron) before += brain.output_weights[action][neuron] * activation[neuron];
+        CHECK(values[action] == doctest::Approx(before).epsilon(1e-12));
+    }
+    CHECK(read_sense(SenseHunger, 0.0) == -1.0);
+    CHECK(read_sense(SenseHunger, 1.0) == 1.0);
+    CHECK(read_sense(SenseLatitude, -0.4) == -0.4);  // already -1..1
 }

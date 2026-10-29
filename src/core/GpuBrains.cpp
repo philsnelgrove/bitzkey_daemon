@@ -368,7 +368,7 @@ public:
                     const std::size_t index = members[k];
                     slots[first + k] = entries_[static_cast<std::size_t>(brains[index])].slot;
                     for (int sense = 0; sense < INPUT_SIZE; ++sense) {
-                        inputs[(first + k) * INPUT_SIZE + static_cast<std::size_t>(sense)] = static_cast<float>(senses[index][sense]);
+                        inputs[(first + k) * INPUT_SIZE + static_cast<std::size_t>(sense)] = static_cast<float>(read_sense(sense, senses[index][sense]));
                     }
                 }
                 const Pool& pool = gpu.pools.at(shape);
@@ -457,7 +457,7 @@ public:
                     lesson_data[at] = {static_cast<std::uint32_t>(lesson.action), lesson.traced ? 1u : 0u, static_cast<float>(lesson.target),
                                        static_cast<float>(lesson.rate), static_cast<float>(lesson.decay), {0, 0, 0}};
                     float* into = inputs + static_cast<std::size_t>(at) * INPUT_SIZE;
-                    for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = static_cast<float>((*lesson.senses)[sense]);
+                    for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = static_cast<float>(read_sense(sense, (*lesson.senses)[sense]));
                     ++at;
                 }
             });

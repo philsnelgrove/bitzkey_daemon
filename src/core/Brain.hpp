@@ -99,6 +99,14 @@ constexpr int SenseWalks = SenseSwims + 1;          // onto the land,
 constexpr int SenseFlies = SenseWalks + 1;          // and whether it flies
 constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 nocturnal, 0 diurnal
 constexpr int INPUT_SIZE = SenseNocturnal + 1;
+// The senses as a brain reads them: each that runs 0..1 centred, read as -1..1, so that a lesson moves a neuron's weights
+// both ways (senses never below 0 push all its weights the same way, lesson after lesson, until the neuron jams at its
+// limit, the same whatever it senses, and learns no more); those already running -1..1 read as they are.
+constexpr bool signed_sense(int sense) {
+    return sense == SenseLatitude || sense == SenseWarmth || sense == SenseWarmthNorth || sense == SenseWarmthSouth ||
+           sense == SenseHomeDirection || sense == SenseParentEast || sense == SenseParentSouth;
+}
+inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
     "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "prey_pregnant", "threat_near", "threat_danger",
@@ -201,6 +209,9 @@ public:
     // A copy `depth` layers of `width` neurons: deeper with layers that pass their input on, or
     // shallower without its last layers, and each layer fitted (see Layer::fitted).
     Brain resized(int depth, int width) const;
+    // Made to read the senses centred (read_sense), from a brain that read them as they were, choosing just as before;
+    // what it was learning from lets go.
+    void centre_inputs();
 
     Values values(const Senses& inputs) const;
     // Move one action's value toward a target, with the error clipped for stability, back through

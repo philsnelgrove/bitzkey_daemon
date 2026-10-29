@@ -283,10 +283,26 @@ Brain Brain::resized(int depth, int width) const {
     return brain;
 }
 
+void Brain::centre_inputs() {
+    // A sense x read as 2x - 1: each weight on it halved, and the half it gave at 0 given by the neuron's bias.
+    if (layers.empty()) return;
+    Layer& first = layers.front();
+    for (int neuron = 0; neuron < first.neurons(); ++neuron) {
+        double* weights = first.row(neuron);
+        for (int sense = 0; sense < INPUT_SIZE; ++sense) {
+            if (signed_sense(sense)) continue;
+            weights[sense] /= 2;
+            first.biases[static_cast<std::size_t>(neuron)] += weights[sense];
+        }
+    }
+    traces.reset();
+}
+
 std::vector<std::vector<double>> Brain::activations(const Senses& inputs) const {
     std::vector<std::vector<double>> found;
     found.reserve(layers.size() + 1);
     found.emplace_back(inputs.begin(), inputs.end());
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) found.back()[static_cast<std::size_t>(sense)] = read_sense(sense, inputs[sense]);
     for (const Layer& layer : layers) {
         const std::vector<double>& below = found.back();
         std::vector<double> output(static_cast<std::size_t>(layer.neurons()));
@@ -422,6 +438,7 @@ nlohmann::ordered_json Brain::to_record() const {
     json record = json::object();
     record["senses"] = json::array();
     for (const auto name : SENSES) record["senses"].push_back(std::string(name));
+    record["centred_senses"] = true;
     record["actions"] = json::array();
     for (const auto name : ACTIONS) record["actions"].push_back(std::string(name));
     record["layers"] = json::array();
@@ -530,6 +547,7 @@ Brain Brain::from_record(const nlohmann::json& record) {
         }
         brain.output_biases[action] = found == action_at.end() ? 0.0 : output_bias[found->second];
     }
+    if (!record.value("centred_senses", false)) brain.centre_inputs();  // exported before brains read their senses centred
     return brain;
 }
 
