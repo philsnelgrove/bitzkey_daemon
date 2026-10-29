@@ -21,7 +21,7 @@ struct Lesson {
     float target;
     float rate;
     float decay;  // for a traced lesson: how much each trace fades first
-    uint unused0;
+    float limit;  // the most the error counts for
     uint unused1;
     uint unused2;
 };
@@ -62,7 +62,7 @@ void main() {
         if (thread == 0u) {
             float sum = 0.0;
             for (uint neuron = 0u; neuron < push.width; ++neuron) sum += weights[outputs + neuron * ACTIONS + lesson.action] * activation(top, neuron);
-            shared_error = clamp((sum + weights[output_biases + lesson.action]) / VALUE_SCALE - lesson.target, -1.0, 1.0);
+            shared_error = clamp((sum + weights[output_biases + lesson.action]) / VALUE_SCALE - lesson.target, -lesson.limit, lesson.limit);
         }
         barrier();
         const float error = shared_error;

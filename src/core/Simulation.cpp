@@ -171,6 +171,7 @@ std::optional<Cell> cell_of(const Bitzkey* agent) {
 int season(int turn) { return turn % YEAR_LENGTH * 4 / YEAR_LENGTH; }
 
 int year(int turn) { return turn / YEAR_LENGTH + 1; }
+int month(int turn) { return py_mod(turn, YEAR_LENGTH) * 12 / YEAR_LENGTH + 1; }
 
 int zone_temperature(int y, int height) {
     const double place = (y + 0.5) / height;
@@ -1653,31 +1654,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             options = std::move(asleep);
         }
         Values valued = values[index];
-        if (agent.species == Species::Predator) {  // the instinct to hunt, on top of what its brain has learnt
-            const double urge = HUNTING_INSTINCT * std::min(1.0, agent.hunger / 100);
-            valued[Hunt] += urge;
-            valued[Attack] += urge;
-            valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
-        }
-        const double call = agent.species == Species::Predator  ? MATING_CALL
-                            : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL
-                                                                 : 0.0;
-        if (call > 0 && agent.can_breed()) {
-            // The mating call: to breed if it can, else to court a mate it seeks.
-            const bool can = std::find(options.begin(), options.end(), Breed) != options.end();
-            valued[can ? Breed : Court] += call;
-        }
-        const double scavenger = agent.scavenger();
-        valued[Scavenge] += CARRION_CRAVING * scavenger;  // a carrion-eater's craving
-        valued[Hunt] -= CARRION_AVERSION * scavenger;      // and its aversion to killing for itself
-        valued[Attack] -= CARRION_AVERSION * scavenger;
-        valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
-        if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
-        if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {  // the instinct to feed its hungry young
-            double hungriest = 0.0;
-            for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
-            valued[FeedYoung] += PARENTAL_INSTINCT * (0.5 + agent.feeling(Empathy)) * hungriest / 100;
-        }
+        double hungriest = 0.0;  // of its infants about it
+        for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
+        add_instincts(agent, valued, options, agent.hunger, hungriest);
         const auto odds = choice_odds(valued, options);
         double roll = rolls[index];
         int choice = options.back();
@@ -2417,6 +2396,32 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
         die(plant, "uprooted", &agent, "uprooting");
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
+    }
+}
+
+void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> options, double hunger, double hungriest_young) {
+    if (agent.species == Species::Predator) {  // the instinct to hunt, on top of what its brain has learnt
+        const double urge = HUNTING_INSTINCT * std::min(1.0, hunger / 100);
+        valued[Hunt] += urge;
+        valued[Attack] += urge;
+        valued[Feast] += BLOODLUST;  // bloodlust: a fresh kill in sight is hard to pass by
+    }
+    const double call = agent.species == Species::Predator  ? MATING_CALL
+                        : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL
+                                                             : 0.0;
+    if (call > 0 && agent.can_breed()) {
+        // The mating call: to breed if it can, else to court a mate it seeks.
+        const bool can = std::find(options.begin(), options.end(), Breed) != options.end();
+        valued[can ? Breed : Court] += call;
+    }
+    const double scavenger = agent.scavenger();
+    valued[Scavenge] += CARRION_CRAVING * scavenger;  // a carrion-eater's craving
+    valued[Hunt] -= CARRION_AVERSION * scavenger;      // and its aversion to killing for itself
+    valued[Attack] -= CARRION_AVERSION * scavenger;
+    valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
+    if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
+    if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {  // the instinct to feed its hungry young
+        valued[FeedYoung] += PARENTAL_INSTINCT * (0.5 + agent.feeling(Empathy)) * hungriest_young / 100;
     }
 }
 

@@ -340,7 +340,7 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
     const std::vector<double>& top = found.back();
     const int width = this->width();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
-    const double error = std::max(-1.0, std::min(1.0, (sum + output_biases[action]) / VALUE_SCALE - target));
+    const double error = std::max(-LESSON_LIMIT, std::min(LESSON_LIMIT, (sum + output_biases[action]) / VALUE_SCALE - target));
     std::vector<double> gradient(static_cast<std::size_t>(width));
     for (int neuron = 0; neuron < width; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][static_cast<std::size_t>(neuron)];
     const double output_step = learning_rate * error * VALUE_SCALE;  // the output layer moves the whole value as it would
@@ -390,7 +390,7 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
     const std::vector<std::vector<double>> found = activations(inputs);
     const std::vector<double>& top = found.back();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
-    const double error = std::max(-1.0, std::min(1.0, (sum + output_biases[action]) / VALUE_SCALE - target));
+    const double error = std::max(-LESSON_LIMIT, std::min(LESSON_LIMIT, (sum + output_biases[action]) / VALUE_SCALE - target));
     for (auto& row : traces->output_weights) {
         for (double& trace : row) trace *= decay;
     }

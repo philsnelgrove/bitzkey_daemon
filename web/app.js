@@ -274,7 +274,7 @@ function drawHeader() {
   gpu.title = state.gpu_status || '';
   $('turn').textContent = `TURN  ${pad5(state.turn)}`;
   $('alive').textContent = `${state.alive} ALIVE    ${state.lost} LOST`;
-  $('year').textContent = `YEAR ${state.year}`;
+  $('year').textContent = `MONTH ${state.month}, YEAR ${state.year}`;
   $('season').textContent = upper(state.season);
   $('season').classList.toggle('winter', state.winter);
   const population = $('population');

@@ -348,3 +348,19 @@ TEST_CASE("a brain made to hold its values in hundredths values everything as be
     }
     CHECK(std::abs(brain.output_biases[Eat]) < 0.01);  // held small
 }
+
+TEST_CASE("a lesson's error counts for no more than the lesson limit") {
+    PyRandom rng(6);
+    const Brain start = Brain::random(rng, 1, BASE_WIDTH);
+    Senses senses{};
+    const auto moved = [&](double limit) {
+        LESSON_LIMIT = limit;
+        Brain brain = start;
+        const double before = brain.values(senses)[Eat];
+        brain.learn(senses, Eat, before + 20, 0.01);  // a surprise of 20
+        return brain.values(senses)[Eat] - before;
+    };
+    const double one = moved(1.0), five = moved(5.0);
+    CHECK(five == doctest::Approx(5 * one).epsilon(0.02));
+    LESSON_LIMIT = 5.0;
+}

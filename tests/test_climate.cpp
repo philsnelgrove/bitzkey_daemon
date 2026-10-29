@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core/Rules.hpp"
+#include "core/Insights.hpp"
 #include "core/Simulation.hpp"
 
 using namespace bitzkey;
@@ -876,4 +877,22 @@ TEST_CASE("an animal whose brain chooses to rest is restless instead, unless in 
     };
     CHECK(lesson(true) > 0.001);              // a panicked flight teaches
     CHECK(std::abs(lesson(false)) < 1e-12);  // a flight it was made to take otherwise doesn't (Forced lessons 0)
+}
+
+TEST_CASE("a turn's month runs 1 to 12 through its year") {
+    CHECK((month(0) == 1 && month(YEAR_LENGTH / 12) == 2 && month(YEAR_LENGTH - 1) == 12 && month(YEAR_LENGTH) == 1));
+}
+
+TEST_CASE("the brain report shows choices as they are made, instincts and all") {
+    Simulation simulation = world_at(239);
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
+    const auto feeding = [&](double instinct) {
+        PARENTAL_INSTINCT = instinct;
+        for (const BrainRow& row : brain_matrix(parent)) {
+            if (row.situation != "Fed and safe, its hungry infants about it") continue;
+            for (const auto& [action, chance] : row.chances) if (action == FeedYoung) return chance;
+        }
+        return -1.0;
+    };
+    CHECK(feeding(10.0) > feeding(0.0) + 0.1);
 }

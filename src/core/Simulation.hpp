@@ -459,6 +459,7 @@ constexpr std::array<std::string_view, 4> SEASONS = {"mild", "northern winter", 
 
 int season(int turn);  // the quarter of the year a turn falls in, 0 to 3
 int year(int turn);    // the year a turn falls in, from 1
+int month(int turn);   // the month of its year a turn falls in, 1 to 12
 int zone_temperature(int y, int height);       // a row's temperature outside the winters
 // Whether a row is in winter in a quarter of the year: the north and the equator in the second, the
 // south and the equator in the fourth.
@@ -708,6 +709,9 @@ Dna evolved(Dna parent, Dna child);
 // An inborn intellect as it counts for the brain's shape and how much it replays: a predator's
 // PREDATOR_INTELLIGENCE times over, up to the full range.
 int thinking_intellect(int intellect, Species species);
+// Its instincts, on top of what its brain values its `options` at: to hunt and feast, the mating call, a scavenger's
+// craving, loyalty to its herd, an infant's to its kind, and a parent's to feed its young (the hungriest that hungry).
+void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> options, double hunger, double hungriest_young);
 // The depth and width of a genome's brain, by its thinking intellect: deeper up to MAX_DEPTH, then wider.
 std::pair<int, int> brain_shape(Dna dna);
 

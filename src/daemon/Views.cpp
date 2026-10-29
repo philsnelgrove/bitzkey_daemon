@@ -218,6 +218,7 @@ Json state(World& world) {
         {"height", simulation.height()},
         {"turn", turn},
         {"year", year(turn)},
+        {"month", month(turn)},
         {"year_length", YEAR_LENGTH},
         {"cell_space", CELL_SPACE},  // the spaces of a map square, each Bitzkey taking 1 + its size
         {"season", std::string(SEASONS[static_cast<std::size_t>(season(turn))])},
