@@ -886,6 +886,7 @@ TEST_CASE("a turn's month runs 1 to 12 through its year") {
 TEST_CASE("the brain report shows choices as they are made, instincts and all") {
     Simulation simulation = world_at(239);
     Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
+    parent.mind[Empathy] = 7;  // its instinct at its strongest
     const auto feeding = [&](double instinct) {
         PARENTAL_INSTINCT = instinct;
         for (const BrainRow& row : brain_matrix(parent)) {
@@ -894,7 +895,8 @@ TEST_CASE("the brain report shows choices as they are made, instincts and all") 
         }
         return -1.0;
     };
-    CHECK(feeding(10.0) > feeding(0.0) + 0.1);
+    CHECK(feeding(2.0) > feeding(0.0));
+    CHECK(feeding(2.0) > 0.25);  // above the best of its other three options, so the likeliest
 }
 
 TEST_CASE("even the dullest animal learns, at the learning floor") {
@@ -915,4 +917,18 @@ TEST_CASE("even the dullest animal learns, at the learning floor") {
     };
     CHECK(std::abs(lesson(0.0)) < 1e-12);  // no floor: with no intellect, nothing learnt
     CHECK(lesson(0.25) > 0.001);
+}
+
+TEST_CASE("a parent's instinct closes on its best other option, however much its brain values things") {
+    PARENTAL_INSTINCT = 2.0;
+    Simulation simulation = world_at(239);
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
+    parent.mind[Empathy] = 3.5;  // halfway
+    const std::vector<int> options = {Eat, FeedYoung};
+    for (const double scale : {1.0, 10.0}) {
+        Values valued{};
+        valued[Eat] = 2 * scale;
+        add_instincts(parent, valued, options, 0, 50);  // its young half hungry
+        CHECK(valued[FeedYoung] == doctest::Approx(valued[Eat]));  // level, whatever the values' size
+    }
 }

@@ -207,7 +207,8 @@ inline double OTHER_KIND = 0.4;
 // more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
 // a territory's crowding troubles the dominant less and the submissive more, by up to this share.
 inline double LOYALTY_PULL = 0.25;
-inline double PARENTAL_INSTINCT = 10.0;  // how much more a parent values feeding its young, times their hunger and its empathy
+inline double PARENTAL_INSTINCT = 2.0;  // how much of the gap between feeding its young and its best other option a parent
+                                        // closes, times the hungriest's hunger and a half and its empathy: at 2, half hungry, level
 inline double INFANT_HERDING = 1.0;  // how much more an infant values keeping to its kind, and it herds once a cell from their middle
 inline int NURSING_REACH = 2;        // each turn, a grown animal feeds the hungriest infant of its kind this close, a turn's burn of food,
 inline int NURSING_LIMIT = 80;       // while it stays below this hunger itself

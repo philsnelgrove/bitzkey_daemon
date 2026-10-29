@@ -2420,8 +2420,14 @@ void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> op
     valued[Attack] -= CARRION_AVERSION * scavenger;
     valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
     if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
-    if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {  // the instinct to feed its hungry young
-        valued[FeedYoung] += PARENTAL_INSTINCT * (0.5 + agent.feeling(Empathy)) * hungriest_young / 100;
+    if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {
+        // The instinct to feed its hungry young: closing on the best of its other options, however much those are worth.
+        double best = -1e300;
+        for (const int option : options) {
+            if (option != FeedYoung) best = std::max(best, valued[option]);
+        }
+        const double gap = options.size() > 1 ? std::max(0.0, best - valued[FeedYoung]) : 0.0;
+        valued[FeedYoung] += PARENTAL_INSTINCT * (0.5 + agent.feeling(Empathy)) * hungriest_young / 100 * gap;
     }
 }
 
