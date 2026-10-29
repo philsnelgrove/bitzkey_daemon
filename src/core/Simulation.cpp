@@ -1590,6 +1590,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         Bitzkey& agent = *agents[index];
         if (!agent.has_last_senses) continue;
         rewards[index] = agent.reward + wellbeing(agent) - agent.last_wellbeing + comforts[index] - agent.last_comfort;
+        // Having chosen to sit the weather out, it feels it the more (Resting unease); asleep or spent, it had no choice.
+        if (agent.last_choice == Rest && !agent.last_forced) rewards[index] -= RESTING_UNEASE * plans[index].situation.exposure;
         const std::vector<int>& options = plans[index].options;
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);

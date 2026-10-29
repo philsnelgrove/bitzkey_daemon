@@ -785,3 +785,24 @@ TEST_CASE("an animal that chose to rest out of its temperature takes the weather
     CHECK(made.health - chose.health == doctest::Approx((RESTING_EXPOSURE - 1) * CLIMATE_DAMAGE * made.max_health));
     CHECK(made.health < made.max_health);
 }
+
+TEST_CASE("an animal that chose to rest out of its temperature learns the rest felt worse, with no harm done") {
+    WEATHER_GRACE = 30;  // no harm: unease alone
+    const auto rest_value = [](double unease) {
+        RESTING_UNEASE = unease;
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}, {"intellect", 4}}), 30, 30);
+        auto sensed = simulation.sense(grazer);
+        grazer.has_last_senses = true;
+        grazer.last_senses = sensed.senses;
+        grazer.last_choice = Rest;  // chosen
+        grazer.last_comfort = simulation.comfort(grazer, sensed.situation);
+        grazer.last_wellbeing = simulation.wellbeing(grazer);
+        const Senses senses = grazer.last_senses;
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        simulation.take_turn();
+        CHECK(grazer.health == grazer.max_health);
+        return grazer.brain->values(senses)[Rest];
+    };
+    CHECK(rest_value(1.0) < rest_value(0.0) - 0.001);
+}
