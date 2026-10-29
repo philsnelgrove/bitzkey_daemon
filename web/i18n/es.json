@@ -1498,5 +1498,7 @@
 "Grazer gestation": "Gestación de los herbívoros",
 "a grazer carries its young this share as long as its size would have it": "un herbívoro lleva a sus crías esta parte del tiempo que su tamaño marcaría",
 "Plant head start": "Ventaja de las plantas",
-"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "turnos en que las plantas de un mundo nuevo crecen solas, sin contar, antes de que aparezcan sus animales; 0: ninguno"
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "turnos en que las plantas de un mundo nuevo crecen solas, sin contar, antes de que aparezcan sus animales; 0: ninguno",
+"Target refresh": "Renovación del objetivo",
+"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "turnos de la edad de un animal entre copias de su cerebro que valoran su mejor opción cuando aprende, para que sus sobreestimaciones no se alimenten a sí mismas; 0: su cerebro también la valora"
 }

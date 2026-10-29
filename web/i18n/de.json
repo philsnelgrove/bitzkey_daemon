@@ -1498,5 +1498,7 @@
 "Grazer gestation": "Tragzeit der Grasfresser",
 "a grazer carries its young this share as long as its size would have it": "ein Grasfresser trägt seine Jungen diesen Anteil so lange, wie seine Größe es vorsähe",
 "Plant head start": "Vorsprung der Pflanzen",
-"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "Züge, in denen die Pflanzen einer neuen Welt allein wachsen, ungezählt, bevor ihre Tiere erscheinen; 0: keine"
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "Züge, in denen die Pflanzen einer neuen Welt allein wachsen, ungezählt, bevor ihre Tiere erscheinen; 0: keine",
+"Target refresh": "Zielkopie erneuern",
+"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "Züge im Alter eines Tiers zwischen Kopien seines Gehirns, die beim Lernen seine beste Wahl bewerten, damit sich seine Überschätzungen nicht selbst verstärken; 0: sein Gehirn bewertet sie selbst"
 }

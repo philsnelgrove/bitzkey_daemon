@@ -1498,5 +1498,7 @@
 "Grazer gestation": "Ciąża roślinożerców",
 "a grazer carries its young this share as long as its size would have it": "roślinożerca nosi młode przez taką część czasu, jaką dałby jego rozmiar",
 "Plant head start": "Przewaga roślin",
-"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "tury, w których rośliny nowego świata rosną same, nieliczone, zanim pojawią się jego zwierzęta; 0: brak"
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "tury, w których rośliny nowego świata rosną same, nieliczone, zanim pojawią się jego zwierzęta; 0: brak",
+"Target refresh": "Odświeżanie celu",
+"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "tury wieku zwierzęcia między kopiami jego mózgu, które oceniają jego najlepszy wybór podczas nauki, by jego przeszacowania nie napędzały się same; 0: ocenia go też jego mózg"
 }

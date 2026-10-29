@@ -1498,5 +1498,7 @@
 "Grazer gestation": "शाकाहारी गर्भकाल",
 "a grazer carries its young this share as long as its size would have it": "शाकाहारी अपने बच्चों को उतने अनुपात तक गर्भ में रखता है जितना उसका आकार तय करता",
 "Plant head start": "पौधों की बढ़त",
-"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "नई दुनिया के पौधे उसके जानवरों के आने से पहले, बिना गिने, अकेले इतनी चालें बढ़ते हैं; 0: कोई नहीं"
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "नई दुनिया के पौधे उसके जानवरों के आने से पहले, बिना गिने, अकेले इतनी चालें बढ़ते हैं; 0: कोई नहीं",
+"Target refresh": "लक्ष्य ताज़ा",
+"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "किसी जानवर की आयु में उसके मस्तिष्क की प्रतियों के बीच की चालें, जो सीखते समय उसके सबसे अच्छे विकल्प का मूल्य आँकती हैं, ताकि उसके अधिक-आकलन स्वयं को न बढ़ाएँ; 0: उसका मस्तिष्क ही आँकता है"
 }

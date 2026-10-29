@@ -1418,6 +1418,20 @@ TEST_CASE("a new world's plants grow alone first, uncounted, then its animals sp
     CHECK(std::any_of(grown.agents().begin(), grown.agents().end(), [](const auto& agent) { return agent->species == Species::Grazer; }));
 }
 
+TEST_CASE("an animal's target brain values as its brain did when copied, without the traces it learns by") {
+    Simulation simulation = world(20);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.index_cells();
+    const auto sensed = simulation.sense(grazer);
+    grazer.own_brain().learn_traced_by(sensed.senses, Eat, 1.0, 0.5, 0.9);  // traces once it has learnt
+    REQUIRE(grazer.brain->traces);
+    const auto target = target_of(*grazer.brain);
+    CHECK_FALSE(target->traces);
+    CHECK(target->values(sensed.senses) == grazer.brain->values(sensed.senses));
+    grazer.own_brain().learn(sensed.senses, Eat, 5.0, 0.5);  // the brain learns on; the copy stays as it was
+    CHECK(target->values(sensed.senses)[Eat] != grazer.brain->values(sensed.senses)[Eat]);
+}
+
 TEST_CASE("the first Bitzkeys of a world start grown") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;

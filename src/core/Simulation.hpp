@@ -243,6 +243,16 @@ inline double LEARNING_RATE = 0.027;
 inline double LEARNING_BOOST = 1.0;
 inline double LEARNING_FLOOR = 0.25;  // the share of LEARNING_RATE even the dullest learns at, intellect adding to it
 inline int REPLAY_PER_INTELLECT = 2;
+// Double Q-learning with a target brain: what an animal learns toward is what came of its choice and what its best choice
+// now is worth, that choice picked by its brain but valued by a copy of it, refreshed every TARGET_REFRESH turns of its
+// age, so that the brain's overestimates don't feed back into themselves; 0: its brain values it too.
+inline int TARGET_REFRESH = 100;
+// A target brain: a copy of a brain's weights, without the traces it learns by, which it never needs.
+inline std::shared_ptr<const Brain> target_of(const Brain& brain) {
+    auto copy = std::make_shared<Brain>(brain);
+    copy->traces.reset();
+    return copy;
+}
 inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
 inline double MATING_CALL = 0.5;      // how much more a predator ready to breed values breeding, or else courting a mate it sees
 inline double MATING_CALL_RANGE = 2.0;    // a predator ready to breed that sees no mate seeks one this many times its sight off
@@ -641,6 +651,8 @@ struct Bitzkey {
     };
     std::vector<Entry> diary;  // its most vivid experiences
     int gpu = -1;  // its brain's handle on the GPUs, when the world thinks there
+    std::shared_ptr<const Brain> target;  // its target brain (see TARGET_REFRESH), and its handle on the GPUs
+    int target_gpu = -1;
     int synced = -1;  // the turn its brain was last brought back from them
     struct Young {  // conceived at mating, born at the end of the gestation
         Dna dna = 0;
@@ -1380,6 +1392,7 @@ private:
     void sync(std::span<Bitzkey* const> agents);  // these brains back from the GPUs, each once a turn
     // Put a brain on the GPUs, unless they have failed.
     void attach(Bitzkey& agent);
+    void refresh_targets(const std::vector<Bitzkey*>& agents);  // the target brains due, copied afresh from their brains
     // A brain of its own to learn on: its own if nothing else holds it (a group deployed together shares one), else a copy.
     Brain& learning_brain(Bitzkey& agent);
 };

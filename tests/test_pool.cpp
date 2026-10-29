@@ -81,7 +81,7 @@ Json worker_in(World& world, int port) {
 
 std::size_t living_brains(Simulation& simulation) {
     std::size_t count = 0;
-    for (const Bitzkey* agent : simulation.living()) count += agent->brain != nullptr;
+    for (const Bitzkey* agent : simulation.living()) count += (agent->brain != nullptr) + (agent->target != nullptr);  // and its target brain
     return count;
 }
 

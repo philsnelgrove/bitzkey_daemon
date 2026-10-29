@@ -214,6 +214,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"identifier", agent.identifier}, {"dna", genome_text(agent.dna)}, {"x", agent.x}, {"y", agent.y},
         {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
+        {"target", numbers.brain(std::const_pointer_cast<Brain>(agent.target))},  // its target brain, or null
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
@@ -300,6 +301,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->cooldown = record.at("cooldown").get<int>();
     agent->last_action = interned(record.at("last_action").get<std::string>());
     agent->brain = numbers.brain(record.at("brain"), agent->dna);
+    if (record.contains("target") && !record.at("target").is_null()) agent->target = numbers.brain(record.at("target"), agent->dna);  // else made afresh
     agent->generation = record.at("generation").get<int>();
     agent->children = record.at("children").get<int>();
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
