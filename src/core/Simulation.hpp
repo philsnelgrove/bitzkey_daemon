@@ -304,6 +304,11 @@ constexpr int MAX_ACQUAINTANCES = 16;
 inline int ACQUAINTANCES = 8;
 inline double REGARD_LEARNING = 0.3;
 constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5;
+// The diary: an animal keeps up to Diary entries (none at 0) of its most vivid experiences, by how much came of them,
+// the vividness fading by Diary fading each turn since, the faintest forgotten for a more vivid one; and each turn it
+// re-learns from one of them, in turn, as from a replay.
+inline int DIARY_ENTRIES = 8;
+inline double DIARY_FADING = 0.999;
 constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
@@ -620,6 +625,12 @@ struct Bitzkey {
         double weight = 1.0;  // how much it counted, by what came of it
     };
     std::vector<Memory> memories;  // its most recent experiences, newest last
+    struct Entry {  // an experience of its diary
+        Memory memory;
+        double vividness = 0.0;  // how much came of it, when it happened
+        int turn = 0;
+    };
+    std::vector<Entry> diary;  // its most vivid experiences
     int gpu = -1;  // its brain's handle on the GPUs, when the world thinks there
     int synced = -1;  // the turn its brain was last brought back from them
     struct Young {  // conceived at mating, born at the end of the gestation
@@ -1217,6 +1228,7 @@ private:
     // Learn from its own last choice; its `outcome` (what came of it, before the future's worth) sets how much it counts.
     // `call_target`: what its last call (if it chose one) is worth now, which it learns beside its action.
     void learn(Bitzkey& agent, double target, double outcome, bool replay = false, double call_target = 0.0);
+    void note_entry(Bitzkey& agent, const Bitzkey::Memory& memory, double vividness);
     // Going further costs: GO_EFFORT of a turn's burn for each cell past the first, however it moves.
     static void effort(Bitzkey& agent, int cells) { agent.hunger += agent.burn * GO_EFFORT * std::max(0, cells - 1); }
     // The nearest grass in sight, but none in a row further from its home temperature than here.

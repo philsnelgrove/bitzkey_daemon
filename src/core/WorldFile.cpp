@@ -263,6 +263,12 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         memories.push_back({numbers.senses(memory.senses), memory.choice, memory.target, memory.weight});
     }
     record["memories"] = std::move(memories);
+    json diary = json::array();  // each [senses, choice, target, weight, vividness, turn]
+    for (const Bitzkey::Entry& entry : agent.diary) {
+        const Bitzkey::Memory& memory = entry.memory;
+        diary.push_back({numbers.senses(memory.senses), memory.choice, memory.target, memory.weight, entry.vividness, entry.turn});
+    }
+    record["diary"] = std::move(diary);
     json womb = json::array();
     for (const Bitzkey::Young& young : agent.womb) {
         womb.push_back({genome_text(young.dna), mind_record(young.mind), numbers.brain(young.brain), young.energy, young.generation,
@@ -328,6 +334,15 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     for (const json& memory : record.at("memories")) {  // one of an action no longer had is forgotten
         const int choice = numbers.action(memory.at(1).get<int>());
         if (choice >= 0) agent->memories.push_back({numbers.senses(memory.at(0)), choice, memory.at(2).get<double>(), memory.at(3).get<double>()});
+    }
+    if (record.contains("diary")) {  // none, in a world saved before the diary
+        for (const json& entry : record.at("diary")) {
+            const int choice = numbers.action(entry.at(1).get<int>());
+            if (choice >= 0) {
+                agent->diary.push_back({{numbers.senses(entry.at(0)), choice, entry.at(2).get<double>(), entry.at(3).get<double>()},
+                                        entry.at(4).get<double>(), entry.at(5).get<int>()});
+            }
+        }
     }
     for (const json& young : record.at("womb")) {
         const Dna dna = genome_from(young.at(0));

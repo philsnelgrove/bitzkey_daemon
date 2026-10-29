@@ -1412,9 +1412,32 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             agent.own_brain().learn_memory(agent.last_senses, past, agent.last_choice, target, rate * MEMORY_LEARNING);
         }
     }
+    if (replay && DIARY_ENTRIES > 0 && !agent.diary.empty() && rate > 0) {  // one diary entry, in turn
+        const Bitzkey::Memory& memory = agent.diary[static_cast<std::size_t>(turn_) % agent.diary.size()].memory;
+        if (gpu_) queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
+        else agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * memory.weight);
+    }
+    if (replay) note_entry(agent, {agent.last_senses, agent.last_choice, target, weight}, std::abs(outcome));
     if (!count) return;
     agent.memories.push_back({agent.last_senses, agent.last_choice, target, weight});
     if (agent.memories.size() > count) agent.memories.erase(agent.memories.begin(), agent.memories.end() - static_cast<std::ptrdiff_t>(count));
+}
+
+void Simulation::note_entry(Bitzkey& agent, const Bitzkey::Memory& memory, double vividness) {
+    // An experience, kept in its diary if more vivid than the faintest there, now, or there is room.
+    const auto faded = [&](const Bitzkey::Entry& entry) { return entry.vividness * std::pow(DIARY_FADING, turn_ - entry.turn); };
+    const auto faintest = [&] {
+        return std::min_element(agent.diary.begin(), agent.diary.end(),
+                                [&](const Bitzkey::Entry& a, const Bitzkey::Entry& b) { return faded(a) < faded(b); });
+    };
+    while (static_cast<int>(agent.diary.size()) > std::max(0, DIARY_ENTRIES)) agent.diary.erase(faintest());
+    if (DIARY_ENTRIES <= 0 || vividness <= 0) return;
+    if (static_cast<int>(agent.diary.size()) < DIARY_ENTRIES) {
+        agent.diary.push_back({memory, vividness, turn_});
+        return;
+    }
+    const auto weakest = faintest();
+    if (faded(*weakest) < vividness) *weakest = {memory, vividness, turn_};
 }
 
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
@@ -2356,6 +2379,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     std::vector<std::shared_ptr<Brain>>& dead_brains = tile ? tile->dead_brains : dead_brains_;
     if (agent.brain) dead_brains.push_back(std::move(agent.brain));
     agent.memories.clear();
+    agent.diary.clear();
     if (gpu_ && agent.gpu >= 0) {
         gpu_->detach(agent.gpu);
         agent.gpu = -1;

@@ -203,6 +203,8 @@ std::vector<Rule> make_rules() {
         {"MAP_PLACES", "Mind", "Map places", "places an animal's mental map holds, the one visited longest ago forgotten for a new one; 0: no map", 0, 32, 1, true, &MAP_PLACES},
         {"MAP_LEARNING", "Mind", "Map learning", "how far each visit moves what an animal remembers of a place in that season toward what it finds", 0.0, 1.0, 0.05, false, &MAP_LEARNING},
         {"ACQUAINTANCES", "Mind", "Acquaintances", "others an animal remembers by what they did to it, the one it dealt with longest ago forgotten for a new one; 0: none", 0, 16, 1, true, &ACQUAINTANCES},
+        {"DIARY_ENTRIES", "Mind", "Diary entries", "most vivid experiences an animal keeps and re-learns from, one each turn, the faintest forgotten for a more vivid one; 0: none", 0, 32, 1, true, &DIARY_ENTRIES},
+        {"DIARY_FADING", "Mind", "Diary fading", "how much of a diary entry's vividness is left after each turn", 0.9, 1.0, 0.001, false, &DIARY_FADING},
         {"REGARD_LEARNING", "Mind", "Regard learning", "how far each deed moves an animal's regard for the doer toward the deed's worth", 0.0, 1.0, 0.05, false, &REGARD_LEARNING},
         {"HUNTING_INSTINCT", "Mind", "Hunting instinct", "how much more a predator values hunting and attacking, times its hunger", 0.0,
          5.0, 0.05, false, &HUNTING_INSTINCT},
