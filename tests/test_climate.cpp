@@ -777,6 +777,7 @@ TEST_CASE("an animal that chose to rest out of its temperature takes the weather
     for (Bitzkey* agent : {&chose, &made}) {
         agent->has_last_senses = true;
         agent->last_choice = Rest;
+        agent->stamina = 0;  // spent, both rest this turn alike, whatever they would choose
     }
     made.last_forced = true;  // asleep, or spent
     simulation.add_agent(encode_dna(Species::Predator), 90, 90);
@@ -805,4 +806,28 @@ TEST_CASE("an animal that chose to rest out of its temperature learns the rest f
         return grazer.brain->values(senses)[Rest];
     };
     CHECK(rest_value(1.0) < rest_value(0.0) - 0.001);
+}
+
+TEST_CASE("a curious animal tries its options at random now and then, an incurious one as its brain values them") {
+    TEMPERATURE = 0.01;  // its brain's choice all but certain
+    const auto choices = [](double curiosity, double exploration) {
+        CURIOUS_EXPLORATION = exploration;
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 30, 30);
+        grazer.mind[Curiosity] = curiosity;
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        std::set<int> made;
+        for (int turn = 0; turn < 200; ++turn) {
+            grazer.hunger = 0;
+            grazer.health = grazer.max_health;
+            grazer.stamina = FULL_STAMINA;
+            grazer.mind[Curiosity] = curiosity;
+            simulation.take_turn();
+            made.insert(grazer.last_choice);
+        }
+        return made.size();
+    };
+    const std::size_t steady = choices(0, 1.0), curious = choices(7, 1.0), unmoved = choices(7, 0.0);
+    CHECK(curious > steady + 2);  // it tries what its brain wouldn't
+    CHECK(unmoved <= steady + 1);
 }

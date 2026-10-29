@@ -154,6 +154,7 @@ std::vector<Rule> make_rules() {
         {"PLANT_FOOD_LEARNING", "Mind", "Plant food learning", "times as much any animal learns from eating, foraging, browsing and uprooting", 0.0, 10.0, 0.1, false, &PLANT_FOOD_LEARNING},
         {"FORCED_LESSONS", "Mind", "Forced lessons", "1: an animal learns from every turn, even one it had no choice in (asleep, exhausted, panicking or frozen); 0: only from the turns it chose", 0, 1, 1, false, &FORCED_LESSONS},
         {"PREDATOR_LEARNING", "Mind", "Predator learning", "times as fast a predator's brain learns from its own choices; an omnivore gets half the bonus", 1.0, 5.0, 0.1, false, &PREDATOR_LEARNING},
+        {"CURIOUS_EXPLORATION", "Mind", "Curious exploration", "the chance, times its curiosity, that an animal tries any of its options at random rather than as its brain values them", 0.0, 1.0, 0.01, false, &CURIOUS_EXPLORATION},
         {"TEMPERATURE", "Mind", "Choice temperature", "how loosely a brain picks among its options", 0.01, 5.0, 0.05, false, &TEMPERATURE},
         {"MUTATION", "Mind", "Brain mutation", "how much a newborn's brain varies from its parents'", 0.0, 1.0, 0.01, false, &MUTATION},
         {"HEADING_RELUCTANCE", "Mind", "Heading reluctance", "how much less a new brain values setting off in a direction", 0.0, 2.0, 0.05, false, &HEADING_RELUCTANCE},

@@ -1614,7 +1614,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // stream of chance decides (primal fear, and the roll each choice is made by); then on every core at once, each
     // its own choice from its own values; then, in their order, what all share (the insights).
     std::vector<int> choices(agents.size());
-    std::vector<double> rolls(agents.size());
+    std::vector<double> rolls(agents.size()), explores(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         Situation& situation = plans[index].situation;
@@ -1635,6 +1635,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             options = {Flee};
         }
         rolls[index] = rng().random();
+        explores[index] = rng().random();
     }
     std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
         Bitzkey& agent = *agents[index];
@@ -1679,11 +1680,16 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         const auto odds = choice_odds(valued, options);
         double roll = rolls[index];
         int choice = options.back();
-        for (const auto& [option, chance] : odds) {
-            roll -= chance;
-            if (roll < 0) {
-                choice = option;
-                break;
+        if (options.size() > 1 && explores[index] < CURIOUS_EXPLORATION * agent.feeling(Curiosity)) {
+            // Curious, it tries any of its options, whatever its brain makes of them.
+            choice = options[std::min(options.size() - 1, static_cast<std::size_t>(roll * static_cast<double>(options.size())))];
+        } else {
+            for (const auto& [option, chance] : odds) {
+                roll -= chance;
+                if (roll < 0) {
+                    choice = option;
+                    break;
+                }
             }
         }
         agent.odds.fill(0.0);

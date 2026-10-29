@@ -170,6 +170,8 @@ inline double LIBIDO_IN_JOY = 0.25;  // the share of those pleasures that libido
 inline double FIGHT_JOY = 0.5;
 inline double COMPANY_JOY = 0.1;
 inline double CURIOSITY_JOY = 0.15;
+inline double CURIOUS_EXPLORATION = 0.05;  // the chance, times its curiosity, that an animal tries any of its options at
+                                           // random rather than as its brain values them, so no option goes untried for good
 // Moving costs food. A walk, a single cell, saves this share of the turn's burn, as resting does; going as
 // far as its speed allows costs this share of a turn's burn more for each cell beyond the first.
 inline double WALK_REST = 0.5;
