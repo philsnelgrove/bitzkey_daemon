@@ -1487,5 +1487,7 @@
 "COLOUR GRAPH  /  SPECIES": "カラーグラフ  /  種",
 "SEA ({#}, {#})   {#}/{#} SPACES": "海 ({#}, {#})   {#}/{#} 空き",
 "First breeding instinct": "最初の繁殖本能",
-"how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "ワールドの最初のBitzkey(脳が未訓練)が、準備ができたとき繁殖を、そうでなければ求愛をどれほど重んじるか"
+"how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "ワールドの最初のBitzkey(脳が未訓練)が、準備ができたとき繁殖を、そうでなければ求愛をどれほど重んじるか",
+"Grazer group": "草食動物の群れ",
+"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "新しいワールドが始まるときの各群れの草食動物の数(他の種は3〜5の群れで始まる)"
 }

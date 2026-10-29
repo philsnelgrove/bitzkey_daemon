@@ -1487,5 +1487,7 @@
 "COLOUR GRAPH  /  SPECIES": "颜色图  /  物种",
 "SEA ({#}, {#})   {#}/{#} SPACES": "海 ({#}, {#})   {#}/{#} 空间",
 "First breeding instinct": "初代繁殖本能",
-"how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "世界最初的 Bitzkey(大脑未经训练)在准备好时对繁殖、否则对求偶的额外重视程度"
+"how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "世界最初的 Bitzkey(大脑未经训练)在准备好时对繁殖、否则对求偶的额外重视程度",
+"Grazer group": "食草动物群",
+"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "新世界开始时每群食草动物的数量(其他物种以 3 到 5 只为一群开始)"
 }

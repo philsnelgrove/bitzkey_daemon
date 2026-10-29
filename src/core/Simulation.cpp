@@ -439,9 +439,7 @@ Simulation::Simulation(Settings settings)
     initial_grass_ = initial_grass;
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
-    const std::vector<int> sizes = group_sizes(settings.population);
-    std::vector<int> species;
-    for (std::size_t group = 0; group < sizes.size(); ++group) species.push_back(static_cast<int>(rng().randrange(4)));
+    auto [species, sizes] = starting_groups(settings.population);
     const std::vector<std::vector<int>> homes = plant_homes(species);
     for (std::size_t group = 0; group < sizes.size(); ++group) {
         spawn_group(make_dna(rng(), species[group]), sizes[group], nullptr, std::nullopt, true, homes[group]);
@@ -479,17 +477,22 @@ std::size_t Simulation::grass_tufts() const {
     return total;
 }
 
-std::vector<int> Simulation::group_sizes(int population) {
+std::pair<std::vector<int>, std::vector<int>> Simulation::starting_groups(int population) {
+    // Each group's species at random, then its size: Grazer group for grazers, so that the hunters' prey outnumber
+    // them from the start, else SPAWN_GROUP; never more than the population left, nor leaving a group too small.
     const int smallest = SPAWN_GROUP[0], largest = SPAWN_GROUP[1];
-    std::vector<int> sizes;
+    std::vector<int> species, sizes;
     int remaining = population;
-    while (remaining > largest) {
-        const int size = static_cast<int>(rng().randint(smallest, std::min(largest, remaining - smallest)));
+    while (remaining > 0) {
+        const int kind = static_cast<int>(rng().randrange(4));
+        int size = remaining;
+        if (kind == static_cast<int>(Species::Grazer)) size = std::min(std::max(1, GRAZER_SPAWN_GROUP), remaining);
+        else if (remaining > largest) size = static_cast<int>(rng().randint(smallest, std::min(largest, remaining - smallest)));
+        species.push_back(kind);
         sizes.push_back(size);
         remaining -= size;
     }
-    if (remaining) sizes.push_back(remaining);
-    return sizes;
+    return {species, sizes};
 }
 
 std::vector<std::vector<int>> Simulation::zones() const {

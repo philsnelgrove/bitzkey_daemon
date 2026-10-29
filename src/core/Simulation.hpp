@@ -40,6 +40,7 @@ inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows
 constexpr int MAX_POPULATION = 20000;     // the most Bitzkeys spawned at the start
 inline int CROWDING_LIMIT = 10;  // 0: no limit
 constexpr std::array<int, 2> SPAWN_GROUP = {3, 5};
+inline int GRAZER_SPAWN_GROUP = 50;  // a new world's grazers spawn in groups this large, so the hunters' prey outnumber them
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
 // The sea: a new world's share of the map under it, in percent, and how broad its land and sea are, as a share of the
@@ -1195,7 +1196,7 @@ public:
 
 private:
     friend struct WorldFile;  // which saves the world whole, and loads it back
-    std::vector<int> group_sizes(int population);
+    std::pair<std::vector<int>, std::vector<int>> starting_groups(int population);  // each group's species, and its size
     // Lay out the sea over `ocean` percent of the map, from its own stream of `seed`: smooth noise, the lowest of it sea.
     void make_sea(double ocean, std::uint64_t seed);
     // BIOME_GROUPS starting groups at home in every biome.

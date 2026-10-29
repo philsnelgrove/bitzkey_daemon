@@ -48,16 +48,24 @@ TEST_CASE("a seeded world replays exactly") {
     }
 }
 
-TEST_CASE("random populations spawn in groups of three to five sharing a genome") {
+TEST_CASE("random populations spawn in groups sharing a genome: grazers by Grazer group, the rest three to five") {
     BIOME_GROUPS = 0;  // the population alone, without the biomes' groups
     for (const int population : {3, 7, 90, 101}) {
         Simulation simulation(Simulation::Settings{50, 50, population, static_cast<std::uint64_t>(population)});
         std::map<Dna, int> groups;
-        for (const auto& agent : simulation.agents()) groups[agent->dna] += 1;
-        CHECK(static_cast<int>(simulation.agents().size()) == population);
+        std::map<Species, int> kinds;
+        for (const auto& agent : simulation.agents()) {
+            groups[agent->dna] += 1;
+            kinds[agent->species] += 1;
+        }
+        INFO("population " << population << ": plants " << kinds[Species::Plant] << ", grazers " << kinds[Species::Grazer]
+                           << ", omnivores " << kinds[Species::Omnivore] << ", predators " << kinds[Species::Predator]);
+        CHECK(static_cast<int>(simulation.agents().size()) <= population);  // each where there is room: a large group may run out
+        CHECK(static_cast<int>(simulation.agents().size()) >= population - 5);
         for (const auto& [dna, count] : groups) {
-            if (population >= 3) CHECK(count >= 3);
-            CHECK(count <= 5);
+            const bool grazers = static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Grazer;
+            if (grazers) CHECK(count <= GRAZER_SPAWN_GROUP);
+            else if (decode_body(dna)[SpeciesTrait] != 0) CHECK(count <= 5);  // plants may share a genome between groups
         }
     }
     BIOME_GROUPS = 2;
