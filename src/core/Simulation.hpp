@@ -170,8 +170,10 @@ inline double LIBIDO_IN_JOY = 0.25;  // the share of those pleasures that libido
 inline double FIGHT_JOY = 0.5;
 inline double COMPANY_JOY = 0.1;
 inline double CURIOSITY_JOY = 0.15;
-inline double CURIOUS_EXPLORATION = 0.05;  // the chance, times its curiosity, that an animal tries any of its options at
+inline double CURIOUS_EXPLORATION = 0.1;  // the chance, times its curiosity, that an animal tries any of its options at
                                            // random rather than as its brain values them, so no option goes untried for good
+inline double RESTLESS_CURIOSITY = 0.5;  // the chance, times a half and its curiosity, that an animal whose brain chose to rest
+                                         // (not made to) does any of its other options instead; in peril, neither, but as its brain chooses
 // Moving costs food. A walk, a single cell, saves this share of the turn's burn, as resting does; going as
 // far as its speed allows costs this share of a turn's burn more for each cell beyond the first.
 inline double WALK_REST = 0.5;
@@ -197,6 +199,7 @@ inline double PREGNANT_REMORSE = 1.0;
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
 // if it had made the herd-mate's last choice itself, and feels it, by its empathy times its intellect.
 inline double SOCIAL_LEARNING = 1.0;  // how fast it learns from what it sees, beside learning from its own choices
+inline double FATAL_LESSON = 5.0;  // how many times as hard a herd-mate's death teaches those who see it
 inline double SOCIAL_MOOD = 0.3;      // how much what it sees moves its mood
 inline double SOCIAL_MEMORY = 0.93;   // the share of a seen success or failure it still senses a turn later (0.8 every three hours)
 inline double OTHER_KIND = 0.4;
@@ -579,6 +582,7 @@ struct Bitzkey {
     Senses last_senses{};
     int last_choice = 0;
     bool last_forced = false;  // whether it had no choice but last_choice
+    bool last_panicked = false;  // whether that was a panicked flight, which teaches though it was no choice
     double last_wellbeing = 0.0;
     double last_comfort = 0.0;  // how comfortable it felt at its last decision
     double reward = 0.0;

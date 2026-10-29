@@ -678,7 +678,7 @@ TEST_CASE("herd-mates in sight learn from a death and feel it, by empathy and in
     CHECK(*witness.brain == before);  // what the herd saw is learnt at the turn's end, with the rest
     simulation.learn_witnessed();
     Brain expected = before;
-    expected.learn(dying.last_senses, dying.last_choice, -DEATH_PENALTY, LEARNING_RATE);
+    expected.learn(dying.last_senses, dying.last_choice, -DEATH_PENALTY, LEARNING_RATE * FATAL_LESSON);  // a death seen teaches hard
     CHECK(*witness.brain == expected);
     CHECK((witness.reward == SOCIAL_MOOD * -DEATH_PENALTY && witness.seen_failure == 1.0));
     CHECK(dull.reward == 0.0);  // with no intellect, it sees it but takes nothing in
@@ -810,6 +810,7 @@ TEST_CASE("an animal that chose to rest out of its temperature learns the rest f
 
 TEST_CASE("a curious animal tries its options at random now and then, an incurious one as its brain values them") {
     TEMPERATURE = 0.01;  // its brain's choice all but certain
+    RESTLESS_CURIOSITY = 0;  // and resting as it chooses
     const auto choices = [](double curiosity, double exploration) {
         CURIOUS_EXPLORATION = exploration;
         Simulation simulation = world_at(239);
@@ -830,4 +831,49 @@ TEST_CASE("a curious animal tries its options at random now and then, an incurio
     const std::size_t steady = choices(0, 1.0), curious = choices(7, 1.0), unmoved = choices(7, 0.0);
     CHECK(curious > steady + 2);  // it tries what its brain wouldn't
     CHECK(unmoved <= steady + 1);
+}
+
+TEST_CASE("an animal whose brain chooses to rest is restless instead, unless in peril, and a panicked flight teaches") {
+    TEMPERATURE = 0.01;
+    CURIOUS_EXPLORATION = 0;
+    const auto rests = [](double restless, bool starving) {
+        RESTLESS_CURIOSITY = restless;
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 30, 30);
+        grazer.brain->output_biases[Rest] += 100 * VALUE_SCALE;  // a brain set on resting
+        grazer.mind[Curiosity] = 7;
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        int rested = 0;
+        for (int turn = 0; turn < 50; ++turn) {
+            grazer.hunger = starving ? 100 : 0;
+            grazer.health = grazer.max_health;
+            grazer.stamina = FULL_STAMINA;
+            grazer.x = 30;
+            grazer.y = 30;
+            simulation.take_turn();
+            rested += grazer.last_choice == Rest && !grazer.last_forced;
+        }
+        return rested;
+    };
+    CHECK(rests(0.0, false) > 40);
+    CHECK(rests(1.0, false) == 0);  // the most curious, always restless
+    CHECK(rests(1.0, true) > 40);   // in peril, starving, curiosity pales: it rests as its brain chose
+    const auto lesson = [](bool panicked) {
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", 4}}), 30, 30);
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        auto sensed = simulation.sense(grazer);
+        grazer.has_last_senses = true;
+        grazer.last_senses = sensed.senses;
+        grazer.last_choice = Flee;
+        grazer.last_forced = true;
+        grazer.last_panicked = panicked;
+        grazer.last_comfort = simulation.comfort(grazer, sensed.situation);
+        grazer.last_wellbeing = simulation.wellbeing(grazer) - 0.5;  // it came out better
+        const double before = grazer.brain->values(sensed.senses)[Flee];
+        simulation.take_turn();
+        return grazer.brain->values(sensed.senses)[Flee] - before;
+    };
+    CHECK(lesson(true) > 0.001);              // a panicked flight teaches
+    CHECK(std::abs(lesson(false)) < 1e-12);  // a flight it was made to take otherwise doesn't (Forced lessons 0)
 }

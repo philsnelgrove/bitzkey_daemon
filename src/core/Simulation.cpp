@@ -1549,7 +1549,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         const bool startled = std::find(options.begin(), options.end(), Flee) != options.end() ||
                               std::find(options.begin(), options.end(), Defend) != options.end();
         const bool forced = agent.exhausted() || (SLEEP && resting_time(agent) && !agent.aloft_at_sea() && !startled);
-        const bool lesson = agent.has_last_senses && (FORCED_LESSONS || !agent.last_forced);
+        const bool lesson = agent.has_last_senses && (FORCED_LESSONS || !agent.last_forced || agent.last_panicked);
         idle[index] = forced && !lesson;
     }
     std::vector<std::size_t> asked;  // the rest
@@ -1598,7 +1598,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         targets[index] = rewards[index] + discount(agent) * best;
     }
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
-        return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced);
+        return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced || agents[index]->last_panicked);  // a panicked flight teaches
     };
     const auto teach = [&](std::size_t index) {
         if (taught(index)) learn(*agents[index], targets[index], rewards[index], true);
@@ -1614,7 +1614,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // stream of chance decides (primal fear, and the roll each choice is made by); then on every core at once, each
     // its own choice from its own values; then, in their order, what all share (the insights).
     std::vector<int> choices(agents.size());
-    std::vector<double> rolls(agents.size()), explores(agents.size());
+    std::vector<double> rolls(agents.size()), explores(agents.size()), restless(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         Situation& situation = plans[index].situation;
@@ -1636,6 +1636,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         rolls[index] = rng().random();
         explores[index] = rng().random();
+        restless[index] = rng().random();
     }
     std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
         Bitzkey& agent = *agents[index];
@@ -1680,7 +1681,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         const auto odds = choice_odds(valued, options);
         double roll = rolls[index];
         int choice = options.back();
-        if (options.size() > 1 && explores[index] < CURIOUS_EXPLORATION * agent.feeling(Curiosity)) {
+        // In peril, with a hunter or threat near, struck, or starving, it heeds its brain alone: curiosity pales.
+        const bool peril = situation.hunter || situation.threats > 0 || situation.assailant || agent.hunger >= 100;
+        const double curiosity = agent.feeling(Curiosity);
+        if (!peril && options.size() > 1 && explores[index] < CURIOUS_EXPLORATION * curiosity) {
             // Curious, it tries any of its options, whatever its brain makes of them.
             choice = options[std::min(options.size() - 1, static_cast<std::size_t>(roll * static_cast<double>(options.size())))];
         } else {
@@ -1690,6 +1694,15 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                     choice = option;
                     break;
                 }
+            }
+            const double restlessness = RESTLESS_CURIOSITY * (0.5 + curiosity);
+            if (!peril && choice == Rest && options.size() > 1 && restless[index] < restlessness) {
+                // Restless, it does any of its other options instead of resting.
+                std::vector<int> others;
+                for (const int option : options) {
+                    if (option != Rest) others.push_back(option);
+                }
+                choice = others[std::min(others.size() - 1, static_cast<std::size_t>(restless[index] / restlessness * static_cast<double>(others.size())))];
             }
         }
         agent.odds.fill(0.0);
@@ -1702,6 +1715,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.last_senses = plans[index].senses;
         agent.last_choice = choice;
         agent.last_forced = options.size() == 1;
+        agent.last_panicked = situation.panic;
         agent.last_wellbeing = wellbeing(agent);
         agent.last_comfort = comforts[index];
         agent.reward = 0.0;
@@ -3084,7 +3098,8 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
             }
             const double heed = observer->feeling(Empathy) * observer->intelligence() *
                                 (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
-            witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
+            const double heft = outcome <= -DEATH_PENALTY ? FATAL_LESSON : 1.0;  // a death seen teaches hard
+            witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * heft * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
             observer->reward += SOCIAL_MOOD * heed * outcome;
             if (outcome > 0) observer->seen_success = 1.0;
             else observer->seen_failure = 1.0;
