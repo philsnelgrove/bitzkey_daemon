@@ -279,6 +279,11 @@ inline double CARRION_AVERSION = 1.0;   // how much less a carrion-eater values 
 inline double CARRION_COWARDICE = 1.0;  // a carrion-eater's least chance of breaking when struck, at the highest carrion trait, likewise
 inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hunter, for a grazer; to a kill, for a hunter
 inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
+// Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
+// one, and costs its caller this much hunger, as any call does, the alert among them.
+inline int CALL_REACH = 4;
+inline double CALL_COST = 0.2;
+constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
 // Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
@@ -545,6 +550,9 @@ struct Bitzkey {
     bool guarded = false;               // a predator's infant: whether a grown one of its kind was close by as the turn began
     std::optional<int> alarm;           // what struck a herd-mate close by since it last acted, or it was alerted to
     std::optional<Cell> kill_alert;     // where a pack-mate alerted it to a fresh kill since it last acted
+    int call = Silent;                  // what it called alongside its last action (Brain.hpp's Call), heard the turn after
+    int call_turn = -1;                 // the turn it called it
+    int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
@@ -700,6 +708,7 @@ int litter_size(std::span<const std::pair<int, int>> parents);
 // A pleasure of mating as an animal feels it: LIBIDO_IN_JOY of it by its libido, the rest whatever it is.
 inline double mating_joy(const Bitzkey& agent, double joy) { return joy * (1 - LIBIDO_IN_JOY + LIBIDO_IN_JOY * agent.feeling(Libido)); }
 int gestation(int size);  // turns an animal of this body size carries its young
+int call_reach(const Bitzkey& caller);  // how many steps its calls carry (Call reach)
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.
 Dna predator_dna(Dna dna);
@@ -885,6 +894,7 @@ public:
     struct Sensed {
         Senses senses{};
         std::vector<int> options;
+        std::vector<int> calls;  // the calls open to it, silence first (Brain.hpp's Call)
         Situation situation;
     };
 
@@ -1155,7 +1165,8 @@ private:
     void sprout(Dna dna, Cell cell, int generation);
     void settle(Bitzkey& agent);
     // Learn from its own last choice; its `outcome` (what came of it, before the future's worth) sets how much it counts.
-    void learn(Bitzkey& agent, double target, double outcome, bool replay = false);
+    // `call_target`: what its last call (if it chose one) is worth now, which it learns beside its action.
+    void learn(Bitzkey& agent, double target, double outcome, bool replay = false, double call_target = 0.0);
     // Going further costs: GO_EFFORT of a turn's burn for each cell past the first, however it moves.
     static void effort(Bitzkey& agent, int cells) { agent.hunger += agent.burn * GO_EFFORT * std::max(0, cells - 1); }
     // The nearest grass in sight, but none in a row further from its home temperature than here.

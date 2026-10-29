@@ -1155,6 +1155,10 @@ bool Simulation::heat(const Bitzkey& agent) const {
     return *until > end * YEAR_LENGTH && *until <= begin * YEAR_LENGTH;
 }
 
+int call_reach(const Bitzkey& caller) {
+    return std::min(MAX_CALL_REACH, std::max(1, static_cast<int>(py_round(CALL_REACH * (0.5 + caller.physique(Size))))));
+}
+
 int gestation(int size) {
     return GESTATION[0] + static_cast<int>(static_cast<double>((GESTATION[1] - GESTATION[0]) * size) / TRAIT_MAX + 0.5);
 }
@@ -1368,7 +1372,7 @@ Brain& Simulation::learning_brain(Bitzkey& agent) {
     return *agent.brain;
 }
 
-void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay) {
+void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay, double call_target) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
     // and remembers this one. On the GPU, the lessons are queued, to be learnt in one batch.
@@ -1384,6 +1388,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
                 const Bitzkey::Memory& memory = agent.memories[index];
                 queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
             }
+            if (agent.last_call >= 0) queue_lesson(agent, agent.last_senses, call_output(agent.last_call), call_target, rate, false, 0.0);
         }
     } else {
         learning_brain(agent).learn_traced_by(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent) * trace_decay(agent));
@@ -1391,6 +1396,8 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             const Bitzkey::Memory& memory = agent.memories[index];
             agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * memory.weight);
         }
+        // And from its call, as from an action untraced: what came of the turn, and the best call open now.
+        if (agent.last_call >= 0) agent.own_brain().learn(agent.last_senses, call_output(agent.last_call), call_target, rate);
     }
     if (!count) return;
     agent.memories.push_back({agent.last_senses, agent.last_choice, target, weight});
@@ -1586,7 +1593,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // What came of each one's last choice: whatever raised its health (fullness counting with it) or its mood was a
     // success, whatever lowered them a failure, by how much; both may happen. Each learns from it on its own brain
     // alone, so on the CPU they all learn at once, on every core, each its lessons in their order, as one by one.
-    std::vector<double> rewards(agents.size()), targets(agents.size());
+    std::vector<double> rewards(agents.size()), targets(agents.size()), call_targets(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         if (!agent.has_last_senses) continue;
@@ -1597,12 +1604,15 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);
         targets[index] = rewards[index] + discount(agent) * best;
+        double best_call = values[index][call_output(Silent)];
+        for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
+        call_targets[index] = rewards[index] + discount(agent) * best_call;
     }
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
         return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced || agents[index]->last_panicked);  // a panicked flight teaches
     };
     const auto teach = [&](std::size_t index) {
-        if (taught(index)) learn(*agents[index], targets[index], rewards[index], true);
+        if (taught(index)) learn(*agents[index], targets[index], rewards[index], true, call_targets[index]);
     };
     if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
     else std::for_each(std::execution::par, indices.begin(), indices.end(), teach);
@@ -1615,7 +1625,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // stream of chance decides (primal fear, and the roll each choice is made by); then on every core at once, each
     // its own choice from its own values; then, in their order, what all share (the insights).
     std::vector<int> choices(agents.size());
-    std::vector<double> rolls(agents.size()), explores(agents.size()), restless(agents.size());
+    std::vector<double> rolls(agents.size()), explores(agents.size()), restless(agents.size()), call_rolls(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         Situation& situation = plans[index].situation;
@@ -1638,6 +1648,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         rolls[index] = rng().random();
         explores[index] = rng().random();
         restless[index] = rng().random();
+        call_rolls[index] = rng().random();
     }
     std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
         Bitzkey& agent = *agents[index];
@@ -1689,6 +1700,21 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         for (const auto& [option, chance] : odds) {
             agent.odds[option] = chance;
             agent.odds_offered |= 1U << option;
+        }
+        // And what it calls as it does it: by its brain alone, one asleep, spent or frozen with fear keeping silent.
+        agent.call = Silent;
+        agent.last_call = -1;
+        if (!idle[index] && !situation.frozen) {
+            std::vector<int> outputs;
+            for (const int call : plans[index].calls) outputs.push_back(call_output(call));
+            double call_roll = call_rolls[index];
+            for (const auto& [output, chance] : choice_odds(values[index], outputs)) {
+                call_roll -= chance;
+                agent.call = output - ACTION_COUNT;
+                if (call_roll < 0) break;
+            }
+            agent.last_call = agent.call;
+            agent.call_turn = turn_;
         }
         agent.has_last_senses = true;
         agent.last_senses = plans[index].senses;
@@ -1988,7 +2014,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
     }
-    available[Alert] = s.alert_to != nullptr;
+    sensed.calls = {Silent};
+    if (s.alert_to) sensed.calls.push_back(AlertCall);
+    for (int call = FirstCall; call < CALL_OPTIONS; ++call) sensed.calls.push_back(call);
     const double fed_at = remembered(agent, agent.food_memory);
     if (agent.food_memory) s.revisit = Cell{agent.food_memory->x, agent.food_memory->y};
     available[Revisit] = fed_at > 0 && !(s.revisit->x == agent.x && s.revisit->y == agent.y);  // back to where it last fed
@@ -2074,6 +2102,25 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseParentCloseness] = closeness(agent, cell_of(nearest), sight);
             senses[SenseParentEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
             senses[SenseParentSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
+        }
+    }
+    {  // the calls made about it last turn, by any kind, each as its loudest caller made it
+        std::array<double, CALL_COUNT> loudest{};
+        const int furthest = std::min(MAX_CALL_REACH, static_cast<int>(std::ceil(CALL_REACH * 1.5)));  // the largest caller's
+        for (const Bitzkey* other : around(agent, furthest)) {
+            if (other->call < FirstCall || other->call_turn != turn_ - 1) continue;
+            const int reach = call_reach(*other);
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away > reach) continue;
+            const double loudness = 1 - static_cast<double>(away) / (reach + 1);
+            double& louder = loudest[static_cast<std::size_t>(other->call - FirstCall)];
+            if (loudness <= louder) continue;
+            louder = loudness;
+            senses[heard_sense(other->call, HeardLoudness)] = loudness;
+            senses[heard_sense(other->call, HeardEast)] =
+                std::clamp(static_cast<double>(py_mod(other->x - agent.x + width_ / 2, width_) - width_ / 2) / reach, -1.0, 1.0);
+            senses[heard_sense(other->call, HeardSouth)] = std::clamp(static_cast<double>(other->y - agent.y) / reach, -1.0, 1.0);
+            senses[heard_sense(other->call, HeardKin)] = other->species == agent.species;
         }
     }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
@@ -2204,6 +2251,10 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
 // Actions
 
 void Simulation::act(Bitzkey& agent, int action, Situation& s) {
+    if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
+        agent.hunger = std::min(100.0, agent.hunger + CALL_COST);
+        if (agent.call == AlertCall && s.alert_to) alert(agent, *s.alert_to);
+    }
     const std::size_t passed = agent.trail.size();
     perform(agent, action, s);
     const std::string_view did = agent.last_action;
@@ -2320,9 +2371,6 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Herd:
             move_toward(agent, s.herd_middle->x, s.herd_middle->y);
             agent.last_action = "herded";
-            break;
-        case Alert:
-            alert(agent, *s.alert_to);
             break;
         case Revisit:
             move_toward(agent, s.revisit->x, s.revisit->y);
@@ -2452,7 +2500,6 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
     // it only from TRUST_REACH times its trust times its own sight away, or nearer.
     if (acting_) {
         acting_->alerts.emplace_back(&agent, &about);
-        agent.last_action = "alerted";
         return;
     }
     bool heeded = false;
@@ -2469,7 +2516,6 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
         }
     }
     if (heeded) agent.reward += ALERT_JOY;  // a pleasure only when a herd-mate took it in
-    agent.last_action = "alerted";
 }
 
 void Simulation::scavenge(Bitzkey& agent, Bitzkey& corpse) {

@@ -70,7 +70,7 @@ struct Numbers {
         return add(container.data(), container.size());
     }
     void add_layers(const std::vector<Layer>& layers, const Brain::OutputWeights& output_weights,
-                    const std::array<double, ACTION_COUNT>& output_biases) {
+                    const Brain::OutputBiases& output_biases) {
         for (const Layer& layer : layers) {
             add(layer.weights);
             add(layer.biases);
@@ -95,8 +95,15 @@ struct Reader {
     // For a world saved with other senses: how many it saved, and where each sensed now lies among them, or -1.
     std::size_t saved_inputs = INPUT_SIZE;
     std::vector<int> sense_from;
-    // For a world saved before the latest actions were added (they are only ever added at the end): how many it saved.
-    std::size_t saved_actions = ACTION_COUNT;
+    // For a world saved with other outputs (actions, calls): how many it saved, where each output now lies among
+    // them, or -1, and what each action it saved is now, or -1 for one no longer an action.
+    std::size_t saved_outputs = OUTPUT_COUNT;
+    std::vector<int> output_from;
+    std::vector<int> action_now;
+    int action(int saved) const {
+        if (action_now.empty()) return saved;
+        return saved >= 0 && static_cast<std::size_t>(saved) < action_now.size() ? action_now[static_cast<std::size_t>(saved)] : -1;
+    }
     bool uncentred = false;  // saved before brains read their senses centred: each is made to, choosing as before
     bool unscaled = false;   // saved before brains held their values in hundredths: each is made to
 
@@ -116,7 +123,7 @@ struct Reader {
         return numbers + at * sizeof(double);
     }
     void read_layers(std::size_t& at, int depth, int width, std::vector<Layer>& layers, Brain::OutputWeights& output_weights,
-                     std::array<double, ACTION_COUNT>& output_biases) const {
+                     Brain::OutputBiases& output_biases) const {
         layers.clear();
         const std::size_t neurons = static_cast<std::size_t>(width);
         for (int index = 0; index < depth; ++index) {
@@ -132,16 +139,21 @@ struct Reader {
             at += neurons;
             layers.push_back(std::move(layer));
         }
-        for (std::size_t action = 0; action < output_weights.size(); ++action) {  // an action added since starts unweighted
-            std::vector<double>& row = output_weights[action];
+        // An output added since starts unweighted, and one no longer had is let go.
+        const auto saved_at = [&](std::size_t output) { return output_from.empty() ? static_cast<int>(output) : output_from[output]; };
+        const std::size_t rows = at;
+        for (std::size_t output = 0; output < output_weights.size(); ++output) {
+            std::vector<double>& row = output_weights[output];
             row.assign(neurons, 0.0);
-            if (action >= saved_actions) continue;
-            std::memcpy(row.data(), take(at, neurons), sizeof(double) * neurons);
-            at += neurons;
+            if (const int from = saved_at(output); from >= 0) std::memcpy(row.data(), take(rows + static_cast<std::size_t>(from) * neurons, neurons), sizeof(double) * neurons);
         }
+        at += saved_outputs * neurons;
         output_biases.fill(0.0);
-        std::memcpy(output_biases.data(), take(at, saved_actions), sizeof(double) * saved_actions);
-        at += saved_actions;
+        const char* biases = take(at, saved_outputs);
+        for (std::size_t output = 0; output < output_biases.size(); ++output) {
+            if (const int from = saved_at(output); from >= 0) std::memcpy(&output_biases[output], biases + static_cast<std::size_t>(from) * sizeof(double), sizeof(double));
+        }
+        at += saved_outputs;
     }
     // The brain saved at `record`, resized to fit the genome `dna` if it was saved another shape.
     std::shared_ptr<Brain> brain(const json& record, Dna dna) const {
@@ -222,7 +234,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"call_turn", agent.call_turn}, {"last_call", agent.last_call},
     };
     json trail = json::array();
     for (const auto& [x, y] : agent.trail) trail.push_back({x, y});
@@ -246,11 +258,11 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     return record;
 }
 
-int action_index(const std::string& name) {
+int action_index(const std::string& name) {  // -1 for one no longer an action
     for (int action = 0; action < ACTION_COUNT; ++action) {
         if (ACTIONS[action] == name) return action;
     }
-    throw std::runtime_error("an unknown action, " + name);
+    return -1;
 }
 
 std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
@@ -294,8 +306,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->rot = record.at("rot").get<double>();
     agent->portions = record.at("portions").get<int>();
     for (const json& cell : record.at("trail")) agent->trail.emplace_back(cell.at(0).get<int>(), cell.at(1).get<int>());
-    for (const json& memory : record.at("memories")) {
-        agent->memories.push_back({numbers.senses(memory.at(0)), memory.at(1).get<int>(), memory.at(2).get<double>(), memory.at(3).get<double>()});
+    for (const json& memory : record.at("memories")) {  // one of an action no longer had is forgotten
+        const int choice = numbers.action(memory.at(1).get<int>());
+        if (choice >= 0) agent->memories.push_back({numbers.senses(memory.at(0)), choice, memory.at(2).get<double>(), memory.at(3).get<double>()});
     }
     for (const json& young : record.at("womb")) {
         const Dna dna = genome_from(young.at(0));
@@ -308,7 +321,14 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->has_last_senses = true;
         agent->last_senses = numbers.senses(senses);
     }
-    agent->last_choice = record.at("last_choice").get<int>();
+    agent->last_choice = numbers.action(record.at("last_choice").get<int>());
+    if (agent->last_choice < 0) {  // an action no longer had: nothing to learn from it
+        agent->last_choice = Rest;
+        agent->has_last_senses = false;
+    }
+    agent->call = record.value("call", 0);  // silent, in a world saved before calls
+    agent->call_turn = record.value("call_turn", -1);
+    agent->last_call = record.value("last_call", -1);
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);
     agent->last_wellbeing = record.at("last_wellbeing").get<double>();
@@ -316,6 +336,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->last_comfort = record.at("last_comfort").get<double>();
     for (const auto& [name, chance] : record.at("odds").items()) {
         const int action = action_index(name);
+        if (action < 0) continue;
         agent->odds[action] = chance.get<double>();
         agent->odds_offered |= 1U << action;
     }
@@ -428,7 +449,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         rules[key] = rule && rule->integer ? json(static_cast<long long>(value)) : json(value);
     }
     const json record = {
-        {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"value_scale", VALUE_SCALE}, {"actions", names(ACTIONS)},
+        {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"value_scale", VALUE_SCALE}, {"actions", names(OUTPUTS)},
         {"temperament", names(TEMPERAMENT)},
         {"settings", {{"width", simulation.width_}, {"height", simulation.height_}, {"population_cap", optional_value(simulation.population_cap_)},
                       {"mind_mutation", simulation.mind_mutation_}, {"body_mutation", simulation.body_mutation_},
@@ -505,15 +526,21 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             throw std::runtime_error("This world file is format " + record.value("format", json(nullptr)).dump() + "; this version reads format " +
                                      std::to_string(WORLD_FORMAT) + ".");
         }
-        // Actions are only ever added at the end, so a world saved before one was added holds the first of them.
-        const json& actions = record.at("actions");
-        const json now_actions = names(ACTIONS);
-        const bool earlier = actions.is_array() && actions.size() <= now_actions.size() &&
-                             std::equal(actions.begin(), actions.end(), now_actions.begin());
-        if (!earlier || record.at("temperament") != names(TEMPERAMENT)) {
+        if (!record.at("actions").is_array() || record.at("temperament") != names(TEMPERAMENT)) {
             throw std::runtime_error("This world was saved by a version of Bitzkey whose brains sense or act differently.");
         }
-        reader.saved_actions = actions.size();
+        // Brains' outputs saved otherwise are read by name, as their senses are; so are the actions chosen.
+        if (const json& saved = record.at("actions"); saved != names(OUTPUTS)) {
+            std::map<std::string, int> saved_at;
+            for (std::size_t index = 0; index < saved.size(); ++index) saved_at[saved[index].get<std::string>()] = static_cast<int>(index);
+            reader.saved_outputs = saved.size();
+            reader.output_from.resize(OUTPUT_COUNT);
+            for (int output = 0; output < OUTPUT_COUNT; ++output) {
+                const auto found = saved_at.find(std::string(OUTPUTS[output]));
+                reader.output_from[output] = found == saved_at.end() ? -1 : found->second;
+            }
+            for (const json& name : saved) reader.action_now.push_back(action_index(name.get<std::string>()));
+        }
         reader.uncentred = !record.value("centred_senses", false);
         reader.unscaled = !record.contains("value_scale");
         // Brains saved with other senses are read by name: a sense they lacked starts with no weight, and
@@ -600,7 +627,9 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
                 const std::string band = entry.at(2).get<std::string>();
                 level = band == "low" ? Level::Low : band == "mid" ? Level::Mid : Level::High;
             }
-            world.insights_.set(species_named(entry.at(0).get<std::string>()), trait, level, action_index(entry.at(3).get<std::string>()),
+            const int action = action_index(entry.at(3).get<std::string>());
+            if (action < 0) continue;  // no longer an action
+            world.insights_.set(species_named(entry.at(0).get<std::string>()), trait, level, action,
                                 entry.at(4).get<double>(), entry.at(5).get<double>());
         }
         std::vector<Census::Snapshot> snapshots;

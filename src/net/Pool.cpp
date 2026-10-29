@@ -669,7 +669,7 @@ void Pool::flush(std::span<const int> asks, std::span<const Senses> senses, std:
             member.lessons.erase(member.lessons.begin(), member.lessons.begin() + static_cast<std::ptrdiff_t>(each.batch.lessons.size()));
             member.detaches.erase(member.detaches.begin(), member.detaches.begin() + static_cast<std::ptrdiff_t>(each.batch.detaches.size()));
             for (std::size_t k = 0; k < mine_asks.size(); ++k) {
-                for (int action = 0; action < ACTION_COUNT; ++action) out[mine_asks[k]][action] = each.answer.values[k][action];
+                for (int output = 0; output < OUTPUT_COUNT; ++output) out[mine_asks[k]][output] = each.answer.values[k][output];
             }
             for (std::size_t k = 0; k < mine_downloads.size(); ++k) {
                 Brain& brain = *into[mine_downloads[k]];

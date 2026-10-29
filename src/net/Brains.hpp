@@ -24,7 +24,7 @@
 
 namespace bitzkey::net {
 
-constexpr std::uint32_t PROTOCOL = 2;  // a worker and its main service must speak the same (2: brains of any width)
+constexpr std::uint32_t PROTOCOL = 3;  // a worker and its main service must speak the same (2: brains of any width; 3: calls)
 constexpr int DEFAULT_WORKER_PORT = 50000;
 constexpr int DEFAULT_CHECKPOINT_TURNS = 100;
 constexpr int RING = 32;               // senses remembered for each brain: more than any brain replays in a turn
@@ -72,7 +72,7 @@ struct Batch {
 struct Answer {
     bool known = true;    // false: the worker doesn't know the session, having restarted since
     bool leaving = false; // the worker is stopping, and wants its brains taken back
-    std::vector<std::array<float, ACTION_COUNT>> values;
+    std::vector<std::array<float, OUTPUT_COUNT>> values;
     std::vector<Brain> downloads;
     std::uint32_t held = 0;
 };

@@ -71,7 +71,7 @@ Machine scan_machine() {
 std::uint64_t brain_bytes(int depth, int width) {
     const std::uint64_t neurons = static_cast<std::uint64_t>(width);
     const std::uint64_t weights = neurons * INPUT_SIZE + static_cast<std::uint64_t>(depth - 1) * neurons * neurons +
-                                  static_cast<std::uint64_t>(depth) * neurons + ACTION_COUNT * neurons + ACTION_COUNT;
+                                  static_cast<std::uint64_t>(depth) * neurons + OUTPUT_COUNT * neurons + OUTPUT_COUNT;
     return weights * 2 * sizeof(double) + RING * sizeof(FloatSenses) + 256;  // weights and traces, in doubles on a CPU
 }
 
@@ -126,7 +126,7 @@ Batch decode_batch(std::string_view bytes) {
     for (Batch::Lesson& lesson : batch.lessons) {
         lesson.handle = in.get<std::int32_t>();
         lesson.action = in.get<std::uint8_t>();
-        if (lesson.action >= ACTION_COUNT) throw std::runtime_error("a lesson in no action");
+        if (lesson.action >= OUTPUT_COUNT) throw std::runtime_error("a lesson in no output");
         lesson.traced = in.get<std::uint8_t>() != 0;
         lesson.target = in.get<float>();
         lesson.rate = in.get<float>();
@@ -154,7 +154,7 @@ std::string encode(const Answer& answer) {
     out.put<std::uint8_t>(answer.leaving ? 1 : 0);
     out.put(answer.held);
     out.put(static_cast<std::uint32_t>(answer.values.size()));
-    for (const auto& values : answer.values) out.raw(values.data(), sizeof(float) * ACTION_COUNT);
+    for (const auto& values : answer.values) out.raw(values.data(), sizeof(float) * OUTPUT_COUNT);
     out.put(static_cast<std::uint32_t>(answer.downloads.size()));
     for (const Brain& brain : answer.downloads) {
         out.put<std::uint8_t>(brain.layers.empty() ? 0 : 1);  // none: the worker didn't hold it
@@ -171,7 +171,7 @@ Answer decode_answer(std::string_view bytes) {
     answer.leaving = in.get<std::uint8_t>() != 0;
     answer.held = in.get<std::uint32_t>();
     answer.values.resize(in.get<std::uint32_t>());
-    for (auto& values : answer.values) in.raw(values.data(), sizeof(float) * ACTION_COUNT);
+    for (auto& values : answer.values) in.raw(values.data(), sizeof(float) * OUTPUT_COUNT);
     const auto downloads = in.get<std::uint32_t>();
     for (std::uint32_t index = 0; index < downloads; ++index) answer.downloads.push_back(in.get<std::uint8_t>() ? in.brain() : Brain{});
     return answer;
@@ -348,7 +348,7 @@ Answer Thinker::apply(const Batch& batch) {
         answer.values.assign(batch.values.size(), {});
         for (auto& missing : answer.values) missing.fill(std::nanf(""));  // a brain it doesn't hold
         for (std::size_t k = 0; k < places.size(); ++k) {
-            for (int action = 0; action < ACTION_COUNT; ++action) answer.values[places[k]][action] = static_cast<float>(values[k][action]);
+            for (int output = 0; output < OUTPUT_COUNT; ++output) answer.values[places[k]][output] = static_cast<float>(values[k][output]);
         }
     }
     if (!batch.downloads.empty()) {

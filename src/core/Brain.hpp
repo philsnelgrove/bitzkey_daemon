@@ -80,15 +80,40 @@ enum Sense : int {
     SenseParentCloseness,
     SenseParentEast,
     SenseParentSouth,
-    SenseMind,             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
+    // The calls it heard since it last chose, HEARD_SENSES for each of the five, the first call's first (see Heard):
+    SenseHeardCall,
+    SenseMind = SenseHeardCall + 4 * 5,  // HEARD_SENSES * CALL_COUNT             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Alert, Revisit, FeedYoung };
-constexpr int ACTION_COUNT = 25;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung };
+constexpr int ACTION_COUNT = 24;
+// Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
+// or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
+// all close enough. A brain values them as it values its actions, after them, and learns them the same way.
+enum Call : int { Silent, AlertCall, FirstCall };  // the five calls from FirstCall on
+constexpr int CALL_COUNT = 5;
+constexpr int CALL_OPTIONS = FirstCall + CALL_COUNT;
+constexpr int OUTPUT_COUNT = ACTION_COUNT + CALL_OPTIONS;
+// What it senses of each call it heard, of the loudest who made it: how loud, 1 from beside it, falling to 0 at the
+// call's reach (the larger the caller, the further it carries); which way it lay, -1 to 1, west to east and north to
+// south; and whether it was of its own species, 1 or 0. All 0 for a call it didn't hear.
+enum Heard : int { HeardLoudness, HeardEast, HeardSouth, HeardKin };
+constexpr int HEARD_SENSES = 4;
+static_assert(SenseMind == SenseHeardCall + HEARD_SENSES * CALL_COUNT);
+constexpr int heard_sense(int call, int heard) { return SenseHeardCall + HEARD_SENSES * (call - FirstCall) + heard; }
+constexpr int call_output(int call) { return ACTION_COUNT + call; }  // the output valuing a call (or silence)
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
-    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west", "alert",
+    "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young"};
+// A brain's outputs by name: its actions, then silence and the calls.
+constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
+    std::array<std::string_view, OUTPUT_COUNT> names{};
+    for (int action = 0; action < ACTION_COUNT; ++action) names[action] = ACTIONS[action];
+    constexpr std::array<std::string_view, CALL_OPTIONS> calls = {"silent", "alert", "call_1", "call_2", "call_3", "call_4", "call_5"};
+    for (int call = 0; call < CALL_OPTIONS; ++call) names[call_output(call)] = calls[call];
+    return names;
+}();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
 constexpr int SenseBody = SenseInborn + TEMPERAMENT_COUNT;  // then its ring's traits, 0..1 (species 0 plant to 1 predator)
 constexpr int SenseHomeTemperature = SenseBody + BODY_TRAIT_COUNT;  // then its climate genes: home 0 hot to 1 very cold,
@@ -104,7 +129,9 @@ constexpr int INPUT_SIZE = SenseNocturnal + 1;
 // limit, the same whatever it senses, and learns no more); those already running -1..1 read as they are.
 constexpr bool signed_sense(int sense) {
     return sense == SenseLatitude || sense == SenseWarmth || sense == SenseWarmthNorth || sense == SenseWarmthSouth ||
-           sense == SenseHomeDirection || sense == SenseParentEast || sense == SenseParentSouth;
+           sense == SenseHomeDirection || sense == SenseParentEast || sense == SenseParentSouth ||
+           (sense >= SenseHeardCall && sense < SenseMind &&
+            ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth));
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -114,7 +141,12 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "assailant_near", "counter_frailty", "rivalry", "herd_near", "herd_closeness", "alarm", "kill_alert", "herd_success", "herd_failure",
     "climate_discomfort", "comfort_closeness", "age", "time_of_year_a", "time_of_year_b", "latitude", "warmth",
     "warmth_north", "warmth_south", "food_remembered", "danger_remembered", "home_food", "home_direction", "home_distance", "young_near",
-    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "night", "parent_closeness", "parent_east", "parent_south", "aggression", "libido", "curiosity",
+    "sea_here", "shore_north", "shore_south", "shore_east", "shore_west", "stamina", "night", "parent_closeness", "parent_east", "parent_south",
+    "heard_call_1", "heard_call_1_east", "heard_call_1_south", "heard_call_1_kin",
+    "heard_call_2", "heard_call_2_east", "heard_call_2_south", "heard_call_2_kin",
+    "heard_call_3", "heard_call_3_east", "heard_call_3_south", "heard_call_3_kin",
+    "heard_call_4", "heard_call_4_east", "heard_call_4_south", "heard_call_4_kin",
+    "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
@@ -139,6 +171,8 @@ inline double TRACE_DECAY = 0.7;  // lambda: how much of each earlier choice's c
 // A new brain values setting off in a direction this much below its other actions, so an untaught
 // brain doesn't march straight away from its range, its herd and its food before it has learned where to go.
 inline double HEADING_RELUCTANCE = 0.5;
+// And values each call this much below silence, so an untaught world isn't all calling at once.
+inline double CALL_RELUCTANCE = 0.5;
 // A brain holds its values in hundredths: what an action is worth over the turns it looks ahead runs to ten and more,
 // and its neurons, each between -1 and 1, would jam at their limits to make that much, the same whatever it senses.
 // Held small, the output layer makes them of neurons free to follow the senses. It gives and learns them whole.
@@ -149,7 +183,7 @@ constexpr int RECORD_DIGITS = 6;  // decimal places kept when a brain is exporte
 inline double output_spread(int width) { return 0.3 * std::sqrt(12.0 / width); }
 
 using Senses = std::array<double, INPUT_SIZE>;
-using Values = std::array<double, ACTION_COUNT>;
+using Values = std::array<double, OUTPUT_COUNT>;  // its actions', then its calls'
 
 // How many hidden layers a brain has, by its owner's inborn intellect: one a point, from one to MAX_DEPTH.
 inline int depth_for(int intellect) { return std::max(1, std::min(MAX_DEPTH, intellect)); }
@@ -186,16 +220,17 @@ struct Layer {
 // to the choices that led to it; the traces belong to one life and are neither inherited nor exported.
 class Brain {
 public:
-    using OutputWeights = std::array<std::vector<double>, ACTION_COUNT>;  // a row of the brain's width for each action
+    using OutputWeights = std::array<std::vector<double>, OUTPUT_COUNT>;  // a row of the brain's width for each output
+    using OutputBiases = std::array<double, OUTPUT_COUNT>;
     struct Traces {
         std::vector<Layer> layers;  // shaped as the brain's own
         OutputWeights output_weights{};
-        std::array<double, ACTION_COUNT> output_biases{};
+        OutputBiases output_biases{};
     };
 
     std::vector<Layer> layers;
     OutputWeights output_weights{};
-    std::array<double, ACTION_COUNT> output_biases{};
+    OutputBiases output_biases{};
     std::optional<Traces> traces;  // none until it first learns from its own choice
 
     int depth() const { return static_cast<int>(layers.size()); }
@@ -235,7 +270,7 @@ public:
     void learn_traced_by(const Senses& inputs, int action, double target, double learning_rate, double decay);
 
     nlohmann::ordered_json to_record() const;
-    // Weights are matched to senses and actions by name; a brain saved with a single hidden
+    // Weights are matched to senses and outputs by name; a brain saved with a single hidden
     // layer loads one layer deep. It keeps the width it was saved with, and the Bitzkey given it
     // resizes it to its own. Throws std::invalid_argument.
     static Brain from_record(const nlohmann::json& record);

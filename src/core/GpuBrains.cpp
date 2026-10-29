@@ -108,16 +108,17 @@ using Shape = std::pair<int, int>;  // a brain's depth and width: its pool
 
 std::uint32_t slot_floats(Shape shape) {
     const auto [depth, width] = shape;
-    return static_cast<std::uint32_t>(width * INPUT_SIZE + (depth - 1) * width * width + depth * width + ACTION_COUNT * width +
-                                      ACTION_COUNT);
+    return static_cast<std::uint32_t>(width * INPUT_SIZE + (depth - 1) * width * width + depth * width + OUTPUT_COUNT * width +
+                                      OUTPUT_COUNT);
 }
 
 Shape shape_of(const Brain& brain) { return {brain.depth(), brain.width()}; }
 static_assert(MAX_DEPTH == 4 && MAX_WIDTH == 53, "shaders/brain.glsl's MAX_DEPTH and MAX_HIDDEN must match");
+static_assert(INPUT_SIZE == 125 && OUTPUT_COUNT == 31, "shaders/brain.glsl's INPUTS and ACTIONS must match");
 
 // The layers, input by input, then the biases, then the outputs, neuron by neuron, then their biases:
 // for a brain's weights, or its traces.
-void pack_parts(const std::vector<Layer>& layers, const Brain::OutputWeights& outputs, const std::array<double, ACTION_COUNT>& biases,
+void pack_parts(const std::vector<Layer>& layers, const Brain::OutputWeights& outputs, const Brain::OutputBiases& biases,
                 float* at) {
     for (const Layer& layer : layers) {
         for (int item = 0; item < layer.reads; ++item) {
@@ -128,12 +129,12 @@ void pack_parts(const std::vector<Layer>& layers, const Brain::OutputWeights& ou
         for (const double bias : layer.biases) *at++ = static_cast<float>(bias);
     }
     for (std::size_t neuron = 0; neuron < outputs[0].size(); ++neuron) {
-        for (int action = 0; action < ACTION_COUNT; ++action) *at++ = static_cast<float>(outputs[action][neuron]);
+        for (int output = 0; output < OUTPUT_COUNT; ++output) *at++ = static_cast<float>(outputs[output][neuron]);
     }
     for (const double bias : biases) *at++ = static_cast<float>(bias);
 }
 
-void unpack_parts(const float* at, std::vector<Layer>& layers, Brain::OutputWeights& outputs, std::array<double, ACTION_COUNT>& biases) {
+void unpack_parts(const float* at, std::vector<Layer>& layers, Brain::OutputWeights& outputs, Brain::OutputBiases& biases) {
     for (Layer& layer : layers) {
         for (int item = 0; item < layer.reads; ++item) {
             for (int neuron = 0; neuron < layer.neurons(); ++neuron) layer.row(neuron)[item] = *at++;
@@ -143,7 +144,7 @@ void unpack_parts(const float* at, std::vector<Layer>& layers, Brain::OutputWeig
         for (double& bias : layer.biases) bias = *at++;
     }
     for (std::size_t neuron = 0; neuron < outputs[0].size(); ++neuron) {
-        for (int action = 0; action < ACTION_COUNT; ++action) outputs[action][neuron] = *at++;
+        for (int output = 0; output < OUTPUT_COUNT; ++output) outputs[output][neuron] = *at++;
     }
     for (double& bias : biases) bias = *at++;
 }
@@ -357,7 +358,7 @@ public:
             if (!count) continue;
             ensure(gpu, gpu.slots, count * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
             ensure(gpu, gpu.inputs, count * INPUT_SIZE * sizeof(float), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-            ensure(gpu, gpu.outputs, count * ACTION_COUNT * sizeof(float), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+            ensure(gpu, gpu.outputs, count * OUTPUT_COUNT * sizeof(float), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
             auto* slots = static_cast<std::uint32_t*>(gpu.slots.mapped);
             auto* inputs = static_cast<float*>(gpu.inputs.mapped);
             begin(gpu);
@@ -388,7 +389,7 @@ public:
             std::size_t at = 0;
             for (const auto& [shape, members] : batches[g].by_shape) {
                 for (const std::size_t index : members) {
-                    for (int action = 0; action < ACTION_COUNT; ++action) out[index][action] = values[at * ACTION_COUNT + static_cast<std::size_t>(action)];
+                    for (int output = 0; output < OUTPUT_COUNT; ++output) out[index][output] = values[at * OUTPUT_COUNT + static_cast<std::size_t>(output)];
                     ++at;
                 }
             }

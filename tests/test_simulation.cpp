@@ -17,6 +17,7 @@
 #include "core/Exchange.hpp"
 #include "core/Insights.hpp"
 #include "core/Simulation.hpp"
+#include "core/WorldFile.hpp"
 
 using namespace bitzkey;
 
@@ -2059,4 +2060,81 @@ TEST_CASE("a parent feeds its hungry infants within its sight full, at no cost t
     CHECK(parent.last_action == "fed its young");
     auto again = simulation.sense(parent);
     CHECK(std::find(again.options.begin(), again.options.end(), FeedYoung) == again.options.end());  // none hungry now
+}
+
+TEST_CASE("a call is heard by those within its reach, the louder the nearer, and a larger caller carries further") {
+    Simulation simulation = world(40);
+    Bitzkey& small = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 0}}), 10, 10);
+    Bitzkey& large = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 30, 30);
+    CHECK(call_reach(small) < call_reach(large));
+    CHECK(call_reach(small) >= 1);
+    Bitzkey& near = simulation.add_agent(encode_dna(Species::Predator), 11, 10);  // any kind hears
+    Bitzkey& far = simulation.add_agent(encode_dna(Species::Grazer), 10 + call_reach(small) + 1, 10);
+    simulation.index_cells();
+    small.call = FirstCall + 2;
+    small.call_turn = simulation.turn() - 1;  // called last turn
+    const int call = FirstCall + 2;
+    const auto heard = simulation.sense(near).senses;
+    CHECK(heard[heard_sense(call, HeardLoudness)] == doctest::Approx(1 - 1.0 / (call_reach(small) + 1)));
+    CHECK(heard[heard_sense(FirstCall, HeardLoudness)] == 0.0);
+    CHECK(heard[heard_sense(call, HeardEast)] < 0);  // the caller lies to its west
+    CHECK(heard[heard_sense(call, HeardSouth)] == 0.0);
+    CHECK(heard[heard_sense(call, HeardKin)] == 0.0);  // a predator hearing a grazer
+    CHECK(simulation.sense(far).senses[heard_sense(call, HeardLoudness)] == 0.0);  // beyond its reach
+    Bitzkey& herd_mate = simulation.add_agent(encode_dna(Species::Grazer), 10, 11);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Predator), 10, 9);  // the same call, from either side
+    simulation.index_cells();
+    stranger.call = call;
+    stranger.call_turn = simulation.turn() - 1;
+    CHECK(simulation.sense(herd_mate).senses[heard_sense(call, HeardKin)] == 1.0);  // its own kind, nearest
+    CHECK(simulation.sense(herd_mate).senses[heard_sense(call, HeardSouth)] < 0);  // and from the north
+    small.call_turn = stranger.call_turn = simulation.turn() - 2;  // an old call is no longer heard
+    CHECK(simulation.sense(near).senses[heard_sense(call, HeardLoudness)] == 0.0);
+}
+
+TEST_CASE("an animal calls alongside its action: silence and the five calls always open, the alert when it has news") {
+    CHECK(std::find(ACTIONS.begin(), ACTIONS.end(), "alert") == ACTIONS.end());  // no longer an action
+    CHECK(OUTPUTS[call_output(AlertCall)] == "alert");
+    Simulation simulation = world(30);
+    const Dna dna = encode_dna(Species::Grazer, {{"sight", 7}});
+    Bitzkey& grazer = simulation.add_agent(dna, 10, 10);
+    simulation.add_agent(dna, 11, 10);  // its herd
+    simulation.index_cells();
+    auto calm = simulation.sense(grazer);
+    CHECK(calm.calls == std::vector<int>{Silent, FirstCall, FirstCall + 1, FirstCall + 2, FirstCall + 3, FirstCall + 4});
+    simulation.add_agent(encode_dna(Species::Predator), 10, 8);
+    simulation.index_cells();
+    auto alarmed = simulation.sense(grazer);
+    REQUIRE(alarmed.situation.hunter != nullptr);
+    CHECK(std::find(alarmed.calls.begin(), alarmed.calls.end(), AlertCall) != alarmed.calls.end());
+    for (int turn = 0; turn < 20; ++turn) simulation.take_turn();  // and every animal that thinks calls something, or keeps silent
+    for (const Bitzkey* agent : simulation.living()) CHECK((agent->call >= Silent && agent->call < CALL_OPTIONS));
+}
+
+TEST_CASE("a world keeps its calls when saved and loaded") {
+    Simulation simulation = world(20);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    caller.call = FirstCall + 4;
+    caller.call_turn = 7;
+    caller.last_call = FirstCall + 4;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    const Bitzkey* again = loaded->find_agent(caller.identifier);
+    REQUIRE(again);
+    CHECK((again->call == FirstCall + 4 && again->call_turn == 7 && again->last_call == FirstCall + 4));
+}
+
+TEST_CASE("a brain saved before calls loads with its actions as they were and its calls unweighted") {
+    PyRandom rng(4);
+    const Brain brain = Brain::random(rng, 1, 20);
+    nlohmann::ordered_json record = brain.to_record();
+    auto& actions = record["actions"];
+    auto& rows = record["output_weights"];
+    auto& biases = record["output_biases"];
+    actions.erase(actions.begin() + ACTION_COUNT + FirstCall, actions.end());  // its outputs to the alert, as they were
+    rows.erase(rows.begin() + ACTION_COUNT + FirstCall, rows.end());
+    biases.erase(biases.begin() + ACTION_COUNT + FirstCall, biases.end());
+    const Brain old = Brain::from_record(nlohmann::json::parse(record.dump()));
+    CHECK(old.output_weights[FeedYoung][3] == doctest::Approx(brain.output_weights[FeedYoung][3]));
+    CHECK(old.output_biases[call_output(AlertCall)] == doctest::Approx(brain.output_biases[call_output(AlertCall)]));
+    CHECK(old.output_biases[call_output(FirstCall)] == 0.0);
 }

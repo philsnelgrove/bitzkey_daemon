@@ -196,6 +196,8 @@ std::vector<Rule> make_rules() {
          0.0, 1.0, 0.05, false, &CARRION_COWARDICE},
         {"ALERT_JOY", "Mind", "Alert joy", "pleasure of alerting its herd to a hunter (grazers) or a fresh kill (hunters)", 0.0, 5.0, 0.05, false, &ALERT_JOY},
         {"ALARM_REACH", "Mind", "Alarm reach", "steps within which an alarmed animal knows where the hunter is", 1, 20, 1, true, &ALARM_REACH},
+        {"CALL_REACH", "Mind", "Call reach", "steps a call carries, times a half and its caller's size (as a share of its range): the larger, the further", 1, 10, 1, true, &CALL_REACH},
+        {"CALL_COST", "Mind", "Call cost", "hunger a call costs its caller, the alert among them", 0.0, 5.0, 0.05, false, &CALL_COST},
         {"HUNTING_INSTINCT", "Mind", "Hunting instinct", "how much more a predator values hunting and attacking, times its hunger", 0.0,
          5.0, 0.05, false, &HUNTING_INSTINCT},
         {"PRIMAL_FEAR", "Mind", "Primal fear", "chance a turn of being overcome by an overwhelmingly stronger hunter in sight", 0.0, 1.0,

@@ -42,10 +42,16 @@ std::vector<double> bands(std::initializer_list<std::pair<int, int>> runs) {
 }  // namespace
 
 // These tests measure exposure's harm at the harsher rate climate began with, a tenth of full health a step.
-struct HarshClimate {
-    double saved = CLIMATE_DAMAGE;
-    HarshClimate() { CLIMATE_DAMAGE = 0.1; }
-    ~HarshClimate() { CLIMATE_DAMAGE = saved; }
+struct HarshClimate {  // and calls free, so that a turn's hunger is the weather's and the action's alone
+    double saved = CLIMATE_DAMAGE, call_cost = CALL_COST;
+    HarshClimate() {
+        CLIMATE_DAMAGE = 0.1;
+        CALL_COST = 0;
+    }
+    ~HarshClimate() {
+        CLIMATE_DAMAGE = saved;
+        CALL_COST = call_cost;
+    }
 };
 
 // These tests measure the zones as they first were: no polar caps, and the whole equator turning in
@@ -887,6 +893,9 @@ TEST_CASE("the brain report shows choices as they are made, instincts and all") 
     Simulation simulation = world_at(239);
     Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
     parent.mind[Empathy] = 7;  // its instinct at its strongest
+    auto brain = std::make_shared<Brain>(*parent.brain);  // valuing feeding below its other options, whatever the world drew
+    brain->output_biases[FeedYoung] -= 2 * VALUE_SCALE;
+    parent.brain = brain;
     const auto feeding = [&](double instinct) {
         PARENTAL_INSTINCT = instinct;
         for (const BrainRow& row : brain_matrix(parent)) {
