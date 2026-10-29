@@ -439,9 +439,13 @@ Simulation::Simulation(Settings settings)
     initial_grass_ = initial_grass;
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
+    if (settings.population > 0) {  // the plants first, and their head start; then the animals
+        spawn_biomes(true);
+        if (settings.pregrowth > 0) pregrow(settings.pregrowth);
+    }
     const auto [species, sizes] = starting_groups(settings.population);  // animals: the plants start in the biomes
     for (std::size_t group = 0; group < sizes.size(); ++group) spawn_group(make_dna(rng(), species[group]), sizes[group], nullptr, std::nullopt, true);
-    if (settings.population > 0) spawn_biomes();
+    if (settings.population > 0) spawn_biomes(false);
     for (const Imported& bitzkey : settings.imported) {
         spawn_group(bitzkey.dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
                     bitzkey.mind);
@@ -587,7 +591,21 @@ std::vector<std::vector<Cell>> Simulation::biomes() const {
     return found;
 }
 
-void Simulation::spawn_biomes() {
+void Simulation::pregrow(int turns) {
+    // Plain turns, with the plants alone (advance would stop at once, with no animals alive); then none of it counts.
+    for (int turn = 0; turn < turns; ++turn) take_turn();
+    turn_ = 0;
+    deaths_ = 0;
+    death_causes_ = {};
+    death_tally_ = {};
+    death_records_.clear();
+    death_order_.clear();
+    insights_ = {};
+    census_ = {};
+    update_climate();
+}
+
+void Simulation::spawn_biomes(bool plants) {
     // In every biome, BIOME_GROUPS groups of each species, native to it: the surface's own terrain (terrestrial on land,
     // aquatic at sea) and the zone's usual temperature its home; grazers by Grazer group, the rest SPAWN_GROUP.
     for (const std::vector<Cell>& biome : biomes()) {
@@ -595,6 +613,7 @@ void Simulation::spawn_biomes() {
         const int home = zone_temperature(biome.front().y, height_);
         for (int set = 0; set < BIOME_GROUPS; ++set) {
             for (const Species species : {Species::Plant, Species::Omnivore, Species::Predator, Species::Grazer}) {  // the large group last
+                if ((species == Species::Plant) != plants) continue;
                 const int kind = static_cast<int>(species);
                 Dna dna = make_dna(rng(), kind);
                 dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;

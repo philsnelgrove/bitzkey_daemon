@@ -19,11 +19,17 @@ constexpr auto SNAPSHOT_INTEREST = std::chrono::seconds(60);
 
 namespace {
 constexpr auto MAX_TURN_SLICE = std::chrono::milliseconds(25);  // at full speed, the longest the lock is held at once
+
+// A new world's settings, its plants given their head start (PREGROWTH_TURNS).
+Simulation::Settings head_started(Simulation::Settings settings) {
+    settings.pregrowth = PREGROWTH_TURNS;
+    return settings;
+}
 }
 
 World::World(Simulation::Settings settings, bool playing, const std::filesystem::path& data_dir)
     : pool_(std::make_unique<Pool>(data_dir / "workers.json")), worker_(std::make_unique<Worker>(data_dir / "worker.json")),
-      simulation_(std::make_unique<Simulation>(settings)), settings_(std::move(settings)),
+      simulation_(std::make_unique<Simulation>(head_started(settings))), settings_(head_started(std::move(settings))),
       probe_([this](const std::function<void(Simulation&)>& look) {
           auto held = lock();
           look(*simulation_);
@@ -102,6 +108,7 @@ bool World::step() {
 
 void World::new_world(Simulation::Settings settings, rules::Values rules) {
     rules::apply(rules);  // the advanced rules hold for this world and its restarts
+    settings = head_started(std::move(settings));
     auto made = std::make_unique<Simulation>(settings);  // may throw, leaving the present world as it is
     simulation_ = std::move(made);
     settings_ = std::move(settings);

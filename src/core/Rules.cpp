@@ -178,6 +178,7 @@ std::vector<Rule> make_rules() {
         {"FIRST_BREEDING_INSTINCT", "Mind", "First breeding instinct", "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting", 0.0, 10.0, 0.25, false, &FIRST_BREEDING_INSTINCT},
         {"GRAZER_SPAWN_GROUP", "World", "Grazer group", "grazers in each group a new world starts with (other species start in groups of 3 to 5)", 1, 500, 5, true, &GRAZER_SPAWN_GROUP},
         {"HUNTERS_APART", "World", "Hunters apart", "squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere", 0, 60, 1, true, &HUNTERS_APART},
+        {"PREGROWTH_TURNS", "World", "Plant head start", "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none", 0, 20000, 100, true, &PREGROWTH_TURNS},
         {"HUNTER_BREEDING_COST", "Mind", "Breeding cost, hunters", "share of the usual breeding cost a predator or omnivore pays", 0.0, 1.0, 0.05, false, &HUNTER_BREEDING_COST},
         {"GRAZER_BREEDING_COST", "Mind", "Breeding cost, grazers", "share of the usual breeding cost a grazer pays", 0.0, 1.0, 0.05, false, &GRAZER_BREEDING_COST},
         {"SCARCE_POPULATION", "Mind", "Scarce population", "below this many living, a species' breeding cost begins to fall", 1, 2000, 10, true, &SCARCE_POPULATION},

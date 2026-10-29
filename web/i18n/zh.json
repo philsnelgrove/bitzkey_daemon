@@ -1496,5 +1496,7 @@
 "Grazer infancy": "食草动物幼年期",
 "a grazer is an infant this share as long as other animals": "食草动物处于幼年的时长占其他动物的比例",
 "Grazer gestation": "食草动物孕期",
-"a grazer carries its young this share as long as its size would have it": "食草动物怀孕时长占其体型所定时长的比例"
+"a grazer carries its young this share as long as its size would have it": "食草动物怀孕时长占其体型所定时长的比例",
+"Plant head start": "植物先行生长",
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新世界的动物出现之前,植物单独生长的回合数(不计入);0 表示没有"
 }

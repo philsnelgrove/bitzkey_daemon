@@ -1496,5 +1496,7 @@
 "Grazer infancy": "草食動物の幼年期",
 "a grazer is an infant this share as long as other animals": "草食動物が幼体である期間の、他の動物に対する割合",
 "Grazer gestation": "草食動物の妊娠期間",
-"a grazer carries its young this share as long as its size would have it": "草食動物が子を宿す期間の、体の大きさで決まる期間に対する割合"
+"a grazer carries its young this share as long as its size would have it": "草食動物が子を宿す期間の、体の大きさで決まる期間に対する割合",
+"Plant head start": "植物の先行成長",
+"turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新しいワールドで動物が現れる前に植物だけが育つターン数(数えない)。0でなし"
 }

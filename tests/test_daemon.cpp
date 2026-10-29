@@ -240,7 +240,8 @@ TEST_CASE("the web API shows the world and steers it") {
         int identifier = 0;
         {
             auto lock = world.lock();
-            identifier = world.simulation().living().front()->identifier;
+            const auto living = world.simulation().living();  // an animal: the plants, spawned first, have no brain
+            identifier = (*std::find_if(living.begin(), living.end(), [](const Bitzkey* one) { return one->species != Species::Plant; }))->identifier;
         }
         const Json agent = get(client, "/api/agent/" + std::to_string(identifier));
         CHECK(agent["identifier"] == identifier);

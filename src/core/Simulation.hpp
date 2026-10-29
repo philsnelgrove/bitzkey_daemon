@@ -44,6 +44,7 @@ inline int GRAZER_SPAWN_GROUP = 30;
 // A new world's grazers start at least this many squares (across and down, east and west wrapping) from its hunters'
 // groups, and its hunters from its grazers', where there is room: the farthest of APART_TRIES places, else; 0: anywhere.
 inline int HUNTERS_APART = 15;
+inline int PREGROWTH_TURNS = 2000;  // a new world's plants grow alone this many turns, uncounted, before its animals spawn
 constexpr int APART_TRIES = 20;  // a new world's grazers spawn in groups this large, so the hunters' prey outnumber them
 constexpr int MAX_IMPORTED = 120;  // imported Bitzkeys, each spawning a group of its own
 constexpr int MAX_GRID = 1000;     // the widest and tallest a world can be, in cells
@@ -815,6 +816,9 @@ public:
         // Percent of the map under the sea, laid out by the seed; none unless asked for (a new world's setup offers
         // DEFAULT_OCEAN).
         double ocean = 0.0;
+        // Turns the plants grow alone before the animals spawn, which aren't counted: the world starts at turn 0 after
+        // them (a new world's setup offers PREGROWTH_TURNS).
+        int pregrowth = 0;
     };
 
     explicit Simulation(Settings settings);
@@ -1212,7 +1216,8 @@ private:
     // Lay out the sea over `ocean` percent of the map, from its own stream of `seed`: smooth noise, the lowest of it sea.
     void make_sea(double ocean, std::uint64_t seed);
     // BIOME_GROUPS starting groups at home in every biome.
-    void spawn_biomes();
+    void spawn_biomes(bool plants);  // the plants' groups in every biome, or the animals'
+    void pregrow(int turns);         // the plants alone, these turns, then the clock and the records started afresh
     // A square for a group's centre of this terrain, in one of `rows` if given, drawn until one suits it; none if none does.
     std::optional<Cell> group_centre(Terrain terrain, const std::vector<int>& rows);
     // `native` groups have random starting genomes: each carries a tolerance flag only with

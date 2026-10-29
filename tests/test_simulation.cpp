@@ -1404,6 +1404,20 @@ TEST_CASE("a grazer's infancy and gestation are half as long as other animals'")
     CHECK(grazer.due_turn == static_cast<int>(gestation(7) * GRAZER_GESTATION + 0.5));
 }
 
+TEST_CASE("a new world's plants grow alone first, uncounted, then its animals spawn") {
+    Simulation::Settings settings{60, 60, 40, 7};
+    const Simulation bare(settings);
+    settings.pregrowth = 200;
+    const Simulation grown(settings);
+    const auto plants = [](const Simulation& world) {
+        return std::count_if(world.agents().begin(), world.agents().end(), [](const auto& agent) { return agent->species == Species::Plant; });
+    };
+    CHECK(plants(grown) > plants(bare));  // they spread meanwhile
+    CHECK(grown.turn() == 0);  // none of it counted
+    CHECK(grown.deaths() == 0);
+    CHECK(std::any_of(grown.agents().begin(), grown.agents().end(), [](const auto& agent) { return agent->species == Species::Grazer; }));
+}
+
 TEST_CASE("the first Bitzkeys of a world start grown") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;
