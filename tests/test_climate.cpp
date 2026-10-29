@@ -896,3 +896,23 @@ TEST_CASE("the brain report shows choices as they are made, instincts and all") 
     };
     CHECK(feeding(10.0) > feeding(0.0) + 0.1);
 }
+
+TEST_CASE("even the dullest animal learns, at the learning floor") {
+    const auto lesson = [](double floor) {
+        LEARNING_FLOOR = floor;
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", 0}}), 30, 30);
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        auto sensed = simulation.sense(grazer);
+        grazer.has_last_senses = true;
+        grazer.last_senses = sensed.senses;
+        grazer.last_choice = Eat;
+        grazer.last_comfort = simulation.comfort(grazer, sensed.situation);
+        grazer.last_wellbeing = simulation.wellbeing(grazer) - 0.5;  // it came out better
+        const double before = grazer.brain->values(sensed.senses)[Eat];
+        simulation.take_turn();
+        return grazer.brain->values(sensed.senses)[Eat] - before;
+    };
+    CHECK(std::abs(lesson(0.0)) < 1e-12);  // no floor: with no intellect, nothing learnt
+    CHECK(lesson(0.25) > 0.001);
+}

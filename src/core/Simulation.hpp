@@ -232,6 +232,7 @@ inline double LEARNING_RATE = 0.027;
 // animal re-learns from REPLAY_PER_INTELLECT of its most recent experiences for each point of its
 // inborn intellect, so the least replay none.
 inline double LEARNING_BOOST = 1.0;
+inline double LEARNING_FLOOR = 0.25;  // the share of LEARNING_RATE even the dullest learns at, intellect adding to it
 inline int REPLAY_PER_INTELLECT = 2;
 inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
 inline double MATING_CALL = 0.5;      // how much more a predator ready to breed values breeding, or else courting a mate it sees

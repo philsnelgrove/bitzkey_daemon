@@ -146,6 +146,7 @@ std::vector<Rule> make_rules() {
         {"IMPATIENT_DISCOUNT", "Mind", "Discount, least patient", "how much the least patient value what comes later (gamma): their foresight, at the least", 0.5, 0.999, 0.001, false, &IMPATIENT_DISCOUNT},
         {"TRACE_DECAY", "Mind", "Trace decay", "how far back a choice's outcome reaches earlier choices (lambda)", 0.0, 1.0, 0.05, false, &TRACE_DECAY},
         {"SMART_TRACE_DECAY", "Mind", "Trace decay, smartest", "trace decay at the highest intellect; the lowest keeps the one above", 0.0, 1.0, 0.01, false, &SMART_TRACE_DECAY},
+        {"LEARNING_FLOOR", "Mind", "Learning floor", "the share of the learning rate even the dullest animal learns at; its intellect adds to it", 0.0, 2.0, 0.05, false, &LEARNING_FLOOR},
         {"LEARNING_BOOST", "Mind", "Learning boost", "the highest intellect learns this much faster again; the lowest, no faster", 0.0, 5.0, 0.1, false, &LEARNING_BOOST},
         {"REPLAY_PER_INTELLECT", "Mind", "Replays per intellect", "recent experiences re-learnt each turn per point of intellect", 0, 4, 1, true, &REPLAY_PER_INTELLECT},
         {"BREED_LEARNING", "Mind", "Breeding learning", "times as much any animal learns from breeding; more unsettles its brain for all else", 0.0, 20.0, 0.1, false, &BREED_LEARNING},

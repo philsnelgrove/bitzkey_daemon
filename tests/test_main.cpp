@@ -30,6 +30,7 @@ struct Grown : doctest::IReporter {
         bitzkey::GRASS_OUTLOOK = 150;
         bitzkey::MEMORY_TURNS = 100;
         bitzkey::SOCIAL_MEMORY = 0.8;
+        bitzkey::LEARNING_FLOOR = 0.0;  // the dullest learn nothing, as when the older tests were written, unless a test says so
         bitzkey::WEATHER_GRACE = 0.0;  // the weather harms a test's animals at once, unless a test says so
         bitzkey::SMALL_HIDING = 0.0;  // a test's hunter strikes what it strikes at, unless a test says so
     }

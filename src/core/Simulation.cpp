@@ -1327,13 +1327,13 @@ void Simulation::settle(Bitzkey& agent) {
 }
 
 static double learning_rate(const Bitzkey& agent) {
-    // How fast its brain learns: with its intellect, boosted further the cleverer it is, and a predator's
-    // PREDATOR_LEARNING times as fast, an omnivore's with half that bonus.
+    // How fast its brain learns: LEARNING_FLOOR at the least, and more with its intellect, boosted further the cleverer
+    // it is; a predator's PREDATOR_LEARNING times as fast, an omnivore's with half that bonus.
     const double sharpness = agent.intelligence();
     const double hunter = agent.species == Species::Predator  ? PREDATOR_LEARNING
                           : agent.species == Species::Omnivore ? 1 + (PREDATOR_LEARNING - 1) / 2
                                                                : 1.0;
-    return LEARNING_RATE * sharpness * (1 + LEARNING_BOOST * sharpness) * hunter;
+    return LEARNING_RATE * (LEARNING_FLOOR + sharpness * (1 + LEARNING_BOOST * sharpness)) * hunter;
 }
 
 double choice_learning(int choice) {
