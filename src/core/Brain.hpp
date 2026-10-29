@@ -83,7 +83,19 @@ enum Sense : int {
     // The calls it heard since it last chose, HEARD_SENSES for each of the five, the first call's first (see Heard):
     SenseHeardCall,
     SenseMemory = SenseHeardCall + 4 * 5,  // HEARD_SENSES * CALL_COUNT; then what its memory neurons held, -1..1 (see Memory)
-    SenseMind = SenseMemory + 8,           // MEMORY_NEURONS; then its current temperament, mind and social traits, each 0..7 scaled to 0..1
+    // Then its mental map (see Simulation's MapPlace): of the places it remembers, for this season, how good the best for
+    // food was, 0..1, and which way it lies, -1 to 1, west to east and north to south, the nearest first among equals;
+    // the same of the most dangerous; and of where it was most comfortable in the season to come.
+    SenseMapFood = SenseMemory + 8,  // MEMORY_NEURONS
+    SenseMapFoodEast,
+    SenseMapFoodSouth,
+    SenseMapDanger,
+    SenseMapDangerEast,
+    SenseMapDangerSouth,
+    SenseMapComfort,
+    SenseMapComfortEast,
+    SenseMapComfortSouth,
+    SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung };
@@ -104,7 +116,7 @@ constexpr int MEMORY_NEURONS = 8;
 constexpr int MEMORY_GATES = ACTION_COUNT + CALL_OPTIONS;   // the first gate's output, then each neuron's in turn,
 constexpr int MEMORY_VALUES = MEMORY_GATES + MEMORY_NEURONS;  // then the first value to write, and each neuron's
 constexpr int OUTPUT_COUNT = MEMORY_VALUES + MEMORY_NEURONS;
-static_assert(SenseMind == SenseMemory + MEMORY_NEURONS);
+static_assert(SenseMapFood == SenseMemory + MEMORY_NEURONS);
 constexpr int MAX_MEMORY_STEPS = 4;  // the furthest back Memory steps may reach
 using Held = std::array<double, MEMORY_NEURONS>;  // what memory neurons hold
 // What it senses of each call it heard, of the loudest who made it: how loud, 1 from beside it, falling to 0 at the
@@ -149,7 +161,8 @@ constexpr bool signed_sense(int sense) {
            sense == SenseHomeDirection || sense == SenseParentEast || sense == SenseParentSouth ||
            (sense >= SenseHeardCall && sense < SenseMemory &&
             ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth)) ||
-           (sense >= SenseMemory && sense < SenseMind);
+           (sense >= SenseMemory && sense < SenseMapFood) || sense == SenseMapFoodEast || sense == SenseMapFoodSouth ||
+           sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -165,7 +178,9 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "heard_call_3", "heard_call_3_east", "heard_call_3_south", "heard_call_3_kin",
     "heard_call_4", "heard_call_4_east", "heard_call_4_south", "heard_call_4_kin",
     "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin",
-    "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8", "aggression", "libido", "curiosity",
+    "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8",
+    "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
+    "map_comfort", "map_comfort_east", "map_comfort_south", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

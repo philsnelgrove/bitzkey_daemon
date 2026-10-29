@@ -1551,6 +1551,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     for (std::size_t index = 0; index < agents.size(); ++index) {  // all sense the world as it stands
         Bitzkey* agent = agents[index];
         const Sensed& sensed = plans[index];
+        note_place(*agent, sensed.senses);
         if (travelled(agent->last_action)) {
             if (sensed.situation.threat) {
                 experience(*agent, Ambushed);
@@ -2159,6 +2160,34 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     for (int held = 0; held < MEMORY_NEURONS; ++held) senses[SenseMemory + held] = agent.held[held];
+    {  // its mental map: the best place it remembers for food this season, the worst for danger, the best for comfort next
+        const int quarter = season(turn_);
+        const auto heed = [&](int at, int in_season, const std::array<double, 4> MapPlace::*kind) {
+            const MapPlace* best = nullptr;
+            double best_score = 0.0;
+            int best_east = 0, best_south = 0;
+            for (const MapPlace& place : agent.places) {
+                if (!place.seen[static_cast<std::size_t>(in_season)]) continue;
+                const int east = py_mod(place.column * MAP_PATCH + MAP_PATCH / 2 - agent.x + width_ / 2, width_) - width_ / 2;
+                const int south = place.row * MAP_PATCH + MAP_PATCH / 2 - agent.y;
+                const double score = (place.*kind)[static_cast<std::size_t>(in_season)] -
+                                     MAP_NEARNESS * (std::abs(east) + std::abs(south)) / MAP_PATCH;
+                if (!best || score > best_score) {
+                    best = &place;
+                    best_score = score;
+                    best_east = east;
+                    best_south = south;
+                }
+            }
+            if (!best) return;
+            senses[at] = (best->*kind)[static_cast<std::size_t>(in_season)];
+            senses[at + 1] = std::clamp(best_east / (4.0 * MAP_PATCH), -1.0, 1.0);
+            senses[at + 2] = std::clamp(best_south / (4.0 * MAP_PATCH), -1.0, 1.0);
+        };
+        heed(SenseMapFood, quarter, &MapPlace::food);
+        heed(SenseMapDanger, quarter, &MapPlace::danger);
+        heed(SenseMapComfort, (quarter + 1) % 4, &MapPlace::comfort);
+    }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 
@@ -2171,6 +2200,42 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.home_distance = home_distance * agent.exposure_share(here);
     s.young_near = young;
     return sensed;
+}
+
+void Simulation::note_place(Bitzkey& agent, const Senses& senses) {
+    std::vector<MapPlace>& places = agent.places;
+    while (static_cast<int>(places.size()) > std::max(0, MAP_PLACES)) {  // fewer held since: the longest ago let go
+        places.erase(std::min_element(places.begin(), places.end(), [](const MapPlace& a, const MapPlace& b) { return a.last < b.last; }));
+    }
+    if (MAP_PLACES <= 0 || !in_bounds(agent.x, agent.y)) return;
+    const int column = agent.x / MAP_PATCH, row = agent.y / MAP_PATCH;
+    auto here = std::find_if(places.begin(), places.end(), [&](const MapPlace& place) { return place.column == column && place.row == row; });
+    if (here == places.end()) {
+        if (static_cast<int>(places.size()) >= MAP_PLACES) {
+            places.erase(std::min_element(places.begin(), places.end(), [](const MapPlace& a, const MapPlace& b) { return a.last < b.last; }));
+        }
+        places.push_back(MapPlace{column, row, turn_});
+        here = places.end() - 1;
+    }
+    const bool grazes = agent.species != Species::Predator, hunts = agent.species != Species::Grazer;
+    double food = 0.0;
+    if (grazes) food = std::max({senses[SenseGrassHere], senses[SenseGrassCloseness], senses[SensePlantCloseness]});
+    if (hunts) food = std::max({food, senses[SensePreyCloseness], senses[SenseKillCloseness], senses[SenseCarrionCloseness]});
+    const double danger = std::max(senses[SenseThreatCloseness], senses[SenseAssailantNear]);
+    const double comfort = 1 - senses[SenseClimateDiscomfort];
+    const auto quarter = static_cast<std::size_t>(season(turn_));
+    MapPlace& place = *here;
+    if (!place.seen[quarter]) {
+        place.seen[quarter] = true;
+        place.food[quarter] = food;
+        place.danger[quarter] = danger;
+        place.comfort[quarter] = comfort;
+    } else {
+        place.food[quarter] += MAP_LEARNING * (food - place.food[quarter]);
+        place.danger[quarter] += MAP_LEARNING * (danger - place.danger[quarter]);
+        place.comfort[quarter] += MAP_LEARNING * (comfort - place.comfort[quarter]);
+    }
+    place.last = turn_;
 }
 
 double Simulation::wellbeing(const Bitzkey& agent) const {

@@ -200,6 +200,8 @@ std::vector<Rule> make_rules() {
         {"CALL_COST", "Mind", "Call cost", "hunger a call costs its caller, the alert among them", 0.0, 5.0, 0.05, false, &CALL_COST},
         {"MEMORY_STEPS", "Mind", "Memory steps", "choices back a lesson's error reaches the memory gates that wrote what the brain read; 0: memory is only as born", 0, 4, 1, true, &MEMORY_STEPS},
         {"MEMORY_LEARNING", "Mind", "Memory learning", "how fast memory gates learn, times the brain's learning rate", 0.0, 5.0, 0.05, false, &MEMORY_LEARNING},
+        {"MAP_PLACES", "Mind", "Map places", "places an animal's mental map holds, the one visited longest ago forgotten for a new one; 0: no map", 0, 32, 1, true, &MAP_PLACES},
+        {"MAP_LEARNING", "Mind", "Map learning", "how far each visit moves what an animal remembers of a place in that season toward what it finds", 0.0, 1.0, 0.05, false, &MAP_LEARNING},
         {"HUNTING_INSTINCT", "Mind", "Hunting instinct", "how much more a predator values hunting and attacking, times its hunger", 0.0,
          5.0, 0.05, false, &HUNTING_INSTINCT},
         {"PRIMAL_FEAR", "Mind", "Primal fear", "chance a turn of being overcome by an overwhelmingly stronger hunter in sight", 0.0, 1.0,

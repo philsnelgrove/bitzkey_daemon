@@ -240,6 +240,18 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     json past = json::array();
     for (const Senses& senses : agent.past) past.push_back(numbers.senses(senses));
     record["past"] = std::move(past);
+    json places = json::array();  // each [column, row, last, then for each season: seen, food, danger, comfort]
+    for (const MapPlace& place : agent.places) {
+        json entry = {place.column, place.row, place.last};
+        for (std::size_t quarter = 0; quarter < 4; ++quarter) {
+            entry.push_back(place.seen[quarter]);
+            entry.push_back(place.food[quarter]);
+            entry.push_back(place.danger[quarter]);
+            entry.push_back(place.comfort[quarter]);
+        }
+        places.push_back(std::move(entry));
+    }
+    record["places"] = std::move(places);
     json trail = json::array();
     for (const auto& [x, y] : agent.trail) trail.push_back({x, y});
     record["trail"] = std::move(trail);
@@ -337,6 +349,16 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         for (int held = 0; held < MEMORY_NEURONS; ++held) agent->held[held] = record.at("held").at(held).get<double>();
         agent->last_wrote = record.at("last_wrote").get<bool>();
         for (const json& senses : record.at("past")) agent->past.push_back(numbers.senses(senses));
+    }
+    for (const json& entry : record.value("places", json::array())) {  // none, in a world saved before the map
+        MapPlace place{entry.at(0).get<int>(), entry.at(1).get<int>(), entry.at(2).get<int>()};
+        for (std::size_t quarter = 0; quarter < 4; ++quarter) {
+            place.seen[quarter] = entry.at(3 + 4 * quarter).get<bool>();
+            place.food[quarter] = entry.at(4 + 4 * quarter).get<double>();
+            place.danger[quarter] = entry.at(5 + 4 * quarter).get<double>();
+            place.comfort[quarter] = entry.at(6 + 4 * quarter).get<double>();
+        }
+        agent->places.push_back(place);
     }
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);

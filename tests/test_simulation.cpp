@@ -2161,3 +2161,39 @@ TEST_CASE("an animal's memory is written as it chooses, read back as it senses, 
     REQUIRE(again);
     CHECK((again->held == grazer->held && again->past == grazer->past && again->last_wrote == grazer->last_wrote));
 }
+
+TEST_CASE("an animal's mental map remembers each place by season, points to the best, and forgets the longest ago") {
+    Simulation simulation = world(60);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 4, 4);
+    simulation.index_cells();
+    Senses found{};
+    found[SenseGrassHere] = 1.0;  // food here
+    found[SenseClimateDiscomfort] = 0.5;
+    simulation.note_place(grazer, found);
+    REQUIRE(grazer.places.size() == 1);
+    const MapPlace& first = grazer.places[0];
+    const auto quarter = static_cast<std::size_t>(season(simulation.turn()));
+    CHECK((first.column == 0 && first.row == 0 && first.seen[quarter] && first.food[quarter] == 1.0 && first.comfort[quarter] == 0.5));
+    found[SenseGrassHere] = 0.0;
+    simulation.note_place(grazer, found);  // again, finding none: by Map learning toward it
+    CHECK(grazer.places[0].food[quarter] == doctest::Approx(1 - MAP_LEARNING));
+    grazer.x = 30;  // a patch with no food, far east of the first
+    grazer.y = 4;
+    found[SenseThreatCloseness] = 0.8;  // and a hunter close
+    simulation.note_place(grazer, found);
+    const auto senses = simulation.sense(grazer).senses;
+    CHECK(senses[SenseMapFood] == doctest::Approx(1 - MAP_LEARNING));
+    CHECK(senses[SenseMapFoodEast] < 0);  // the food lies back west
+    CHECK(senses[SenseMapDanger] == doctest::Approx(0.8));
+    CHECK(std::abs(senses[SenseMapDangerEast]) < 0.1);  // the danger is here
+    CHECK(senses[SenseMapComfort] == 0.0);  // it has known no place next season
+    const int places = MAP_PLACES;
+    MAP_PLACES = 2;
+    grazer.x = 50;
+    simulation.note_place(grazer, found);  // a third place: the one longest ago is forgotten
+    CHECK(grazer.places.size() == 2);
+    CHECK(std::none_of(grazer.places.begin(), grazer.places.end(), [](const MapPlace& place) { return place.column == 0; }));
+    MAP_PLACES = places;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    CHECK(loaded->find_agent(grazer.identifier)->places == grazer.places);
+}

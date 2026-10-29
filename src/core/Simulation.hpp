@@ -288,6 +288,15 @@ inline double CALL_COST = 0.2;
 // times the brain's learning rate.
 inline int MEMORY_STEPS = 1;
 inline double MEMORY_LEARNING = 1.0;
+// The mental map: an animal remembers up to Map places of the MAP_PATCH-square patches it has been in (none at 0), the
+// one it was last in longest ago forgotten for a new one; each visit moves what it remembers of a place in that season
+// toward what it finds there by Map learning (the first sets it). Among places as good, it heeds the nearer, by
+// MAP_NEARNESS a patch away.
+constexpr int MAP_PATCH = 8;
+constexpr int MAX_MAP_PLACES = 32;
+inline int MAP_PLACES = 16;
+inline double MAP_LEARNING = 0.2;
+constexpr double MAP_NEARNESS = 0.01;
 constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
@@ -523,6 +532,16 @@ struct Place {  // a place remembered, and the turn it happened there
     int x = 0, y = 0, turn = 0;
 };
 
+// A patch of the mental map: which (its column and row of patches), the turn it was last there, and, for each season,
+// whether it has been there then and what it found: food (grass and plants for a grazer, prey, kills and carrion for a
+// predator, either for an omnivore, by how close), danger (a hunter close, or a blow), and comfort (the weather's), 0..1.
+struct MapPlace {
+    int column = 0, row = 0, last = 0;
+    std::array<bool, 4> seen{};
+    std::array<double, 4> food{}, danger{}, comfort{};
+    bool operator==(const MapPlace&) const = default;
+};
+
 struct Bitzkey {
     Bitzkey(int identifier, Dna dna, int x, int y);
     // Work out again what its genome makes of it under the rules as they now stand: its health pool,
@@ -563,6 +582,7 @@ struct Bitzkey {
     // no more than Memory steps: what learning back in time goes over. Whether its memory was written at its last choice.
     std::vector<Senses> past;
     bool last_wrote = false;
+    std::vector<MapPlace> places;  // its mental map, in the order it first came to each place
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
@@ -911,6 +931,8 @@ public:
     // A hunter's view of its territory: how crowded with rivals, and whether its prey are common enough to hunt.
     void survey(Bitzkey& agent);
     Sensed sense(Bitzkey& agent, bool surveyed = false);  // surveying first, unless it already has this turn
+    // What an animal finds where it stands, as it senses it, noted on its mental map.
+    void note_place(Bitzkey& agent, const Senses& senses);
     void think(Bitzkey& agent);  // one animal senses, learns, chooses and acts
     // Animals think at once, in phases, so that their brains can be worked as one batch: all sense the
     // world as it stands; all their brains value the actions open to them; all learn from their
