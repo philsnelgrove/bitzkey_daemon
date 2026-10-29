@@ -202,6 +202,8 @@ std::vector<Rule> make_rules() {
         {"MEMORY_LEARNING", "Mind", "Memory learning", "how fast memory gates learn, times the brain's learning rate", 0.0, 5.0, 0.05, false, &MEMORY_LEARNING},
         {"MAP_PLACES", "Mind", "Map places", "places an animal's mental map holds, the one visited longest ago forgotten for a new one; 0: no map", 0, 32, 1, true, &MAP_PLACES},
         {"MAP_LEARNING", "Mind", "Map learning", "how far each visit moves what an animal remembers of a place in that season toward what it finds", 0.0, 1.0, 0.05, false, &MAP_LEARNING},
+        {"ACQUAINTANCES", "Mind", "Acquaintances", "others an animal remembers by what they did to it, the one it dealt with longest ago forgotten for a new one; 0: none", 0, 16, 1, true, &ACQUAINTANCES},
+        {"REGARD_LEARNING", "Mind", "Regard learning", "how far each deed moves an animal's regard for the doer toward the deed's worth", 0.0, 1.0, 0.05, false, &REGARD_LEARNING},
         {"HUNTING_INSTINCT", "Mind", "Hunting instinct", "how much more a predator values hunting and attacking, times its hunger", 0.0,
          5.0, 0.05, false, &HUNTING_INSTINCT},
         {"PRIMAL_FEAR", "Mind", "Primal fear", "chance a turn of being overcome by an overwhelmingly stronger hunter in sight", 0.0, 1.0,

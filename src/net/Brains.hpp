@@ -24,7 +24,7 @@
 
 namespace bitzkey::net {
 
-constexpr std::uint32_t PROTOCOL = 5;  // a worker and its main service must speak the same (2: brains of any width; 3: calls; 4: memory; 5: the map)
+constexpr std::uint32_t PROTOCOL = 6;  // a worker and its main service must speak the same (2: brains of any width; 3: calls; 4: memory; 5: the map; 6: those it knows)
 constexpr int DEFAULT_WORKER_PORT = 50000;
 constexpr int DEFAULT_CHECKPOINT_TURNS = 100;
 constexpr int RING = 32;               // senses remembered for each brain: more than any brain replays in a turn

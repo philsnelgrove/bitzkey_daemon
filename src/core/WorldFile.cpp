@@ -252,6 +252,9 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         places.push_back(std::move(entry));
     }
     record["places"] = std::move(places);
+    json known = json::array();  // each [identifier, regard, last]
+    for (const Acquaintance& one : agent.known) known.push_back({one.identifier, one.regard, one.last});
+    record["known"] = std::move(known);
     json trail = json::array();
     for (const auto& [x, y] : agent.trail) trail.push_back({x, y});
     record["trail"] = std::move(trail);
@@ -359,6 +362,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             place.comfort[quarter] = entry.at(6 + 4 * quarter).get<double>();
         }
         agent->places.push_back(place);
+    }
+    for (const json& entry : record.value("known", json::array())) {  // none, in a world saved before
+        agent->known.push_back(Acquaintance{entry.at(0).get<int>(), entry.at(1).get<double>(), entry.at(2).get<int>()});
     }
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);

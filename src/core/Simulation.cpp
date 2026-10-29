@@ -1207,6 +1207,7 @@ void Simulation::nurse(Bitzkey& agent) {
     if (agent.hunger + cost >= NURSING_LIMIT) return;
     agent.hunger += cost;
     infant->hunger -= fed;
+    note_deed(*infant, agent, FEEDING_DEED);
 }
 
 void Simulation::seed_corpse(const Bitzkey& corpse) {
@@ -2127,8 +2128,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseParentSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
         }
     }
+    const Bitzkey* caller = nullptr;  // the loudest it heard of all
     {  // the calls made about it last turn, by any kind, each as its loudest caller made it
         std::array<double, CALL_COUNT> loudest{};
+        double loudest_of_all = 0.0;
         const int furthest = std::min(MAX_CALL_REACH, static_cast<int>(std::ceil(CALL_REACH * 1.5)));  // the largest caller's
         for (const Bitzkey* other : around(agent, furthest)) {
             if (other->call < FirstCall || other->call_turn != turn_ - 1) continue;
@@ -2136,6 +2139,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away > reach) continue;
             const double loudness = 1 - static_cast<double>(away) / (reach + 1);
+            if (loudness > loudest_of_all) {
+                loudest_of_all = loudness;
+                caller = other;
+            }
             double& louder = loudest[static_cast<std::size_t>(other->call - FirstCall)];
             if (loudness <= louder) continue;
             louder = loudness;
@@ -2188,6 +2195,28 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         heed(SenseMapDanger, quarter, &MapPlace::danger);
         heed(SenseMapComfort, (quarter + 1) % 4, &MapPlace::comfort);
     }
+    {  // those it knows: the nearest within its sight, and whether it knows the loudest caller
+        const Bitzkey* nearest = nullptr;
+        double regard = 0.0;
+        for (const Acquaintance& known : agent.known) {
+            const Bitzkey* other = find_agent(known.identifier);
+            if (caller && known.identifier == caller->identifier) {
+                senses[SenseCallerKnown] = 1.0;
+                senses[SenseCallerRegard] = known.regard;
+            }
+            if (!other || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
+            if (!nearest || distance(other->x, other->y, agent.x, agent.y) < distance(nearest->x, nearest->y, agent.x, agent.y)) {
+                nearest = other;
+                regard = known.regard;
+            }
+        }
+        if (nearest) {
+            senses[SenseKnownCloseness] = closeness(agent, cell_of(nearest), sight);
+            senses[SenseKnownRegard] = regard;
+            senses[SenseKnownEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
+            senses[SenseKnownSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
+        }
+    }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 
@@ -2236,6 +2265,21 @@ void Simulation::note_place(Bitzkey& agent, const Senses& senses) {
         place.comfort[quarter] += MAP_LEARNING * (comfort - place.comfort[quarter]);
     }
     place.last = turn_;
+}
+
+void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed) {
+    std::vector<Acquaintance>& known = agent.known;
+    const auto longest_ago = [](const Acquaintance& a, const Acquaintance& b) { return a.last < b.last; };
+    while (static_cast<int>(known.size()) > std::max(0, ACQUAINTANCES)) known.erase(std::min_element(known.begin(), known.end(), longest_ago));
+    if (ACQUAINTANCES <= 0 || &agent == &other) return;
+    auto found = std::find_if(known.begin(), known.end(), [&](const Acquaintance& one) { return one.identifier == other.identifier; });
+    if (found == known.end()) {
+        if (static_cast<int>(known.size()) >= ACQUAINTANCES) known.erase(std::min_element(known.begin(), known.end(), longest_ago));
+        known.push_back(Acquaintance{other.identifier, deed, turn_});
+        return;
+    }
+    found->regard += REGARD_LEARNING * (deed - found->regard);
+    found->last = turn_;
 }
 
 double Simulation::wellbeing(const Bitzkey& agent) const {
@@ -2579,6 +2623,7 @@ void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young)
         if (!child->alive()) continue;
         parent.reward += FEEDING_JOY * (0.5 + parent.feeling(Empathy)) * std::min(100.0, child->hunger) / 100;
         child->hunger = 0;
+        note_deed(*child, parent, FEEDING_DEED);
     }
 }
 
@@ -2597,6 +2642,7 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
             continue;
         }
         heeded = true;
+        note_deed(*other, agent, ALERT_DEED);
         if (agent.species == Species::Grazer) {
             if (!other->alarm) other->alarm = about.identifier;
         } else {
@@ -2775,6 +2821,7 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
 
 void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     victim.assailant = striker.identifier;
+    note_deed(victim, striker, BLOW_DEED);
     victim.danger_memory = Place{victim.x, victim.y, turn_};
     int herd_near = 0;
     for (Bitzkey* other : around(victim, 2)) {
@@ -2844,6 +2891,8 @@ double Simulation::looming_health(const Bitzkey& animal) {
 
 void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     // The parent that chose to breed conceives the litter and carries it for its gestation.
+    note_deed(first, second, MATING_DEED);
+    note_deed(second, first, MATING_DEED);
     const std::array<std::pair<int, int>, 2> parents = {std::pair{first.trait(Litter), first.trait(Size)},
                                                         std::pair{second.trait(Litter), second.trait(Size)}};
     int litter = litter_size(parents);

@@ -2197,3 +2197,37 @@ TEST_CASE("an animal's mental map remembers each place by season, points to the 
     const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
     CHECK(loaded->find_agent(grazer.identifier)->places == grazer.places);
 }
+
+TEST_CASE("an animal remembers others by what they did to it, senses the nearest, and knows a caller") {
+    Simulation simulation = world(40);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 10, 10);
+    Bitzkey& friendly = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& brute = simulation.add_agent(encode_dna(Species::Predator), 10, 12);  // within earshot
+    simulation.index_cells();
+    simulation.note_deed(grazer, friendly, ALERT_DEED);  // it heeded an alert
+    simulation.struck(grazer, brute);                    // and was struck
+    REQUIRE(grazer.known.size() == 2);
+    CHECK((grazer.known[0].identifier == friendly.identifier && grazer.known[0].regard == ALERT_DEED));
+    CHECK(grazer.known[1].regard == BLOW_DEED);
+    simulation.note_deed(grazer, friendly, FEEDING_DEED);  // a later deed moves its regard by Regard learning
+    CHECK(grazer.known[0].regard == doctest::Approx(ALERT_DEED + REGARD_LEARNING * (FEEDING_DEED - ALERT_DEED)));
+    auto senses = simulation.sense(grazer).senses;
+    CHECK(senses[SenseKnownRegard] == doctest::Approx(grazer.known[0].regard));  // the nearest it knows: the friend, two east
+    CHECK(senses[SenseKnownEast] > 0);
+    CHECK(senses[SenseKnownCloseness] > 0);
+    CHECK(senses[SenseCallerKnown] == 0.0);
+    brute.call = FirstCall;  // the brute calls
+    brute.call_turn = simulation.turn() - 1;
+    senses = simulation.sense(grazer).senses;
+    CHECK(senses[SenseCallerKnown] == 1.0);
+    CHECK(senses[SenseCallerRegard] == doctest::Approx(BLOW_DEED));
+    const int acquaintances = ACQUAINTANCES;
+    ACQUAINTANCES = 2;
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
+    simulation.note_deed(grazer, stranger, MATING_DEED);  // a third: the one dealt with longest ago is forgotten
+    CHECK(grazer.known.size() == 2);
+    CHECK(std::none_of(grazer.known.begin(), grazer.known.end(), [&](const Acquaintance& one) { return one.identifier == friendly.identifier; }));
+    ACQUAINTANCES = acquaintances;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    CHECK(loaded->find_agent(grazer.identifier)->known == grazer.known);
+}

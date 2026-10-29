@@ -95,6 +95,15 @@ enum Sense : int {
     SenseMapComfort,
     SenseMapComfortEast,
     SenseMapComfortSouth,
+    // Then those it knows (see Simulation's Acquaintance): of the nearest it knows within its sight, how close, 1 beside it
+    // falling to 0 at the edge of its sight, how well it regards it, -1 to 1, and which way it lies; and whether the
+    // loudest caller it heard is one it knows, 1 or 0, and how well it regards it.
+    SenseKnownCloseness,
+    SenseKnownRegard,
+    SenseKnownEast,
+    SenseKnownSouth,
+    SenseCallerKnown,
+    SenseCallerRegard,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -162,7 +171,8 @@ constexpr bool signed_sense(int sense) {
            (sense >= SenseHeardCall && sense < SenseMemory &&
             ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth)) ||
            (sense >= SenseMemory && sense < SenseMapFood) || sense == SenseMapFoodEast || sense == SenseMapFoodSouth ||
-           sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth;
+           sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
+           sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -180,7 +190,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin",
     "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8",
     "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
-    "map_comfort", "map_comfort_east", "map_comfort_south", "aggression", "libido", "curiosity",
+    "map_comfort", "map_comfort_east", "map_comfort_south",
+    "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

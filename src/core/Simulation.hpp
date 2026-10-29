@@ -297,6 +297,13 @@ constexpr int MAX_MAP_PLACES = 32;
 inline int MAP_PLACES = 16;
 inline double MAP_LEARNING = 0.2;
 constexpr double MAP_NEARNESS = 0.01;
+// Those it knows: an animal remembers up to Acquaintances others (none at 0) by what they did to it, the one it dealt
+// with longest ago forgotten for a new one; each deed moves its regard for the doer toward the deed's worth by Regard
+// learning (the first sets it): a blow -1, being fed or nursed as an infant 1, an alert it heeded or a mating a half.
+constexpr int MAX_ACQUAINTANCES = 16;
+inline int ACQUAINTANCES = 8;
+inline double REGARD_LEARNING = 0.3;
+constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5;
 constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
@@ -542,6 +549,14 @@ struct MapPlace {
     bool operator==(const MapPlace&) const = default;
 };
 
+// One it knows: who, how well it regards them, -1 to 1, and the turn they last dealt with it.
+struct Acquaintance {
+    int identifier = 0;
+    double regard = 0.0;
+    int last = 0;
+    bool operator==(const Acquaintance&) const = default;
+};
+
 struct Bitzkey {
     Bitzkey(int identifier, Dna dna, int x, int y);
     // Work out again what its genome makes of it under the rules as they now stand: its health pool,
@@ -583,6 +598,7 @@ struct Bitzkey {
     std::vector<Senses> past;
     bool last_wrote = false;
     std::vector<MapPlace> places;  // its mental map, in the order it first came to each place
+    std::vector<Acquaintance> known;  // those it knows, in the order it came to know them
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
@@ -933,6 +949,8 @@ public:
     Sensed sense(Bitzkey& agent, bool surveyed = false);  // surveying first, unless it already has this turn
     // What an animal finds where it stands, as it senses it, noted on its mental map.
     void note_place(Bitzkey& agent, const Senses& senses);
+    // What `other` did to `agent`, worth `deed`, -1 to 1, noted in its regard for them.
+    void note_deed(Bitzkey& agent, const Bitzkey& other, double deed);
     void think(Bitzkey& agent);  // one animal senses, learns, chooses and acts
     // Animals think at once, in phases, so that their brains can be worked as one batch: all sense the
     // world as it stands; all their brains value the actions open to them; all learn from their
