@@ -34,6 +34,16 @@ Dna flipped(Dna dna, std::uint64_t bits, std::uint32_t social = 0) { return {dna
 
 }  // namespace
 
+// Grazers' infancy and gestation as long as other animals', for tests of the rule for all of them; restored after.
+struct GrazersAsOthers {
+    double infancy = GRAZER_INFANCY, gestation = GRAZER_GESTATION;
+    GrazersAsOthers() { GRAZER_INFANCY = GRAZER_GESTATION = 1.0; }
+    ~GrazersAsOthers() {
+        GRAZER_INFANCY = infancy;
+        GRAZER_GESTATION = gestation;
+    }
+};
+
 TEST_CASE("a seeded world replays exactly") {
     Simulation first(Simulation::Settings{40, 40, 60, 11});
     Simulation second(Simulation::Settings{40, 40, 60, 11});
@@ -103,6 +113,7 @@ TEST_CASE("litters: small bodies and a high litter trait make more young, for ev
 }
 
 TEST_CASE("the mother carries her young for a gestation set by her size, then gives birth around her") {
+    const GrazersAsOthers as_others;  // the rule for all animals, grazers among them
     CHECK(std::vector<int>{gestation(0), gestation(1), gestation(4), gestation(7)} == std::vector<int>{10, 16, 33, 50});
     const double damage = CLIMATE_DAMAGE;
     CLIMATE_DAMAGE = 0;
@@ -1382,6 +1393,17 @@ TEST_CASE("a new world's grazers start apart from its hunters") {
     HUNTERS_APART = apart;
 }
 
+TEST_CASE("a grazer's infancy and gestation are half as long as other animals'") {
+    Simulation simulation = world(30);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 6, 5);
+    CHECK(grazer.infancy() / grazer.lifespan == doctest::Approx(GRAZER_INFANCY * omnivore.infancy() / omnivore.lifespan));
+    Bitzkey& mate = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 6);
+    simulation.index_cells();
+    simulation.breed(grazer, mate);
+    CHECK(grazer.due_turn == static_cast<int>(gestation(7) * GRAZER_GESTATION + 0.5));
+}
+
 TEST_CASE("the first Bitzkeys of a world start grown") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;
@@ -1487,6 +1509,7 @@ TEST_CASE("a slow death is not blamed on the last choice, nor seen by the herd")
 }
 
 TEST_CASE("growing out of infancy or into old age is no lesson") {
+    const GrazersAsOthers as_others;  // the rule for all animals, grazers among them
     FEEBLE_YOUTH = 0.1;
     for (const bool infant : {true, false}) {
         Simulation simulation = world();
@@ -1780,6 +1803,7 @@ TEST_CASE("a scarce species breeds more cheaply, down to a third when rare, and 
 }
 
 TEST_CASE("a predator is an infant half as long") {
+    const GrazersAsOthers as_others;  // the rule for all animals, grazers among them
     FEEBLE_YOUTH = 0.1;
     Simulation simulation = world();
     Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 2, 2);
@@ -2052,6 +2076,7 @@ TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother ca
 }
 
 TEST_CASE("a large body costs: it is hungrier, starves faster, matures later, and can't hide from a hunter") {
+    const GrazersAsOthers as_others;  // the rule for all animals, grazers among them
     const Dna small_dna = encode_dna(Species::Grazer, {{"size", 0}}), large_dna = encode_dna(Species::Grazer, {{"size", 7}});
     SIZE_HUNGER = 0.0;
     const Bitzkey small_plain(1, small_dna, 0, 0), large_plain(2, large_dna, 0, 0);

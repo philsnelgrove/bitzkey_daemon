@@ -105,6 +105,8 @@ inline double MEAT_DIGESTION = 1.0 / 7;
 // has every body trait, and its health, at FEEBLE_SHARE of its own.
 inline double FEEBLE_YOUTH = 1.0 / 30;  // 360 days for the largest; the smallest SMALL_MATURITY of their 36
 inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
+inline double GRAZER_INFANCY = 0.5;    // and a grazer this share as long
+inline double GRAZER_GESTATION = 0.5;  // a grazer carries its young this share as long as its size would have it
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
@@ -702,11 +704,13 @@ struct Bitzkey {
         if (feeble != feeble_at_age()) derive();
     }
     // Whether it is an animal in its infancy: the first FEEBLE_YOUTH of its lifespan, a predator's PREDATOR_INFANCY as long.
-    // How long its infancy lasts, in turns: FEEBLE_YOUTH of its lifespan (a predator's PREDATOR_INFANCY as long), the
+    // How long its infancy lasts, in turns: FEEBLE_YOUTH of its lifespan (a predator's PREDATOR_INFANCY as long, a
+    // grazer's GRAZER_INFANCY), the
     // smallest SMALL_MATURITY of that, the larger more of it.
     double infancy() const {
         const double maturity = SMALL_MATURITY + (1 - SMALL_MATURITY) * share(body[Size]);
-        return FEEBLE_YOUTH * (species == Species::Predator ? PREDATOR_INFANCY : 1.0) * maturity * lifespan;
+        const double share = species == Species::Predator ? PREDATOR_INFANCY : species == Species::Grazer ? GRAZER_INFANCY : 1.0;
+        return FEEBLE_YOUTH * share * maturity * lifespan;
     }
     bool infant() const { return species != Species::Plant && age < infancy(); }
     bool feeble_at_age() const { return species != Species::Plant && (age < infancy() || age > AGEING * lifespan); }

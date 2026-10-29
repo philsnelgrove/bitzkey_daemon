@@ -57,6 +57,8 @@ std::vector<Rule> make_rules() {
         {"SMALL_MATURITY", "Bodies", "Small maturity", "the smallest are infants this share as long as their lifespans would make them, the larger more, the largest the whole", 0.01, 1.0, 0.01, false, &SMALL_MATURITY},
         {"FEEBLE_YOUTH", "Bodies", "Feeble youth", "an animal is feeble, an infant, for this share of its lifespan (1/30: 36 days for the smallest)", 0.0, 0.5, 0.001, false, &FEEBLE_YOUTH},
         {"PREDATOR_INFANCY", "Bodies", "Predator infancy", "a predator is an infant this share as long as other animals", 0.0, 1.0, 0.05, false, &PREDATOR_INFANCY},
+        {"GRAZER_INFANCY", "Bodies", "Grazer infancy", "a grazer is an infant this share as long as other animals", 0.0, 1.0, 0.05, false, &GRAZER_INFANCY},
+        {"GRAZER_GESTATION", "Bodies", "Grazer gestation", "a grazer carries its young this share as long as its size would have it", 0.05, 1.0, 0.05, false, &GRAZER_GESTATION},
         {"FEEBLE_SHARE", "Bodies", "Feeble share", "a feeble animal's body traits and health are at this share of its own", 0.1, 1.0, 0.05, false, &FEEBLE_SHARE},
         {"METABOLISM.0", "Bodies", "Metabolism, smallest", "metabolic rate of the smallest bodies", 0.1, 5.0, 0.1, false, &METABOLISM[0]},
         {"METABOLISM.1", "Bodies", "Metabolism, largest", "metabolic rate of the largest bodies", 0.1, 5.0, 0.1, false, &METABOLISM[1]},

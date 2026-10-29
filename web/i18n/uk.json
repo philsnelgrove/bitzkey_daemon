@@ -1492,5 +1492,9 @@
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "травоїдних у кожній групі, з якої починається новий світ (інші види починають групами від 3 до 5)",
 "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "світ, що починається з Bitzkey, має стільки груп кожного виду, рідних для кожного біому (кожної ділянки суходолу чи моря в кліматичній зоні), понад свою популяцію; 0: жодної",
 "Hunters apart": "Мисливці осторонь",
-"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "клітинки, на які щонайменше мисливці нового світу починають від його травоїдних, де є місце; 0: будь-де"
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "клітинки, на які щонайменше мисливці нового світу починають від його травоїдних, де є місце; 0: будь-де",
+"Grazer infancy": "Дитинство травоїдних",
+"a grazer is an infant this share as long as other animals": "травоїдне є малям таку частку часу, як інші тварини",
+"Grazer gestation": "Вагітність травоїдних",
+"a grazer carries its young this share as long as its size would have it": "травоїдне виношує малят таку частку часу, яку дав би його розмір"
 }

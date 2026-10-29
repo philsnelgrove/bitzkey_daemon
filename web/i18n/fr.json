@@ -1492,5 +1492,9 @@
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "herbivores dans chaque groupe qui commence un nouveau monde (les autres espèces commencent en groupes de 3 à 5)",
 "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "un monde qui commence avec des Bitzkeys a ce nombre de groupes de chaque espèce, natifs de chaque biome (chaque étendue de terre ou de mer dans une zone climatique), en plus de sa population ; 0 : aucun",
 "Hunters apart": "Chasseurs à distance",
-"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "cases qui séparent au moins les chasseurs d'un nouveau monde de ses herbivores au départ, là où il y a la place ; 0 : n'importe où"
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "cases qui séparent au moins les chasseurs d'un nouveau monde de ses herbivores au départ, là où il y a la place ; 0 : n'importe où",
+"Grazer infancy": "Enfance des herbivores",
+"a grazer is an infant this share as long as other animals": "un herbivore est un petit pendant cette part du temps des autres animaux",
+"Grazer gestation": "Gestation des herbivores",
+"a grazer carries its young this share as long as its size would have it": "un herbivore porte ses petits cette part du temps que sa taille voudrait"
 }

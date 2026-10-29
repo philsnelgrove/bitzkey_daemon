@@ -2986,7 +2986,8 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
         (acting_ ? acting_->conceptions : conceptions_).push_back({brain, first.brain, second.brain, rng().getrandbits(64), depth, width, born_hunter});
         first.womb.push_back({dna, mind, std::move(brain), given / litter, generation, second.identifier});
     }
-    first.due_turn = turn_ + gestation(first.trait(Size));
+    const int carried = gestation(first.trait(Size));  // a grazer's the shorter, by GRAZER_GESTATION
+    first.due_turn = turn_ + (first.species == Species::Grazer ? std::max(1, static_cast<int>(carried * GRAZER_GESTATION + 0.5)) : carried);
     const std::array<Bitzkey*, 2> pair = {&first, &second};
     for (int index = 0; index < 2; ++index) {
         Bitzkey& parent = *pair[index];

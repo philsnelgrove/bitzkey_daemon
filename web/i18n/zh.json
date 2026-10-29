@@ -1492,5 +1492,9 @@
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "新世界开始时每群食草动物的数量(其他物种以 3 到 5 只为一群开始)",
 "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "以 Bitzkey 开始的世界,在其人口之外,每个生物群系(每个气候带中的一片陆地或海洋)都有这么多群各物种的本地种群;0 表示没有",
 "Hunters apart": "捕食者间距",
-"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "新世界的捕食者开始时至少离食草动物多少格(在有空间的地方);0 表示任意位置"
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "新世界的捕食者开始时至少离食草动物多少格(在有空间的地方);0 表示任意位置",
+"Grazer infancy": "食草动物幼年期",
+"a grazer is an infant this share as long as other animals": "食草动物处于幼年的时长占其他动物的比例",
+"Grazer gestation": "食草动物孕期",
+"a grazer carries its young this share as long as its size would have it": "食草动物怀孕时长占其体型所定时长的比例"
 }

@@ -1492,5 +1492,9 @@
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "roślinożercy w każdej grupie, od której zaczyna się nowy świat (inne gatunki zaczynają w grupach od 3 do 5)",
 "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "świat zaczynający z Bitzkeyami ma tyle grup każdego gatunku, rodzimych dla każdego biomu (każdego obszaru lądu lub morza w strefie klimatycznej), ponad swoją populację; 0: brak",
 "Hunters apart": "Łowcy z dala",
-"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "pola, o które co najmniej łowcy nowego świata zaczynają od jego roślinożerców, gdzie jest miejsce; 0: gdziekolwiek"
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "pola, o które co najmniej łowcy nowego świata zaczynają od jego roślinożerców, gdzie jest miejsce; 0: gdziekolwiek",
+"Grazer infancy": "Dzieciństwo roślinożerców",
+"a grazer is an infant this share as long as other animals": "roślinożerca jest młodym przez taką część czasu co inne zwierzęta",
+"Grazer gestation": "Ciąża roślinożerców",
+"a grazer carries its young this share as long as its size would have it": "roślinożerca nosi młode przez taką część czasu, jaką dałby jego rozmiar"
 }

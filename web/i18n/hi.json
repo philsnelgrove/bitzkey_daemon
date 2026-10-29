@@ -1492,5 +1492,9 @@
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "नई दुनिया जिन समूहों से शुरू होती है, उनमें प्रत्येक में शाकाहारी (अन्य प्रजातियाँ 3 से 5 के समूहों में शुरू होती हैं)",
 "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "Bitzkey के साथ शुरू होने वाली दुनिया में हर बायोम (किसी जलवायु क्षेत्र में ज़मीन या समुद्र का हर फैलाव) की देशी, हर प्रजाति के इतने समूह होते हैं, उसकी आबादी के अतिरिक्त; 0: कोई नहीं",
 "Hunters apart": "शिकारी दूर",
-"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "नई दुनिया के शिकारी उसके शाकाहारियों से कम से कम इतने खाने दूर शुरू होते हैं, जहाँ जगह हो; 0: कहीं भी"
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "नई दुनिया के शिकारी उसके शाकाहारियों से कम से कम इतने खाने दूर शुरू होते हैं, जहाँ जगह हो; 0: कहीं भी",
+"Grazer infancy": "शाकाहारी शैशव",
+"a grazer is an infant this share as long as other animals": "शाकाहारी अन्य जानवरों की तुलना में इस अनुपात तक शिशु रहता है",
+"Grazer gestation": "शाकाहारी गर्भकाल",
+"a grazer carries its young this share as long as its size would have it": "शाकाहारी अपने बच्चों को उतने अनुपात तक गर्भ में रखता है जितना उसका आकार तय करता"
 }
