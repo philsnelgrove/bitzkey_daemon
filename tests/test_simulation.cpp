@@ -64,7 +64,7 @@ TEST_CASE("random populations spawn in groups sharing a genome: grazers by Graze
         CHECK(static_cast<int>(simulation.agents().size()) >= population - 5);
         for (const auto& [dna, count] : groups) {
             const bool grazers = static_cast<Species>(decode_body(dna)[SpeciesTrait]) == Species::Grazer;
-            if (grazers) CHECK(count <= GRAZER_SPAWN_GROUP);
+            if (grazers) CHECK(count <= GRAZER_SPAWN_GROUP + 2);  // or the rest, rather than leave a group too small
             else if (decode_body(dna)[SpeciesTrait] != 0) CHECK(count <= 5);  // plants may share a genome between groups
         }
     }

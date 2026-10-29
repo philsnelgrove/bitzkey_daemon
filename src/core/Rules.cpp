@@ -41,7 +41,7 @@ std::vector<Rule> make_rules() {
         {"USE_GPU", "World", "Think on the GPU", "C++ only: 1 thinks and learns on every GPU found, in floats; 0 on the CPU, exactly", 0, 1, 1, true, &USE_GPU},
         {"DAY_LENGTH", "World", "Day length", "turns in a day; night covers half the map and moves round it once a day", 2, 100, 1, true, &DAY_LENGTH},
         {"SLEEP", "World", "Sleep", "1: an animal rests through its night (the dark if diurnal, the light if nocturnal) unless startled awake; 0: never forced to", 0, 1, 1, true, &SLEEP},
-        {"BIOME_GROUPS", "World", "Biome groups", "a world started with any Bitzkeys has this many more groups at home in every biome, each stretch of land or sea in a climate zone; 0: none", 0, 10, 1, true, &BIOME_GROUPS},
+        {"BIOME_GROUPS", "World", "Biome groups", "a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none", 0, 10, 1, true, &BIOME_GROUPS},
         {"BIOME_SIZE", "World", "Biome size", "the fewest squares a stretch of land or sea in a climate zone needs to count as a biome", 1, 1000, 5, true, &BIOME_SIZE},
         {"SPAWN_AT_HOME", "World", "Spawn at home", "1: starting and imported groups appear where their home temperature is usual; 0: anywhere", 0, 1, 1, true, &SPAWN_AT_HOME},
         {"GRAPH_TURNS", "World", "Graph turns", "turns of the past the graph and death report cover; deaths and genomes older than that are forgotten", 1000, 2000000, 1000, true, &GRAPH_TURNS},

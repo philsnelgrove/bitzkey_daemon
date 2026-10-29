@@ -105,10 +105,10 @@ inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
 inline int SPAWN_AT_HOME = 1;  // 1: a group appears in rows whose usual temperature is its home (the nearest, if none); 0: anywhere
 // Biomes: each stretch of land or sea within one climate zone, joined square to square (east and west wrapping round),
-// of BIOME_SIZE squares or more. A world started with any Bitzkeys has BIOME_GROUPS more groups in every biome, on
-// top of its population, each at home there: the zone's usual temperature its home, and a terrain that suits it, the
-// first the surface's own (terrestrial on land, aquatic at sea) and the rest any that may live there.
-inline int BIOME_GROUPS = 2;
+// of BIOME_SIZE squares or more. A world started with any Bitzkeys has, on top of its population, BIOME_GROUPS groups of
+// each species in every biome, each native there: the zone's usual temperature its home, and the surface's own
+// terrain (terrestrial on land, aquatic at sea).
+inline int BIOME_GROUPS = 1;
 // Each death is kept whole, for the probe and the graph's tooltips, for this many turns; the death report counts
 // every death since the world began as it happens (see DeathTally), and the tally lets go of the killers gone, but
 // the deadliest, every KILLERS_LET_GO turns.
@@ -1205,11 +1205,6 @@ private:
     std::optional<Cell> group_centre(Terrain terrain, const std::vector<int>& rows);
     // `native` groups have random starting genomes: each carries a tolerance flag only with
     // STARTING_TOLERANCE, and plants take the usual temperature of their centre's zone as their home.
-    // So that every zone starts with plants, the starting groups' plant groups take a zone each, top
-    // to bottom, until every zone has one; if there are too few, the last animal groups become plants,
-    // though one animal group is always kept. Returns the rows each such group's centre may fall in,
-    // by group; the rest fall anywhere. `species` is changed in place.
-    std::vector<std::vector<int>> plant_homes(std::vector<int>& species) const;
     // A group's centre falls in one of `rows` if given (and not empty).
     // Or, given a biome, centred on one of its squares, and each member that would fall outside it at the centre.
     void spawn_group(Dna dna, int size, const std::shared_ptr<const Brain>& brain = nullptr,

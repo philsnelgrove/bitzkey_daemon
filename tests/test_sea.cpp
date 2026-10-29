@@ -279,14 +279,25 @@ TEST_CASE("every biome starts with groups at home in it, on top of the populatio
             CHECK(static_cast<int>(biome.size()) >= BIOME_SIZE);
             const int home = zone_temperature(biome.front().y, simulation.height());
             const bool wet = simulation.sea(biome.front().x, biome.front().y);
-            int at_home = 0;
+            std::array<int, 4> natives{};  // of each species: at home there, of the surface's own terrain
+            const Terrain own = wet ? Terrain::Aquatic : Terrain::Terrestrial;
             for (const auto& agent : simulation.agents()) {
                 const bool inside = std::any_of(biome.begin(), biome.end(), [&](const Cell& cell) { return cell.x == agent->x && cell.y == agent->y; });
-                at_home += inside && agent->climate.temperature == home && agent->can_be(wet);
+                const bool home_here = agent->species == Species::Plant || agent->climate.temperature == home;
+                natives[static_cast<std::size_t>(agent->species)] += inside && home_here && agent->terrain == own;
             }
-            CHECK(at_home >= BIOME_GROUPS);
+            CAPTURE(biome.size());
+            CAPTURE(natives[0]);
+            CAPTURE(natives[1]);
+            CAPTURE(natives[2]);
+            CAPTURE(natives[3]);
+            for (const int count : natives) CHECK(count >= BIOME_GROUPS);
         }
         CHECK(static_cast<int>(simulation.agents().size()) > 30);
     }
     CHECK(Simulation(Simulation::Settings{60, 60, 0, 7}).agents().empty());  // an empty world stays empty
+    BIOME_GROUPS = 0;  // the population alone: animals, the plants starting in the biomes
+    const Simulation animals(Simulation::Settings{60, 60, 60, 7});
+    CHECK(std::none_of(animals.agents().begin(), animals.agents().end(), [](const auto& agent) { return agent->species == Species::Plant; }));
+    BIOME_GROUPS = 1;
 }

@@ -718,10 +718,11 @@ TEST_CASE("a pack learns from a kill, and what it saw is an input that fades") {
 TEST_CASE("groups spawn where their home temperature is usual") {
     for (const std::uint64_t seed : {1, 2, 3}) {
         const Simulation simulation(Simulation::Settings{100, 100, 90, seed});
-        for (const auto& agent : simulation.agents()) {  // each within the spread of a centre at home
+        for (const auto& agent : simulation.agents()) {  // each within the spread of a centre at home, or BIRTH_REACH further where full
             const int home = std::min(decode_climate(agent->dna).temperature, 2);  // very cold homes take the arctic
             bool found = false;
-            for (int y = agent->y - SPAWN_SPREAD; y <= agent->y + SPAWN_SPREAD; ++y) found = found || zone_temperature(y, 100) == home;
+            const int reach = SPAWN_SPREAD + BIRTH_REACH;
+            for (int y = agent->y - reach; y <= agent->y + reach; ++y) found = found || zone_temperature(y, 100) == home;
             CHECK(found);
         }
     }

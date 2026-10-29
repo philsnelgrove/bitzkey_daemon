@@ -439,11 +439,8 @@ Simulation::Simulation(Settings settings)
     initial_grass_ = initial_grass;
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
-    auto [species, sizes] = starting_groups(settings.population);
-    const std::vector<std::vector<int>> homes = plant_homes(species);
-    for (std::size_t group = 0; group < sizes.size(); ++group) {
-        spawn_group(make_dna(rng(), species[group]), sizes[group], nullptr, std::nullopt, true, homes[group]);
-    }
+    const auto [species, sizes] = starting_groups(settings.population);  // animals: the plants start in the biomes
+    for (std::size_t group = 0; group < sizes.size(); ++group) spawn_group(make_dna(rng(), species[group]), sizes[group], nullptr, std::nullopt, true);
     if (settings.population > 0) spawn_biomes();
     for (const Imported& bitzkey : settings.imported) {
         spawn_group(bitzkey.dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), bitzkey.brain,
@@ -484,9 +481,12 @@ std::pair<std::vector<int>, std::vector<int>> Simulation::starting_groups(int po
     std::vector<int> species, sizes;
     int remaining = population;
     while (remaining > 0) {
-        const int kind = static_cast<int>(rng().randrange(4));
+        const int kind = 1 + static_cast<int>(rng().randrange(3));  // an animal: the plants start in the biomes alone
         int size = remaining;
-        if (kind == static_cast<int>(Species::Grazer)) size = std::min(std::max(1, GRAZER_SPAWN_GROUP), remaining);
+        if (kind == static_cast<int>(Species::Grazer)) {
+            size = std::min(std::max(1, GRAZER_SPAWN_GROUP), remaining);
+            if (remaining - size < smallest) size = remaining;  // rather than leave a group too small
+        }
         else if (remaining > largest) size = static_cast<int>(rng().randint(smallest, std::min(largest, remaining - smallest)));
         species.push_back(kind);
         sizes.push_back(size);
@@ -505,32 +505,6 @@ std::vector<std::vector<int>> Simulation::zones() const {
         }
     }
     return found;
-}
-
-std::vector<std::vector<int>> Simulation::plant_homes(std::vector<int>& species) const {
-    const std::vector<std::vector<int>> all = zones();
-    std::vector<int> plants, animals;
-    for (std::size_t group = 0; group < species.size(); ++group) {
-        (species[group] == static_cast<int>(Species::Plant) ? plants : animals).push_back(static_cast<int>(group));
-    }
-    while (plants.size() < all.size() && animals.size() > 1) {
-        const int group = animals.back();
-        animals.pop_back();
-        species[static_cast<std::size_t>(group)] = static_cast<int>(Species::Plant);
-        plants.push_back(group);
-    }
-    std::sort(plants.begin(), plants.end());
-    const int lowest = SPAWN_SPREAD, highest = height_ - SPAWN_SPREAD - 1;  // where a group's centre may be
-    std::vector<std::vector<int>> homes(species.size());
-    for (std::size_t zone = 0; zone < std::min(plants.size(), all.size()); ++zone) {
-        const std::vector<int>& rows = all[zone];
-        std::vector<int>& centres = homes[static_cast<std::size_t>(plants[zone])];
-        for (const int y : rows) {
-            if (lowest <= y && y <= highest) centres.push_back(y);
-        }
-        if (centres.empty()) centres.push_back(std::min(highest, std::max(lowest, rows[rows.size() / 2])));
-    }
-    return homes;
 }
 
 std::vector<int> Simulation::home_rows(int home) const {
@@ -614,18 +588,21 @@ std::vector<std::vector<Cell>> Simulation::biomes() const {
 }
 
 void Simulation::spawn_biomes() {
+    // In every biome, BIOME_GROUPS groups of each species, native to it: the surface's own terrain (terrestrial on land,
+    // aquatic at sea) and the zone's usual temperature its home; grazers by Grazer group, the rest SPAWN_GROUP.
     for (const std::vector<Cell>& biome : biomes()) {
         const bool wet = sea(biome.front().x, biome.front().y);
         const int home = zone_temperature(biome.front().y, height_);
-        for (int group = 0; group < BIOME_GROUPS; ++group) {
-            Dna dna = make_dna(rng(), static_cast<int>(rng().randrange(4)));
-            dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;
-            // The first the surface's own; the rest any terrain that may live there.
-            static constexpr std::array<Terrain, 3> land = {Terrain::Terrestrial, Terrain::Avian, Terrain::Amphibious};
-            static constexpr std::array<Terrain, 3> water = {Terrain::Aquatic, Terrain::Avian, Terrain::Amphibious};
-            const auto& fitting = wet ? water : land;
-            dna = with_terrain(dna, group == 0 ? fitting[0] : fitting[static_cast<std::size_t>(rng().randrange(3))]);
-            spawn_group(dna, static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1])), nullptr, std::nullopt, true, {}, &biome);
+        for (int set = 0; set < BIOME_GROUPS; ++set) {
+            for (const Species species : {Species::Plant, Species::Omnivore, Species::Predator, Species::Grazer}) {  // the large group last
+                const int kind = static_cast<int>(species);
+                Dna dna = make_dna(rng(), kind);
+                dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;
+                dna = with_terrain(dna, wet ? Terrain::Aquatic : Terrain::Terrestrial);
+                const int size = kind == static_cast<int>(Species::Grazer) ? std::max(1, GRAZER_SPAWN_GROUP)
+                                                                           : static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1]));
+                spawn_group(dna, size, nullptr, std::nullopt, true, {}, &biome);
+            }
         }
     }
 }

@@ -1489,5 +1489,6 @@
 "First breeding instinct": "Pierwszy instynkt rozrodczy",
 "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "o ile bardziej jeden z pierwszych Bitzkeyów świata, z niewyuczonym mózgiem, ceni rozmnażanie, gdy jest gotów, a w przeciwnym razie zaloty",
 "Grazer group": "Grupa roślinożerców",
-"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "roślinożercy w każdej grupie, od której zaczyna się nowy świat (inne gatunki zaczynają w grupach od 3 do 5)"
+"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "roślinożercy w każdej grupie, od której zaczyna się nowy świat (inne gatunki zaczynają w grupach od 3 do 5)",
+"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "świat zaczynający z Bitzkeyami ma tyle grup każdego gatunku, rodzimych dla każdego biomu (każdego obszaru lądu lub morza w strefie klimatycznej), ponad swoją populację; 0: brak"
 }

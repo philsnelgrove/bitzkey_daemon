@@ -1489,5 +1489,6 @@
 "First breeding instinct": "אינסטינקט רבייה ראשון",
 "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "כמה יותר אחד מה־Bitzkey הראשונים של עולם, שמוחו לא אומן, מעריך רבייה כשהוא מוכן, או אחרת חיזור",
 "Grazer group": "קבוצת אוכלי עשב",
-"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "אוכלי עשב בכל קבוצה שבה מתחיל עולם חדש (מינים אחרים מתחילים בקבוצות של 3 עד 5)"
+"grazers in each group a new world starts with (other species start in groups of 3 to 5)": "אוכלי עשב בכל קבוצה שבה מתחיל עולם חדש (מינים אחרים מתחילים בקבוצות של 3 עד 5)",
+"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "לעולם שמתחיל עם Bitzkey יש מספר כזה של קבוצות מכל מין, ילידיות לכל ביום (כל רצועת יבשה או ים באזור אקלים), מעבר לאוכלוסייה שלו; 0: אין"
 }
