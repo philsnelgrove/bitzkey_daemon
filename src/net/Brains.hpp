@@ -24,7 +24,7 @@
 
 namespace bitzkey::net {
 
-constexpr std::uint32_t PROTOCOL = 3;  // a worker and its main service must speak the same (2: brains of any width; 3: calls)
+constexpr std::uint32_t PROTOCOL = 4;  // a worker and its main service must speak the same (2: brains of any width; 3: calls; 4: memory)
 constexpr int DEFAULT_WORKER_PORT = 50000;
 constexpr int DEFAULT_CHECKPOINT_TURNS = 100;
 constexpr int RING = 32;               // senses remembered for each brain: more than any brain replays in a turn
@@ -54,6 +54,7 @@ struct Batch {
         float target, rate, decay;
         int ring = -1;  // its senses' place in the ring, or -1 when they come with it
         FloatSenses senses{};
+        int steps = 0;  // learning back in time, as gpu::BrainEngine::Lesson's
     };
     struct Ask {
         int handle;

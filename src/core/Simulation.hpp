@@ -283,6 +283,11 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 4;
 inline double CALL_COST = 0.2;
+// Memory (Brain.hpp): how many choices back a lesson's error is carried to the memory gates that wrote what the brain
+// read, 0 for none (what it keeps is then only what it was born to), up to MAX_MEMORY_STEPS; and how fast they learn,
+// times the brain's learning rate.
+inline int MEMORY_STEPS = 1;
+inline double MEMORY_LEARNING = 1.0;
 constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
@@ -553,6 +558,11 @@ struct Bitzkey {
     int call = Silent;                  // what it called alongside its last action (Brain.hpp's Call), heard the turn after
     int call_turn = -1;                 // the turn it called it
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
+    Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
+    // Its senses at the choices before its last, most recent first, back to the first its memory wasn't written at, and
+    // no more than Memory steps: what learning back in time goes over. Whether its memory was written at its last choice.
+    std::vector<Senses> past;
+    bool last_wrote = false;
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
@@ -1296,7 +1306,7 @@ private:
     std::deque<Senses> lesson_senses_;  // what each queued lesson sensed, kept still while it waits
     std::vector<gpu::BrainEngine::Lesson> lessons_;  // lessons for the GPUs, learnt in one batch
     void queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
-                      double decay);
+                      double decay, int steps = 0);
     void learn_queued();
     void sync(std::span<Bitzkey* const> agents);  // these brains back from the GPUs, each once a turn
     // Put a brain on the GPUs, unless they have failed.

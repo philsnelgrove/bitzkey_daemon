@@ -524,7 +524,8 @@ void Pool::learn(std::span<const gpu::BrainEngine::Lesson> lessons) {
     for (const auto& lesson : lessons) {
         const auto found = owners_.find(lesson.brain);
         if (found == owners_.end()) continue;  // a brain since let go
-        found->second.member->lessons.push_back({lesson.brain, lesson.action, lesson.traced, lesson.target, lesson.rate, lesson.decay, *lesson.senses});
+        found->second.member->lessons.push_back({lesson.brain, lesson.action, lesson.traced, lesson.target, lesson.rate, lesson.decay, *lesson.senses,
+                                                 lesson.steps});
     }
 }
 
@@ -567,6 +568,7 @@ Batch Pool::batch_for(Member& member, const std::vector<std::size_t>& asks, std:
         lesson.handle = raw.handle;
         lesson.action = raw.action;
         lesson.traced = raw.traced;
+        lesson.steps = raw.steps;
         lesson.target = static_cast<float>(raw.target);
         lesson.rate = static_cast<float>(raw.rate);
         lesson.decay = static_cast<float>(raw.decay);

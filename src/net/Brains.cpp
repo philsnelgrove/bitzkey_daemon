@@ -93,6 +93,7 @@ std::string encode(const Batch& batch) {
         out.put<std::int32_t>(lesson.handle);
         out.put<std::uint8_t>(static_cast<std::uint8_t>(lesson.action));
         out.put<std::uint8_t>(lesson.traced ? 1 : 0);
+        out.put<std::int8_t>(static_cast<std::int8_t>(lesson.steps));
         out.put(lesson.target);
         out.put(lesson.rate);
         out.put(lesson.decay);
@@ -128,6 +129,8 @@ Batch decode_batch(std::string_view bytes) {
         lesson.action = in.get<std::uint8_t>();
         if (lesson.action >= OUTPUT_COUNT) throw std::runtime_error("a lesson in no output");
         lesson.traced = in.get<std::uint8_t>() != 0;
+        lesson.steps = in.get<std::int8_t>();
+        if (lesson.steps < -1 || lesson.steps > MAX_MEMORY_STEPS) throw std::runtime_error("a lesson too far back in time");
         lesson.target = in.get<float>();
         lesson.rate = in.get<float>();
         lesson.decay = in.get<float>();
@@ -248,10 +251,21 @@ void CpuEngine::learn(std::span<const Lesson> lessons) {
     }
     parallel_for(order.size(), threads_, [&](std::size_t place) {
         Brain& brain = *brains_.at(static_cast<std::size_t>(order[place]));
-        for (const std::size_t index : by_brain.at(order[place])) {
-            const Lesson& lesson = lessons[index];
-            if (lesson.traced) brain.learn_traced_by(*lesson.senses, lesson.action, lesson.target, lesson.rate, lesson.decay);
-            else brain.learn(*lesson.senses, lesson.action, lesson.target, lesson.rate);
+        const std::vector<std::size_t>& mine = by_brain.at(order[place]);
+        for (std::size_t k = 0; k < mine.size(); ++k) {
+            const Lesson& lesson = lessons[mine[k]];
+            if (lesson.steps < 0) continue;  // the senses of a choice before, for the lesson back in time before it
+            if (lesson.steps > 0) {
+                std::vector<const Senses*> past;
+                for (std::size_t back = 1; back <= static_cast<std::size_t>(lesson.steps) && k + back < mine.size(); ++back) {
+                    past.push_back(lessons[mine[k + back]].senses);
+                }
+                brain.learn_memory(*lesson.senses, past, lesson.action, lesson.target, lesson.rate);
+            } else if (lesson.traced) {
+                brain.learn_traced_by(*lesson.senses, lesson.action, lesson.target, lesson.rate, lesson.decay);
+            } else {
+                brain.learn(*lesson.senses, lesson.action, lesson.target, lesson.rate);
+            }
         }
     });
 }
@@ -325,7 +339,8 @@ Answer Thinker::apply(const Batch& batch) {
             if (found == held_.end()) continue;  // a brain let go since
             const FloatSenses& felt = senses_of(found->second, lesson.ring, lesson.senses);
             std::copy(felt.begin(), felt.end(), senses[index].begin());
-            lessons.push_back({found->second.inner, &senses[index], lesson.action, lesson.target, lesson.rate, lesson.traced, lesson.decay});
+            lessons.push_back({found->second.inner, &senses[index], lesson.action, lesson.target, lesson.rate, lesson.traced, lesson.decay,
+                               lesson.steps});
         }
         engine_->learn(lessons);
     }

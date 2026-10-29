@@ -42,6 +42,9 @@ public:
         double rate;
         bool traced;   // TD(lambda), learning from its own choice, as Brain::learn_traced; else as Brain::learn
         double decay;  // for a traced lesson: the discount times lambda
+        // Learning back in time, as Brain::learn_memory: the senses of this many choices before follow, most recent first,
+        // each in a lesson of its own of -1, which teaches nothing alone.
+        int steps = 0;
     };
 
     // None when there is no Vulkan, no GPU, or they are turned off; `why` then says which.

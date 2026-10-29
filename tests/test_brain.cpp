@@ -216,8 +216,8 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
     CHECK(old.layers[0].weights[5] == doctest::Approx(brain.layers[0].weights[5]).epsilon(1e-5));
 }
 
-TEST_CASE("there are 125 senses, and a narrower saved brain loads as saved, valuing alike") {
-    CHECK(INPUT_SIZE == 125);
+TEST_CASE("there are 133 senses, and a narrower saved brain loads as saved, valuing alike") {
+    CHECK(INPUT_SIZE == 133);
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;
@@ -296,9 +296,9 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
     const std::vector<double> found = {child.layers[0].row(3)[11], child.layers[0].row(44)[89], child.layers[1].biases[20],
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
-    CHECK(found == std::vector<double>{-0.23658292914570006, 0.11340388464196856, -0.011246071065037158, -0.14567023957432845,
-                                       -0.0001361504241306272, -0.0011229592658597712});  // the output layer held in hundredths
-    CHECK(rng.random() == 0.38711809408769293);  // one draw of the world's for the child
+    CHECK(found == std::vector<double>{-0.031133351530337063, -0.12691032926761536, -0.01758605013427229, -0.08789407554653912,
+                                       -0.0012628377468725455, -0.0005043328704035753});  // the output layer held in hundredths
+    CHECK(rng.random() == 0.23223140808932863);  // one draw of the world's for the child
 }
 
 TEST_CASE("a brain that read its senses uncentred, made to read them centred, values everything just as before") {
@@ -363,4 +363,60 @@ TEST_CASE("a lesson's error counts for no more than the lesson limit") {
     const double one = moved(1.0), five = moved(5.0);
     CHECK(five == doctest::Approx(5 * one).epsilon(0.02));
     LESSON_LIMIT = 5.0;
+}
+
+TEST_CASE("memory neurons keep, overwrite or clear what they hold, by their gates") {
+    Values values{};
+    Held held{};
+    held.fill(0.6);
+    values[MEMORY_GATES] = -40;   // shut: it keeps what it held
+    values[MEMORY_GATES + 1] = 40;  // open: it takes what is written
+    values[MEMORY_VALUES + 1] = 0.5;
+    values[MEMORY_GATES + 2] = 40;  // open, writing nothing: cleared
+    const Held now = memory_after(values, held);
+    CHECK(now[0] == doctest::Approx(0.6));
+    CHECK(now[1] == doctest::Approx(std::tanh(0.5)));
+    CHECK(now[2] == doctest::Approx(0.0));
+    CHECK(now[3] == doctest::Approx(0.5 * 0.6));  // half open, writing nothing: half kept
+    PyRandom rng(3);
+    const Brain fresh = Brain::random(rng, 2, 40);  // a new brain's gates a fifth open, near enough
+    const Values untaught = fresh.values(Senses{});
+    double gates = 0.0;
+    for (int neuron = 0; neuron < MEMORY_NEURONS; ++neuron) gates += 1 / (1 + std::exp(-untaught[MEMORY_GATES + neuron]));
+    CHECK(gates / MEMORY_NEURONS == doctest::Approx(0.2).epsilon(0.6));
+}
+
+TEST_CASE("learning back in time teaches the gates to hold what values the next choice rightly") {
+    // A choice valued wrongly, with what its memory held written at the choice before: after a lesson back in time, what
+    // the memory would now hold there values the choice nearer its target.
+    PyRandom rng(11);
+    Brain brain = Brain::random(rng, 2, 40);
+    for (int neuron = 0; neuron < 40; ++neuron) {  // its first layer heeding what its memory held
+        for (int held = 0; held < MEMORY_NEURONS; ++held) brain.layers[0].row(neuron)[SenseMemory + held] = 0.4 * ((neuron + held) % 3 - 1);
+    }
+    Senses before{}, now{};
+    for (int sense = 0; sense < SenseMemory; ++sense) {
+        before[sense] = rng.random();
+        now[sense] = rng.random();
+    }
+    for (int held = 0; held < MEMORY_NEURONS; ++held) before[SenseMemory + held] = 0.3;
+    const auto read_on = [&](const Brain& thinker) {  // what the memory holds written at `before`, read at `now`
+        Senses then = now;
+        Held was{};
+        was.fill(0.3);
+        const Held held = memory_after(thinker.values(before), was);
+        for (int index = 0; index < MEMORY_NEURONS; ++index) then[SenseMemory + index] = held[index];
+        return then;
+    };
+    const int action = Eat;
+    const double target = brain.values(read_on(brain))[action] + 1.0;  // valued a whole 1 too low
+    const std::vector<const Senses*> past = {&before};
+    Brain learnt = brain;
+    learnt.learn_memory(read_on(brain), past, action, target, 0.05);
+    const double was = std::abs(brain.values(read_on(brain))[action] - target);
+    const double is = std::abs(learnt.values(read_on(learnt))[action] - target);
+    CHECK(is < was);
+    Brain still = brain;
+    still.learn_memory(read_on(brain), {}, action, target, 0.05);  // with nothing before, nothing to learn
+    CHECK(still == brain);
 }

@@ -235,7 +235,11 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
         {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"call_turn", agent.call_turn}, {"last_call", agent.last_call},
+        {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
+    json past = json::array();
+    for (const Senses& senses : agent.past) past.push_back(numbers.senses(senses));
+    record["past"] = std::move(past);
     json trail = json::array();
     for (const auto& [x, y] : agent.trail) trail.push_back({x, y});
     record["trail"] = std::move(trail);
@@ -329,6 +333,11 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->call = record.value("call", 0);  // silent, in a world saved before calls
     agent->call_turn = record.value("call_turn", -1);
     agent->last_call = record.value("last_call", -1);
+    if (record.contains("held")) {  // blank, in a world saved before memory
+        for (int held = 0; held < MEMORY_NEURONS; ++held) agent->held[held] = record.at("held").at(held).get<double>();
+        agent->last_wrote = record.at("last_wrote").get<bool>();
+        for (const json& senses : record.at("past")) agent->past.push_back(numbers.senses(senses));
+    }
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);
     agent->last_wellbeing = record.at("last_wellbeing").get<double>();

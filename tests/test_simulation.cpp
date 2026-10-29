@@ -102,7 +102,9 @@ TEST_CASE("the mother carries her young for a gestation set by her size, then gi
     NEWBORN_FOOD = 0;  // the full litter, whatever energy is given
     const double plants_per_grazer = PLANTS_PER_GRAZER;
     PLANTS_PER_GRAZER = 0;  // no plants about: breeding left to the rest
-    Simulation simulation(Simulation::Settings{30, 30, 0, 3});
+    Simulation::Settings settings{30, 30, 0, 3};
+    settings.body_mutation = 0;  // the young the size of their parents
+    Simulation simulation(settings);
     const Dna dna = encode_dna(Species::Grazer, {{"fertility", 7}, {"litter", 7}});  // the smallest: ten turns, twelve young
     Bitzkey& first = simulation.add_agent(dna, 15, 15);
     Bitzkey& second = simulation.add_agent(dna, 15, 16);
@@ -2137,4 +2139,25 @@ TEST_CASE("a brain saved before calls loads with its actions as they were and it
     CHECK(old.output_weights[FeedYoung][3] == doctest::Approx(brain.output_weights[FeedYoung][3]));
     CHECK(old.output_biases[call_output(AlertCall)] == doctest::Approx(brain.output_biases[call_output(AlertCall)]));
     CHECK(old.output_biases[call_output(FirstCall)] == 0.0);
+}
+
+TEST_CASE("an animal's memory is written as it chooses, read back as it senses, and kept with the world") {
+    Simulation simulation = world(30);
+    for (int index = 0; index < 6; ++index) simulation.add_agent(encode_dna(Species::Grazer), 5 + index, 5);
+    simulation.add_agent(encode_dna(Species::Predator), 20, 20);
+    for (int turn = 0; turn < 6; ++turn) simulation.take_turn();
+    const Bitzkey* grazer = nullptr;
+    for (const Bitzkey* agent : simulation.living()) {
+        if (agent->species == Species::Grazer && agent->last_wrote) grazer = agent;
+    }
+    REQUIRE(grazer);
+    CHECK(std::any_of(grazer->held.begin(), grazer->held.end(), [](double held) { return held != 0.0; }));
+    CHECK(grazer->past.size() <= static_cast<std::size_t>(MEMORY_STEPS));
+    Bitzkey& reader = *simulation.find_agent(grazer->identifier);
+    const auto sensed = simulation.sense(reader).senses;
+    for (int held = 0; held < MEMORY_NEURONS; ++held) CHECK(sensed[SenseMemory + held] == grazer->held[held]);
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    const Bitzkey* again = loaded->find_agent(grazer->identifier);
+    REQUIRE(again);
+    CHECK((again->held == grazer->held && again->past == grazer->past && again->last_wrote == grazer->last_wrote));
 }

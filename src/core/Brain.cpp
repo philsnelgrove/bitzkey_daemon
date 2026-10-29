@@ -138,6 +138,15 @@ double dot(const double* first, const double* second, std::size_t count) {
 
 }  // namespace
 
+Held memory_after(const Values& values, const Held& held) {
+    Held now{};
+    for (int neuron = 0; neuron < MEMORY_NEURONS; ++neuron) {
+        const double gate = 1 / (1 + std::exp(-values[MEMORY_GATES + neuron]));
+        now[neuron] = (1 - gate) * held[neuron] + gate * std::tanh(values[MEMORY_VALUES + neuron]);
+    }
+    return now;
+}
+
 std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options) {
     double best = values[options[0]];
     for (const int option : options) best = std::max(best, values[option]);
@@ -219,6 +228,7 @@ Brain Brain::random(PyRandom& rng, int depth, int width) {
         brain.output_biases[heading] -= HEADING_RELUCTANCE;
     }
     for (int call = AlertCall; call < CALL_OPTIONS; ++call) brain.output_biases[call_output(call)] -= CALL_RELUCTANCE;
+    for (int neuron = 0; neuron < MEMORY_NEURONS; ++neuron) brain.output_biases[MEMORY_GATES + neuron] -= MEMORY_PERSISTENCE;
     brain.scale_values();  // valuing as it would whole
     return brain;
 }
@@ -438,6 +448,111 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
         }
     }
     for (int row = 0; row < OUTPUT_COUNT; ++row) output_biases[row] -= step * traces->output_biases[row];
+}
+
+void Brain::learn_memory(const Senses& inputs, std::span<const Senses* const> past, int action, double target, double learning_rate) {
+    if (learning_rate <= 0 || past.empty()) return;
+    const int width = this->width();
+    const auto clip = [](double error) { return std::max(-LESSON_LIMIT, std::min(LESSON_LIMIT, error)); };
+    const auto valued = [&](int output, const std::vector<double>& top) {
+        return (dot(output_weights[output].data(), top.data(), top.size()) + output_biases[output]) / VALUE_SCALE;
+    };
+    // How the action's value, with its error, moves with what each memory neuron held: the error carried down through
+    // every layer as a lesson's, nothing moving, in whole values.
+    Held carried{};
+    {
+        const std::vector<std::vector<double>> found = activations(inputs);
+        const double error = clip(valued(action, found.back()) - target);
+        std::vector<double> gradient(static_cast<std::size_t>(width));
+        for (int neuron = 0; neuron < width; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][static_cast<std::size_t>(neuron)];
+        for (int index = depth() - 1; index >= 0; --index) {
+            const Layer& layer = layers[static_cast<std::size_t>(index)];
+            const std::vector<double>& output = found[static_cast<std::size_t>(index) + 1];
+            std::array<double, MAX_WIDTH> delta{};
+            for (int neuron = 0; neuron < width; ++neuron) {
+                const double value = output[static_cast<std::size_t>(neuron)];
+                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+            }
+            if (index) {
+                for (int input = 0; input < layer.reads; ++input) {
+                    double back = 0.0;
+                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
+                    gradient[static_cast<std::size_t>(input)] = back;
+                }
+            } else {
+                for (int held = 0; held < MEMORY_NEURONS; ++held) {
+                    double back = 0.0;
+                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[SenseMemory + held] * delta[neuron];
+                    carried[held] = back / VALUE_SCALE;
+                }
+            }
+        }
+    }
+    for (std::size_t step = 0; step < past.size(); ++step) {
+        // The choice before: each gate's and value's error, as an output's in a lesson, from what the neuron came to
+        // hold; and what of the error reaches what it held before, through what it kept of it.
+        const Senses& before = *past[step];
+        const std::vector<std::vector<double>> found = activations(before);
+        const std::vector<double>& top = found.back();
+        std::array<double, 2 * MEMORY_NEURONS> errors{};
+        Held kept{};
+        for (int held = 0; held < MEMORY_NEURONS; ++held) {
+            const double gate = 1 / (1 + std::exp(-valued(MEMORY_GATES + held, top)));
+            const double write = std::tanh(valued(MEMORY_VALUES + held, top));
+            const double was = before[SenseMemory + held];
+            errors[static_cast<std::size_t>(held)] = clip(carried[held] * (write - was) * gate * (1 - gate));
+            errors[static_cast<std::size_t>(MEMORY_NEURONS + held)] = clip(carried[held] * gate * (1 - write * write));
+            kept[held] = carried[held] * (1 - gate);
+        }
+        std::vector<double> gradient(static_cast<std::size_t>(width), 0.0);
+        for (int neuron = 0; neuron < width; ++neuron) {
+            for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) {
+                gradient[static_cast<std::size_t>(neuron)] += errors[static_cast<std::size_t>(output)] * output_weights[MEMORY_GATES + output][static_cast<std::size_t>(neuron)];
+            }
+        }
+        for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) {
+            const double output_step = learning_rate * errors[static_cast<std::size_t>(output)] * VALUE_SCALE;
+            for (int neuron = 0; neuron < width; ++neuron) {
+                output_weights[MEMORY_GATES + output][static_cast<std::size_t>(neuron)] -= output_step * top[static_cast<std::size_t>(neuron)];
+            }
+        }
+        const bool further = step + 1 < past.size();
+        Held reached{};
+        for (int index = depth() - 1; index >= 0; --index) {
+            Layer& layer = layers[static_cast<std::size_t>(index)];
+            const std::vector<double>& output = found[static_cast<std::size_t>(index) + 1];
+            const std::vector<double>& below = found[static_cast<std::size_t>(index)];
+            std::array<double, MAX_WIDTH> delta{};
+            for (int neuron = 0; neuron < width; ++neuron) {
+                const double value = output[static_cast<std::size_t>(neuron)];
+                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+            }
+            if (index) {
+                for (int input = 0; input < layer.reads; ++input) {
+                    double back = 0.0;
+                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
+                    gradient[static_cast<std::size_t>(input)] = back;
+                }
+            } else if (further) {
+                for (int held = 0; held < MEMORY_NEURONS; ++held) {
+                    double back = 0.0;
+                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[SenseMemory + held] * delta[neuron];
+                    reached[held] = back / VALUE_SCALE;
+                }
+            }
+            for (int neuron = 0; neuron < width; ++neuron) layer.biases[static_cast<std::size_t>(neuron)] -= learning_rate * delta[neuron];
+            for (int neuron = 0; neuron < width; ++neuron) {
+                double* weights = layer.row(neuron);
+                for (int input = 0; input < layer.reads; ++input) {
+                    weights[input] -= learning_rate * (delta[neuron] * below[static_cast<std::size_t>(input)]);
+                }
+            }
+        }
+        for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) {
+            output_biases[MEMORY_GATES + output] -= learning_rate * errors[static_cast<std::size_t>(output)] * VALUE_SCALE;
+        }
+        for (int held = 0; held < MEMORY_NEURONS; ++held) carried[held] = kept[held] + reached[held];
+    }
 }
 
 nlohmann::ordered_json Brain::to_record() const {

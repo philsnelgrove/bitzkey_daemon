@@ -114,7 +114,8 @@ std::uint32_t slot_floats(Shape shape) {
 
 Shape shape_of(const Brain& brain) { return {brain.depth(), brain.width()}; }
 static_assert(MAX_DEPTH == 4 && MAX_WIDTH == 53, "shaders/brain.glsl's MAX_DEPTH and MAX_HIDDEN must match");
-static_assert(INPUT_SIZE == 125 && OUTPUT_COUNT == 31, "shaders/brain.glsl's INPUTS and ACTIONS must match");
+static_assert(INPUT_SIZE == 133 && OUTPUT_COUNT == 47 && SenseMemory == 74 && MEMORY_GATES == 31 && MEMORY_NEURONS == 8,
+              "shaders/brain.glsl's INPUTS, ACTIONS, MEMORY_SENSE, MEMORY_GATES and MEMORY_NEURONS must match");
 
 // The layers, input by input, then the biases, then the outputs, neuron by neuron, then their biases:
 // for a brain's weights, or its traces.
@@ -165,9 +166,9 @@ struct GpuGroup {
 };
 
 struct GpuLesson {
-    std::uint32_t action, traced;
+    std::uint32_t action, traced;      // 0 plain, 1 traced, 2 back in time, 3 the senses of a choice before
     float target, rate, decay, limit;  // the lesson limit
-    std::uint32_t unused[2];
+    std::uint32_t steps, unused;
 };
 static_assert(sizeof(GpuLesson) == 32);
 
@@ -455,8 +456,10 @@ public:
                 std::uint32_t at = place.lesson;
                 for (const std::size_t index : mine) {
                     const Lesson& lesson = lessons[index];
-                    lesson_data[at] = {static_cast<std::uint32_t>(lesson.action), lesson.traced ? 1u : 0u, static_cast<float>(lesson.target),
-                                       static_cast<float>(lesson.rate), static_cast<float>(lesson.decay), static_cast<float>(LESSON_LIMIT), {0, 0}};
+                    const std::uint32_t kind = lesson.steps > 0 ? 2u : lesson.steps < 0 ? 3u : lesson.traced ? 1u : 0u;
+                    lesson_data[at] = {static_cast<std::uint32_t>(lesson.action), kind, static_cast<float>(lesson.target),
+                                       static_cast<float>(lesson.rate), static_cast<float>(lesson.decay), static_cast<float>(LESSON_LIMIT),
+                                       static_cast<std::uint32_t>(std::max(0, lesson.steps)), 0};
                     float* into = inputs + static_cast<std::size_t>(at) * INPUT_SIZE;
                     for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = static_cast<float>(read_sense(sense, (*lesson.senses)[sense]));
                     ++at;

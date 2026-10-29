@@ -82,7 +82,8 @@ enum Sense : int {
     SenseParentSouth,
     // The calls it heard since it last chose, HEARD_SENSES for each of the five, the first call's first (see Heard):
     SenseHeardCall,
-    SenseMind = SenseHeardCall + 4 * 5,  // HEARD_SENSES * CALL_COUNT             // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
+    SenseMemory = SenseHeardCall + 4 * 5,  // HEARD_SENSES * CALL_COUNT; then what its memory neurons held, -1..1 (see Memory)
+    SenseMind = SenseMemory + 8,           // MEMORY_NEURONS; then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung };
@@ -93,25 +94,41 @@ constexpr int ACTION_COUNT = 24;
 enum Call : int { Silent, AlertCall, FirstCall };  // the five calls from FirstCall on
 constexpr int CALL_COUNT = 5;
 constexpr int CALL_OPTIONS = FirstCall + CALL_COUNT;
-constexpr int OUTPUT_COUNT = ACTION_COUNT + CALL_OPTIONS;
+// Memory: a brain carries MEMORY_NEURONS values from one choice to the next, each read back the next time as a sense
+// (SenseMemory). Each turn, beside valuing its actions and calls, it gives each a gate, z = sigmoid of its output, and a
+// value to write, c = tanh of its output, and the neuron becomes (1 - z) times what it held plus z times c: kept as it
+// was (z near 0), overwritten (z near 1), or cleared (writing 0). Its gates read the top hidden layer, which reads what
+// the memory held with everything else it senses. They learn back in time (Brain::learn_memory): how a lesson's error
+// moves with what the memory held is carried back to the gates that wrote it, as many choices back as Memory steps.
+constexpr int MEMORY_NEURONS = 8;
+constexpr int MEMORY_GATES = ACTION_COUNT + CALL_OPTIONS;   // the first gate's output, then each neuron's in turn,
+constexpr int MEMORY_VALUES = MEMORY_GATES + MEMORY_NEURONS;  // then the first value to write, and each neuron's
+constexpr int OUTPUT_COUNT = MEMORY_VALUES + MEMORY_NEURONS;
+static_assert(SenseMind == SenseMemory + MEMORY_NEURONS);
+constexpr int MAX_MEMORY_STEPS = 4;  // the furthest back Memory steps may reach
+using Held = std::array<double, MEMORY_NEURONS>;  // what memory neurons hold
 // What it senses of each call it heard, of the loudest who made it: how loud, 1 from beside it, falling to 0 at the
 // call's reach (the larger the caller, the further it carries); which way it lay, -1 to 1, west to east and north to
 // south; and whether it was of its own species, 1 or 0. All 0 for a call it didn't hear.
 enum Heard : int { HeardLoudness, HeardEast, HeardSouth, HeardKin };
 constexpr int HEARD_SENSES = 4;
-static_assert(SenseMind == SenseHeardCall + HEARD_SENSES * CALL_COUNT);
+static_assert(SenseMemory == SenseHeardCall + HEARD_SENSES * CALL_COUNT);
 constexpr int heard_sense(int call, int heard) { return SenseHeardCall + HEARD_SENSES * (call - FirstCall) + heard; }
 constexpr int call_output(int call) { return ACTION_COUNT + call; }  // the output valuing a call (or silence)
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young"};
-// A brain's outputs by name: its actions, then silence and the calls.
+// A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
     for (int action = 0; action < ACTION_COUNT; ++action) names[action] = ACTIONS[action];
     constexpr std::array<std::string_view, CALL_OPTIONS> calls = {"silent", "alert", "call_1", "call_2", "call_3", "call_4", "call_5"};
     for (int call = 0; call < CALL_OPTIONS; ++call) names[call_output(call)] = calls[call];
+    constexpr std::array<std::string_view, 2 * MEMORY_NEURONS> memory = {
+        "memory_gate_1", "memory_gate_2", "memory_gate_3", "memory_gate_4", "memory_gate_5", "memory_gate_6", "memory_gate_7", "memory_gate_8",
+        "memory_value_1", "memory_value_2", "memory_value_3", "memory_value_4", "memory_value_5", "memory_value_6", "memory_value_7", "memory_value_8"};
+    for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) names[MEMORY_GATES + output] = memory[output];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -130,8 +147,9 @@ constexpr int INPUT_SIZE = SenseNocturnal + 1;
 constexpr bool signed_sense(int sense) {
     return sense == SenseLatitude || sense == SenseWarmth || sense == SenseWarmthNorth || sense == SenseWarmthSouth ||
            sense == SenseHomeDirection || sense == SenseParentEast || sense == SenseParentSouth ||
-           (sense >= SenseHeardCall && sense < SenseMind &&
-            ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth));
+           (sense >= SenseHeardCall && sense < SenseMemory &&
+            ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth)) ||
+           (sense >= SenseMemory && sense < SenseMind);
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -146,7 +164,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "heard_call_2", "heard_call_2_east", "heard_call_2_south", "heard_call_2_kin",
     "heard_call_3", "heard_call_3_east", "heard_call_3_south", "heard_call_3_kin",
     "heard_call_4", "heard_call_4_east", "heard_call_4_south", "heard_call_4_kin",
-    "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin", "aggression", "libido", "curiosity",
+    "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin",
+    "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
@@ -173,6 +192,8 @@ inline double TRACE_DECAY = 0.7;  // lambda: how much of each earlier choice's c
 inline double HEADING_RELUCTANCE = 0.5;
 // And values each call this much below silence, so an untaught world isn't all calling at once.
 inline double CALL_RELUCTANCE = 0.5;
+// And its memory gates this far below their middle, a fifth open, so what it holds fades slowly until it learns otherwise.
+inline double MEMORY_PERSISTENCE = 1.4;
 // A brain holds its values in hundredths: what an action is worth over the turns it looks ahead runs to ten and more,
 // and its neurons, each between -1 and 1, would jam at their limits to make that much, the same whatever it senses.
 // Held small, the output layer makes them of neurons free to follow the senses. It gives and learns them whole.
@@ -192,6 +213,9 @@ inline int depth_for(int intellect) { return std::max(1, std::min(MAX_DEPTH, int
 inline int width_for(int intellect) { return BASE_WIDTH + WIDTH_STEP * std::max(0, intellect - MAX_DEPTH); }
 // Fill in the inputs for a genome's traits, ring, dot and social background, its climate genes and its terrain.
 void gene_senses(Dna dna, Senses& senses);
+
+// What memory neurons hold after a choice valued so, holding `held` before it.
+Held memory_after(const Values& values, const Held& held);
 
 // Softmax over the available actions' values, in the options' order.
 std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options);
@@ -268,6 +292,11 @@ public:
                       double sharpness = 0.0);
     // The same, with the traces' decay (the discount times lambda) worked out already, as the GPUs are given it.
     void learn_traced_by(const Senses& inputs, int action, double target, double learning_rate, double decay);
+    // Learn back in time, after the lesson on `inputs` (its senses at its choice): how that action's value, with its
+    // error, moves with what its memory held then is carried back to the gates that wrote it, at `past` (its senses at
+    // the choices before, most recent first, each the memory was written at), each moving its gates and values to write,
+    // and the layers beneath them, to hold what would have valued the choice after rightly; and so on back.
+    void learn_memory(const Senses& inputs, std::span<const Senses* const> past, int action, double target, double learning_rate);
 
     nlohmann::ordered_json to_record() const;
     // Weights are matched to senses and outputs by name; a brain saved with a single hidden

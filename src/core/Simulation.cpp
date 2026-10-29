@@ -1389,6 +1389,11 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
                 queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
             }
             if (agent.last_call >= 0) queue_lesson(agent, agent.last_senses, call_output(agent.last_call), call_target, rate, false, 0.0);
+            const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
+            if (steps > 0 && MEMORY_LEARNING > 0) {  // back in time, the senses of the choices before following
+                queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * MEMORY_LEARNING, false, 0.0, steps);
+                for (int back = 0; back < steps; ++back) queue_lesson(agent, agent.past[static_cast<std::size_t>(back)], 0, 0.0, 0.0, false, 0.0, -1);
+            }
         }
     } else {
         learning_brain(agent).learn_traced_by(agent.last_senses, agent.last_choice, target, rate * weight, discount(agent) * trace_decay(agent));
@@ -1398,6 +1403,13 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
         }
         // And from its call, as from an action untraced: what came of the turn, and the best call open now.
         if (agent.last_call >= 0) agent.own_brain().learn(agent.last_senses, call_output(agent.last_call), call_target, rate);
+        // And back in time: what its memory held, which the choice read, is taught to the gates that wrote it.
+        const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
+        if (steps > 0 && MEMORY_LEARNING > 0) {
+            std::vector<const Senses*> past;
+            for (int back = 0; back < steps; ++back) past.push_back(&agent.past[static_cast<std::size_t>(back)]);
+            agent.own_brain().learn_memory(agent.last_senses, past, agent.last_choice, target, rate * MEMORY_LEARNING);
+        }
     }
     if (!count) return;
     agent.memories.push_back({agent.last_senses, agent.last_choice, target, weight});
@@ -1405,9 +1417,9 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
 }
 
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
-                              double decay) {
+                              double decay, int steps) {
     lesson_senses_.push_back(senses);
-    lessons_.push_back({agent.gpu, &lesson_senses_.back(), action, target, rate, traced, decay});
+    lessons_.push_back({agent.gpu, &lesson_senses_.back(), action, target, rate, traced, decay, steps});
 }
 
 void Simulation::learn_queued() {
@@ -1716,6 +1728,16 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_call = agent.call;
             agent.call_turn = turn_;
         }
+        // What its memory now holds, written as it chose, unless its brain wasn't asked (asleep or spent, it keeps what
+        // it held); and the senses it chose by before, while each choice since wrote its memory, to learn back in time.
+        if (agent.has_last_senses && agent.last_wrote && MEMORY_STEPS > 0) {
+            agent.past.insert(agent.past.begin(), agent.last_senses);
+            if (agent.past.size() > static_cast<std::size_t>(MEMORY_STEPS)) agent.past.resize(static_cast<std::size_t>(MEMORY_STEPS));
+        } else {
+            agent.past.clear();
+        }
+        agent.last_wrote = !idle[index];
+        if (!idle[index]) agent.held = memory_after(values[index], agent.held);
         agent.has_last_senses = true;
         agent.last_senses = plans[index].senses;
         agent.last_choice = choice;
@@ -2136,6 +2158,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
+    for (int held = 0; held < MEMORY_NEURONS; ++held) senses[SenseMemory + held] = agent.held[held];
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
 

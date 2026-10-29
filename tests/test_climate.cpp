@@ -377,7 +377,7 @@ TEST_CASE("the polar caps are very cold all year, and the equator's heart stays 
 }
 
 TEST_CASE("spawned plants are at home in their zone, and imports keep theirs") {
-    Simulation simulation(Simulation::Settings{60, 60, 300, 4});
+    Simulation simulation(Simulation::Settings{60, 60, 600, 4});  // groups enough to reach every zone
     std::set<int> temperatures;
     for (const auto& agent : simulation.agents()) {
         if (agent->species != Species::Plant) continue;

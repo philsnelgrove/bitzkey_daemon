@@ -85,6 +85,7 @@ private:
         bool traced;
         double target, rate, decay;
         Senses senses;
+        int steps = 0;  // learning back in time, as gpu::BrainEngine::Lesson's
     };
     struct Member {
         bool local = false;

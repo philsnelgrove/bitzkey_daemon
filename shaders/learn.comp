@@ -17,13 +17,14 @@ struct Group {
 layout(std430, binding = 2) readonly buffer Groups { Group groups[]; };
 struct Lesson {
     uint action;
-    uint traced;  // 1: TD(lambda), learning from its own choice; 0: a plain lesson
+    uint traced;  // 1: TD(lambda), learning from its own choice; 0: a plain lesson; 2: learning back in time, the
+                  // senses of `steps` choices before following in the next lessons, each 3, a lesson of nothing
     float target;
     float rate;
     float decay;  // for a traced lesson: how much each trace fades first
     float limit;  // the most the error counts for
-    uint unused1;
-    uint unused2;
+    uint steps;  // for learning back in time: how many choices back
+    uint unused;
 };
 layout(std430, binding = 3) readonly buffer Lessons { Lesson lessons[]; };
 layout(std430, binding = 4) readonly buffer Inputs { float inputs[]; };  // INPUTS senses a lesson
@@ -32,8 +33,23 @@ shared float found[(MAX_DEPTH + 1u) * INPUTS];  // the senses, then each layer's
 shared float gradient[INPUTS];
 shared float delta[MAX_HIDDEN];
 shared float shared_error;
+shared float carried[MEMORY_NEURONS], kept[MEMORY_NEURONS], reached[MEMORY_NEURONS];  // learning back in time
+shared float memory_errors[2u * MEMORY_NEURONS];
 
 float activation(uint layer, uint index) { return found[layer * INPUTS + index]; }
+
+void forward(uint base, uint biases) {  // the senses in found, every layer's output after them
+    for (uint layer = 0u; layer < push.depth; ++layer) {
+        const uint reads = reads_of(layer);
+        const uint row = weights_of(base, layer);
+        if (gl_LocalInvocationID.x < push.width) {
+            float sum = 0.0;
+            for (uint item = 0u; item < reads; ++item) sum += weights[row + item * push.width + gl_LocalInvocationID.x] * activation(layer, item);
+            found[(layer + 1u) * INPUTS + gl_LocalInvocationID.x] = tanh(sum + weights[biases + layer * push.width + gl_LocalInvocationID.x]);
+        }
+        barrier();
+    }
+}
 
 void main() {
     const uint group = push.first + gl_WorkGroupID.x;
@@ -46,18 +62,10 @@ void main() {
     for (uint k = 0u; k < groups[group].count; ++k) {
         const uint index = groups[group].first + k;
         const Lesson lesson = lessons[index];
+        if (lesson.traced == 3u) continue;  // the senses of a choice before, learnt from by the lesson back in time before it
         for (uint item = thread; item < INPUTS; item += THREADS) found[item] = inputs[index * INPUTS + item];
         barrier();
-        for (uint layer = 0u; layer < push.depth; ++layer) {  // forward, keeping every layer's output
-            const uint reads = reads_of(layer);
-            const uint row = weights_of(base, layer);
-            if (thread < push.width) {
-                float sum = 0.0;
-                for (uint item = 0u; item < reads; ++item) sum += weights[row + item * push.width + thread] * activation(layer, item);
-                found[(layer + 1u) * INPUTS + thread] = tanh(sum + weights[biases + layer * push.width + thread]);
-            }
-            barrier();
-        }
+        forward(base, biases);  // keeping every layer's output
         const uint top = push.depth;
         if (thread == 0u) {
             float sum = 0.0;
@@ -97,6 +105,95 @@ void main() {
             }
             if (thread == 0u) weights[output_biases + lesson.action] -= lesson.rate * error * VALUE_SCALE;
             barrier();
+        } else if (lesson.traced == 2u) {  // back in time, as Brain::learn_memory
+            // How the action's value, with its error, moves with what each memory neuron held, nothing moving yet.
+            if (thread < push.width) gradient[thread] = error * weights[outputs + thread * ACTIONS + lesson.action];
+            barrier();
+            for (int layer = int(push.depth) - 1; layer >= 0; --layer) {
+                const uint at = uint(layer);
+                const uint reads = reads_of(at);
+                const uint row = weights_of(base, at);
+                if (thread < push.width) {
+                    const float value = activation(at + 1u, thread);
+                    delta[thread] = gradient[thread] * (1.0 - value * value);
+                }
+                barrier();
+                if (at > 0u) {
+                    for (uint item = thread; item < reads; item += THREADS) {
+                        float back = 0.0;
+                        for (uint neuron = 0u; neuron < push.width; ++neuron) back += weights[row + item * push.width + neuron] * delta[neuron];
+                        gradient[item] = back;
+                    }
+                } else if (thread < MEMORY_NEURONS) {
+                    float back = 0.0;
+                    for (uint neuron = 0u; neuron < push.width; ++neuron) back += weights[row + (MEMORY_SENSE + thread) * push.width + neuron] * delta[neuron];
+                    carried[thread] = back / VALUE_SCALE;
+                }
+                barrier();
+            }
+            for (uint step = 1u; step <= lesson.steps; ++step) {
+                // The choice before: each gate's and value's error, and what reaches what the neuron held before.
+                for (uint item = thread; item < INPUTS; item += THREADS) found[item] = inputs[(index + step) * INPUTS + item];
+                barrier();
+                forward(base, biases);
+                if (thread < MEMORY_NEURONS) {
+                    float gate_sum = 0.0, write_sum = 0.0;
+                    for (uint neuron = 0u; neuron < push.width; ++neuron) {
+                        gate_sum += weights[outputs + neuron * ACTIONS + MEMORY_GATES + thread] * activation(top, neuron);
+                        write_sum += weights[outputs + neuron * ACTIONS + MEMORY_GATES + MEMORY_NEURONS + thread] * activation(top, neuron);
+                    }
+                    const float gate = 1.0 / (1.0 + exp(-(gate_sum + weights[output_biases + MEMORY_GATES + thread]) / VALUE_SCALE));
+                    const float write = tanh((write_sum + weights[output_biases + MEMORY_GATES + MEMORY_NEURONS + thread]) / VALUE_SCALE);
+                    const float was = activation(0u, MEMORY_SENSE + thread);
+                    memory_errors[thread] = clamp(carried[thread] * (write - was) * gate * (1.0 - gate), -lesson.limit, lesson.limit);
+                    memory_errors[MEMORY_NEURONS + thread] = clamp(carried[thread] * gate * (1.0 - write * write), -lesson.limit, lesson.limit);
+                    kept[thread] = carried[thread] * (1.0 - gate);
+                    reached[thread] = 0.0;
+                }
+                barrier();
+                if (thread < push.width) {
+                    float sum = 0.0;
+                    for (uint made = 0u; made < 2u * MEMORY_NEURONS; ++made) sum += memory_errors[made] * weights[outputs + thread * ACTIONS + MEMORY_GATES + made];
+                    gradient[thread] = sum;
+                }
+                barrier();
+                for (uint entry = thread; entry < push.width * 2u * MEMORY_NEURONS; entry += THREADS) {
+                    const uint neuron = entry / (2u * MEMORY_NEURONS), made = entry % (2u * MEMORY_NEURONS);
+                    weights[outputs + neuron * ACTIONS + MEMORY_GATES + made] -= lesson.rate * memory_errors[made] * VALUE_SCALE * activation(top, neuron);
+                }
+                barrier();
+                const bool further = step < lesson.steps;
+                for (int layer = int(push.depth) - 1; layer >= 0; --layer) {
+                    const uint at = uint(layer);
+                    const uint reads = reads_of(at);
+                    const uint row = weights_of(base, at);
+                    if (thread < push.width) {
+                        const float value = activation(at + 1u, thread);
+                        delta[thread] = gradient[thread] * (1.0 - value * value);
+                    }
+                    barrier();
+                    if (at > 0u) {
+                        for (uint item = thread; item < reads; item += THREADS) {
+                            float back = 0.0;
+                            for (uint neuron = 0u; neuron < push.width; ++neuron) back += weights[row + item * push.width + neuron] * delta[neuron];
+                            gradient[item] = back;
+                        }
+                    } else if (further && thread < MEMORY_NEURONS) {
+                        float back = 0.0;
+                        for (uint neuron = 0u; neuron < push.width; ++neuron) back += weights[row + (MEMORY_SENSE + thread) * push.width + neuron] * delta[neuron];
+                        reached[thread] = back / VALUE_SCALE;
+                    }
+                    barrier();
+                    if (thread < push.width) weights[biases + at * push.width + thread] -= lesson.rate * delta[thread];
+                    for (uint entry = thread; entry < push.width * reads; entry += THREADS) {
+                        weights[row + entry] -= lesson.rate * (delta[entry % push.width] * activation(at, entry / push.width));
+                    }
+                    barrier();
+                }
+                if (thread < 2u * MEMORY_NEURONS) weights[output_biases + MEMORY_GATES + thread] -= lesson.rate * memory_errors[thread] * VALUE_SCALE;
+                if (thread < MEMORY_NEURONS) carried[thread] = kept[thread] + reached[thread];
+                barrier();
+            }
         } else {  // TD(lambda): every trace fades and gains how this action's value moves with it
             for (uint entry = thread; entry < ACTIONS * push.width; entry += THREADS) {
                 float trace = traces[outputs + entry] * lesson.decay;

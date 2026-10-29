@@ -88,6 +88,17 @@ TEST_CASE("brains on the GPU value and learn as on the CPU, near enough") {
         }
     }
     TRACE_DECAY = lambda;
+    // Then a lesson back in time, two choices back, the senses of each following it in lessons of their own.
+    std::vector<Senses> back_senses;
+    for (std::size_t index = 0; index < 3 * brains.size(); ++index) back_senses.push_back(some_senses(rng));
+    for (std::size_t index = 0; index < brains.size(); ++index) {
+        const Senses* now = &back_senses[3 * index];
+        const std::vector<const Senses*> past = {&back_senses[3 * index + 1], &back_senses[3 * index + 2]};
+        const int action = static_cast<int>(index % ACTION_COUNT);
+        lessons.push_back({handles[index], now, action, 0.9, 0.5, false, 0.0, 2});
+        for (const Senses* before : past) lessons.push_back({handles[index], before, 0, 0.0, 0.0, false, 0.0, -1});
+        brains[index].learn_memory(*now, past, action, 0.9, 0.5);
+    }
     engine->learn(lessons);
     std::vector<Brain> back = brains;  // the right shapes, overwritten from the GPU
     std::vector<Brain*> into;
