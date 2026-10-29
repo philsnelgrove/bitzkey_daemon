@@ -625,9 +625,36 @@ void Simulation::spawn_group(Dna dna, int size, const std::shared_ptr<const Brai
     if (native && !has_sea()) dna = with_terrain(dna, Terrain::Terrestrial);
     const std::vector<int> rows = !given_rows.empty() || !SPAWN_AT_HOME ? given_rows : home_rows(decode_climate(dna).temperature);
     const Terrain terrain = decode_terrain(dna);
-    const std::optional<Cell> centre = biome ? (*biome)[static_cast<std::size_t>(rng().randrange(static_cast<std::int64_t>(biome->size())))]
-                                             : group_centre(terrain, rows);
+    const auto place = [&]() -> std::optional<Cell> {
+        return biome ? (*biome)[static_cast<std::size_t>(rng().randrange(static_cast<std::int64_t>(biome->size())))] : group_centre(terrain, rows);
+    };
+    // A new world's grazers and hunters start apart: each group centred at least HUNTERS_APART from the other kind's.
+    const auto kind = static_cast<Species>(decode_body(dna)[SpeciesTrait]);
+    const bool grazers = kind == Species::Grazer, hunters = kind == Species::Omnivore || kind == Species::Predator;
+    std::optional<Cell> centre;
+    if (native && (grazers || hunters) && HUNTERS_APART > 0) {
+        const std::vector<Cell>& others = grazers ? hunter_centres_ : grazer_centres_;
+        int best = -1;
+        for (int tries = 0; tries < APART_TRIES; ++tries) {
+            const std::optional<Cell> found = place();
+            if (!found) break;
+            int nearest = std::numeric_limits<int>::max();
+            for (const Cell& other : others) {
+                const int across = std::abs(found->x - other.x);
+                nearest = std::min(nearest, std::min(across, width_ - across) + std::abs(found->y - other.y));
+            }
+            if (!centre || nearest > best) {
+                centre = found;
+                best = nearest;
+            }
+            if (nearest >= HUNTERS_APART) break;
+        }
+    } else {
+        centre = place();
+    }
     if (!centre) return;  // nowhere it could live
+    if (native && grazers) grazer_centres_.push_back(*centre);
+    if (native && hunters) hunter_centres_.push_back(*centre);
     const int x = centre->x, y = centre->y;
     if (native) {  // tolerance is rare at the start
         for (const std::uint64_t flag : {HEAT_TOLERANCE, COLD_TOLERANCE}) {
@@ -1087,7 +1114,7 @@ double Simulation::home_prey(const Bitzkey& predator) const {
 
 bool Simulation::may_breed(const Bitzkey& agent, const Bitzkey& partner) const {
     return agent.can_breed() && partner.can_breed() && room() > 0 &&
-           (!CROWDING_LIMIT || crowding(agent, partner, true) < CROWDING_LIMIT) &&  // its own kind crowds it
+           (!CROWDING_LIMIT || agent.generation == 0 || crowding(agent, partner, true) < CROWDING_LIMIT) &&  // its own kind crowds it, but for a world's first
            (!food_needed(agent) || food_supply(agent) >= food_needed(agent)) &&
            well_fed(agent) && !prey_rare(agent);
 }

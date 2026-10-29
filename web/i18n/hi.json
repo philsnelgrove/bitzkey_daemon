@@ -1490,5 +1490,7 @@
 "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "किसी दुनिया के पहले Bitzkey में से एक, जिसका मस्तिष्क अप्रशिक्षित है, तैयार होने पर प्रजनन को, अन्यथा प्रणय को, कितना अधिक महत्व देता है",
 "Grazer group": "शाकाहारी समूह",
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "नई दुनिया जिन समूहों से शुरू होती है, उनमें प्रत्येक में शाकाहारी (अन्य प्रजातियाँ 3 से 5 के समूहों में शुरू होती हैं)",
-"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "Bitzkey के साथ शुरू होने वाली दुनिया में हर बायोम (किसी जलवायु क्षेत्र में ज़मीन या समुद्र का हर फैलाव) की देशी, हर प्रजाति के इतने समूह होते हैं, उसकी आबादी के अतिरिक्त; 0: कोई नहीं"
+"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "Bitzkey के साथ शुरू होने वाली दुनिया में हर बायोम (किसी जलवायु क्षेत्र में ज़मीन या समुद्र का हर फैलाव) की देशी, हर प्रजाति के इतने समूह होते हैं, उसकी आबादी के अतिरिक्त; 0: कोई नहीं",
+"Hunters apart": "शिकारी दूर",
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "नई दुनिया के शिकारी उसके शाकाहारियों से कम से कम इतने खाने दूर शुरू होते हैं, जहाँ जगह हो; 0: कहीं भी"
 }

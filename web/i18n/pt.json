@@ -1490,5 +1490,7 @@
 "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "quanto mais um dos primeiros Bitzkeys de um mundo, de cérebro não treinado, valoriza reproduzir-se quando pronto, ou senão cortejar",
 "Grazer group": "Grupo de herbívoros",
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "herbívoros em cada grupo com que começa um mundo novo (as outras espécies começam em grupos de 3 a 5)",
-"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "um mundo que começa com Bitzkeys tem este número de grupos de cada espécie, nativos de cada bioma (cada extensão de terra ou mar numa zona climática), além da sua população; 0: nenhum"
+"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "um mundo que começa com Bitzkeys tem este número de grupos de cada espécie, nativos de cada bioma (cada extensão de terra ou mar numa zona climática), além da sua população; 0: nenhum",
+"Hunters apart": "Caçadores afastados",
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "casas que, no mínimo, separam no início os caçadores de um mundo novo dos seus herbívoros, onde houver espaço; 0: em qualquer lado"
 }

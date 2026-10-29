@@ -1361,6 +1361,27 @@ TEST_CASE("an infant has half its body and health, and grows out of it; plants a
     CHECK(seedling.trait(Weapons) == 6);
 }
 
+TEST_CASE("a new world's grazers start apart from its hunters") {
+    const int apart = HUNTERS_APART;
+    std::vector<int> near;
+    for (const int setting : {15, 0}) {
+        HUNTERS_APART = setting;
+        const Simulation simulation(Simulation::Settings{120, 80, 200, 5});
+        int count = 0;
+        for (const auto& grazer : simulation.agents()) {
+            if (grazer->species != Species::Grazer) continue;
+            count += std::any_of(simulation.agents().begin(), simulation.agents().end(), [&](const auto& hunter) {
+                if (hunter->species != Species::Omnivore && hunter->species != Species::Predator) return false;
+                const int across = std::abs(grazer->x - hunter->x);
+                return std::min(across, 120 - across) + std::abs(grazer->y - hunter->y) <= 8;
+            });
+        }
+        near.push_back(count);
+    }
+    CHECK(near[0] * 10 < near[1]);  // a hunter within eight squares of far fewer grazers
+    HUNTERS_APART = apart;
+}
+
 TEST_CASE("the first Bitzkeys of a world start grown") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;

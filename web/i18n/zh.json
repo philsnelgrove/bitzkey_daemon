@@ -1490,5 +1490,7 @@
 "how much more one of a world's first Bitzkeys, its brain untrained, values breeding when ready, or else courting": "世界最初的 Bitzkey(大脑未经训练)在准备好时对繁殖、否则对求偶的额外重视程度",
 "Grazer group": "食草动物群",
 "grazers in each group a new world starts with (other species start in groups of 3 to 5)": "新世界开始时每群食草动物的数量(其他物种以 3 到 5 只为一群开始)",
-"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "以 Bitzkey 开始的世界,在其人口之外,每个生物群系(每个气候带中的一片陆地或海洋)都有这么多群各物种的本地种群;0 表示没有"
+"a world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none": "以 Bitzkey 开始的世界,在其人口之外,每个生物群系(每个气候带中的一片陆地或海洋)都有这么多群各物种的本地种群;0 表示没有",
+"Hunters apart": "捕食者间距",
+"squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere": "新世界的捕食者开始时至少离食草动物多少格(在有空间的地方);0 表示任意位置"
 }
