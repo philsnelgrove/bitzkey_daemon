@@ -282,6 +282,7 @@ std::vector<Rule> make_rules() {
         {"WINTER_EQUATOR_SHARE", "Climate", "Winter equator", "share of the map's height across the equator's middle that stays hot through both winters", 0.0, 1.0, 0.01, false, &WINTER_EQUATOR_SHARE},
         {"CLIMATE_HUNGER", "Climate", "Climate hunger", "times the food needed a step or more from home (a plant, only too hot)", 1.0, 5.0, 0.1, false, &CLIMATE_HUNGER},
         {"CLIMATE_DAMAGE", "Climate", "Climate damage", "share of full health lost a turn for each step from home (plants from two)", 0.0, 1.0, 0.01, false, &CLIMATE_DAMAGE},
+        {"RESTING_EXPOSURE", "Climate", "Resting exposure", "times the weather's harm to an animal that chose to rest out of its temperature (not asleep or spent)", 1.0, 10.0, 0.1, false, &RESTING_EXPOSURE},
         {"WEATHER_GRACE", "Climate", "Weather grace", "days an animal endures out of its temperature, uneasy but unharmed, before the weather harms it (half for the least resilient, half again for the most; twice as long weather it is hardy to)", 0.0, 30.0, 0.5, false, &WEATHER_GRACE},
         {"PLANT_CLIMATE_YIELD", "Climate", "Plant climate yield", "share of its food a plant gives out of its temperature", 0.0, 1.0, 0.05, false, &PLANT_CLIMATE_YIELD},
         {"SEASON_TURNING", "Climate", "Season turning", "share of a winter season its wave takes to wash in, and again to ebb out at its end (at most half)", 0.0, 0.5, 0.05, false, &SEASON_TURNING},

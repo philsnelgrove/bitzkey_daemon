@@ -768,3 +768,20 @@ TEST_CASE("an animal is in heat only before its winter, the patient further from
     Bitzkey& plant = winter.add_agent(encode_dna(Species::Plant), 10, 30);
     CHECK(winter.heat(plant));
 }
+
+TEST_CASE("an animal that chose to rest out of its temperature takes the weather's harm twice over, one made to rest once") {
+    const HarshClimate harsh;
+    Simulation simulation = world_at(239);
+    Bitzkey& chose = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 30, 30);
+    Bitzkey& made = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Cold}}), 50, 30);
+    for (Bitzkey* agent : {&chose, &made}) {
+        agent->has_last_senses = true;
+        agent->last_choice = Rest;
+    }
+    made.last_forced = true;  // asleep, or spent
+    simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+    simulation.advance();  // the weather's harm, before either chooses again
+    // a step from home, a tenth of its health, and as much again for choosing to rest; both rest a little back since
+    CHECK(made.health - chose.health == doctest::Approx((RESTING_EXPOSURE - 1) * CLIMATE_DAMAGE * made.max_health));
+    CHECK(made.health < made.max_health);
+}

@@ -425,6 +425,7 @@ inline double POLAR_SHARE = 0.025;  // at the top and again at the bottom: 5% of
 inline double WINTER_EQUATOR_SHARE = 0.05;
 inline double CLIMATE_HUNGER = 2.0;   // an animal a step or more from home, or a plant too hot, needs this many times the food
 inline double CLIMATE_DAMAGE = 0.025;  // for each step from home, a Bitzkey loses this share of its full health a turn; plants from two
+inline double RESTING_EXPOSURE = 2.0;  // times the weather's harm to an animal that chose to rest out of its temperature
 inline double WEATHER_GRACE = 4.0;  // days an animal endures out of its temperature, uneasy but unharmed, before the weather harms it; half as long for the least resilient, half as long again for the most; twice as long weather it is hardy to
 inline double PLANT_CLIMATE_YIELD = 0.0;  // a plant out of its temperature gives this share of its food
 inline int GRASS_DIEBACK = 60;     // where it isn't medium, a cell's grass loses a tuft every this many turns

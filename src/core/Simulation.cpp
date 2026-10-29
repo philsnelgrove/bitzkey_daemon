@@ -858,7 +858,9 @@ void Simulation::take_turn() {
         const bool hardy = here != home && (here > home ? agent->climate.cold : agent->climate.heat);
         const double grace = plant ? 0.0 : WEATHER_GRACE * DAY_LENGTH * (0.5 + agent->feeling(Resilience)) * (hardy ? 2 : 1);
         agent->weathered = felt > 0 ? agent->weathered + 1 : std::max(0.0, agent->weathered - 1);
-        if (felt > 0 && agent->weathered > grace) agent->health -= CLIMATE_DAMAGE * felt * share * agent->max_health;
+        // Choosing to sit the weather out hurts the more (Resting exposure); resting asleep or spent was no choice.
+        const double resting = agent->has_last_senses && agent->last_choice == Rest && !agent->last_forced ? RESTING_EXPOSURE : 1.0;
+        if (felt > 0 && agent->weathered > grace) agent->health -= CLIMATE_DAMAGE * felt * share * resting * agent->max_health;
         const bool starving = agent->hunger >= 100;
         if (starving) agent->health -= STARVING_DAMAGE * (1 + SIZE_STARVING * agent->physique(Size)) * agent->max_health;  // it wastes away, the larger the faster
         if (agent->health <= 0) {  // starving, and hungrier out of its temperature, it died of exposure
