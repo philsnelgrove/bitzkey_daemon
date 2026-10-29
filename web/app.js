@@ -33,15 +33,17 @@ function marked(agent) {
   return agent.identifier === app.selectedId || app.selection.has(agent.identifier) ||
     app.exportList.some(entry => entry.identifier === agent.identifier);
 }
-// Whether a Bitzkey is drawn, `least` the smallest size the zoom shows: plants only while PLANTS is on, and every
-// size while LOD MANAGER is off.
+// Whether a Bitzkey is drawn, `least` the smallest size the zoom shows: only while its species and terrain are both
+// shown, and every size while LOD MANAGER is off.
 function shownAt(agent, least) {
   if (marked(agent)) return true;
-  if (!plants && agent.species === 0) return false;
+  if (filteredOut(agent)) return false;
   return !lod || agent.size >= least;
 }
-// Whether one not drawn counts as too small to see from this far out, rather than a plant hidden.
-const tooSmall = agent => plants || agent.species !== 0;
+// Hidden by the filters: its species or its terrain off.
+const filteredOut = agent => !speciesShown[agent.species] || !terrainShown[agent.terrain];
+// Whether one not drawn counts as too small to see from this far out, rather than filtered out.
+const tooSmall = agent => !filteredOut(agent);
 // Every Bitzkey in view too small to draw from this far out: say so, in the middle of the view.
 function sayTooFar(ctx, view) {
   const text = tr(TOO_FAR);
@@ -96,7 +98,8 @@ const STACK_SPACING = 0.7;    // a stack's Bitzkeys each this share of the one b
 let globe = false;
 let blind = false;            // neither map nor globe drawn, to spare the time
 let lod = true;               // the level of detail hides the smaller Bitzkeys zoomed out; off, every size shows from any altitude
-let plants = true;            // plants are drawn
+const speciesShown = [true, true, true, true];  // each species drawn, or filtered out: plants, grazers, omnivores, predators
+const terrainShown = [true, true, true, true];  // each terrain drawn, or filtered out: terrestrial, aquatic, avian, amphibious
 let globeYaw = 0, globeTilt = 0.35, globeZoom = 1;
 let turnFrom = null;          // a drag on the globe: where it began, and its turn then
 let globeLook = null;         // where each pixel of the disc lies on the map, kept while its size and tilt stay
@@ -237,6 +240,7 @@ function parseFrame(view) {
       size: view.getUint8(offset + 18),
       alive: view.getUint8(offset + 19) === 1,
       opacity: view.getUint8(offset + 20) / 255,
+      terrain: (view.getUint32(offset + 29, true) >>> TERRAIN_SHIFT) & 3,  // from its social word
       trail: [],
     };
     agents[index] = agent;
@@ -706,19 +710,28 @@ new ResizeObserver(() => drawMap()).observe($('map-holder'));
 const globeGround = document.createElement('canvas');
 const globeFrame = document.createElement('canvas');
 
+const TERRAIN_SHIFT = 25;  // the terrain's two bits in the social word, after the traits and neurodivergence
+const filterRow = (labels, shown) => element('div', { class: 'filter-row' }, labels.map((label, kind) =>
+  element('button', { class: shown[kind] ? 'on' : '', onclick: event => {
+    shown[kind] = !shown[kind];
+    event.currentTarget.classList.toggle('on', shown[kind]);
+    drawMap();
+  } }, label)));
 const viewButtons = element('div', { class: 'view-buttons' },
   element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); } }, 'MAP'),
   element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); } }, 'GLOBE'),
   element('button', { class: 'view-blind', onclick: () => { blind = true; showViewButtons(); drawMap(); } }, 'BLIND'),
-  element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'),
-  element('button', { class: 'view-plants', onclick: () => { plants = !plants; showViewButtons(); drawMap(); } }, 'PLANTS'));
-$('map-holder').append(viewButtons);
+  element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'));
+// Beneath them, the filters: a row by species, a row by terrain
+const filterButtons = element('div', { class: 'filter-buttons' },
+  filterRow(['PLANTS', 'GRAZERS', 'OMNIVORES', 'PREDATORS'], speciesShown),
+  filterRow(['TERRESTRIAL', 'AQUATIC', 'AVIAN', 'AMPHIBIOUS'], terrainShown));
+$('map-holder').append(viewButtons, filterButtons);
 function showViewButtons() {
   viewButtons.querySelector('.view-map').classList.toggle('on', !globe && !blind);
   viewButtons.querySelector('.view-globe').classList.toggle('on', globe && !blind);
   viewButtons.querySelector('.view-blind').classList.toggle('on', blind);
   viewButtons.querySelector('.view-lod').classList.toggle('on', lod);
-  viewButtons.querySelector('.view-plants').classList.toggle('on', plants);
 }
 showViewButtons();
 

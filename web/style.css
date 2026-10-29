@@ -364,3 +364,13 @@ body.hud-hidden #board { padding: 8px; }
 .hover-popup table.genes { font-family: Consolas, monospace; font-size: 12px; border-collapse: collapse; margin-top: 4px; }
 .hover-popup table.genes td { padding: 0 8px 0 0; white-space: pre; }
 .hover-popup table.genes td:nth-child(3), .hover-popup table.genes td:nth-child(4) { text-align: right; }
+
+/* The filters, a row by species and a row by terrain, above the map beneath the view's buttons */
+.filter-buttons { position: absolute; top: -41px; left: 0; display: flex; flex-direction: column; gap: 3px; z-index: 2; }
+.filter-buttons .filter-row { display: flex; gap: 6px; }
+.filter-buttons button { padding: 1px 10px; font-size: 11px; font-weight: bold; }
+.filter-buttons button.on { background: rgb(131, 205, 143); color: rgb(19, 26, 27); }
+body.hud-hidden .filter-buttons { display: none; }
+#map-holder { margin-top: 42px; }  /* room above the map for the view's buttons and the two rows of filters */
+.view-buttons { top: -62px; }
+body.hud-hidden #map-holder { margin-top: 0; }
