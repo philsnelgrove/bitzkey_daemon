@@ -588,6 +588,42 @@ Json Probe::brain(Simulation& world, int identifier, bool weights) const {
     return result;
 }
 
+Json Probe::minds(Simulation& world) const {
+    world.sync_brains();  // every brain as it now is
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::vector<double> reaches;  // each brain's farthest value from nothing, for what it last sensed
+        std::size_t thinking = 0, runaway = 0, neurons = 0, jammed = 0;
+        double depth = 0, width = 0;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species || !agent->brain) continue;
+            ++thinking;
+            depth += agent->brain->depth();
+            width += agent->brain->width();
+            if (!agent->has_last_senses) continue;
+            const Values values = agent->brain->values(agent->last_senses);
+            double reach = 0;
+            for (const double value : values) reach = std::max(reach, std::abs(value));
+            reaches.push_back(reach);
+            runaway += reach > RUNAWAY_VALUE;
+            const std::vector<std::vector<double>> found = agent->brain->activations(agent->last_senses);
+            for (std::size_t layer = 1; layer < found.size(); ++layer) {
+                for (const double output : found[layer]) {
+                    ++neurons;
+                    jammed += std::abs(output) > JAMMED;
+                }
+            }
+        }
+        std::sort(reaches.begin(), reaches.end());
+        const auto at = [&](double share) { return reaches.empty() ? 0.0 : reaches[static_cast<std::size_t>(share * static_cast<double>(reaches.size() - 1))]; };
+        const double count = std::max<double>(1, static_cast<double>(thinking));
+        result[std::string(species_name(species))] = {{"thinking", thinking}, {"valued", reaches.size()}, {"depth", depth / count},
+                                                      {"width", width / count}, {"value_median", at(0.5)}, {"value_p90", at(0.9)},
+                                                      {"value_max", at(1.0)}, {"runaway", runaway}, {"neurons", neurons}, {"jammed", jammed}};
+    }
+    return {{"turn", world.turn()}, {"runaway_value", RUNAWAY_VALUE}, {"jammed_at", JAMMED}, {"minds", result}};
+}
+
 std::string Probe::brain_report_text(Simulation& world) const {
     world.sync_brains();  // every brain as it now is
     const auto alive = world.living();
@@ -706,6 +742,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/minds", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return minds(world); }));
     }));
     server.Get(prefix + "/reports/brain", answered([=, this](const httplib::Request&, httplib::Response& response) {
         std::string body;

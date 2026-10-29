@@ -239,14 +239,13 @@ public:
     // layer loads one layer deep. It keeps the width it was saved with, and the Bitzkey given it
     // resizes it to its own. Throws std::invalid_argument.
     static Brain from_record(const nlohmann::json& record);
+    // The senses, then each hidden layer's output: for the probe to see which neurons have jammed at either end.
+    std::vector<std::vector<double>> activations(const Senses& inputs) const;
 
     // The same weights; traces don't count.
     bool operator==(const Brain& other) const {
         return layers == other.layers && output_weights == other.output_weights && output_biases == other.output_biases;
     }
-
-private:
-    std::vector<std::vector<double>> activations(const Senses& inputs) const;  // the senses, then each layer's output
 };
 
 }  // namespace bitzkey

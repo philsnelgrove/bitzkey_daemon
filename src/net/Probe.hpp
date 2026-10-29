@@ -58,6 +58,8 @@ public:
     //   GET    prefix/history?points=        each species' numbers over the run, as the graph remembers it
     //   GET    prefix/insights               how often each species took each action when it could, lately
     //   GET    prefix/brain/ID?weights=1     a brain: its shape, its values for what it last sensed, its weights if asked
+    //   GET    prefix/minds                  each species' brains at a glance: how far their values run and how
+    //                                        many of their neurons have jammed
     //   GET    prefix/reports/brain          the brain report, as text
     //   GET    prefix/reports/deaths         the death report, as text
     //   GET    prefix/timings                where each turn's time has gone
@@ -88,6 +90,10 @@ public:
     Json history(Simulation& world, std::size_t points) const;
     Json insights(Simulation& world) const;
     Json brain(Simulation& world, int identifier, bool weights) const;
+    // A value this far from nothing has run away; a neuron this near either end of tanh has jammed there.
+    static constexpr double RUNAWAY_VALUE = 50;
+    static constexpr double JAMMED = 0.99;
+    Json minds(Simulation& world) const;
     std::string brain_report_text(Simulation& world) const;
     std::string death_report_text(Simulation& world) const;
     Json timings(Simulation& world) const;

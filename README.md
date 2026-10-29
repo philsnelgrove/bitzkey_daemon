@@ -219,6 +219,7 @@ The probe lets a program, or an assistant, read anything about the world while i
 | `GET /api/probe/history?points=` | each species' numbers over the run, as the graph remembers it |
 | `GET /api/probe/insights` | how often each species took each action when it could, lately |
 | `GET /api/probe/brain/ID?weights=1` | a brain: its shape, what it makes of what it last sensed, and its weights if asked |
+| `GET /api/probe/minds` | each species' brains at a glance: how far their values run (median, 90th, highest, beyond 50) and how many of their neurons have jammed |
 | `GET /api/probe/reports/brain` | the brain report, as text |
 | `GET /api/probe/reports/deaths` | the death report, as text |
 | `GET /api/probe/timings` | where each turn's time has gone, part by part and action by action |
