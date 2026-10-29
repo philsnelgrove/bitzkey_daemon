@@ -1353,6 +1353,26 @@ TEST_CASE("an infant has half its body and health, and grows out of it; plants a
     CHECK(seedling.trait(Weapons) == 6);
 }
 
+TEST_CASE("no frail Bitzkey breeds: neither an infant nor the old") {
+    const double youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    grazer.age = 0;
+    grazer.grow();
+    CHECK(grazer.feeble);
+    CHECK_FALSE(grazer.can_breed());  // an infant
+    grazer.age = static_cast<int>(std::lround(0.5 * grazer.lifespan));
+    grazer.grow();
+    CHECK_FALSE(grazer.feeble);
+    CHECK(grazer.can_breed());  // grown
+    grazer.age = static_cast<int>(AGEING * grazer.lifespan) + 1;
+    grazer.grow();
+    CHECK(grazer.feeble);
+    CHECK_FALSE(grazer.can_breed());  // old
+    FEEBLE_YOUTH = youth;
+}
+
 TEST_CASE("old age brings feebleness, and its health shrinks to match") {
     FEEBLE_YOUTH = 0.1;
     const double ageing = AGEING;

@@ -717,8 +717,10 @@ struct Bitzkey {
     // How much a carrion-eater it is: 0 up to the middle of its carrion trait's range, rising to 1 at the top.
     double scavenger() const { return std::max(0.0, 2 * physique(Carrion) - 1); }
     Profile profile() const;
-    // Ready, not carrying young, and able to pay for breeding with energy to spare.
-    bool can_breed() const { return in_heat && cooldown == 0 && womb.empty() && hunger + breeding_price() <= 100 - BREED_RESERVE; }
+    // Ready, not frail (neither an infant nor old: feeble), not carrying young, and able to pay for breeding with energy to spare.
+    bool can_breed() const {
+        return in_heat && !feeble && cooldown == 0 && womb.empty() && hunger + breeding_price() <= 100 - BREED_RESERVE;
+    }
     bool in_heat = true;  // in heat now, and so fertile: kept turn by turn (see Simulation::heat)
     double breeding_price() const { return breeding_cost * cost_share; }  // what it pays to breed now, its species' scarcity counted
     bool alive() const { return health > 0; }  // full hunger wears its health away (STARVING_DAMAGE) rather than killing
