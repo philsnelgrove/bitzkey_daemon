@@ -227,6 +227,10 @@ inline double DOMINANCE_EASE = 0.5;
 // this share; and an alert reaches it from a herd-mate this many times its trust times its sight away.
 inline double TRUST_HEED = 0.5;
 inline double TRUST_REACH = 2.0;
+inline int ELDER_AGE = 720;  // turns old an animal must be to teach
+inline double STUDENT_AGE = 0.5;  // the oldest a student may be, as a share of its elder's age
+inline double STUDENT_TRUST = 0.25;  // how trusting an animal must be to be willing to be taught
+inline double TEACHING_JOY = 1.0;  // how glad an elder is of teaching a student; more if empathetic
 // Kinship: the most a herd-mate's or partner's social background may differ from its own, at full kinship and
 // no tolerance, is 1 less this; less kinship, or more tolerance, accepts more.
 inline double KINSHIP_SHUN = 0.8;
@@ -319,7 +323,7 @@ constexpr double MAP_NEARNESS = 0.01;
 constexpr int MAX_ACQUAINTANCES = 16;
 inline int ACQUAINTANCES = 8;
 inline double REGARD_LEARNING = 0.3;
-constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5;
+constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5, TEACHING_DEED = 1.0;
 // The diary: an animal keeps up to Diary entries (none at 0) of its most vivid experiences, by how much came of them,
 // the vividness fading by Diary fading each turn since, the faintest forgotten for a more vivid one; and each turn it
 // re-learns from one of them, in turn, as from a replay.
@@ -599,6 +603,7 @@ struct Bitzkey {
     std::shared_ptr<Brain> brain;  // shared with history snapshots; copied before it learns
     int generation = 0;
     int children = 0;
+    int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
@@ -962,6 +967,7 @@ public:
         Bitzkey* alert_to = nullptr;  // what it may alert its herd to
         std::optional<Cell> revisit;  // where it last fed, to go back to
         std::vector<Bitzkey*> young;  // its own infants within its sight, to feed
+        Bitzkey* student = nullptr;  // a willing student beside an elder
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
         int kin = 0;
@@ -998,6 +1004,9 @@ public:
     // previous decisions; all choose; then each acts in turn, finding the world as those before it left
     // it. What herd-mates learn from watching is learnt last, all together.
     void think_all(const std::vector<Bitzkey*>& agents);
+    void teach(Bitzkey& elder, Bitzkey& student);  // agreed now, done at the turn's end
+    void teach_all();  // each student given its elder's brain, once the turn's lessons are learnt
+    bool willing_student(const Bitzkey& elder, const Bitzkey& student) const;
     void learn_witnessed();  // herd-mates learn from what they saw this turn, each brain in the order it saw it
     void conceive();  // make the brains of the young conceived since it last did, all at once
     // Bring the living's brains back from the GPUs into their CPU copies, before anything reads their
@@ -1369,6 +1378,7 @@ private:
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
+        std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)
         std::vector<Conception> conceptions;
         std::vector<std::shared_ptr<Brain>> dead_brains;
         int kills = 0, kills_gone = 0, carrion_gone = 0;
@@ -1386,6 +1396,7 @@ private:
     void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;
+    std::vector<std::pair<Bitzkey*, Bitzkey*>> teachings_;  // (elder, student) this turn
     std::deque<Senses> lesson_senses_;  // what each queued lesson sensed, kept still while it waits
     std::vector<gpu::BrainEngine::Lesson> lessons_;  // lessons for the GPUs, learnt in one batch
     void queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,

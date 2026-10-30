@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "טווח קריאת ההזדווגות, אוכלי כל",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "פי כמה מטווח ראייתו מחפש אוכל כל מוכן לרבייה בן זוג, כשאינו רואה אף אחד",
 "Infant thorns": "קוצים לצעירים",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "החלק ממכת הנגד של צמח קוצני שצעיר סופג, לעומת בעל חיים בוגר"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "החלק ממכת הנגד של צמח קוצני שצעיר סופג, לעומת בעל חיים בוגר",
+"Elder age": "גיל זקן השבט",
+"turns old an animal must be to teach": "תורות שבעל חיים צריך לחיות כדי ללמד",
+"Student age": "גיל התלמיד",
+"the oldest a student may be, as a share of its elder's age": "הגיל המרבי של תלמיד, כחלק מגילו של הזקן",
+"Student trust": "אמון התלמיד",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "כמה אמון, 0 עד 1, נדרש מבעל חיים כדי להסכים ללמוד",
+"Teaching joy": "שמחת ההוראה",
+"how glad an elder is of teaching a student; more if empathetic": "כמה שמח זקן ללמד תלמיד; יותר אם הוא אמפתי"
 }

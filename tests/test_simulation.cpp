@@ -2190,6 +2190,60 @@ TEST_CASE("ties between targets equally near favour no side: east and west, nort
     CHECK(rows == std::set<int>{4, 6});
 }
 
+TEST_CASE("an elder gives a willing student a copy of its brain, once, and it fits the student") {
+    const double active = ACTIVE_SHARE, trusting = STUDENT_TRUST;
+    ACTIVE_SHARE = 1.0;  // none asleep
+    STUDENT_TRUST = 0.0;
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& elder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    elder.age = ELDER_AGE;
+    student.age = 10;
+    elder.reward = 0;
+    auto sensed = simulation.sense(elder);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Teach) != sensed.options.end());
+    CHECK(sensed.senses[SenseStudentNear] == doctest::Approx(1.0 / 3));
+    CHECK(simulation.sense(student).senses[SenseElderAge] == doctest::Approx(std::min(1.0, static_cast<double>(ELDER_AGE) / YEAR_LENGTH)));
+    const std::vector<int> studied = {student.brain->depth(), student.brain->width()};
+    simulation.act(elder, Teach, sensed.situation);
+    simulation.teach_all();
+    CHECK(student.taught_by == elder.identifier);
+    CHECK(std::vector<int>{student.brain->depth(), student.brain->width()} == studied);
+    CHECK(student.brain->output_biases == elder.brain->output_biases);
+    CHECK(student.brain != elder.brain);  // a copy, to go its own way
+    CHECK(elder.reward > 0);
+    CHECK(student.known[0].regard > 0);
+    auto again = simulation.sense(elder);
+    CHECK(std::find(again.options.begin(), again.options.end(), Teach) == again.options.end());  // taught once in its life
+    ACTIVE_SHARE = active;
+    STUDENT_TRUST = trusting;
+}
+
+TEST_CASE("the young, the old and the distrustful aren't taught") {
+    const double active = ACTIVE_SHARE, trusting = STUDENT_TRUST;
+    ACTIVE_SHARE = 1.0;
+    STUDENT_TRUST = 2.0;  // none so trusting
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& elder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    elder.age = ELDER_AGE;
+    student.age = 10;
+    const auto offered = [&] {
+        const auto options = simulation.sense(elder).options;
+        return std::find(options.begin(), options.end(), Teach) != options.end();
+    };
+    CHECK_FALSE(offered());
+    STUDENT_TRUST = 0.0;
+    CHECK(offered());
+    student.age = ELDER_AGE;
+    CHECK_FALSE(offered());  // no younger than half its age
+    student.age = 10;
+    elder.age = ELDER_AGE - 1;
+    CHECK_FALSE(offered());  // not yet an elder
+    ACTIVE_SHARE = active;
+    STUDENT_TRUST = trusting;
+}
+
 TEST_CASE("a parent feeds its hungry infants within its sight full, at no cost to it, and is glad of it") {
     FEEBLE_YOUTH = 1.0 / 30;  // infants again
     Simulation simulation(Simulation::Settings{30, 30, 0, 1});

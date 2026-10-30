@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "Portata del richiamo d'accoppiamento, onnivori",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "quante volte la sua vista un onnivoro pronto a riprodursi cerca un partner, quando non ne vede",
 "Infant thorns": "Spine sui cuccioli",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "la quota del contraccolpo di una pianta spinosa che subisce un cucciolo, rispetto a un animale adulto"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "la quota del contraccolpo di una pianta spinosa che subisce un cucciolo, rispetto a un animale adulto",
+"Elder age": "Età da anziano",
+"turns old an animal must be to teach": "turni di età che servono a un animale per insegnare",
+"Student age": "Età da allievo",
+"the oldest a student may be, as a share of its elder's age": "l'età massima di un allievo, come quota dell'età del suo anziano",
+"Student trust": "Fiducia dell'allievo",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "quanta fiducia, da 0 a 1, serve a un animale per lasciarsi istruire",
+"Teaching joy": "Gioia di insegnare",
+"how glad an elder is of teaching a student; more if empathetic": "quanto un anziano è lieto di istruire un allievo; di più se empatico"
 }

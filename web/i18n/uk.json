@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "Дальність шлюбного поклику, всеїдні",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "у скільки разів далі за свій зір всеїдне, готове до розмноження, шукає пару, коли не бачить жодної",
 "Infant thorns": "Колючки для малят",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "частка удару колючої рослини у відповідь, яку отримує маля, порівняно з дорослою твариною"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "частка удару колючої рослини у відповідь, яку отримує маля, порівняно з дорослою твариною",
+"Elder age": "Вік старійшини",
+"turns old an animal must be to teach": "скільки ходів має прожити тварина, щоб навчати",
+"Student age": "Вік учня",
+"the oldest a student may be, as a share of its elder's age": "найбільший вік учня як частка віку його старійшини",
+"Student trust": "Довіра учня",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "наскільки довірливою, від 0 до 1, має бути тварина, щоб погодитися вчитися",
+"Teaching joy": "Радість навчання",
+"how glad an elder is of teaching a student; more if empathetic": "наскільки старійшина радіє навчанню учня; більше, якщо співчутливий"
 }

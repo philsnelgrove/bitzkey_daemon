@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "Zasięg zewu godowego, wszystkożercy",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "ile razy dalej niż sięga wzrok wszystkożerca gotów do rozrodu szuka partnera, gdy żadnego nie widzi",
 "Infant thorns": "Ciernie u młodych",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "część kontrataku ciernistej rośliny, jaką odnosi młode, w porównaniu z dorosłym zwierzęciem"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "część kontrataku ciernistej rośliny, jaką odnosi młode, w porównaniu z dorosłym zwierzęciem",
+"Elder age": "Wiek starszego",
+"turns old an animal must be to teach": "liczba tur życia potrzebna zwierzęciu, by mogło nauczać",
+"Student age": "Wiek ucznia",
+"the oldest a student may be, as a share of its elder's age": "najwyższy wiek ucznia jako część wieku jego starszego",
+"Student trust": "Zaufanie ucznia",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "jak ufne, od 0 do 1, musi być zwierzę, by dać się nauczyć",
+"Teaching joy": "Radość nauczania",
+"how glad an elder is of teaching a student; more if empathetic": "jak bardzo starszy cieszy się z nauczania ucznia; bardziej, gdy jest empatyczny"
 }

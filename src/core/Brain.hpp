@@ -104,11 +104,18 @@ enum Sense : int {
     SenseKnownSouth,
     SenseCallerKnown,
     SenseCallerRegard,
+    // Then the oldest of its kind within its sight: its age, 0 newborn to 1 a year old or more; how close, 1 beside it
+    // falling to 0 at the edge of its sight; and which way it lies. And how many willing students stand beside it.
+    SenseElderAge,
+    SenseElderCloseness,
+    SenseElderEast,
+    SenseElderSouth,
+    SenseStudentNear,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung };
-constexpr int ACTION_COUNT = 24;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach };
+constexpr int ACTION_COUNT = 25;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -139,7 +146,7 @@ constexpr int call_output(int call) { return ACTION_COUNT + call; }  // the outp
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
-    "revisit", "feed_young"};
+    "revisit", "feed_young", "teach"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
@@ -172,7 +179,8 @@ constexpr bool signed_sense(int sense) {
             ((sense - SenseHeardCall) % HEARD_SENSES == HeardEast || (sense - SenseHeardCall) % HEARD_SENSES == HeardSouth)) ||
            (sense >= SenseMemory && sense < SenseMapFood) || sense == SenseMapFoodEast || sense == SenseMapFoodSouth ||
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
-           sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard;
+           sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
+           sense == SenseElderEast || sense == SenseElderSouth;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -191,7 +199,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8",
     "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
     "map_comfort", "map_comfort_east", "map_comfort_south",
-    "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "aggression", "libido", "curiosity",
+    "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard",
+    "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

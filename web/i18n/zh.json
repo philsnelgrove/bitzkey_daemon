@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "求偶呼唤范围(杂食动物)",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "准备繁殖的杂食动物看不到伴侣时,以其视野多少倍的范围寻找伴侣",
 "Infant thorns": "幼崽所受的刺",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "幼崽承受带刺植物反击的比例(相对于成年动物)"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "幼崽承受带刺植物反击的比例(相对于成年动物)",
+"Elder age": "长者年龄",
+"turns old an animal must be to teach": "动物能够教导所需的回合年龄",
+"Student age": "学生年龄",
+"the oldest a student may be, as a share of its elder's age": "学生的最大年龄,占其长者年龄的比例",
+"Student trust": "学生信任",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "动物愿意受教所需的信任程度(0到1)",
+"Teaching joy": "教导之乐",
+"how glad an elder is of teaching a student; more if empathetic": "长者教导学生时的喜悦程度;越有同理心越高"
 }

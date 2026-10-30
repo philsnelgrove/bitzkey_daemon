@@ -1875,6 +1875,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     timings.actions[Breed] += conceiving;
     timings.act += conceiving;
     learn_witnessed();
+    teach_all();
     const double witnessed = lap(clock);
     timings.witnessed += witnessed;
     timings.act += witnessed;
@@ -1947,6 +1948,9 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
     }
     for (ActingTile& tile : tiles) {
         for (const auto& [parent, young] : tile.feeding) feed_young(*parent, young);
+    }
+    for (ActingTile& tile : tiles) {
+        teachings_.insert(teachings_.end(), tile.teaching.begin(), tile.teaching.end());
     }
     return true;
 }
@@ -2143,6 +2147,26 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     available[FeedYoung] = !agent.infant() && std::any_of(s.young.begin(), s.young.end(), [](const Bitzkey* child) { return child->hunger >= FEED_HUNGER; });
+    {  // the oldest of its kind in sight, and, an elder itself, the students beside it
+        int students = 0;
+        const Bitzkey* oldest = nullptr;
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || !same_kind(agent, *other)) continue;
+            if (!oldest || other->age > oldest->age) oldest = other;
+            if (distance(other->x, other->y, agent.x, agent.y) <= 1 && willing_student(agent, *other)) {
+                ++students;
+                if (!s.student) s.student = other;
+            }
+        }
+        sensed.senses[SenseStudentNear] = std::min(3, students) / 3.0;
+        if (oldest) {
+            sensed.senses[SenseElderAge] = std::min(1.0, static_cast<double>(oldest->age) / YEAR_LENGTH);
+            sensed.senses[SenseElderCloseness] = closeness(agent, cell_of(oldest), sight);
+            sensed.senses[SenseElderEast] = std::clamp(static_cast<double>(oldest->x - agent.x) / sight, -1.0, 1.0);
+            sensed.senses[SenseElderSouth] = std::clamp(static_cast<double>(oldest->y - agent.y) / sight, -1.0, 1.0);
+        }
+    }
+    available[Teach] = s.student != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -2604,6 +2628,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case FeedYoung:
             feed_young(agent, s.young);
             break;
+        case Teach:
+            teach(agent, *s.student);
+            break;
         case GoNorth:
         case GoSouth:
         case GoEast:
@@ -2719,6 +2746,44 @@ void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young)
         child->hunger = 0;
         note_deed(*child, parent, FEEDING_DEED);
     }
+}
+
+bool Simulation::willing_student(const Bitzkey& elder, const Bitzkey& student) const {
+    // Awake, trusting enough, never taught, young enough for this elder, and with nothing against it.
+    if (!elder.brain || !student.brain || elder.age < ELDER_AGE || student.age > STUDENT_AGE * elder.age || student.taught_by >= 0 ||
+        student.feeling(Trust) < STUDENT_TRUST || resting_time(student)) {
+        return false;
+    }
+    return std::none_of(student.known.begin(), student.known.end(), [&](const Acquaintance& known) {
+        return known.identifier == elder.identifier && known.regard < 0;
+    });
+}
+
+void Simulation::teach(Bitzkey& elder, Bitzkey& student) {
+    elder.last_action = "taught";
+    (acting_ ? acting_->teaching : teachings_).emplace_back(&elder, &student);
+}
+
+void Simulation::teach_all() {
+    // Last in the turn: a student's brain leaves the GPUs only once the lessons queued for it are learnt.
+    for (const auto& [elder, student] : teachings_) {
+        if (!elder->alive() || !student->alive() || student->taught_by >= 0) continue;  // a student is the first elder's
+        Bitzkey* const taught[] = {elder};
+        elder->synced = -1;  // it has learnt since any earlier look this turn
+        sync(taught);
+        // Its elder's brain, cut to the student's own, as its inborn intellect makes it; what it knew is gone.
+        student->brain = std::make_shared<Brain>(elder->brain->resized(student->brain->depth(), student->brain->width()));
+        student->taught_by = elder->identifier;
+        if (gpu_ && student->gpu >= 0) {
+            gpu_->detach(student->gpu);
+            student->gpu = -1;
+            attach(*student);
+        }
+        student->synced = -1;
+        elder->reward += TEACHING_JOY * (0.5 + elder->feeling(Empathy));
+        note_deed(*student, *elder, TEACHING_DEED);
+    }
+    teachings_.clear();
 }
 
 void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {

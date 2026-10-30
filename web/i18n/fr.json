@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "Portée de l'appel nuptial, omnivores",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "combien de fois sa vue un omnivore prêt à se reproduire cherche un partenaire quand il n'en voit aucun",
 "Infant thorns": "Épines des petits",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "la part du contrecoup d'une plante épineuse que subit un petit, par rapport à un animal adulte"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "la part du contrecoup d'une plante épineuse que subit un petit, par rapport à un animal adulte",
+"Elder age": "Âge d'ancien",
+"turns old an animal must be to teach": "tours d'âge qu'il faut à un animal pour enseigner",
+"Student age": "Âge d'élève",
+"the oldest a student may be, as a share of its elder's age": "l'âge maximal d'un élève, en part de l'âge de son ancien",
+"Student trust": "Confiance de l'élève",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "la confiance, de 0 à 1, qu'il faut à un animal pour accepter d'être instruit",
+"Teaching joy": "Joie d'enseigner",
+"how glad an elder is of teaching a student; more if empathetic": "la joie d'un ancien à instruire un élève ; plus grande s'il est empathique"
 }

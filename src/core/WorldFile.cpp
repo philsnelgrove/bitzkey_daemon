@@ -214,7 +214,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"identifier", agent.identifier}, {"dna", genome_text(agent.dna)}, {"x", agent.x}, {"y", agent.y},
         {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
-        {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father},
+        {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -304,6 +304,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->children = record.at("children").get<int>();
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
     agent->father = record.value("father", -1);
+    agent->taught_by = record.value("taught_by", -1);  // none in a world saved before teaching
     agent->died_turn = optional_int(record.at("died_turn"));
     agent->assailant = optional_int(record.at("assailant"));
     agent->panicked = record.at("panicked").get<bool>();
@@ -588,7 +589,8 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             reader.saved_outputs = saved.size();
             reader.output_from.resize(OUTPUT_COUNT);
             for (int output = 0; output < OUTPUT_COUNT; ++output) {
-                const auto found = saved_at.find(std::string(OUTPUTS[output]));
+                // A brain from before teaching values it as it does feeding its young, or it would never try it.
+                const auto found = saved_at.find(std::string(output == Teach && !saved_at.contains("teach") ? OUTPUTS[FeedYoung] : OUTPUTS[output]));
                 reader.output_from[output] = found == saved_at.end() ? -1 : found->second;
             }
             for (const json& name : saved) reader.action_now.push_back(action_index(name.get<std::string>()));

@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "Reichweite des Paarungsrufs, Allesfresser",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "das Wievielfache seiner Sicht, in dem ein paarungsbereiter Allesfresser einen Partner sucht, wenn er keinen sieht",
 "Infant thorns": "Dornen bei Jungtieren",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "der Anteil am Gegenschlag einer dornigen Pflanze, den ein Jungtier erleidet, gemessen an einem ausgewachsenen Tier"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "der Anteil am Gegenschlag einer dornigen Pflanze, den ein Jungtier erleidet, gemessen an einem ausgewachsenen Tier",
+"Elder age": "Alter der Ältesten",
+"turns old an animal must be to teach": "Züge, die ein Tier alt sein muss, um lehren zu können",
+"Student age": "Alter der Schüler",
+"the oldest a student may be, as a share of its elder's age": "das Höchstalter eines Schülers, als Anteil am Alter seines Ältesten",
+"Student trust": "Vertrauen der Schüler",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "wie vertrauensvoll, 0 bis 1, ein Tier sein muss, um sich belehren zu lassen",
+"Teaching joy": "Freude am Lehren",
+"how glad an elder is of teaching a student; more if empathetic": "wie froh ein Ältester ist, einen Schüler zu lehren; mehr bei Mitgefühl"
 }

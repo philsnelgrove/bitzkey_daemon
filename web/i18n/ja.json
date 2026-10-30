@@ -1506,5 +1506,13 @@
 "Mating call range, omnivores": "求愛の呼び声の届く範囲(雑食動物)",
 "times its sight an omnivore ready to breed seeks a mate, when it sees none": "繁殖の準備ができた雑食動物が、相手が見えないとき視界の何倍まで探すか",
 "Infant thorns": "幼体へのとげ",
-"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "とげのある植物の反撃のうち、成体と比べて幼体が受ける割合"
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "とげのある植物の反撃のうち、成体と比べて幼体が受ける割合",
+"Elder age": "長老の年齢",
+"turns old an animal must be to teach": "動物が教えられるようになるのに必要なターン数",
+"Student age": "生徒の年齢",
+"the oldest a student may be, as a share of its elder's age": "生徒の年齢の上限(長老の年齢に対する割合)",
+"Student trust": "生徒の信頼",
+"how trusting, 0 to 1, an animal must be to be willing to be taught": "教えを受け入れるのに必要な信頼の高さ(0〜1)",
+"Teaching joy": "教える喜び",
+"how glad an elder is of teaching a student; more if empathetic": "長老が生徒を教えて喜ぶ度合い。共感が強いほど大きい"
 }
