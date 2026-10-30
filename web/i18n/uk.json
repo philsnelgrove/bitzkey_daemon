@@ -1500,5 +1500,11 @@
 "Plant head start": "Фора для рослин",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "ходи, протягом яких рослини нового світу ростуть самі, не зараховуючись, перш ніж з'являться його тварини; 0: жодного",
 "Value limit": "Межа цінності",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "найбільше й найменше, чого тварина навчається, що вартий вибір, щоб переоцінки її мозку не вийшли з-під контролю; 0: без межі"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "найбільше й найменше, чого тварина навчається, що вартий вибір, щоб переоцінки її мозку не вийшли з-під контролю; 0: без межі",
+"Omnivore infancy": "Дитинство всеїдних",
+"an omnivore is an infant this share as long as other animals": "всеїдне є малям таку частку часу, як інші тварини",
+"Mating call range, omnivores": "Дальність шлюбного поклику, всеїдні",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "у скільки разів далі за свій зір всеїдне, готове до розмноження, шукає пару, коли не бачить жодної",
+"Infant thorns": "Колючки для малят",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "частка удару колючої рослини у відповідь, яку отримує маля, порівняно з дорослою твариною"
 }

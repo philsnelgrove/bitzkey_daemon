@@ -1500,5 +1500,11 @@
 "Plant head start": "植物の先行成長",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新しいワールドで動物が現れる前に植物だけが育つターン数(数えない)。0でなし",
 "Value limit": "価値の上限",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "動物が選択の価値として学ぶ最大と最小。脳の過大評価が暴走しないように。0で上限なし"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "動物が選択の価値として学ぶ最大と最小。脳の過大評価が暴走しないように。0で上限なし",
+"Omnivore infancy": "雑食動物の幼年期",
+"an omnivore is an infant this share as long as other animals": "雑食動物が幼体である期間の、他の動物に対する割合",
+"Mating call range, omnivores": "求愛の呼び声の届く範囲(雑食動物)",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "繁殖の準備ができた雑食動物が、相手が見えないとき視界の何倍まで探すか",
+"Infant thorns": "幼体へのとげ",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "とげのある植物の反撃のうち、成体と比べて幼体が受ける割合"
 }

@@ -1500,5 +1500,11 @@
 "Plant head start": "植物先行生长",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新世界的动物出现之前,植物单独生长的回合数(不计入);0 表示没有",
 "Value limit": "价值上限",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "动物学到的某个选择价值的上下限,使其大脑的高估不会失控;0 表示不设上限"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "动物学到的某个选择价值的上下限,使其大脑的高估不会失控;0 表示不设上限",
+"Omnivore infancy": "杂食动物幼年期",
+"an omnivore is an infant this share as long as other animals": "杂食动物处于幼年的时长占其他动物的比例",
+"Mating call range, omnivores": "求偶呼唤范围(杂食动物)",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "准备繁殖的杂食动物看不到伴侣时,以其视野多少倍的范围寻找伴侣",
+"Infant thorns": "幼崽所受的刺",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "幼崽承受带刺植物反击的比例(相对于成年动物)"
 }

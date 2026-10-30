@@ -1433,6 +1433,28 @@ TEST_CASE("what a brain values beyond the Value limit is taught back toward it")
     VALUE_LIMIT = limit;
 }
 
+TEST_CASE("an omnivore is an infant half as long, and an infant feels a quarter of a plant's thorns") {
+    const double youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;
+    Simulation simulation = world(20);
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 5, 5);
+    const double half = omnivore.infancy();
+    const double share = OMNIVORE_INFANCY;
+    OMNIVORE_INFANCY = 1.0;
+    CHECK(half == doctest::Approx(share * omnivore.infancy()));
+    OMNIVORE_INFANCY = share;
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {{"weapons", 7}}), 6, 5);
+    omnivore.age = 0;
+    omnivore.grow();
+    REQUIRE(omnivore.infant());
+    const double as_infant = Simulation::damage(plant, omnivore, true);
+    omnivore.age = static_cast<int>(0.5 * omnivore.lifespan);
+    omnivore.grow();
+    const double grown = Simulation::damage(plant, omnivore, true);
+    CHECK(as_infant < grown);  // a quarter, and an infant's toughness besides
+    FEEBLE_YOUTH = youth;
+}
+
 TEST_CASE("the first Bitzkeys of a world start grown") {
     const double youth = FEEBLE_YOUTH;
     FEEBLE_YOUTH = 0.1;

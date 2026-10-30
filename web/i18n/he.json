@@ -1500,5 +1500,11 @@
 "Plant head start": "יתרון לצמחים",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "תורות שבהן הצמחים של עולם חדש גדלים לבדם, בלי להיספר, לפני שבעלי החיים שלו מופיעים; 0: אין",
 "Value limit": "גבול ערך",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "המרב והמזער שבעל חיים לומד שבחירה שווה, כדי שהערכות היתר של מוחו לא יברחו; 0: ללא גבול"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "המרב והמזער שבעל חיים לומד שבחירה שווה, כדי שהערכות היתר של מוחו לא יברחו; 0: ללא גבול",
+"Omnivore infancy": "ינקות אוכלי כל",
+"an omnivore is an infant this share as long as other animals": "אוכל כל הוא צעיר חלק זה מהזמן של בעלי חיים אחרים",
+"Mating call range, omnivores": "טווח קריאת ההזדווגות, אוכלי כל",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "פי כמה מטווח ראייתו מחפש אוכל כל מוכן לרבייה בן זוג, כשאינו רואה אף אחד",
+"Infant thorns": "קוצים לצעירים",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "החלק ממכת הנגד של צמח קוצני שצעיר סופג, לעומת בעל חיים בוגר"
 }

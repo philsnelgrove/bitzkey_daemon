@@ -108,6 +108,7 @@ inline double MEAT_DIGESTION = 1.0 / 7;
 inline double FEEBLE_YOUTH = 1.0 / 30;  // 360 days for the largest; the smallest SMALL_MATURITY of their 36
 inline double PREDATOR_INFANCY = 0.5;  // a predator is an infant this share as long
 inline double GRAZER_INFANCY = 0.5;    // and a grazer this share as long
+inline double OMNIVORE_INFANCY = 0.5;  // and an omnivore this share as long
 inline double GRAZER_GESTATION = 0.5;  // a grazer carries its young this share as long as its size would have it
 inline double FEEBLE_SHARE = 0.5;
 constexpr int DEPLOY_GROUP = 5;  // Bitzkeys deployed from the catalog onto a running world, of each chosen, a click
@@ -253,6 +254,7 @@ inline double MATING_CALL = 0.5;      // how much more a predator ready to breed
 inline double MATING_CALL_RANGE = 2.0;    // a predator ready to breed that sees no mate seeks one this many times its sight off
 constexpr double MAX_MATING_CALL_RANGE = 3.0;
 inline double OMNIVORE_MATING_CALL = 0.25;  // an omnivore's milder mating call
+inline double OMNIVORE_MATING_CALL_RANGE = 2.0;  // and how far, times its sight, one ready to breed that sees no mate seeks one
 inline double FIRST_BREEDING_INSTINCT = 3.0;  // how much more one of a world's first, ready to breed, values breeding, or else courting
 inline double HUNTER_BREEDING_COST = 0.5;   // share of the usual breeding cost a predator or omnivore pays
 inline double GRAZER_BREEDING_COST = 0.5;   // share of the usual breeding cost a grazer pays
@@ -365,6 +367,7 @@ inline double PRIMAL_FREEZE = 1.0;
 inline std::array<double, 2> PANIC = {0.3, 1.0};
 inline int COWARDLY_OMNIVORES = 1;  // 1: an omnivore struck always breaks and flees, whatever its fear; 0: it checks its morale
 inline double THORN_FORCE = 15;
+inline double INFANT_THORNS = 0.25;  // an infant pricked by a plant's thorns takes this share of what a grown animal would
 inline double THORN_SIZE_SHARE = 0.2;
 inline double PACK_RIVALRY = 0.0;  // how much a predator's pack-mates count as rivals crowding its territory: its pack is no rival
 inline int TERRITORY_RAMP = 3;
@@ -716,7 +719,10 @@ struct Bitzkey {
     // smallest SMALL_MATURITY of that, the larger more of it.
     double infancy() const {
         const double maturity = SMALL_MATURITY + (1 - SMALL_MATURITY) * share(body[Size]);
-        const double share = species == Species::Predator ? PREDATOR_INFANCY : species == Species::Grazer ? GRAZER_INFANCY : 1.0;
+        const double share = species == Species::Predator  ? PREDATOR_INFANCY
+                             : species == Species::Grazer   ? GRAZER_INFANCY
+                             : species == Species::Omnivore ? OMNIVORE_INFANCY
+                                                            : 1.0;
         return FEEBLE_YOUTH * share * maturity * lifespan;
     }
     bool infant() const { return species != Species::Plant && age < infancy(); }

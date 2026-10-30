@@ -2034,8 +2034,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.quarry = seen.quarry;
     s.hunter = seen.hunter;
     s.suitor = seen.suitor;
-    if (!s.suitor && agent.species == Species::Predator && agent.can_breed()) {  // the mating call reaches further
-        for (Bitzkey* other : around(agent, static_cast<int>(MATING_CALL_RANGE * sight))) {
+    const double call_range = agent.species == Species::Predator  ? MATING_CALL_RANGE
+                              : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL_RANGE
+                                                                   : 0.0;
+    if (!s.suitor && call_range > 0 && agent.can_breed()) {  // the mating call reaches further
+        for (Bitzkey* other : around(agent, static_cast<int>(std::min(call_range, MAX_MATING_CALL_RANGE) * sight))) {
             if (compatible(agent, *other) && other->can_breed()) {
                 s.suitor = other;
                 break;
@@ -2804,7 +2807,7 @@ double Simulation::defence_share(const Bitzkey& animal) {
 double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending) {
     if (attacker.species == Species::Plant) {
         const double thorns = THORN_SIZE_SHARE * attacker.physique(Size) + (1 - THORN_SIZE_SHARE) * attacker.physique(Weapons);
-        return THORN_FORCE * thorns * (1 - 0.6 * defender.toughness);
+        return THORN_FORCE * thorns * (1 - 0.6 * defender.toughness) * (defender.infant() ? INFANT_THORNS : 1.0);
     }
     const double force = STRIKE_FORCE * (2 + 9 * attacker.might);
     const double weapons = armed(attacker) * (defending ? defence_share(attacker) : 1.0);

@@ -1500,5 +1500,11 @@
 "Plant head start": "Ventaja de las plantas",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "turnos en que las plantas de un mundo nuevo crecen solas, sin contar, antes de que aparezcan sus animales; 0: ninguno",
 "Value limit": "Límite de valor",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "lo máximo y lo mínimo que un animal aprende que vale una opción, para que las sobreestimaciones de su cerebro no se desboquen; 0: sin límite"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "lo máximo y lo mínimo que un animal aprende que vale una opción, para que las sobreestimaciones de su cerebro no se desboquen; 0: sin límite",
+"Omnivore infancy": "Infancia de los omnívoros",
+"an omnivore is an infant this share as long as other animals": "un omnívoro es cría esta parte del tiempo que los demás animales",
+"Mating call range, omnivores": "Alcance de la llamada de apareamiento, omnívoros",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "cuántas veces su vista busca pareja un omnívoro listo para reproducirse cuando no ve ninguna",
+"Infant thorns": "Espinas en crías",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "la parte del contragolpe de una planta espinosa que recibe una cría, respecto de un animal adulto"
 }

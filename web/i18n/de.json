@@ -1500,5 +1500,11 @@
 "Plant head start": "Vorsprung der Pflanzen",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "Züge, in denen die Pflanzen einer neuen Welt allein wachsen, ungezählt, bevor ihre Tiere erscheinen; 0: keine",
 "Value limit": "Wertgrenze",
-"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "das Höchste und Niedrigste, das ein Tier als Wert einer Wahl lernt, damit die Überschätzungen seines Gehirns nicht ausufern; 0: keine Grenze"
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "das Höchste und Niedrigste, das ein Tier als Wert einer Wahl lernt, damit die Überschätzungen seines Gehirns nicht ausufern; 0: keine Grenze",
+"Omnivore infancy": "Kindheit der Allesfresser",
+"an omnivore is an infant this share as long as other animals": "ein Allesfresser ist diesen Anteil so lange ein Jungtier wie andere Tiere",
+"Mating call range, omnivores": "Reichweite des Paarungsrufs, Allesfresser",
+"times its sight an omnivore ready to breed seeks a mate, when it sees none": "das Wievielfache seiner Sicht, in dem ein paarungsbereiter Allesfresser einen Partner sucht, wenn er keinen sieht",
+"Infant thorns": "Dornen bei Jungtieren",
+"the share of a thorny plant's counterblow an infant takes, of what a grown animal would": "der Anteil am Gegenschlag einer dornigen Pflanze, den ein Jungtier erleidet, gemessen an einem ausgewachsenen Tier"
 }
