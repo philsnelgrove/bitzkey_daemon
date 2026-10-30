@@ -24,9 +24,19 @@ Dna animal(bool nocturnal, Terrain terrain = Terrain::Terrestrial) {
 }
 
 // A column in the night, and one in the day, on this turn.
+// Whether a column lies deep in the dark (or, `light`, deep in the light): where its animals sleep, not at dusk or dawn.
+bool deep(const Simulation& simulation, int x, bool light = false) {
+    const int width = simulation.width(), into = ((x - simulation.night_start()) % width + width) % width;
+    const int phase = light ? into - width / 2 : into;
+    return phase >= width / 6 && phase < width / 2 - width / 6;
+}
+
 std::pair<int, int> dark_and_light(const Simulation& simulation) {
     int dark = -1, light = -1;
-    for (int x = 0; x < simulation.width(); ++x) (simulation.night(x) ? dark : light) = x;
+    for (int x = 0; x < simulation.width(); ++x) {
+        if (deep(simulation, x)) dark = x;
+        if (deep(simulation, x, true)) light = x;
+    }
     return {dark, light};
 }
 
@@ -96,7 +106,7 @@ TEST_CASE("startled awake, a sleeper may flee or strike back, and a flyer over t
     int sea_dark = -1, row = -1;
     for (int y = 5; y < 35 && sea_dark < 0; ++y) {
         for (int x = 0; x < 40; ++x) {
-            if (simulation.night(x) && simulation.sea(x, y)) {
+            if (deep(simulation, x) && simulation.sea(x, y)) {
                 sea_dark = x;
                 row = y;
                 break;
@@ -112,7 +122,7 @@ TEST_CASE("startled awake, a sleeper may flee or strike back, and a flyer over t
     int land_dark = -1, land_row = -1;
     for (int y = 5; y < 35 && land_dark < 0; ++y) {
         for (int x = 0; x < 40; ++x) {
-            if (simulation.night(x) && !simulation.sea(x, y) && !simulation.sea(x, y + 1)) {
+            if (deep(simulation, x) && !simulation.sea(x, y) && !simulation.sea(x, y + 1)) {
                 land_dark = x;
                 land_row = y;
                 break;

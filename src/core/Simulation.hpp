@@ -61,9 +61,9 @@ inline double FLIGHT_HUNGER = 0.25;
 inline double AMPHIBIOUS_SPEED = 0.5;
 inline double AMPHIBIOUS_COOLDOWN = 2.0;
 inline double AVIAN_SEED_REACH = 2.0;
-// Stamina, 0 to 100: every action but rest tires an animal, and resting restores it. Its pace follows the day: of the
-// half of each day an animal is awake, the average one acts ACTIVE_SHARE and rests the rest, spending its stamina in
-// the one and getting it back in the other, however many turns a day is (see stamina_pace and rest_recovery). Before
+// Stamina, 0 to 100: every action but rest tires an animal, and resting restores it. Its pace follows the day: an
+// animal is active ACTIVE_SHARE of each day and sleeps the rest, spending its stamina in the one and getting it all back
+// in the other, however many turns a day is (see stamina_pace and rest_recovery). Before
 // that pace is applied, any action but rest costs ACTION_FATIGUE, each square it moves STEP_FATIGUE more
 // (a flyer's FLIGHT_FATIGUE times that), each blow it strikes STRIKE_FATIGUE and mating BREED_FATIGUE (each parent);
 // a flyer over the sea, where it can't rest, tires HOVER_FATIGUE a turn more; an average turn of acting costs
@@ -466,8 +466,9 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // and may tolerate heat or cold, suffering HARDINESS of its penalties, and FRAILTY of the other's; plants tolerate nothing, and a plant
 // spawned at the start is at home in its zone's usual temperature.
 // Days: every DAY_LENGTH turns is a day, and a new world's year is 360 of them. Night covers half the map, its
-// columns from the top to the bottom, and moves west round it once a day. With SLEEP, an animal rests through its
-// night, the dark for the diurnal and the light for the nocturnal (see the activity gene): it may only rest, but for
+// columns from the top to the bottom, and moves west round it once a day. With SLEEP, an animal rests through the middle
+// of its night, the dark for the diurnal and the light for the nocturnal (see the activity gene), 1 - ACTIVE_SHARE of
+// the day, awake at its dusk and dawn: it may only rest, but for
 // fleeing a hunter or striking back at what struck it, startled awake, and a flyer over the sea, which can't rest.
 inline int DAY_LENGTH = 24;  // a turn is an hour
 constexpr int FORESIGHT_DAY = 8;  // the day the Mind rules' discounts and trace decays are set for (see discount)
@@ -857,8 +858,9 @@ public:
     // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
     bool night(int x) const;
     int night_start() const;  // the westernmost column of the night, which runs east half the map's width from it
-    // Whether an animal is in its night where it stands: dark for the diurnal, light for the nocturnal.
-    bool resting_time(const Bitzkey& agent) const { return agent.nocturnal != night(agent.x); }
+    // Whether an animal sleeps where it stands: in the middle of its night (the dark for the diurnal, the light for the
+    // nocturnal), the 1 - ACTIVE_SHARE of the day there, awake at its dusk and dawn.
+    bool resting_time(const Bitzkey& agent) const;
     // Whether an infant is sheltered: a living parent within SHELTER_REACH of it. It is spared the climate.
     bool sheltered(const Bitzkey& agent) const;
     bool sea(int x, int y) const { return !sea_.empty() && in_bounds(x, y) && sea_[static_cast<std::size_t>(y) * width_ + x]; }

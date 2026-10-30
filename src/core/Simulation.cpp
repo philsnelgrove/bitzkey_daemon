@@ -241,11 +241,11 @@ double temperature_at(int y, int height, int turn) {
 }
 
 // The average animal spends its stamina over its waking half day's ACTIVE_SHARE and gets it back over the rest.
-double stamina_pace() {
-    return FULL_STAMINA / (TYPICAL_FATIGUE * std::max(1.0, DAY_LENGTH / 2.0 * ACTIVE_SHARE));
+double stamina_pace() {  // spent over its active ACTIVE_SHARE of the day
+    return FULL_STAMINA / (TYPICAL_FATIGUE * std::max(1.0, DAY_LENGTH * ACTIVE_SHARE));
 }
 
-double rest_recovery() { return FULL_STAMINA / std::max(1.0, DAY_LENGTH / 2.0 * (1 - ACTIVE_SHARE)); }
+double rest_recovery() { return FULL_STAMINA / std::max(1.0, DAY_LENGTH * (1 - ACTIVE_SHARE)); }  // all back in a sleep
 
 double dieback_threshold(int x, int y) {
     return static_cast<double>((static_cast<long long>(x) * 7919 + static_cast<long long>(y) * 104729) % 1000) / 1000;
@@ -1409,6 +1409,14 @@ int Simulation::night_start() const {
 
 bool Simulation::night(int x) const {
     return py_mod(x - night_start(), width_) < width_ / 2;
+}
+
+bool Simulation::resting_time(const Bitzkey& agent) const {
+    const int half = width_ / 2, into = py_mod(agent.x - night_start(), width_);
+    if (agent.nocturnal == (into < half)) return false;  // its day
+    const double phase = agent.nocturnal ? into - half : into;  // how far into its night the column is
+    const double asleep = width_ * (1 - ACTIVE_SHARE), awake = std::max(0.0, (half - asleep) / 2);  // at each end
+    return phase >= awake && phase < awake + asleep;
 }
 
 Brain& Simulation::learning_brain(Bitzkey& agent) {
