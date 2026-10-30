@@ -290,6 +290,7 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members, i
             continue;
         }
         Herd herd;
+        herd.since = world.turn();
         std::vector<int> columns;
         double rows = 0;
         for (const Bitzkey* agent : group) {
@@ -320,12 +321,14 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members, i
         claimed[b] = true;
     }
     Json listed = Json::array();
+    int kin_in_herds = 0, herded = 0;
     for (std::size_t a = 0; a < now.size(); ++a) {
         Herd& herd = now[a];
         Json entry;
         if (heir[a]) {
             const Herd& before = last[*heir[a]];
             herd.id = before.id;
+            herd.since = before.since;
             entry["drift"] = {across(static_cast<int>(std::lround(before.x)), static_cast<int>(std::lround(herd.x)), world.width()),
                               herd.y - before.y};
         } else {
@@ -341,6 +344,22 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members, i
         }
         double spread = 0, home = 0;
         std::vector<int> ids(herd.members.begin(), herd.members.end());
+        // Its families: members with a parent, a child or a sibling (sharing a parent) among the herd too.
+        int with_kin = 0;
+        for (const int id : ids) {
+            const Bitzkey* agent = animals[index[id]];
+            const bool kin = herd.members.count(agent->mother) || herd.members.count(agent->father) ||
+                             std::any_of(ids.begin(), ids.end(), [&](int other_id) {
+                                 if (other_id == id) return false;
+                                 const Bitzkey* other = animals[index[other_id]];
+                                 return other->mother == id || other->father == id ||
+                                        (agent->mother >= 0 && other->mother == agent->mother) ||
+                                        (agent->father >= 0 && other->father == agent->father);
+                             });
+            with_kin += kin;
+        }
+        kin_in_herds += with_kin;
+        herded += static_cast<int>(ids.size());
         for (const int id : ids) {
             const Bitzkey* agent = animals[index[id]];
             spread += std::abs(across(static_cast<int>(std::lround(herd.x)), agent->x, world.width())) + std::abs(agent->y - herd.y);
@@ -353,6 +372,8 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members, i
         entry["y"] = herd.y;
         entry["spread"] = spread / size;  // the mean distance of its members from its middle
         entry["home"] = home / size;      // the mean home temperature, 0 hot to 3 very cold
+        entry["kin"] = with_kin / size;   // the share of its members with family among it
+        entry["since"] = herd.since;      // the turn it was first seen
         if (!split_from.empty()) entry["split_from"] = split_from;
         if (!merged_from.empty()) entry["merged_from"] = merged_from;
         if (members) entry["members"] = ids;
@@ -360,7 +381,28 @@ Json Probe::herds(Simulation& world, const std::string& species, bool members, i
     }
     std::sort(listed.begin(), listed.end(), [](const Json& p, const Json& q) { return p["size"].get<std::size_t>() > q["size"].get<std::size_t>(); });
     last = std::move(now);
-    return {{"turn", world.turn()}, {"species", std::string(species_name(*kind))}, {"herds", listed}, {"alone", alone}};
+    // And for comparison, of those in herds, the share with any family alive anywhere: the most that could be with it.
+    std::set<int> living;
+    for (const Bitzkey* agent : animals) living.insert(agent->identifier);
+    std::map<int, int> children_of;
+    for (const Bitzkey* agent : animals) {
+        for (const int parent : {agent->mother, agent->father}) {
+            if (parent >= 0) children_of[parent] += 1;
+        }
+    }
+    int with_family = 0;
+    for (const Herd& herd : last) {
+        for (const int id : herd.members) {
+            const Bitzkey* agent = animals[index[id]];
+            const bool parent = living.count(agent->mother) || living.count(agent->father);
+            const bool child = children_of.count(id) > 0;
+            const bool sibling = (agent->mother >= 0 && children_of[agent->mother] > 1) || (agent->father >= 0 && children_of[agent->father] > 1);
+            with_family += parent || child || sibling;
+        }
+    }
+    const double count = std::max(1, herded);
+    return {{"turn", world.turn()}, {"species", std::string(species_name(*kind))}, {"herds", listed}, {"alone", alone},
+            {"kin_in_herd", kin_in_herds / count}, {"family_alive", with_family / count}};
 }
 
 void Probe::watch(const std::vector<int>& identifiers, std::size_t keep) {
@@ -572,6 +614,71 @@ Json Probe::insights(Simulation& world) const {
     return {{"turn", world.turn()}, {"insights", result}};
 }
 
+Json Probe::calls(Simulation& world) const {
+    // Each animal's last choice, as it sensed the world then: the call it made, whether a hunter was in sight, what it
+    // heard, and what it did.
+    const auto moved = [](int action) { return action >= GoNorth && action <= WalkWest; };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        struct Count {
+            long long with = 0, without = 0;  // made with a hunter in sight, and without
+        };
+        std::array<Count, 2 + CALL_COUNT> made{};  // by call: silent, the alert, then the five
+        long long threatened = 0, calm = 0;
+        struct Heard {
+            long long heard = 0, acted = 0;
+        };
+        std::array<Heard, CALL_COUNT> threat_heard{}, threat_heard_kin{}, calm_heard{};
+        Heard threat_none, calm_none;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species || !agent->has_last_senses) continue;
+            const Senses& senses = agent->last_senses;
+            const bool hunter = senses[SenseThreatCloseness] > 0;
+            (hunter ? threatened : calm) += 1;
+            if (agent->last_call >= 0 && agent->last_call < static_cast<int>(made.size())) {
+                (hunter ? made[static_cast<std::size_t>(agent->last_call)].with : made[static_cast<std::size_t>(agent->last_call)].without) += 1;
+            }
+            const bool acted = hunter ? agent->last_choice == Flee : moved(agent->last_choice);
+            bool any = false;
+            for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
+                if (senses[heard_sense(call, HeardLoudness)] <= 0) continue;
+                any = true;
+                const auto at = static_cast<std::size_t>(call - FirstCall);
+                Heard& heard = hunter ? threat_heard[at] : calm_heard[at];
+                heard.heard += 1;
+                heard.acted += acted;
+                if (hunter && senses[heard_sense(call, HeardKin)] > 0) {
+                    threat_heard_kin[at].heard += 1;
+                    threat_heard_kin[at].acted += acted;
+                }
+            }
+            if (!any) {
+                Heard& none = hunter ? threat_none : calm_none;
+                none.heard += 1;
+                none.acted += acted;
+            }
+        }
+        const auto share = [](long long part, long long whole) { return whole > 0 ? Json(static_cast<double>(part) / whole) : Json(nullptr); };
+        Json calls = Json::object();
+        for (int call = AlertCall; call < FirstCall + CALL_COUNT; ++call) {
+            const Count& count = made[static_cast<std::size_t>(call)];
+            const std::string name = call == AlertCall ? "alert" : "call_" + std::to_string(call - FirstCall + 1);
+            Json entry = {{"made_with_hunter", share(count.with, threatened)}, {"made_without", share(count.without, calm)}};
+            if (call >= FirstCall) {
+                const auto at = static_cast<std::size_t>(call - FirstCall);
+                entry["hunter_in_sight"] = {{"heard", threat_heard[at].heard}, {"fled_having_heard", share(threat_heard[at].acted, threat_heard[at].heard)},
+                                            {"fled_having_heard_kin", share(threat_heard_kin[at].acted, threat_heard_kin[at].heard)}};
+                entry["no_hunter"] = {{"heard", calm_heard[at].heard}, {"moved_having_heard", share(calm_heard[at].acted, calm_heard[at].heard)}};
+            }
+            calls[name] = entry;
+        }
+        result[std::string(species_name(species))] = {
+            {"choices", threatened + calm}, {"with_hunter", threatened}, {"calls", calls},
+            {"fled_hearing_nothing", share(threat_none.acted, threat_none.heard)}, {"moved_hearing_nothing", share(calm_none.acted, calm_none.heard)}};
+    }
+    return {{"turn", world.turn()}, {"calls", result}};
+}
+
 Json Probe::brain(Simulation& world, int identifier, bool weights) const {
     Bitzkey* agent = world.find_agent(identifier);
     if (!agent) throw std::out_of_range("no Bitzkey " + std::to_string(identifier) + " in the world now");
@@ -737,6 +844,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/insights", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return insights(world); }));
+    }));
+    server.Get(prefix + "/calls", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return calls(world); }));
     }));
     server.Get(prefix + R"(/brain/(\d+))", answered([=, this](const httplib::Request& request, httplib::Response& response) {
         const int identifier = number_in(request.matches);

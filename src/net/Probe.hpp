@@ -89,6 +89,9 @@ public:
     Json deaths(Simulation& world, int since, const std::string& species, const std::string& cause, std::size_t limit) const;
     Json history(Simulation& world, std::size_t points) const;
     Json insights(Simulation& world) const;
+    // Whether calls carry meaning, from each animal's last choice: how often each call is made with a hunter in sight
+    // and without; and how hearing one changes what listeners do, fleeing a hunter in sight or moving with none.
+    Json calls(Simulation& world) const;
     Json brain(Simulation& world, int identifier, bool weights) const;
     // A value this far from nothing has run away; a neuron this near either end of tanh has jammed there.
     static constexpr double RUNAWAY_VALUE = 50;
@@ -101,6 +104,7 @@ public:
 private:
     struct Herd {
         int id = 0;
+        int since = 0;  // the turn it was first seen
         std::set<int> members;
         double x = 0, y = 0;
     };

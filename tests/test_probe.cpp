@@ -67,6 +67,8 @@ TEST_CASE("the probe finds the herds, keeps their numbers from one look to the n
     Simulation world = empty_world(60);
     const Dna dna = encode_dna(Species::Grazer, {{"sight", 2}});
     for (int dx = 0; dx < 4; ++dx) world.add_agent(dna, 10 + dx, 10);  // one herd in the north-west
+    world.agents()[1]->mother = world.agents()[0]->identifier;  // a mother and her two young among it
+    world.agents()[2]->mother = world.agents()[0]->identifier;
     for (int dx = 0; dx < 3; ++dx) world.add_agent(dna, 40 + dx, 45);  // another in the south-east
     world.add_agent(dna, 25, 30);                                       // and one alone
     world.index_cells();
@@ -76,6 +78,10 @@ TEST_CASE("the probe finds the herds, keeps their numbers from one look to the n
     REQUIRE(first["herds"].size() == 2);
     CHECK((first["herds"][0]["size"] == 4 && first["herds"][1]["size"] == 3 && first["alone"] == 1));
     CHECK(first["herds"][0]["drift"].is_null());  // seen for the first time
+    CHECK(first["herds"][0]["kin"].get<double>() == doctest::Approx(0.75));  // three of its four with family among it
+    CHECK(first["herds"][1]["kin"].get<double>() == 0.0);
+    CHECK(first["kin_in_herd"].get<double>() == doctest::Approx(3.0 / 7));
+    const int since = first["herds"][0]["since"];
     const int larger = first["herds"][0]["id"], smaller = first["herds"][1]["id"];
 
     for (const auto& agent : world.agents()) {
@@ -86,7 +92,27 @@ TEST_CASE("the probe finds the herds, keeps their numbers from one look to the n
     REQUIRE(second["herds"].size() == 2);
     CHECK((second["herds"][0]["id"] == larger && second["herds"][1]["id"] == smaller));
     CHECK(second["herds"][0]["drift"][1].get<double>() == doctest::Approx(2.0));
+    CHECK(second["herds"][0]["since"] == since);  // the same herd, seen since
     CHECK(!second["herds"][0].contains("members"));
+}
+
+TEST_CASE("the probe tells how calls are made, with a hunter in sight or not, and what hearing them does") {
+    Simulation world = empty_world();
+    Bitzkey& caller = world.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& listener = world.add_agent(encode_dna(Species::Grazer), 12, 10);
+    world.index_cells();
+    caller.has_last_senses = listener.has_last_senses = true;
+    caller.last_senses[SenseThreatCloseness] = 0.5;  // it saw a hunter, and called
+    caller.last_call = FirstCall;
+    listener.last_senses[SenseThreatCloseness] = 0.5;  // and the other, hunted too, heard it and fled
+    listener.last_senses[heard_sense(FirstCall, HeardLoudness)] = 1.0;
+    listener.last_choice = Flee;
+    listener.last_call = Silent;
+    net::Probe probe = direct(world);
+    const Json grazers = probe.calls(world)["calls"]["grazer"];
+    CHECK(grazers["with_hunter"] == 2);
+    CHECK(grazers["calls"]["call_1"]["made_with_hunter"].get<double>() == doctest::Approx(0.5));
+    CHECK(grazers["calls"]["call_1"]["hunter_in_sight"]["fled_having_heard"].get<double>() == 1.0);
 }
 
 TEST_CASE("the probe tracks the Bitzkeys it watches, turn by turn, until they are gone") {

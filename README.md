@@ -204,7 +204,7 @@ The probe lets a program, or an assistant, read anything about the world while i
 | `GET /api/probe/animals?species=&x=&y=&r=&limit=` | living Bitzkeys in brief, of a species, or within `r` steps of a cell |
 | `GET /api/probe/animal/ID` | one Bitzkey in full: what it sensed and the odds it chose by at its last choice, its mind, home and the temperature where it stands, its parents, and its herd |
 | `GET /api/probe/family/ID` | its parents and theirs, as far as the world still holds them, and its living young and theirs |
-| `GET /api/probe/herds?species=&members=1&reach=` | the herds as they stand: herd-mates within two steps of one another (or `reach`), and theirs, each keeping its number from one look to the next while most of it holds together, with its drift, and which herds it split from or which merged into it |
+| `GET /api/probe/herds?species=&members=1&reach=` | the herds as they stand: herd-mates within two steps of one another (or `reach`), and theirs, each keeping its number from one look to the next while most of it holds together, with its drift, which herds it split from or which merged into it, the turn it was first seen, and the share of its members with family (a parent, child or sibling) among it, beside the share with any family alive |
 | `POST /api/probe/watch` `{"ids": [...], "keep": turns}` | watch these Bitzkeys, turn by turn |
 | `GET /api/probe/watch` | the tracks of those watched, until they die (720 turns of each kept, unless told otherwise) |
 | `DELETE /api/probe/watch?ids=` | stop watching these, or all |
@@ -218,6 +218,7 @@ The probe lets a program, or an assistant, read anything about the world while i
 | `GET /api/probe/deaths?since=&species=&cause=&limit=` | the deaths the world remembers, latest first, and every death's cause counted since the start |
 | `GET /api/probe/history?points=` | each species' numbers over the run, as the graph remembers it |
 | `GET /api/probe/insights` | how often each species took each action when it could, lately |
+| `GET /api/probe/calls` | whether calls mean anything: how often each is made with a hunter in sight and without, and how hearing one changes what listeners do (fleeing a hunter, moving with none), kin callers apart |
 | `GET /api/probe/brain/ID?weights=1` | a brain: its shape, what it makes of what it last sensed, and its weights if asked |
 | `GET /api/probe/minds` | each species' brains at a glance: how far their values run (median, 90th, highest, beyond 50) and how many of their neurons have jammed |
 | `GET /api/probe/reports/brain` | the brain report, as text |
