@@ -1491,6 +1491,20 @@ void Simulation::note_entry(Bitzkey& agent, const Bitzkey::Memory& memory, doubl
     if (faded(*weakest) < vividness) *weakest = {memory, vividness, turn_};
 }
 
+void Simulation::rein_in(Bitzkey& agent, const Senses& senses, const Values& valued) {
+    // Any choice or call its brain now values beyond the Value limit, taught back to the limit: the lessons it learns
+    // toward are held within it, but what they teach one output spreads to the rest through the neurons they share.
+    if (VALUE_LIMIT <= 0 || !agent.brain) return;
+    const double rate = learning_rate(agent);
+    if (rate <= 0) return;
+    for (int output = 0; output < MEMORY_GATES; ++output) {
+        if (std::abs(valued[output]) <= VALUE_LIMIT) continue;
+        const double limit = std::clamp(valued[output], -VALUE_LIMIT, VALUE_LIMIT);
+        if (gpu_) queue_lesson(agent, senses, output, limit, rate, false, 0.0);
+        else learning_brain(agent).learn(senses, output, limit, rate);
+    }
+}
+
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
                               double decay, int steps) {
     lesson_senses_.push_back(senses);
@@ -1513,50 +1527,9 @@ void Simulation::attach(Bitzkey& agent) {
     if (!gpu_ || !agent.brain) return;
     try {
         agent.gpu = gpu_->attach(*agent.brain);
-        if (TARGET_REFRESH > 0) {  // and its target brain beside it
-            if (!agent.target) agent.target = target_of(*agent.brain);
-            agent.target_gpu = gpu_->attach(*agent.target);
-        }
     } catch (const std::runtime_error& error) {
         agent.gpu = -1;
-        agent.target_gpu = -1;
         leave_gpu(error);
-    }
-}
-
-void Simulation::refresh_targets(const std::vector<Bitzkey*>& agents) {
-    // Each target brain due (every TARGET_REFRESH turns of its age, or none yet) copied from its brain as it stands: on
-    // the GPUs, brought back first, and the copy put there in place of the old.
-    if (TARGET_REFRESH <= 0) return;
-    std::vector<Bitzkey*> due;
-    for (Bitzkey* agent : agents) {
-        if (agent->brain && (!agent->target || agent->age % TARGET_REFRESH == 0)) due.push_back(agent);
-    }
-    if (due.empty()) return;
-    if (gpu_) {
-        std::vector<gpu::BrainEngine::Handle> handles;
-        std::vector<Brain*> into;
-        for (Bitzkey* agent : due) {
-            if (agent->gpu < 0) continue;
-            handles.push_back(agent->gpu);
-            into.push_back(&agent->own_brain());
-        }
-        try {
-            if (!handles.empty()) gpu_->download(handles, into);
-        } catch (const std::runtime_error& error) {
-            leave_gpu(error);
-        }
-    }
-    for (Bitzkey* agent : due) {
-        agent->target = target_of(*agent->brain);
-        if (!gpu_ || agent->gpu < 0) continue;
-        try {
-            if (agent->target_gpu >= 0) gpu_->detach(agent->target_gpu);
-            agent->target_gpu = gpu_->attach(*agent->target);
-        } catch (const std::runtime_error& error) {
-            agent->target_gpu = -1;
-            leave_gpu(error);
-        }
     }
 }
 
@@ -1577,7 +1550,6 @@ void Simulation::leave_gpu(const std::exception& error) {
     }
     for (const auto& agent : agents_) {
         agent->gpu = -1;
-        agent->target_gpu = -1;
         agent->synced = -1;
     }
     lessons_.clear();
@@ -1591,7 +1563,6 @@ void Simulation::use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::strin
     const auto old = std::move(gpu_);
     for (const auto& agent : agents_) {
         agent->gpu = -1;
-        agent->target_gpu = -1;
         agent->synced = -1;
     }
     gpu_ = std::move(engine);
@@ -1604,7 +1575,6 @@ void Simulation::use_engine(std::unique_ptr<gpu::BrainEngine> engine, std::strin
 const Brain* Simulation::engine_brain(int handle) const {
     for (const auto& agent : agents_) {
         if (agent->gpu == handle && agent->brain) return agent->brain.get();
-        if (agent->target_gpu == handle && agent->target) return agent->target.get();
     }
     return nullptr;
 }
@@ -1696,11 +1666,6 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     for (const std::size_t index : indices) {
         if (!idle[index]) asked.push_back(index);
     }
-    {  // the target brains due, refreshed before any is asked
-        std::vector<Bitzkey*> asking;
-        for (const std::size_t index : asked) asking.push_back(agents[index]);
-        refresh_targets(asking);
-    }
     std::vector<Values> values(agents.size(), Values{});  // one batch of brains; the idle's left at nothing
     std::vector<double> comforts;
     comforts.reserve(agents.size());
@@ -1725,34 +1690,6 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         std::for_each(std::execution::par, asked.begin(), asked.end(),
                       [&](std::size_t index) { values[index] = agents[index]->brain->values(plans[index].senses); });
     }
-    // And what the target brains make of the same, for those with a lesson waiting: what their best choice is worth.
-    std::vector<Values> target_values(agents.size(), Values{});
-    std::vector<std::size_t> to_value;
-    for (const std::size_t index : asked) {
-        if (TARGET_REFRESH > 0 && agents[index]->has_last_senses && agents[index]->target) to_value.push_back(index);
-    }
-    if (gpu_ && !to_value.empty()) {
-        std::vector<gpu::BrainEngine::Handle> handles;
-        std::vector<Senses> senses;
-        std::vector<std::size_t> on_gpu;
-        for (const std::size_t index : to_value) {
-            if (agents[index]->target_gpu < 0) continue;
-            handles.push_back(agents[index]->target_gpu);
-            senses.push_back(plans[index].senses);
-            on_gpu.push_back(index);
-        }
-        std::vector<Values> batch(on_gpu.size());
-        try {
-            if (!on_gpu.empty()) gpu_->values(handles, senses, batch);
-            for (std::size_t place = 0; place < on_gpu.size(); ++place) target_values[on_gpu[place]] = batch[place];
-        } catch (const std::runtime_error& error) {
-            leave_gpu(error);
-        }
-    }
-    if (!gpu_) {
-        std::for_each(std::execution::par, to_value.begin(), to_value.end(),
-                      [&](std::size_t index) { target_values[index] = agents[index]->target->values(plans[index].senses); });
-    }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
     timings.think += lap(clock);
     // What came of each one's last choice: whatever raised its health (fullness counting with it) or its mood was a
@@ -1765,27 +1702,20 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         rewards[index] = agent.reward + wellbeing(agent) - agent.last_wellbeing + comforts[index] - agent.last_comfort;
         // Having chosen to sit the weather out, it feels it the more (Resting unease); asleep or spent, it had no choice.
         if (agent.last_choice == Rest && !agent.last_forced) rewards[index] -= RESTING_UNEASE * plans[index].situation.exposure;
-        // Its best choice now, by its brain, and what that is worth: by its target brain, where it has one (Double
-        // Q-learning), else by its brain.
-        const bool targeted = TARGET_REFRESH > 0 && agent.target;
-        const Values& worth = targeted ? target_values[index] : values[index];
         const std::vector<int>& options = plans[index].options;
-        int best = options[0];
-        for (const int option : options) {
-            if (values[index][option] > values[index][best]) best = option;
-        }
-        targets[index] = rewards[index] + discount(agent) * worth[best];
-        int best_call = call_output(Silent);
-        for (const int call : plans[index].calls) {
-            if (values[index][call_output(call)] > values[index][best_call]) best_call = call_output(call);
-        }
-        call_targets[index] = rewards[index] + discount(agent) * worth[best_call];
+        double best = values[index][options[0]];
+        for (const int option : options) best = std::max(best, values[index][option]);
+        targets[index] = limited_value(rewards[index] + discount(agent) * best);  // held within the Value limit
+        double best_call = values[index][call_output(Silent)];
+        for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
+        call_targets[index] = limited_value(rewards[index] + discount(agent) * best_call);
     }
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
         return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced || agents[index]->last_panicked);  // a panicked flight teaches
     };
     const auto teach = [&](std::size_t index) {
         if (taught(index)) learn(*agents[index], targets[index], rewards[index], true, call_targets[index]);
+        rein_in(*agents[index], plans[index].senses, values[index]);
     };
     if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
     else std::for_each(std::execution::par, indices.begin(), indices.end(), teach);
@@ -2516,11 +2446,6 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     if (agent.brain) dead_brains.push_back(std::move(agent.brain));
     agent.memories.clear();
     agent.diary.clear();
-    if (gpu_ && agent.target_gpu >= 0) {
-        gpu_->detach(agent.target_gpu);
-        agent.target_gpu = -1;
-    }
-    agent.target.reset();
     if (gpu_ && agent.gpu >= 0) {
         gpu_->detach(agent.gpu);
         agent.gpu = -1;

@@ -1499,6 +1499,6 @@
 "a grazer carries its young this share as long as its size would have it": "食草动物怀孕时长占其体型所定时长的比例",
 "Plant head start": "植物先行生长",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新世界的动物出现之前,植物单独生长的回合数(不计入);0 表示没有",
-"Target refresh": "目标刷新",
-"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "动物年龄中复制其大脑的间隔回合数,该副本在学习时评估其最佳选择,使高估不会自我放大;0 表示由大脑自己评估"
+"Value limit": "价值上限",
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "动物学到的某个选择价值的上下限,使其大脑的高估不会失控;0 表示不设上限"
 }

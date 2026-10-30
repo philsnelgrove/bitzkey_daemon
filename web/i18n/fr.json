@@ -1499,6 +1499,6 @@
 "a grazer carries its young this share as long as its size would have it": "un herbivore porte ses petits cette part du temps que sa taille voudrait",
 "Plant head start": "Avance des plantes",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "tours pendant lesquels les plantes d'un nouveau monde poussent seules, non comptés, avant l'apparition de ses animaux ; 0 : aucun",
-"Target refresh": "Renouvellement de la cible",
-"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "tours de l'âge d'un animal entre les copies de son cerveau qui évaluent son meilleur choix quand il apprend, pour que ses surestimations ne s'alimentent pas elles-mêmes ; 0 : son cerveau l'évalue aussi"
+"Value limit": "Limite de valeur",
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "le plus et le moins qu'un animal apprend qu'un choix vaut, pour que les surestimations de son cerveau ne s'emballent pas ; 0 : aucune limite"
 }

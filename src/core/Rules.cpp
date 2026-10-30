@@ -151,7 +151,7 @@ std::vector<Rule> make_rules() {
         {"LEARNING_FLOOR", "Mind", "Learning floor", "the share of the learning rate even the dullest animal learns at; its intellect adds to it", 0.0, 2.0, 0.05, false, &LEARNING_FLOOR},
         {"LEARNING_BOOST", "Mind", "Learning boost", "the highest intellect learns this much faster again; the lowest, no faster", 0.0, 5.0, 0.1, false, &LEARNING_BOOST},
         {"REPLAY_PER_INTELLECT", "Mind", "Replays per intellect", "recent experiences re-learnt each turn per point of intellect", 0, 4, 1, true, &REPLAY_PER_INTELLECT},
-        {"TARGET_REFRESH", "Mind", "Target refresh", "turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too", 0, 1000, 10, true, &TARGET_REFRESH},
+        {"VALUE_LIMIT", "Mind", "Value limit", "the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit", 0.0, 500.0, 5.0, false, &VALUE_LIMIT},
         {"BREED_LEARNING", "Mind", "Breeding learning", "times as much any animal learns from breeding; more unsettles its brain for all else", 0.0, 20.0, 0.1, false, &BREED_LEARNING},
         {"COURT_LEARNING", "Mind", "Courting learning", "times as much any animal learns from courting; more unsettles its brain for all else", 0.0, 20.0, 0.1, false, &COURT_LEARNING},
         {"KILL_FOOD_LEARNING", "Mind", "Kill food learning", "times as much any animal learns from hunting, attacking and feasting", 0.0, 10.0, 0.1, false, &KILL_FOOD_LEARNING},

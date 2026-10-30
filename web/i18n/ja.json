@@ -1499,6 +1499,6 @@
 "a grazer carries its young this share as long as its size would have it": "草食動物が子を宿す期間の、体の大きさで決まる期間に対する割合",
 "Plant head start": "植物の先行成長",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "新しいワールドで動物が現れる前に植物だけが育つターン数(数えない)。0でなし",
-"Target refresh": "目標の更新",
-"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "学習時に最善の選択を評価する脳のコピーを作り直す間隔(動物の年齢のターン数)。過大評価が自己増幅しないようにする。0で脳自身が評価"
+"Value limit": "価値の上限",
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "動物が選択の価値として学ぶ最大と最小。脳の過大評価が暴走しないように。0で上限なし"
 }

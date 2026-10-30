@@ -1499,6 +1499,6 @@
 "a grazer carries its young this share as long as its size would have it": "אוכל עשב נושא את צאצאיו חלק זה מהזמן שגודלו היה קובע",
 "Plant head start": "יתרון לצמחים",
 "turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none": "תורות שבהן הצמחים של עולם חדש גדלים לבדם, בלי להיספר, לפני שבעלי החיים שלו מופיעים; 0: אין",
-"Target refresh": "רענון יעד",
-"turns of an animal's age between copies of its brain that value its best choice when it learns, so its overestimates don't feed on themselves; 0: its brain values it too": "תורות בגיל של בעל חיים בין עותקים של מוחו שמעריכים את הבחירה הטובה ביותר שלו כשהוא לומד, כדי שהערכות היתר שלו לא יזינו את עצמן; 0: מוחו מעריך גם אותה"
+"Value limit": "גבול ערך",
+"the most, and least, an animal learns a choice is worth, so its brain's overestimates can't run away; 0: no limit": "המרב והמזער שבעל חיים לומד שבחירה שווה, כדי שהערכות היתר של מוחו לא יברחו; 0: ללא גבול"
 }

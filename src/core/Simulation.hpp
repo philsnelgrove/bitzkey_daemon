@@ -1,6 +1,7 @@
 #pragma once
 // Turn-based Bitzkey world and its deterministic history.
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <map>
@@ -243,16 +244,10 @@ inline double LEARNING_RATE = 0.027;
 inline double LEARNING_BOOST = 1.0;
 inline double LEARNING_FLOOR = 0.25;  // the share of LEARNING_RATE even the dullest learns at, intellect adding to it
 inline int REPLAY_PER_INTELLECT = 2;
-// Double Q-learning with a target brain: what an animal learns toward is what came of its choice and what its best choice
-// now is worth, that choice picked by its brain but valued by a copy of it, refreshed every TARGET_REFRESH turns of its
-// age, so that the brain's overestimates don't feed back into themselves; 0: its brain values it too.
-inline int TARGET_REFRESH = 100;
-// A target brain: a copy of a brain's weights, without the traces it learns by, which it never needs.
-inline std::shared_ptr<const Brain> target_of(const Brain& brain) {
-    auto copy = std::make_shared<Brain>(brain);
-    copy->traces.reset();
-    return copy;
-}
+// What an animal learns toward is held between -VALUE_LIMIT and VALUE_LIMIT, so that a brain's overestimates, fed back
+// into what it learns, can't run away with its values; 0: no limit.
+inline double VALUE_LIMIT = 50.0;
+inline double limited_value(double target) { return VALUE_LIMIT > 0 ? std::clamp(target, -VALUE_LIMIT, VALUE_LIMIT) : target; }
 inline int MATE_REACH = 2;            // a partner within this many steps is close enough to breed with
 inline double MATING_CALL = 0.5;      // how much more a predator ready to breed values breeding, or else courting a mate it sees
 inline double MATING_CALL_RANGE = 2.0;    // a predator ready to breed that sees no mate seeks one this many times its sight off
@@ -652,8 +647,6 @@ struct Bitzkey {
     };
     std::vector<Entry> diary;  // its most vivid experiences
     int gpu = -1;  // its brain's handle on the GPUs, when the world thinks there
-    std::shared_ptr<const Brain> target;  // its target brain (see TARGET_REFRESH), and its handle on the GPUs
-    int target_gpu = -1;
     int synced = -1;  // the turn its brain was last brought back from them
     struct Young {  // conceived at mating, born at the end of the gestation
         Dna dna = 0;
@@ -925,6 +918,7 @@ public:
     bool ended() const { return end_reason() != EndReason::None; }
 
     // The rest is public so tests can drive single steps, as the Python tests do.
+    void rein_in(Bitzkey& agent, const Senses& senses, const Values& valued);  // what it values beyond the Value limit, taught back
     // Which way an animal breaks ties between targets equally near, or flees one straight in line: east (1) or west (-1),
     // south (1) or north (-1), turning with its number and the turn, so no way is favoured.
     struct Side {
@@ -1394,7 +1388,6 @@ private:
     void sync(std::span<Bitzkey* const> agents);  // these brains back from the GPUs, each once a turn
     // Put a brain on the GPUs, unless they have failed.
     void attach(Bitzkey& agent);
-    void refresh_targets(const std::vector<Bitzkey*>& agents);  // the target brains due, copied afresh from their brains
     // A brain of its own to learn on: its own if nothing else holds it (a group deployed together shares one), else a copy.
     Brain& learning_brain(Bitzkey& agent);
 };
