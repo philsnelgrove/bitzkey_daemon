@@ -216,6 +216,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
+        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
@@ -307,6 +308,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
     agent->father = record.value("father", -1);
     agent->taught_by = record.value("taught_by", -1);  // none in a world saved before teaching
+    agent->weapon = record.value("weapon", 0);
+    agent->armour = record.value("armour", 0);
+    agent->weapon_uses = record.value("weapon_uses", 0);
+    agent->armour_uses = record.value("armour_uses", 0);
     agent->carried_stone = record.value("carried_stone", 0);
     agent->carried_bone = record.value("carried_bone", 0);
     agent->carried_wood = record.value("carried_wood", 0);
@@ -437,7 +442,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         for (int x = 0; x < simulation.width_; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
             const std::size_t cell = static_cast<std::size_t>(y) * simulation.width_ + x;
-            for (const PileKind kind : {StonePile, BonePile, WoodPile}) {
+            for (const PileKind kind : {StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) {
                 if (const int count = simulation.pile_at(x, y, kind)) materials.push_back({x, y, static_cast<int>(kind), count, simulation.pile_turns_[kind][static_cast<std::size_t>(y) * simulation.width_ + x]});
             }
             if (meat || fruit) piles.push_back({x, y, meat, fruit, simulation.pile_turns_[MeatPile][cell], simulation.pile_turns_[FruitPile][cell]});

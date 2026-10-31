@@ -447,7 +447,15 @@ inline double PLANT_MEAL_FOR_SIZE = 0;
 // meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
 inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
-enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, PILE_KINDS };  // stone and bone never spoil
+enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, PILE_KINDS };
+// What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
+// and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
+// with armour. Armour counts as at least ARMOUR_LEAST of the trait's points, doubled.
+enum Weapon : int { NoWeapon, BoneAxe, Club, StoneAxe };
+enum Armouring : int { NoArmour, BoneArmour, WoodArmour };
+inline int GEAR_USES = 3;
+inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
+inline int ARMOUR_LEAST = 2;  // stone and bone never spoil
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -616,6 +624,8 @@ struct Bitzkey {
     int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
+    int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
+    int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
@@ -878,7 +888,7 @@ public:
     void add_to_pile(int x, int y, PileKind kind, int portions = 1) {
         const std::size_t cell = static_cast<std::size_t>(y) * width_ + x;
         piles_[kind][cell] += portions;
-        if (portions > 0) pile_turns_[kind][cell] = turn_;
+        if (portions > 0 && kind < BoneAxePile) pile_turns_[kind][cell] = turn_;  // a gear pile keeps its wear there instead
     }
     void add_to_pile(int x, int y, bool meat, int portions = 1) { add_to_pile(x, y, meat ? MeatPile : FruitPile, portions); }
     void spoil_piles();  // those left PILE_LASTS corpses' lifetimes since their last drop are gone
@@ -998,7 +1008,8 @@ public:
         std::optional<Cell> suitor_at;  // where it was when seen
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
-        std::optional<Cell> stone_pile, bone_pile, wood_pile;
+        std::optional<Cell> stone_pile, bone_pile, wood_pile, gear_pile;
+        PileKind gear_kind = BoneAxePile;  // of the gear it may take
         Bitzkey* dressable = nullptr;  // the body it would dress: a fresh kill, or else carrion
         bool grass_here = false;
         Bitzkey* carrion = nullptr;
@@ -1128,6 +1139,13 @@ public:
     void take_fruit(Bitzkey& agent, Situation& s);  // from the nearer of a pile and a plant, or torn from one it may uproot
     void take_material(Bitzkey& agent, Cell pile, PileKind kind, int& carried);  // one from a pile, carried off
     void dress(Bitzkey& agent, Bitzkey& corpse);  // all that is left of a body made into bone, a pile where it lay
+    void take_gear(Bitzkey& agent, Situation& s);  // wielded or worn at once
+    void make_gear(Bitzkey& agent, int action);    // from what it carries, wielded or worn at once
+    void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken
+    static void wear_weapon(Bitzkey& agent);       // a use of what it wields, which may break it
+    static void wear_armour(Bitzkey& agent);
+    static double gear_toughness(const Bitzkey& agent);  // with what it wears
+    static double gear_force(const Bitzkey& agent);      // how many times as hard what it wields strikes
     void scatter_stones();  // one world's only stones, on the land, by a draw of its own
     void eat_pile(Bitzkey& agent, Situation& s);  // a portion of whichever pile in sight would fill it more
     void eat_carried(Bitzkey& agent);  // a portion of whichever it carries would fill it more

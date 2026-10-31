@@ -2585,3 +2585,28 @@ TEST_CASE("stones fall where the Python version's do") {
     CHECK(stones == 9);
     for (const auto& [x, y] : {std::pair{0, 17}, {2, 14}, {5, 24}, {9, 22}, {11, 0}, {20, 1}, {21, 27}, {23, 12}, {26, 26}}) CHECK(simulation.pile_at(x, y, StonePile) == 1);
 }
+
+TEST_CASE("gear doubles a blow and armour, and bone and wood break after three uses") {
+    Bitzkey hitter(1, encode_dna(Species::Predator, {}), 0, 0), target(2, encode_dna(Species::Grazer, {{"armour", 0}}), 1, 0);
+    const double plain = Simulation::damage(hitter, target);
+    hitter.carried_stone = 1;
+    CHECK(Simulation::damage(hitter, target) == doctest::Approx(1.5 * plain));
+    hitter.weapon = StoneAxe;
+    CHECK(Simulation::damage(hitter, target) == doctest::Approx(2 * plain));
+    hitter.weapon = NoWeapon;
+    hitter.carried_stone = 0;
+    target.armour = WoodArmour;
+    CHECK(Simulation::damage(hitter, target) < plain);
+
+    hitter.weapon = Club;
+    Simulation::wear_weapon(hitter);
+    Simulation::wear_weapon(hitter);
+    CHECK(hitter.weapon == Club);
+    Simulation::wear_weapon(hitter);
+    CHECK(hitter.weapon == NoWeapon);
+    hitter.weapon = StoneAxe;
+    for (int use = 0; use < 10; ++use) Simulation::wear_weapon(hitter);
+    CHECK(hitter.weapon == StoneAxe);
+    for (int use = 0; use < 3; ++use) Simulation::wear_armour(target);
+    CHECK(target.armour == NoArmour);
+}

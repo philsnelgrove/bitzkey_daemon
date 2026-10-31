@@ -2046,6 +2046,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         s.stone_pile = nearest_pile(agent, sight, StonePile);
         s.bone_pile = nearest_pile(agent, sight, BonePile);
         s.wood_pile = nearest_pile(agent, sight, WoodPile);
+        const bool heavy = agent.weapon == BoneAxe || agent.weapon == Club;
+        for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) {
+            const bool wields = kind <= StoneAxePile;
+            if (wields ? agent.weapon != NoWeapon || (kind != StoneAxePile && agent.armour) : agent.armour != NoArmour || heavy) continue;
+            if (const auto pile = nearest_pile(agent, sight, kind)) {
+                s.gear_pile = pile;
+                s.gear_kind = kind;
+                break;
+            }
+        }
     }
     const int prey_sight = sight + (agent.species == Species::Predator ? PREDATOR_SIGHT : 0);
     const Seen seen = look_around(agent, sight, prey_sight);
@@ -2160,6 +2170,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.dressable = s.kill ? s.kill : s.carrion;
     if (agent.species == Species::Grazer) s.dressable = nearest_carrion(agent, sight);  // it won't eat one, but may dress it
     available[Dress] = s.dressable != nullptr;
+    const bool free_hand = agent.weapon == NoWeapon;
+    available[MakeBoneAxe] = free_hand && !agent.armour && agent.carried_bone > 0;
+    available[MakeClub] = free_hand && !agent.armour && agent.carried_wood > 0;
+    available[MakeStoneAxe] = free_hand && agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0;
+    const bool bare = !agent.armour && agent.weapon != BoneAxe && agent.weapon != Club;
+    available[MakeBoneArmour] = bare && agent.carried_bone > 0;
+    available[MakeWoodArmour] = bare && agent.carried_wood > 0;
+    available[TakeGear] = s.gear_pile.has_value();
+    available[DropWeapon] = agent.weapon != NoWeapon;
+    available[DropArmour] = agent.armour != NoArmour;
     available[EatCarried] = (agent.carried_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0);
     available[EatPile] = (s.meat_pile && MEAT_PORTION * agent.digestion > 0) || (s.fruit_pile && FRUIT_PORTION * agent.browsing > 0);
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
@@ -2237,6 +2257,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseStonePileCloseness] = closeness(agent, s.stone_pile, sight);
     senses[SenseBonePileCloseness] = closeness(agent, s.bone_pile, sight);
     senses[SenseWoodPileCloseness] = closeness(agent, s.wood_pile, sight);
+    senses[SenseGearPileCloseness] = closeness(agent, s.gear_pile, sight);
+    senses[SenseWielding] = gear_force(agent) > 1;
+    senses[SenseArmoured] = agent.armour != NoArmour;
     senses[SenseAssailantNear] = s.assailant != nullptr;
     senses[SenseCounterFrailty] =
         s.defend_target ? std::min(1.0, damage(agent, *s.defend_target) / s.defend_target->health) : 0.0;
@@ -2539,6 +2562,12 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
         add_to_pile(agent.x, agent.y, BonePile, agent.carried_bone);
         add_to_pile(agent.x, agent.y, WoodPile, agent.carried_wood + (agent.species == Species::Plant ? 1 + agent.trait(Size) : 0));  // a dead plant is wood
     }
+    if (in_bounds(agent.x, agent.y)) {  // and what it wielded and wore
+        if (agent.weapon) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + agent.weapon - BoneAxe), agent.weapon_uses);
+        if (agent.armour) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneArmourPile + agent.armour - BoneArmour), agent.armour_uses);
+    }
+    agent.weapon = NoWeapon;
+    agent.armour = NoArmour;
     agent.carried_meat = agent.carried_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
@@ -2726,6 +2755,28 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Dress:
             dress(agent, *s.dressable);
+            break;
+        case MakeBoneAxe:
+        case MakeClub:
+        case MakeStoneAxe:
+        case MakeBoneArmour:
+        case MakeWoodArmour:
+            make_gear(agent, action);
+            break;
+        case TakeGear:
+            take_gear(agent, s);
+            break;
+        case DropWeapon:
+            drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + agent.weapon - BoneAxe), agent.weapon_uses);
+            agent.weapon = NoWeapon;
+            agent.weapon_uses = 0;
+            agent.last_action = "dropped gear";
+            break;
+        case DropArmour:
+            drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneArmourPile + agent.armour - BoneArmour), agent.armour_uses);
+            agent.armour = NoArmour;
+            agent.armour_uses = 0;
+            agent.last_action = "dropped gear";
             break;
         case EatPile:
             eat_pile(agent, s);
@@ -3120,7 +3171,73 @@ double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender, bool
     }
     const double force = STRIKE_FORCE * (2 + 9 * attacker.might);
     const double weapons = armed(attacker) * (defending ? defence_share(attacker) : 1.0);
-    return force * (1 + 0.75 * weapons) * (1 - 0.6 * defender.toughness);
+    return force * (1 + 0.75 * weapons) * (1 - 0.6 * gear_toughness(defender)) * gear_force(attacker);
+}
+
+double Simulation::gear_toughness(const Bitzkey& agent) {
+    if (!agent.armour) return agent.toughness;
+    const double natural = agent.physique(Armour);
+    return agent.toughness + (1 - SIZE_IN_MIGHT) * (ARMOUR_FORCE * std::max(natural, static_cast<double>(ARMOUR_LEAST) / TRAIT_MAX) - natural);
+}
+
+double Simulation::gear_force(const Bitzkey& agent) {
+    return agent.weapon ? WEAPON_FORCE : agent.carried_stone > 0 ? STONE_FORCE : 1.0;
+}
+
+void Simulation::drop_gear(int x, int y, PileKind kind, int uses) {
+    add_to_pile(x, y, kind);
+    pile_turns_[kind][static_cast<std::size_t>(y) * width_ + x] += uses;
+}
+
+void Simulation::wear_weapon(Bitzkey& agent) {
+    if (agent.weapon != BoneAxe && agent.weapon != Club) return;
+    if (++agent.weapon_uses >= GEAR_USES) {
+        agent.weapon = NoWeapon;
+        agent.weapon_uses = 0;
+    }
+}
+
+void Simulation::wear_armour(Bitzkey& agent) {
+    if (agent.armour && ++agent.armour_uses >= GEAR_USES) {
+        agent.armour = NoArmour;
+        agent.armour_uses = 0;
+    }
+}
+
+void Simulation::make_gear(Bitzkey& agent, int action) {
+    switch (action) {
+        case MakeBoneAxe: --agent.carried_bone; agent.weapon = BoneAxe; break;
+        case MakeClub: --agent.carried_wood; agent.weapon = Club; break;
+        case MakeBoneArmour: --agent.carried_bone; agent.armour = BoneArmour; break;
+        case MakeWoodArmour: --agent.carried_wood; agent.armour = WoodArmour; break;
+        default:  // a stone axe, of a stone and a bone, or wood if it has no bone
+            --agent.carried_stone;
+            --(agent.carried_bone ? agent.carried_bone : agent.carried_wood);
+            agent.weapon = StoneAxe;
+    }
+    agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
+    agent.last_action = "made gear";
+}
+
+void Simulation::take_gear(Bitzkey& agent, Situation& s) {
+    const Cell pile = *s.gear_pile;
+    move_toward(agent, pile.x, pile.y);
+    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, s.gear_kind) <= 0) {
+        agent.last_action = "sought a pile";
+        return;
+    }
+    int& wear = pile_turns_[s.gear_kind][static_cast<std::size_t>(pile.y) * width_ + pile.x];
+    const int uses = wear / pile_at(pile.x, pile.y, s.gear_kind);  // its share of the pile's wear
+    wear -= uses;
+    add_to_pile(pile.x, pile.y, s.gear_kind, -1);
+    switch (s.gear_kind) {
+        case BoneAxePile: agent.weapon = BoneAxe; agent.weapon_uses = uses; break;
+        case ClubPile: agent.weapon = Club; agent.weapon_uses = uses; break;
+        case StoneAxePile: agent.weapon = StoneAxe; agent.weapon_uses = uses; break;
+        case BoneArmourPile: agent.armour = BoneArmour; agent.armour_uses = uses; break;
+        default: agent.armour = WoodArmour; agent.armour_uses = uses;
+    }
+    agent.last_action = "took gear";
 }
 
 double Simulation::armed(const Bitzkey& animal) {
@@ -3143,6 +3260,8 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     const double empathy = agent.feeling(Empathy);
     const double joy = FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * empathy) * (1 - 0.75 * agent.feeling(Tolerance));
     double blow = damage(agent, victim);
+    wear_weapon(agent);
+    wear_armour(victim);
     for (const Bitzkey* other : around(victim, 1)) {
         if (other != &agent && herd_mate(agent, *other)) {
             blow *= 1 + PACK_BONUS * agent.herd_instinct();  // hunting as a pack
@@ -3204,6 +3323,8 @@ void Simulation::exhausted(Bitzkey& agent) {
 
 void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
     const double blow = damage(agent, assailant, true);
+    wear_weapon(agent);
+    wear_armour(assailant);
     assailant.health -= blow;
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;
     experience(assailant, Stung);
