@@ -1545,5 +1545,7 @@
 "Dig chance": "Шанс копання",
 "chance that digging finds a stone": "шанс, що копання знайде камінь",
 "Cooked food": "Приготована їжа",
-"times as nourishing as raw": "у скільки разів поживніша за сиру"
+"times as nourishing as raw": "у скільки разів поживніша за сиру",
+"Shelter size": "Розмір укриття",
+"units of stone or wood that finish a shelter": "одиниці каменю чи деревини, що завершують укриття"
 }

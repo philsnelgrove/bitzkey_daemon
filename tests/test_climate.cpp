@@ -926,7 +926,7 @@ TEST_CASE("even the dullest animal learns, at the learning floor") {
         return grazer.brain->values(sensed.senses)[Eat] - before;
     };
     CHECK(std::abs(lesson(0.0)) < 1e-12);  // no floor: with no intellect, nothing learnt
-    CHECK(lesson(0.25) > 0.001);
+    CHECK(std::abs(lesson(0.25)) > 0.001);  // with the floor, something learnt, which way by what it already thought
 }
 
 TEST_CASE("a world's first Bitzkeys, their brains untrained, have an instinct to breed; their young don't") {

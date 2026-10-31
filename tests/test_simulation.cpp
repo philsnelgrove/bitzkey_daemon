@@ -2599,15 +2599,14 @@ TEST_CASE("gear doubles a blow and armour, and bone and wood break after three u
     CHECK(Simulation::damage(hitter, target) < plain);
 
     hitter.weapon = Club;
-    Simulation::wear_weapon(hitter);
-    Simulation::wear_weapon(hitter);
+    for (int use = 0; use < GEAR_USES - 1; ++use) Simulation::wear_weapon(hitter);
     CHECK(hitter.weapon == Club);
     Simulation::wear_weapon(hitter);
     CHECK(hitter.weapon == NoWeapon);
     hitter.weapon = StoneAxe;
     for (int use = 0; use < 10; ++use) Simulation::wear_weapon(hitter);
     CHECK(hitter.weapon == StoneAxe);
-    for (int use = 0; use < 3; ++use) Simulation::wear_armour(target);
+    for (int use = 0; use < GEAR_USES; ++use) Simulation::wear_armour(target);
     CHECK(target.armour == NoArmour);
 }
 
@@ -2638,4 +2637,23 @@ TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils"
     simulation.cook(lighter, Cell{5, 5});
     CHECK(lighter.carried_meat == 0);
     CHECK(simulation.pile_at(5, 5, CookedMeatPile) == 1);
+    CHECK(simulation.warmed_by_fire(lighter, lighter.climate.temperature + 1));
+    CHECK_FALSE(simulation.warmed_by_fire(lighter, lighter.climate.temperature));
+}
+
+TEST_CASE("seven units make a shelter, which doubles a square and keeps wood from rotting") {
+    Simulation simulation = world();
+    Bitzkey& builder = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 5, 5);
+    simulation.index_cells();
+    const int open = simulation.room_in(Cell{5, 5});
+    builder.carried_stone = 4;
+    builder.carried_wood = 3;
+    builder.weapon = StoneAxe;
+    for (int unit = 0; unit < SHELTER_UNITS - 1; ++unit) simulation.construct(builder);
+    CHECK(simulation.room_in(Cell{5, 5}) == open - (SHELTER_UNITS - 1));
+    CHECK_FALSE(simulation.shelter_at(5, 5));
+    simulation.construct(builder);
+    CHECK(simulation.shelter_at(5, 5));
+    CHECK(builder.load() == 0);
+    CHECK(simulation.room_in(Cell{5, 5}) == open + CELL_SPACE);
 }

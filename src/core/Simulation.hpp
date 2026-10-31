@@ -451,13 +451,15 @@ enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAx
 inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
+inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
+inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
 // with armour. Armour counts as at least ARMOUR_LEAST of the trait's points, doubled.
 enum Weapon : int { NoWeapon, BoneAxe, Club, StoneAxe };
 enum Armouring : int { NoArmour, BoneArmour, WoodArmour };
-inline int GEAR_USES = 3;
+inline int GEAR_USES = 7;
 inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
 inline int ARMOUR_LEAST = 2;  // stone and bone never spoil
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood lasts
@@ -1231,10 +1233,15 @@ public:
     int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
     // One blow; struck in defence, a grazer's or omnivore's weapons count for less.
+    bool warmed_by_fire(const Bitzkey& agent, int here) const;
     int fire_at(int x, int y) const { return in_bounds(x, y) ? fires_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // the turn it goes out
     void light_fire(Bitzkey& agent);  // of its club
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, left in a cooked pile here
+    bool shelter_at(int x, int y) const { return in_bounds(x, y) && shelters_[static_cast<std::size_t>(y) * width_ + x]; }
+    bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && shelter_at(animal.x, animal.y); }
+    int site_at(int x, int y) const { return in_bounds(x, y) ? sites_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // units in an unfinished shelter
+    void construct(Bitzkey& agent);  // a unit of what it carries, stone first, into the shelter on its square
     void dig(Bitzkey& agent);  // an axe or club finds a stone in the ground, carried or left here
     static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
     static double defence_share(const Bitzkey& animal);  // the share of its weapons an animal brings to defence
@@ -1476,6 +1483,7 @@ private:
     std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
     std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
     bool stones_scattered_ = false;
+    std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;
     bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched

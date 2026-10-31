@@ -272,7 +272,9 @@ std::string frame(const Simulation& simulation) {
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->y));
         out.push_back(static_cast<char>(agent->species));
         out.push_back(static_cast<char>(agent->body[Size]));
-        out.push_back(static_cast<char>(agent->alive() ? 1 : 0));
+        // whether it lives, then what it wields (1 to 3, 4 a stone) and wears (1 or 2)
+        const int wields = agent->weapon ? agent->weapon : agent->carried_stone > 0 ? 4 : 0;
+        out.push_back(static_cast<char>((agent->alive() ? 1 : 0) | wields << 1 | agent->armour << 4));
         out.push_back(static_cast<char>(static_cast<int>(py_round(255 * corpse_opacity(*agent, simulation.turn())))));
         put<std::uint32_t>(out, mind_word(agent->dna));
         put<std::uint32_t>(out, body_word(agent->dna));
@@ -297,7 +299,8 @@ std::string frame(const Simulation& simulation) {
             int gear = 0;
             for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) gear += simulation.pile_at(x, y, kind);
             const bool fire = simulation.fire_at(x, y) > simulation.turn();
-            if (!meat && !fruit && !stone && !bone && !wood && !gear && !fire) continue;
+            const int building = simulation.shelter_at(x, y) ? 2 : simulation.site_at(x, y) ? 1 : 0;
+            if (!meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building) continue;
             ++piles;
             put<std::uint16_t>(out, static_cast<std::uint16_t>(x));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
@@ -307,7 +310,7 @@ std::string frame(const Simulation& simulation) {
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(bone, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(wood, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(gear, 65535)));
-            put<std::uint16_t>(out, static_cast<std::uint16_t>(fire));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(fire + 2 * building));
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);

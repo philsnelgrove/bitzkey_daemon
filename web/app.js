@@ -5,7 +5,7 @@
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -255,7 +255,9 @@ function parseFrame(view) {
       y: view.getUint16(offset + 6, true),
       species: view.getUint8(offset + 8),
       size: view.getUint8(offset + 9),
-      alive: view.getUint8(offset + 10) === 1,
+      alive: (view.getUint8(offset + 10) & 1) === 1,
+      wields: view.getUint8(offset + 10) >> 1 & 7,
+      wears: view.getUint8(offset + 10) >> 4,
       opacity: view.getUint8(offset + 11) / 255,
       dot: colourOfWord(view.getUint32(offset + 12, true)),  // its colours, from its genome's words
       ring: colourOfWord(view.getUint32(offset + 16, true)),
@@ -460,7 +462,14 @@ function drawMap() {
         ctx.fillStyle = 'rgb(96,130,160)';
         ctx.fillRect(px - half / 2, py - half, half, Math.max(2, half / 2));
       }
-      if (fire) {  // a fire, a flame on the square
+      if (fire >> 1) {  // a shelter, or a dotted one still building
+        ctx.strokeStyle = 'rgb(150,110,70)';
+        ctx.lineWidth = Math.max(1, half / 4);
+        ctx.setLineDash(fire >> 1 === 1 ? [2, 2] : []);
+        ctx.strokeRect(px - half * 1.6, py - half * 1.6, half * 3.2, half * 3.2);
+        ctx.setLineDash([]);
+      }
+      if (fire & 1) {  // a fire, a flame on the square
         ctx.fillStyle = 'rgb(255,120,20)';
         ctx.beginPath();
         ctx.arc(px, py, Math.max(2, half * 0.7), 0, Math.PI * 2);
@@ -520,6 +529,7 @@ function drawMap() {
     drawn += 1;
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
+    drawGear(ctx, agent.wields, agent.wears, px, py, radius);
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
       drawReticle(ctx, px, py, (radius + RING_WIDTH + 3) * reticlePulse());
     }

@@ -317,6 +317,32 @@ export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
   });
 }
 
+// What a Bitzkey wears and wields: a small shield at its lower left, a small tool at its upper right.
+export function drawGear(ctx, wields, wears, x, y, radius) {
+  const size = Math.max(2, radius * 0.6);
+  if (wears) {
+    const cx = x - radius, cy = y + radius * 0.6;
+    ctx.fillStyle = wears === 1 ? 'rgb(236,226,205)' : 'rgb(122,80,44)';
+    ctx.beginPath();
+    ctx.moveTo(cx - size, cy - size);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx + size, cy);
+    ctx.lineTo(cx, cy + size);
+    ctx.lineTo(cx - size, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (wields) {
+    const cx = x + radius, cy = y - radius * 0.6;
+    ctx.strokeStyle = wields === 2 ? 'rgb(122,80,44)' : wields === 1 ? 'rgb(236,226,205)' : 'rgb(136,138,142)';
+    ctx.lineWidth = Math.max(1, size / 2);
+    ctx.beginPath();
+    ctx.moveTo(cx - size, cy + size);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.stroke();
+  }
+}
+
 export function grassTuft(size, sea) {
   const key = `${size}|${sea}|${window.devicePixelRatio || 1}`;
   if (!tufts.has(key)) {

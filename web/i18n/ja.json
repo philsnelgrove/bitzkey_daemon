@@ -1545,5 +1545,7 @@
 "Dig chance": "掘削確率",
 "chance that digging finds a stone": "掘って石が見つかる確率",
 "Cooked food": "調理済み食料",
-"times as nourishing as raw": "生の何倍栄養があるか"
+"times as nourishing as raw": "生の何倍栄養があるか",
+"Shelter size": "避難所の大きさ",
+"units of stone or wood that finish a shelter": "避難所の完成に必要な石または木の単位数"
 }

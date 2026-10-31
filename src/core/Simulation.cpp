@@ -436,6 +436,8 @@ Simulation::Simulation(Settings settings)
     for (auto& piles : piles_) piles.assign(area, 0);
     for (auto& turns : pile_turns_) turns.assign(area, 0);
     fires_.assign(area, 0);
+    sites_.assign(area, 0);
+    shelters_.assign(area, 0);
     fire_lighters_.assign(area, -1);
     grass_.assign(area, 0);
     update_climate();
@@ -879,7 +881,7 @@ void Simulation::take_turn() {
         const bool sheltered = agent->infant() && std::any_of(shelter.begin(), shelter.end(), [](const Bitzkey* parent) {
                                    return parent && parent->alive();
                                });
-        const double steps = sheltered ? 0.0 : agent->climate_steps(here);  // a sheltered infant feels no weather
+        const double steps = sheltered || warmed_by_fire(*agent, here) ? 0.0 : agent->climate_steps(here);  // a sheltered infant feels no weather
         const bool hungrier = steps > 0 && (!plant || here < agent->climate.temperature);  // out of its temperature; a plant, too hot
         const double share = agent->exposure_share(here);  // less for the hardy
         // The extra food it needs rises with the weather's turning, to the full amount a step away.
@@ -2203,6 +2205,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[EatCarried] = (agent.carried_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0);
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
+    available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[LightFire] = agent.weapon == Club && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && agent.carried_meat + agent.carried_fruit > 0;
@@ -2259,6 +2262,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseMateCloseness] = closeness(agent, cell_of(s.suitor), sight);
     senses[SenseReadyToBreed] = agent.cooldown == 0 && agent.in_heat;  // rested, and in heat
     senses[SensePreyNear] = std::min<int>(4, static_cast<int>(prey.size())) / 4.0;
+    senses[SenseFoeSheltered] = (s.prey && safe_inside(*s.prey)) || (s.defend_target && safe_inside(*s.defend_target));
     senses[SensePreyFrailty] = s.prey ? std::min(1.0, damage(agent, *s.prey) / s.prey->health) : 0.0;
     senses[SensePreyCloseness] = closeness(agent, cell_of(s.quarry), prey_sight);
     senses[SensePreyPregnant] = s.quarry && !s.quarry->womb.empty();
@@ -2284,6 +2288,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseGearPileCloseness] = closeness(agent, s.gear_pile, sight);
     senses[SenseFireCloseness] = closeness(agent, s.fire, sight);
     senses[SenseFireFriendly] = s.fire && fire_friendly(agent, *s.fire);
+    senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
     senses[SenseWielding] = gear_force(agent) > 1;
     senses[SenseArmoured] = agent.armour != NoArmour;
     senses[SenseAssailantNear] = s.assailant != nullptr;
@@ -2795,6 +2800,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Dig:
             dig(agent);
             break;
+        case Construct:
+            construct(agent);
+            break;
         case LightFire:
             light_fire(agent);
             break;
@@ -3045,7 +3053,7 @@ void Simulation::spoil_piles() {
         std::vector<int>& piles = piles_[kind];
         const std::vector<int>& turns = pile_turns_[kind];
         for (std::size_t cell = 0; cell < piles.size(); ++cell) {
-            if (piles[cell] > 0 && turn_ - turns[cell] >= life) {
+            if (piles[cell] > 0 && !shelters_[cell] && turn_ - turns[cell] >= life) {
                 carrying[Spoiled] += piles[cell];
                 piles[cell] = 0;
             }
@@ -3053,7 +3061,7 @@ void Simulation::spoil_piles() {
     }
     std::vector<int>& wood = piles_[WoodPile];
     for (std::size_t cell = 0; cell < wood.size(); ++cell) {
-        if (wood[cell] > 0 && turn_ - pile_turns_[WoodPile][cell] >= life * WOOD_LASTS) wood[cell] = 0;  // rotted away
+        if (wood[cell] > 0 && !shelters_[cell] && turn_ - pile_turns_[WoodPile][cell] >= life * WOOD_LASTS) wood[cell] = 0;  // rotted away
     }
 }
 
@@ -3228,11 +3236,33 @@ double Simulation::gear_force(const Bitzkey& agent) {
     return agent.weapon ? WEAPON_FORCE : agent.carried_stone > 0 ? STONE_FORCE : 1.0;
 }
 
+bool Simulation::warmed_by_fire(const Bitzkey& agent, int here) const {
+    if (!any_fires_ || here <= agent.climate.temperature) return false;  // only against the cold
+    for (int dy = -FIRE_REACH; dy <= FIRE_REACH; ++dy) {
+        for (int dx = std::abs(dy) - FIRE_REACH; dx <= FIRE_REACH - std::abs(dy); ++dx) {
+            if (fire_at(agent.x + dx, agent.y + dy) > turn_) return true;
+        }
+    }
+    return false;
+}
+
 bool Simulation::fire_friendly(const Bitzkey& agent, Cell fire) const {
     const int lighter = fire_lighters_[static_cast<std::size_t>(fire.y) * width_ + fire.x];
     if (lighter == agent.identifier) return true;
     const Bitzkey* other = find_agent(lighter);
     return other && herd_mate(agent, *other);
+}
+
+void Simulation::construct(Bitzkey& agent) {
+    --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
+    const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
+    wear_weapon(agent);
+    agent.last_action = "built";
+    if (++sites_[cell] >= SHELTER_UNITS) {
+        sites_[cell] = 0;
+        shelters_[cell] = 1;
+        agent.last_action = "finished a shelter";
+    }
 }
 
 void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
@@ -3344,6 +3374,10 @@ double Simulation::armed(const Bitzkey& animal) {
 }
 
 void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activity) {
+    if (safe_inside(victim)) {  // safe at rest inside
+        agent.last_action = "missed";
+        return;
+    }
     if (victim.species != Species::Plant && SMALL_HIDING > 0 && victim.body[Size] < TRAIT_MAX) {  // a small animal may slip away
         const double smallness = 1 - victim.physique(Size);
         if (rng().random() < SMALL_HIDING * smallness * smallness) {
@@ -3718,7 +3752,8 @@ int Simulation::room_in(Cell cell, const Bitzkey* leaving) const {
     for (const Bitzkey* other : cells_[static_cast<std::size_t>(cell.y) * width_ + cell.x]) {
         if (other->alive() && other != leaving) used += other->space();
     }
-    return CELL_SPACE - used;
+    if (!in_bounds(cell.x, cell.y)) return CELL_SPACE - used;
+    return CELL_SPACE * (shelter_at(cell.x, cell.y) ? 2 : 1) - site_at(cell.x, cell.y) - used;
 }
 
 std::optional<Cell> Simulation::spot_near(Cell cell, int space, Terrain terrain) const {

@@ -1545,5 +1545,7 @@
 "Dig chance": "Probabilidad de excavar",
 "chance that digging finds a stone": "probabilidad de que excavar encuentre una piedra",
 "Cooked food": "Comida cocinada",
-"times as nourishing as raw": "cuántas veces más nutritiva que cruda"
+"times as nourishing as raw": "cuántas veces más nutritiva que cruda",
+"Shelter size": "Tamaño del refugio",
+"units of stone or wood that finish a shelter": "unidades de piedra o madera que completan un refugio"
 }

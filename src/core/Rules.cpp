@@ -256,6 +256,7 @@ std::vector<Rule> make_rules() {
         {"PILE_LASTS", "Food", "Pile life", "times as long as a corpse a pile lasts, since food was last dropped on it", 0.0, 20.0, 0.5, false, &PILE_LASTS},
         {"WOOD_LASTS", "Food", "Wood life", "times as long as a pile of food a pile of wood lasts, unless sheltered", 0.0, 100.0, 1.0, false, &WOOD_LASTS},
         {"STONE_SCATTER_PER", "Food", "Stone scatter", "squares to each stone scattered, once in a world's life", 10, 1000, 10, true, &STONE_SCATTER_PER},
+        {"SHELTER_UNITS", "Food", "Shelter size", "units of stone or wood that finish a shelter", 1, 50, 1, true, &SHELTER_UNITS},
         {"GEAR_USES", "Food", "Gear uses", "uses before a tool or armour of bone or wood breaks", 1, 20, 1, true, &GEAR_USES},
         {"WEAPON_FORCE", "Food", "Weapon force", "times as hard an axe or club strikes", 1.0, 5.0, 0.1, false, &WEAPON_FORCE},
         {"STONE_FORCE", "Food", "Stone force", "times as hard a wielded stone strikes", 1.0, 5.0, 0.1, false, &STONE_FORCE},

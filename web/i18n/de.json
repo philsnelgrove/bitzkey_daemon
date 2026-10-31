@@ -1545,5 +1545,7 @@
 "Dig chance": "Grabchance",
 "chance that digging finds a stone": "Chance, beim Graben einen Stein zu finden",
 "Cooked food": "Gekochte Nahrung",
-"times as nourishing as raw": "wievielmal so nahrhaft wie roh"
+"times as nourishing as raw": "wievielmal so nahrhaft wie roh",
+"Shelter size": "Unterschlupfgröße",
+"units of stone or wood that finish a shelter": "Einheiten Stein oder Holz, die einen Unterschlupf vollenden"
 }

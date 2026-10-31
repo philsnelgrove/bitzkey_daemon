@@ -131,13 +131,15 @@ enum Sense : int {
     SenseFireFriendly,
     SenseWielding,
     SenseArmoured,
+    SenseFoeSheltered,  // whether the prey or rival it would strike is at rest in a shelter, out of reach
+    SenseShelterHere,  // how far built the shelter on its square is, 1 when finished
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach,
                     TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried,
-                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook };
-constexpr int ACTION_COUNT = 51;
+                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook, Construct };
+constexpr int ACTION_COUNT = 52;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -169,7 +171,7 @@ constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
-    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook"};
+    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
@@ -225,7 +227,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
-    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "aggression", "libido", "curiosity",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

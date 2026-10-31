@@ -1545,5 +1545,7 @@
 "Dig chance": "खुदाई संभावना",
 "chance that digging finds a stone": "खुदाई में पत्थर मिलने की संभावना",
 "Cooked food": "पका भोजन",
-"times as nourishing as raw": "कच्चे से कितना गुना पौष्टिक"
+"times as nourishing as raw": "कच्चे से कितना गुना पौष्टिक",
+"Shelter size": "आश्रय आकार",
+"units of stone or wood that finish a shelter": "पत्थर या लकड़ी की इकाइयाँ जो आश्रय पूरा करती हैं"
 }

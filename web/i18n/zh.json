@@ -1545,5 +1545,7 @@
 "Dig chance": "挖掘几率",
 "chance that digging finds a stone": "挖掘找到石头的几率",
 "Cooked food": "熟食",
-"times as nourishing as raw": "营养是生食的几倍"
+"times as nourishing as raw": "营养是生食的几倍",
+"Shelter size": "庇护所大小",
+"units of stone or wood that finish a shelter": "建成庇护所所需的石头或木材单位数"
 }
