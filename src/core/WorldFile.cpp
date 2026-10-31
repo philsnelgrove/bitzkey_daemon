@@ -217,6 +217,8 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
+        {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries},
+        {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
@@ -312,6 +314,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->armour = record.value("armour", 0);
     agent->weapon_uses = record.value("weapon_uses", 0);
     agent->armour_uses = record.value("armour_uses", 0);
+    agent->crafts = record.value("crafts", 0);
+    if (record.contains("craft_tries")) agent->craft_tries = record.at("craft_tries").get<std::array<int, 5>>();
+    agent->cooked_meat = record.value("cooked_meat", 0);
+    agent->cooked_fruit = record.value("cooked_fruit", 0);
     agent->carried_stone = record.value("carried_stone", 0);
     agent->carried_bone = record.value("carried_bone", 0);
     agent->carried_wood = record.value("carried_wood", 0);
@@ -442,7 +448,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     json shelters = json::array();  // x, y, units in it unfinished, whether it stands
     for (std::size_t cell = 0; cell < simulation.sites_.size(); ++cell) {
         if (simulation.sites_[cell] || simulation.shelters_[cell]) {
-            shelters.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.sites_[cell], simulation.shelters_[cell]});
+            shelters.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.sites_[cell], simulation.shelters_[cell], simulation.site_turns_[cell]});
         }
     }
     for (std::size_t cell = 0; cell < simulation.fires_.size(); ++cell) {
@@ -732,6 +738,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             const std::size_t cell = static_cast<std::size_t>(shelter.at(1).get<int>()) * world.width_ + shelter.at(0).get<int>();
             world.sites_[cell] = shelter.at(2).get<int>();
             world.shelters_[cell] = shelter.at(3).get<int>();
+            world.site_turns_[cell] = shelter.size() > 4 ? shelter.at(4).get<int>() : world.turn_;  // built now, in a world saved before they fell
         }
         world.stones_scattered_ = record.value("stones_scattered", false);
         world.scatter_stones();  // a world saved before stones has them now, the once

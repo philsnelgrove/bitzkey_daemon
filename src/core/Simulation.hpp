@@ -451,8 +451,15 @@ enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAx
 inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
+inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls away
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
 inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
+// A craft must first be discovered, the more likely each turn the cleverer the animal holding its materials, and then
+// made to work: the chance rises with each try to certainty at CRAFT_TRIES, the sooner the cleverer. A failure spends
+// nothing, and is a small thrill of discovery to the curious.
+inline double DISCOVERY_CHANCE = 0.02;
+inline int CRAFT_TRIES = 10;
+inline double CRAFT_THRILL = 1.0;
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
@@ -629,8 +636,11 @@ struct Bitzkey {
     int children = 0;
     int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
+    int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
+    int crafts = 0;  // a bit for each craft it has discovered
+    std::array<int, 5> craft_tries{};  // how often it has tried each
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
@@ -734,7 +744,7 @@ struct Bitzkey {
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
     int capacity() const { return trait(Size) + 1; }  // the portions it can carry
-    int load() const { return carried_meat + carried_fruit + carried_stone + carried_bone + carried_wood; }
+    int load() const { return carried_meat + carried_fruit + cooked_meat + cooked_fruit + carried_stone + carried_bone + carried_wood; }
     bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
     // The squares it goes a step from where it stands: its steps, but an amphibious animal on land AMPHIBIOUS_SPEED of
     // them, rounded half up, at least one.
@@ -1147,6 +1157,7 @@ public:
     void take_material(Bitzkey& agent, Cell pile, PileKind kind, int& carried);  // one from a pile, carried off
     void dress(Bitzkey& agent, Bitzkey& corpse);  // all that is left of a body made into bone, a pile where it lay
     void take_gear(Bitzkey& agent, Situation& s);  // wielded or worn at once
+    void discover(Bitzkey& agent);  // perhaps, a craft whose materials it holds
     void make_gear(Bitzkey& agent, int action);    // from what it carries, wielded or worn at once
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken
     static void wear_weapon(Bitzkey& agent);       // a use of what it wields, which may break it
@@ -1237,7 +1248,8 @@ public:
     int fire_at(int x, int y) const { return in_bounds(x, y) ? fires_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // the turn it goes out
     void light_fire(Bitzkey& agent);  // of its club
     void feed_fire(Bitzkey& agent, Cell fire);
-    void cook(Bitzkey& agent, Cell fire);  // what it carries, left in a cooked pile here
+    void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
+    bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there
     bool shelter_at(int x, int y) const { return in_bounds(x, y) && shelters_[static_cast<std::size_t>(y) * width_ + x]; }
     bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && shelter_at(animal.x, animal.y); }
     int site_at(int x, int y) const { return in_bounds(x, y) ? sites_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // units in an unfinished shelter
@@ -1483,6 +1495,7 @@ private:
     std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
     std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
     bool stones_scattered_ = false;
+    std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;

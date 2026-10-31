@@ -437,6 +437,7 @@ Simulation::Simulation(Settings settings)
     for (auto& turns : pile_turns_) turns.assign(area, 0);
     fires_.assign(area, 0);
     sites_.assign(area, 0);
+    site_turns_.assign(area, 0);
     shelters_.assign(area, 0);
     fire_lighters_.assign(area, -1);
     grass_.assign(area, 0);
@@ -2177,10 +2178,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     // Food to carry off, with room for it; what it carries to put down; a pile with food in it for this gut.
     const bool room = agent.load() < agent.capacity();
-    available[TakeMeat] = room && (s.kill || s.meat_pile);
-    available[TakeFruit] = room && (s.flora || s.tears || s.fruit_pile);
-    available[DropMeat] = agent.carried_meat > 0;
-    available[DropFruit] = agent.carried_fruit > 0;
+    available[TakeMeat] = room && (s.kill || s.eat_meat);
+    available[TakeFruit] = room && (s.flora || s.tears || s.eat_fruit);
+    available[DropMeat] = agent.carried_meat + agent.cooked_meat > 0;
+    available[DropFruit] = agent.carried_fruit + agent.cooked_fruit > 0;
     available[TakeStone] = room && s.stone_pile;
     available[TakeBone] = room && s.bone_pile;
     available[TakeWood] = room && s.wood_pile;
@@ -2191,18 +2192,19 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (agent.species == Species::Grazer) s.dressable = nearest_carrion(agent, sight);  // it won't eat one, but may dress it
     available[Dress] = s.dressable != nullptr;
     const bool free_hand = agent.weapon == NoWeapon;
-    available[MakeBoneAxe] = free_hand && !agent.armour && agent.carried_bone > 0;
-    available[MakeClub] = free_hand && !agent.armour && agent.carried_wood > 0;
-    available[MakeStoneAxe] = free_hand && agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0;
+    const auto known = [&](int action) { return (agent.crafts >> (action - MakeBoneAxe) & 1) != 0; };
+    available[MakeBoneAxe] = known(MakeBoneAxe) && free_hand && !agent.armour && agent.carried_bone > 0;
+    available[MakeClub] = known(MakeClub) && free_hand && !agent.armour && agent.carried_wood > 0;
+    available[MakeStoneAxe] = known(MakeStoneAxe) && free_hand && agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0;
     const bool bare = !agent.armour && agent.weapon != BoneAxe && agent.weapon != Club;
-    available[MakeBoneArmour] = bare && agent.carried_bone > 0;
-    available[MakeWoodArmour] = bare && agent.carried_wood > 0;
+    available[MakeBoneArmour] = known(MakeBoneArmour) && bare && agent.carried_bone > 0;
+    available[MakeWoodArmour] = known(MakeWoodArmour) && bare && agent.carried_wood > 0;
     available[TakeGear] = s.gear_pile.has_value();
     available[Cut] = s.flora && (agent.weapon == BoneAxe || agent.weapon == StoneAxe);
     available[Dig] = agent.weapon != NoWeapon && !sea(agent.x, agent.y);
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
-    available[EatCarried] = (agent.carried_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0);
+    available[EatCarried] = (agent.carried_meat + agent.cooked_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit && FRUIT_PORTION * agent.browsing > 0);
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
@@ -2589,6 +2591,8 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     if (in_bounds(agent.x, agent.y)) {  // what it carried falls where it died
         add_to_pile(agent.x, agent.y, true, agent.carried_meat);
         add_to_pile(agent.x, agent.y, false, agent.carried_fruit);
+        add_to_pile(agent.x, agent.y, CookedMeatPile, agent.cooked_meat);
+        add_to_pile(agent.x, agent.y, CookedFruitPile, agent.cooked_fruit);
         add_to_pile(agent.x, agent.y, StonePile, agent.carried_stone);
         add_to_pile(agent.x, agent.y, BonePile, agent.carried_bone);
         add_to_pile(agent.x, agent.y, WoodPile, agent.carried_wood + (agent.species == Species::Plant ? 1 + agent.trait(Size) : 0));  // a dead plant is wood
@@ -2599,7 +2603,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     }
     agent.weapon = NoWeapon;
     agent.armour = NoArmour;
-    agent.carried_meat = agent.carried_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
+    agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
         if (tile) ++tile->kills;
@@ -2645,6 +2649,7 @@ double Simulation::remembered(const Bitzkey& agent, const std::optional<Place>& 
 }
 
 void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
+    if (agent.species != Species::Plant) discover(agent);
     switch (action) {
         case Eat:
             if (grass_cell(agent.x, agent.y) <= 0) {  // another got here first
@@ -2749,14 +2754,24 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             take_fruit(agent, s);
             break;
         case DropMeat:
-            --agent.carried_meat;
-            add_to_pile(agent.x, agent.y, true);
+            if (agent.carried_meat) {
+                --agent.carried_meat;
+                add_to_pile(agent.x, agent.y, true);
+            } else {
+                --agent.cooked_meat;
+                add_to_pile(agent.x, agent.y, CookedMeatPile);
+            }
             ++carrying[MeatDropped];
             agent.last_action = "dropped meat";
             break;
         case DropFruit:
-            --agent.carried_fruit;
-            add_to_pile(agent.x, agent.y, false);
+            if (agent.carried_fruit) {
+                --agent.carried_fruit;
+                add_to_pile(agent.x, agent.y, false);
+            } else {
+                --agent.cooked_fruit;
+                add_to_pile(agent.x, agent.y, CookedFruitPile);
+            }
             ++carrying[FruitDropped];
             agent.last_action = "dropped fruit";
             break;
@@ -3059,13 +3074,33 @@ void Simulation::spoil_piles() {
             }
         }
     }
+    for (std::size_t cell = 0; cell < sites_.size(); ++cell) {
+        if (sites_[cell] && turn_ - site_turns_[cell] >= SITE_TURNS) sites_[cell] = 0;
+    }
     std::vector<int>& wood = piles_[WoodPile];
     for (std::size_t cell = 0; cell < wood.size(); ++cell) {
         if (wood[cell] > 0 && !shelters_[cell] && turn_ - pile_turns_[WoodPile][cell] >= life * WOOD_LASTS) wood[cell] = 0;  // rotted away
     }
 }
 
+bool Simulation::take_cooked(Bitzkey& agent, Cell pile, bool meat) {
+    const PileKind kind = meat ? CookedMeatPile : CookedFruitPile;
+    move_toward(agent, pile.x, pile.y);
+    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, kind) <= 0) {
+        agent.last_action = "sought a pile";
+        return true;
+    }
+    add_to_pile(pile.x, pile.y, kind, -1);
+    ++(meat ? agent.cooked_meat : agent.cooked_fruit);
+    agent.last_action = "took cooked food";
+    return true;
+}
+
 void Simulation::take_meat(Bitzkey& agent, Situation& s) {
+    if (!s.meat_pile && !s.kill) {
+        take_cooked(agent, *s.eat_meat, true);
+        return;
+    }
     const auto far = [&](int x, int y) { return distance(x, y, agent.x, agent.y); };
     if (s.meat_pile && (!s.kill || far(s.meat_pile->x, s.meat_pile->y) <= far(s.kill->x, s.kill->y))) {
         move_toward(agent, s.meat_pile->x, s.meat_pile->y);
@@ -3091,6 +3126,10 @@ void Simulation::take_meat(Bitzkey& agent, Situation& s) {
 }
 
 void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
+    if (!s.fruit_pile && !s.flora && !s.tears) {
+        take_cooked(agent, *s.eat_fruit, false);
+        return;
+    }
     const auto far = [&](int x, int y) { return distance(x, y, agent.x, agent.y); };
     Bitzkey* const plant = s.tears ? s.uprootable : s.flora;
     if (s.fruit_pile && (!plant || far(s.fruit_pile->x, s.fruit_pile->y) <= far(plant->x, plant->y))) {
@@ -3181,9 +3220,12 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
 }
 
 void Simulation::eat_carried(Bitzkey& agent) {
-    const double meat = agent.carried_meat ? MEAT_PORTION * agent.digestion : 0.0, fruit = agent.carried_fruit ? FRUIT_PORTION * agent.browsing : 0.0;
+    const double meat = agent.carried_meat + agent.cooked_meat ? MEAT_PORTION * agent.digestion * (agent.cooked_meat ? COOKED_FOOD : 1.0) : 0.0;
+    const double fruit = agent.carried_fruit + agent.cooked_fruit ? FRUIT_PORTION * agent.browsing * (agent.cooked_fruit ? COOKED_FOOD : 1.0) : 0.0;
     const bool eats_meat = meat >= fruit;
-    --(eats_meat ? agent.carried_meat : agent.carried_fruit);
+    int& cooked = eats_meat ? agent.cooked_meat : agent.cooked_fruit;  // the cooked first
+    if (cooked) --cooked;
+    else --(eats_meat ? agent.carried_meat : agent.carried_fruit);
     ++carrying[CarriedEaten];
     agent.nourish(eats_meat ? meat : fruit, eats_meat);
     agent.last_action = "ate what it carried";
@@ -3257,6 +3299,7 @@ void Simulation::construct(Bitzkey& agent) {
     --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     wear_weapon(agent);
+    site_turns_[cell] = turn_;
     agent.last_action = "built";
     if (++sites_[cell] >= SHELTER_UNITS) {
         sites_[cell] = 0;
@@ -3305,7 +3348,7 @@ void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
 void Simulation::cook(Bitzkey& agent, Cell) {
     const bool meat = agent.carried_meat > 0;
     --(meat ? agent.carried_meat : agent.carried_fruit);
-    add_to_pile(agent.x, agent.y, meat ? CookedMeatPile : CookedFruitPile);
+    ++(meat ? agent.cooked_meat : agent.cooked_fruit);
     agent.last_action = "cooked";
 }
 
@@ -3329,7 +3372,25 @@ void Simulation::wear_armour(Bitzkey& agent) {
     }
 }
 
+void Simulation::discover(Bitzkey& agent) {
+    const std::array<bool, 5> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
+                                    agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0};  // as the crafts' actions run
+    for (int craft = 0; craft < 5; ++craft) {
+        if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
+            agent.crafts |= 1 << craft;
+            experience(agent, Discovery);
+        }
+    }
+}
+
 void Simulation::make_gear(Bitzkey& agent, int action) {
+    int& tries = agent.craft_tries[action - MakeBoneAxe];
+    if (++tries < CRAFT_TRIES && rng().random() >= static_cast<double>(tries) / CRAFT_TRIES * (0.25 + 0.75 * agent.intelligence())) {
+        agent.reward += CRAFT_THRILL * agent.feeling(Curiosity);
+        agent.last_action = "tried to craft";
+        return;
+    }
+    tries = CRAFT_TRIES;  // it has it now
     switch (action) {
         case MakeBoneAxe: --agent.carried_bone; agent.weapon = BoneAxe; break;
         case MakeClub: --agent.carried_wood; agent.weapon = Club; break;

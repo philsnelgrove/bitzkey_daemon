@@ -2636,7 +2636,7 @@ TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils"
     lighter.carried_meat = 1;
     simulation.cook(lighter, Cell{5, 5});
     CHECK(lighter.carried_meat == 0);
-    CHECK(simulation.pile_at(5, 5, CookedMeatPile) == 1);
+    CHECK(lighter.cooked_meat == 1);
     CHECK(simulation.warmed_by_fire(lighter, lighter.climate.temperature + 1));
     CHECK_FALSE(simulation.warmed_by_fire(lighter, lighter.climate.temperature));
 }
@@ -2656,4 +2656,21 @@ TEST_CASE("seven units make a shelter, which doubles a square and keeps wood fro
     CHECK(simulation.shelter_at(5, 5));
     CHECK(builder.load() == 0);
     CHECK(simulation.room_in(Cell{5, 5}) == open + CELL_SPACE);
+}
+
+TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, and a failure thrills the curious") {
+    Simulation simulation = world();
+    Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"intellect", 7}}), 5, 5);
+    crafter.carried_wood = 2;
+    crafter.crafts = 1 << (MakeClub - MakeBoneAxe);
+    crafter.craft_tries[MakeClub - MakeBoneAxe] = CRAFT_TRIES - 1;
+    simulation.make_gear(crafter, MakeClub);
+    CHECK(crafter.weapon == Club);
+    CHECK(crafter.carried_wood == 1);
+    const double chance = DISCOVERY_CHANCE;
+    DISCOVERY_CHANCE = 1000;
+    crafter.carried_stone = 1;
+    simulation.discover(crafter);
+    DISCOVERY_CHANCE = chance;
+    CHECK((crafter.crafts & (1 << (MakeStoneAxe - MakeBoneAxe))) != 0);
 }
