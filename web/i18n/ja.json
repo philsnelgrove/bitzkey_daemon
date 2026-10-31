@@ -1521,5 +1521,7 @@
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "山の果実一人前が満たす空腹、食べる者が植物から得る割合を掛ける",
 "LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "最後の行動: {*}     肉 {#}、果実 {#} を運搬中、容量 {#}",
 "Carried hunger": "運搬物を食べる空腹",
-"hunger at which an animal may eat what it carries": "動物が運んでいるものを食べられる空腹度"
+"hunger at which an animal may eat what it carries": "動物が運んでいるものを食べられる空腹度",
+"Pile life": "山の寿命",
+"times as long as a corpse a pile lasts, since food was last dropped on it": "最後に食物が置かれてから、山が死骸の何倍長く残るか"
 }

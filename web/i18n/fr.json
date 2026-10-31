@@ -1521,5 +1521,7 @@
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "faim apaisée par une portion de fruits d'un tas, multipliée par la part de nourriture végétale que tire le mangeur",
 "LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Dernière action : {*}     Porte {#} viande, {#} fruits, place pour {#}",
 "Carried hunger": "Faim de ce qu'il porte",
-"hunger at which an animal may eat what it carries": "faim à partir de laquelle un animal peut manger ce qu'il porte"
+"hunger at which an animal may eat what it carries": "faim à partir de laquelle un animal peut manger ce qu'il porte",
+"Pile life": "Durée d'un tas",
+"times as long as a corpse a pile lasts, since food was last dropped on it": "combien de fois la durée d'un cadavre dure un tas, depuis le dernier dépôt de nourriture"
 }

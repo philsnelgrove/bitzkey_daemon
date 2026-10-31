@@ -763,12 +763,40 @@ Json Probe::timings(Simulation& world) const {
             {"acting", actions}};
 }
 
+Json Probe::carrying(Simulation& world) const {
+    int meat_piles = 0, fruit_piles = 0;
+    long long meat = 0, fruit = 0;
+    for (int y = 0; y < world.height(); ++y) {
+        for (int x = 0; x < world.width(); ++x) {
+            const int here = world.meat_pile_at(x, y), there = world.fruit_pile_at(x, y);
+            meat_piles += here > 0;
+            fruit_piles += there > 0;
+            meat += here;
+            fruit += there;
+        }
+    }
+    const auto count = [&](Simulation::Carrying what) { return world.carrying[what].load(); };
+    long long carried = 0;
+    for (const auto& agent : world.agents()) carried += agent->load();
+    return {{"turn", world.turn()},
+            {"taken", {{"meat_from_kill", count(Simulation::MeatFromKill)}, {"meat_from_pile", count(Simulation::MeatFromPile)},
+                       {"fruit_from_plant", count(Simulation::FruitFromPlant)}, {"fruit_torn", count(Simulation::FruitTorn)},
+                       {"fruit_from_pile", count(Simulation::FruitFromPile)}}},
+            {"dropped", {{"meat", count(Simulation::MeatDropped)}, {"fruit", count(Simulation::FruitDropped)}}},
+            {"eaten", {{"from_pile", count(Simulation::PileEaten)}, {"carried", count(Simulation::CarriedEaten)}}},
+            {"spoiled", count(Simulation::Spoiled)},
+            {"now", {{"meat_piles", meat_piles}, {"meat", meat}, {"fruit_piles", fruit_piles}, {"fruit", fruit}, {"carried", carried}}}};
+}
+
 void Probe::install(httplib::Server& server, const std::string& prefix) {
     const auto looked = [this](const std::function<Json(Simulation&)>& look) {
         Json result;
         run_([&](Simulation& world) { result = look(world); });
         return result;
     };
+    server.Get(prefix + "/carrying", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return carrying(world); }));
+    }));
     server.Get(prefix + "/state", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return state(world); }));
     }));

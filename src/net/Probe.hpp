@@ -100,6 +100,7 @@ public:
     std::string brain_report_text(Simulation& world) const;
     std::string death_report_text(Simulation& world) const;
     Json timings(Simulation& world) const;
+    Json carrying(Simulation& world) const;  // /carrying: what is taken from where, dropped, eaten and spoiled
 
 private:
     struct Herd {

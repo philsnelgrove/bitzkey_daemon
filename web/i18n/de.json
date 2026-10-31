@@ -1521,5 +1521,7 @@
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "Sättigung durch eine Portion Früchte von einem Haufen, mal der Anteil des Fressers an der Nahrung aus Pflanzen",
 "LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Letzte Handlung: {*}     Trägt {#} Fleisch, {#} Früchte, Platz für {#}",
 "Carried hunger": "Hunger aufs Getragene",
-"hunger at which an animal may eat what it carries": "Hunger, ab dem ein Tier fressen darf, was es trägt"
+"hunger at which an animal may eat what it carries": "Hunger, ab dem ein Tier fressen darf, was es trägt",
+"Pile life": "Haufen-Lebensdauer",
+"times as long as a corpse a pile lasts, since food was last dropped on it": "wievielmal so lange wie ein Kadaver ein Haufen hält, seit zuletzt Nahrung darauf abgelegt wurde"
 }

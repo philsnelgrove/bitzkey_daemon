@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <map>
 #include <cstdint>
@@ -446,7 +447,7 @@ inline double PLANT_MEAL_FOR_SIZE = 0;
 // meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
 inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
-inline double CARRIED_HUNGER = 50;  // hunger at which it may eat what it carries
+inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
 inline int PLANT_RECOVERY = 24;  // a day
@@ -869,7 +870,25 @@ public:
     int grass_at(int x, int y) const;
     int meat_pile_at(int x, int y) const { return in_bounds(x, y) ? meat_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // portions lying there
     int fruit_pile_at(int x, int y) const { return in_bounds(x, y) ? fruit_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }
-    void add_to_pile(int x, int y, bool meat, int portions = 1) { (meat ? meat_piles_ : fruit_piles_)[static_cast<std::size_t>(y) * width_ + x] += portions; }
+    void add_to_pile(int x, int y, bool meat, int portions = 1) {
+        const std::size_t cell = static_cast<std::size_t>(y) * width_ + x;
+        (meat ? meat_piles_ : fruit_piles_)[cell] += portions;
+        if (portions > 0) (meat ? meat_pile_turns_ : fruit_pile_turns_)[cell] = turn_;
+    }
+    void spoil_piles();  // those left PILE_LASTS corpses' lifetimes since their last drop are gone
+    // What has become of food carried, since the world was loaded or begun, for the probe (counted as acting tiles run).
+    enum Carrying { MeatFromKill, MeatFromPile, FruitFromPlant, FruitTorn, FruitFromPile, MeatDropped, FruitDropped,
+                    PileEaten, CarriedEaten, Spoiled, CARRYING_COUNT };
+    struct Tally {  // atomic, yet a world can still be copied
+        std::atomic<long long> count{0};
+        Tally() = default;
+        Tally(const Tally& other) : count(other.load()) {}
+        Tally& operator=(const Tally& other) { count = other.load(); return *this; }
+        void operator++() { ++count; }
+        void operator+=(long long more) { count += more; }
+        long long load() const { return count.load(); }
+    };
+    std::array<Tally, CARRYING_COUNT> carrying{};
     // The sea: whether a square lies under it (none off the map, nor in a world without sea).
     // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
     bool night(int x) const;
@@ -1414,6 +1433,7 @@ private:
     // A death written down: its record and tally, the counts, and the parents' grief.
     void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
     std::vector<int> meat_piles_, fruit_piles_;  // the portions lying on each square
+    std::vector<int> meat_pile_turns_, fruit_pile_turns_;  // the turn of each's last drop
     bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;

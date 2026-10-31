@@ -253,7 +253,7 @@ std::vector<Rule> make_rules() {
         {"PACK_BONUS", "Fighting", "Pack bonus", "extra force at prey that a herd-mate is also alongside", 0.0, 5.0, 0.05, false, &PACK_BONUS},
         {"MEAT_PORTION", "Food", "Meat portion", "hunger a portion of meat from a pile sates, times how well the eater digests carrion", 0, 2000, 5, true, &MEAT_PORTION},
         {"FRUIT_PORTION", "Food", "Fruit portion", "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants", 0, 500, 5, true, &FRUIT_PORTION},
-        {"CARRIED_HUNGER", "Food", "Carried hunger", "hunger at which an animal may eat what it carries", 0, 100, 5, true, &CARRIED_HUNGER},
+        {"PILE_LASTS", "Food", "Pile life", "times as long as a corpse a pile lasts, since food was last dropped on it", 0.0, 20.0, 0.5, false, &PILE_LASTS},
         {"KILL_MEAL", "Fighting", "Kill meal", "hunger a kill sates", 0, 200, 5, true, &KILL_MEAL},
         {"KILL_MEAL_FOR_SIZE", "Fighting", "Kill meal for size", "more hunger sated, up to this for the largest prey", 0, 200, 5, true, &KILL_MEAL_FOR_SIZE},
         {"FRESH_KILL_TURNS", "Fighting", "Fresh kill turns", "turns after the one it died in that a body is a fresh kill", 0, 30, 1, true, &FRESH_KILL_TURNS},

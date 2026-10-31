@@ -2229,15 +2229,28 @@ TEST_CASE("food is carried up to size + 1 portions, dropped in piles, and taken 
     ACTIVE_SHARE = active;
 }
 
-TEST_CASE("a hungry animal may eat what it carries") {
+TEST_CASE("a pile spoils once left long enough") {
+    const double lasts = PILE_LASTS;
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    simulation.add_to_pile(3, 4, false, 2);
+    simulation.spoil_piles();
+    CHECK(simulation.fruit_pile_at(3, 4) == 2);
+    PILE_LASTS = 0;
+    simulation.spoil_piles();
+    CHECK(simulation.fruit_pile_at(3, 4) == 0);
+    CHECK(simulation.carrying[Simulation::Spoiled].load() == 2);
+    PILE_LASTS = lasts;
+}
+
+TEST_CASE("an animal may eat what it carries") {
     const double active = ACTIVE_SHARE;
     ACTIVE_SHARE = 1.0;
     Simulation simulation(Simulation::Settings{30, 30, 0, 1});
     Bitzkey& carrier = simulation.add_agent(encode_dna(Species::Omnivore), 10, 10);
     carrier.carried_fruit = 1;
-    carrier.hunger = CARRIED_HUNGER - 1;
+    carrier.hunger = 0;
     auto fed = simulation.sense(carrier);
-    CHECK(std::find(fed.options.begin(), fed.options.end(), EatCarried) == fed.options.end());
+    CHECK(std::find(fed.options.begin(), fed.options.end(), EatCarried) != fed.options.end());
     carrier.hunger = 90;
     auto hungry = simulation.sense(carrier);
     CHECK(std::find(hungry.options.begin(), hungry.options.end(), EatCarried) != hungry.options.end());

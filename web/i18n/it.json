@@ -1521,5 +1521,7 @@
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "fame saziata da una porzione di frutta di un mucchio, per la quota di cibo vegetale che ottiene chi mangia",
 "LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Ultima azione: {*}     Trasporta {#} carne, {#} frutta, spazio per {#}",
 "Carried hunger": "Fame del trasportato",
-"hunger at which an animal may eat what it carries": "fame alla quale un animale può mangiare ciò che trasporta"
+"hunger at which an animal may eat what it carries": "fame alla quale un animale può mangiare ciò che trasporta",
+"Pile life": "Durata del mucchio",
+"times as long as a corpse a pile lasts, since food was last dropped on it": "quante volte la durata di una carcassa dura un mucchio, dall'ultimo deposito di cibo"
 }

@@ -427,11 +427,12 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     const PyRandom::State& random = simulation.random_.getstate();
     json grass = json::array();
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
-    json piles = json::array();  // each square with any: x, y, its meat and its fruit
+    json piles = json::array();  // each square with any: x, y, its meat, its fruit, and the turn of each's last drop
     for (int y = 0; y < simulation.height_; ++y) {
         for (int x = 0; x < simulation.width_; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
-            if (meat || fruit) piles.push_back({x, y, meat, fruit});
+            const std::size_t cell = static_cast<std::size_t>(y) * simulation.width_ + x;
+            if (meat || fruit) piles.push_back({x, y, meat, fruit, simulation.meat_pile_turns_[cell], simulation.fruit_pile_turns_[cell]});
         }
     }
     json sea = json::array();  // the sea's runs, row by row: land, then sea, then land, and so on
@@ -683,6 +684,11 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             const int x = pile.at(0).get<int>(), y = pile.at(1).get<int>();
             world.add_to_pile(x, y, true, pile.at(2).get<int>());
             world.add_to_pile(x, y, false, pile.at(3).get<int>());
+            if (pile.size() > 4) {  // dropped now, in a world saved before they spoiled
+                const std::size_t cell = static_cast<std::size_t>(y) * world.width_ + x;
+                world.meat_pile_turns_[cell] = pile.at(4).get<int>();
+                world.fruit_pile_turns_[cell] = pile.at(5).get<int>();
+            }
         }
         world.seeds_.clear();
         for (const json& seed : record.at("seeds")) {
