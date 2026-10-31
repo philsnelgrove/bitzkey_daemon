@@ -433,16 +433,15 @@ Simulation::Simulation(Settings settings)
     cells_.resize(area);
     carrion_.resize(area);
     kills_.resize(area);
-    meat_piles_.assign(area, 0);
-    fruit_piles_.assign(area, 0);
-    meat_pile_turns_.assign(area, 0);
-    fruit_pile_turns_.assign(area, 0);
+    for (auto& piles : piles_) piles.assign(area, 0);
+    for (auto& turns : pile_turns_) turns.assign(area, 0);
     grass_.assign(area, 0);
     update_climate();
     const int initial_grass = static_cast<int>(py_round(static_cast<double>(width_ * height_) * settings.grass_density / 100));
     initial_grass_ = initial_grass;
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
+    scatter_stones();
     if (settings.population > 0) {  // the plants first, and their head start; then the animals
         spawn_biomes(true);
         if (settings.pregrowth > 0) pregrow(settings.pregrowth);
@@ -1049,8 +1048,9 @@ void Simulation::index_cells() {
     carrion_count_ = 0;
     for (auto& cell : kills_) cell.clear();
     kill_count_ = 0;
-    any_piles_ = std::any_of(meat_piles_.begin(), meat_piles_.end(), [](int portions) { return portions > 0; }) ||
-                 std::any_of(fruit_piles_.begin(), fruit_piles_.end(), [](int portions) { return portions > 0; });
+    any_piles_ = std::any_of(piles_.begin(), piles_.end(), [](const std::vector<int>& piles) {
+        return std::any_of(piles.begin(), piles.end(), [](int portions) { return portions > 0; });
+    });
     if (band_of_row_.size() != static_cast<std::size_t>(height_)) index_bands();
     const std::size_t band_count = band_of_row_.empty() ? 0 : static_cast<std::size_t>(band_of_row_.back()) + 1;
     band_plants_.assign(band_count, 0);
@@ -2041,8 +2041,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (agent.species != Species::Grazer) s.carrion = nearest_carrion(agent, sight);  // grazers don't scavenge
     if (agent.species == Species::Omnivore || agent.species == Species::Predator) s.kill = nearest_kill(agent, sight);
     if (any_piles_) {
-        s.meat_pile = nearest_pile(agent, sight, true);
-        s.fruit_pile = nearest_pile(agent, sight, false);
+        s.meat_pile = nearest_pile(agent, sight, MeatPile);
+        s.fruit_pile = nearest_pile(agent, sight, FruitPile);
+        s.stone_pile = nearest_pile(agent, sight, StonePile);
+        s.bone_pile = nearest_pile(agent, sight, BonePile);
+        s.wood_pile = nearest_pile(agent, sight, WoodPile);
     }
     const int prey_sight = sight + (agent.species == Species::Predator ? PREDATOR_SIGHT : 0);
     const Seen seen = look_around(agent, sight, prey_sight);
@@ -2148,6 +2151,15 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[TakeFruit] = room && (s.flora || s.tears || s.fruit_pile);
     available[DropMeat] = agent.carried_meat > 0;
     available[DropFruit] = agent.carried_fruit > 0;
+    available[TakeStone] = room && s.stone_pile;
+    available[TakeBone] = room && s.bone_pile;
+    available[TakeWood] = room && s.wood_pile;
+    available[DropStone] = agent.carried_stone > 0;
+    available[DropBone] = agent.carried_bone > 0;
+    available[DropWood] = agent.carried_wood > 0;
+    s.dressable = s.kill ? s.kill : s.carrion;
+    if (agent.species == Species::Grazer) s.dressable = nearest_carrion(agent, sight);  // it won't eat one, but may dress it
+    available[Dress] = s.dressable != nullptr;
     available[EatCarried] = (agent.carried_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0);
     available[EatPile] = (s.meat_pile && MEAT_PORTION * agent.digestion > 0) || (s.fruit_pile && FRUIT_PORTION * agent.browsing > 0);
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
@@ -2219,6 +2231,12 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseFruitCarried] = agent.load() ? static_cast<double>(agent.carried_fruit) / agent.load() : 0.0;
     senses[SenseMeatPileCloseness] = closeness(agent, s.meat_pile, sight);
     senses[SenseFruitPileCloseness] = closeness(agent, s.fruit_pile, sight);
+    senses[SenseStoneCarried] = agent.load() ? static_cast<double>(agent.carried_stone) / agent.load() : 0.0;
+    senses[SenseBoneCarried] = agent.load() ? static_cast<double>(agent.carried_bone) / agent.load() : 0.0;
+    senses[SenseWoodCarried] = agent.load() ? static_cast<double>(agent.carried_wood) / agent.load() : 0.0;
+    senses[SenseStonePileCloseness] = closeness(agent, s.stone_pile, sight);
+    senses[SenseBonePileCloseness] = closeness(agent, s.bone_pile, sight);
+    senses[SenseWoodPileCloseness] = closeness(agent, s.wood_pile, sight);
     senses[SenseAssailantNear] = s.assailant != nullptr;
     senses[SenseCounterFrailty] =
         s.defend_target ? std::min(1.0, damage(agent, *s.defend_target) / s.defend_target->health) : 0.0;
@@ -2517,8 +2535,11 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     if (in_bounds(agent.x, agent.y)) {  // what it carried falls where it died
         add_to_pile(agent.x, agent.y, true, agent.carried_meat);
         add_to_pile(agent.x, agent.y, false, agent.carried_fruit);
+        add_to_pile(agent.x, agent.y, StonePile, agent.carried_stone);
+        add_to_pile(agent.x, agent.y, BonePile, agent.carried_bone);
+        add_to_pile(agent.x, agent.y, WoodPile, agent.carried_wood + (agent.species == Species::Plant ? 1 + agent.trait(Size) : 0));  // a dead plant is wood
     }
-    agent.carried_meat = agent.carried_fruit = 0;
+    agent.carried_meat = agent.carried_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
         if (tile) ++tile->kills;
@@ -2678,6 +2699,33 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             add_to_pile(agent.x, agent.y, false);
             ++carrying[FruitDropped];
             agent.last_action = "dropped fruit";
+            break;
+        case TakeStone:
+            take_material(agent, *s.stone_pile, StonePile, agent.carried_stone);
+            break;
+        case TakeBone:
+            take_material(agent, *s.bone_pile, BonePile, agent.carried_bone);
+            break;
+        case TakeWood:
+            take_material(agent, *s.wood_pile, WoodPile, agent.carried_wood);
+            break;
+        case DropStone:
+            --agent.carried_stone;
+            add_to_pile(agent.x, agent.y, StonePile);
+            agent.last_action = "dropped stone";
+            break;
+        case DropBone:
+            --agent.carried_bone;
+            add_to_pile(agent.x, agent.y, BonePile);
+            agent.last_action = "dropped bone";
+            break;
+        case DropWood:
+            --agent.carried_wood;
+            add_to_pile(agent.x, agent.y, WoodPile);
+            agent.last_action = "dropped wood";
+            break;
+        case Dress:
+            dress(agent, *s.dressable);
             break;
         case EatPile:
             eat_pile(agent, s);
@@ -2900,13 +2948,19 @@ void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
 
 void Simulation::spoil_piles() {
     const double life = PILE_LASTS * CORPSE_TURNS;
-    for (const auto& [piles, turns] : {std::pair{&meat_piles_, &meat_pile_turns_}, std::pair{&fruit_piles_, &fruit_pile_turns_}}) {
-        for (std::size_t cell = 0; cell < piles->size(); ++cell) {
-            if ((*piles)[cell] > 0 && turn_ - (*turns)[cell] >= life) {
-                carrying[Spoiled] += (*piles)[cell];
-                (*piles)[cell] = 0;
+    for (const PileKind kind : {MeatPile, FruitPile}) {
+        std::vector<int>& piles = piles_[kind];
+        const std::vector<int>& turns = pile_turns_[kind];
+        for (std::size_t cell = 0; cell < piles.size(); ++cell) {
+            if (piles[cell] > 0 && turn_ - turns[cell] >= life) {
+                carrying[Spoiled] += piles[cell];
+                piles[cell] = 0;
             }
         }
+    }
+    std::vector<int>& wood = piles_[WoodPile];
+    for (std::size_t cell = 0; cell < wood.size(); ++cell) {
+        if (wood[cell] > 0 && turn_ - pile_turns_[WoodPile][cell] >= life * WOOD_LASTS) wood[cell] = 0;  // rotted away
     }
 }
 
@@ -2966,6 +3020,45 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
         else die(*plant, "eaten", &agent, "browsing");
     } else if (plant->physique(Weapons) > 0) {
         defend(*plant, agent);
+    }
+}
+
+void Simulation::take_material(Bitzkey& agent, Cell pile, PileKind kind, int& carried) {
+    move_toward(agent, pile.x, pile.y);
+    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, kind) <= 0) {
+        agent.last_action = "sought a pile";
+        return;
+    }
+    add_to_pile(pile.x, pile.y, kind, -1);
+    ++carried;
+    agent.last_action = "took a material";
+}
+
+void Simulation::dress(Bitzkey& agent, Bitzkey& corpse) {
+    move_toward(agent, corpse.x, corpse.y);
+    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || corpse.portions <= 0) {
+        agent.last_action = "sought a body";
+        return;
+    }
+    add_to_pile(corpse.x, corpse.y, BonePile, 1 + corpse.trait(Size));
+    corpse.meat = 0;
+    corpse.portions = 0;
+    agent.last_action = "dressed a body";
+}
+
+void Simulation::scatter_stones() {
+    if (stones_scattered_) return;
+    stones_scattered_ = true;
+    // Python's version draws the same: an LCG of the map's size, so that the world's own random draws are untouched.
+    std::uint64_t state = static_cast<std::uint64_t>(width_) * 1000003u + height_;
+    const auto draw = [&](int below) {
+        state = (state * 6364136223846793005ull + 1442695040888963407ull);
+        return static_cast<int>((state >> 33) % static_cast<std::uint64_t>(below));
+    };
+    const int stones = width_ * height_ / STONE_SCATTER_PER;
+    for (int stone = 0; stone < stones; ++stone) {
+        const int x = draw(width_), y = draw(height_);
+        if (!sea(x, y)) add_to_pile(x, y, StonePile);
     }
 }
 
@@ -3446,11 +3539,11 @@ std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) c
     return std::nullopt;
 }
 
-std::optional<Cell> Simulation::nearest_pile(const Bitzkey& agent, int sight, bool meat) const {
+std::optional<Cell> Simulation::nearest_pile(const Bitzkey& agent, int sight, PileKind kind) const {
     const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-        if ((meat ? meat_pile_at(x, y) : fruit_pile_at(x, y)) > 0 && can_enter(agent, Cell{x, y})) return Cell{x, y};
+        if (pile_at(x, y, kind) > 0 && can_enter(agent, Cell{x, y})) return Cell{x, y};
     }
     return std::nullopt;
 }

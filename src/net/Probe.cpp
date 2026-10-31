@@ -765,7 +765,7 @@ Json Probe::timings(Simulation& world) const {
 
 Json Probe::carrying(Simulation& world) const {
     int meat_piles = 0, fruit_piles = 0;
-    long long meat = 0, fruit = 0;
+    long long meat = 0, fruit = 0, stone = 0, bone = 0, wood = 0;
     for (int y = 0; y < world.height(); ++y) {
         for (int x = 0; x < world.width(); ++x) {
             const int here = world.meat_pile_at(x, y), there = world.fruit_pile_at(x, y);
@@ -773,6 +773,9 @@ Json Probe::carrying(Simulation& world) const {
             fruit_piles += there > 0;
             meat += here;
             fruit += there;
+            stone += world.pile_at(x, y, StonePile);
+            bone += world.pile_at(x, y, BonePile);
+            wood += world.pile_at(x, y, WoodPile);
         }
     }
     const auto count = [&](Simulation::Carrying what) { return world.carrying[what].load(); };
@@ -785,7 +788,8 @@ Json Probe::carrying(Simulation& world) const {
             {"dropped", {{"meat", count(Simulation::MeatDropped)}, {"fruit", count(Simulation::FruitDropped)}}},
             {"eaten", {{"from_pile", count(Simulation::PileEaten)}, {"carried", count(Simulation::CarriedEaten)}}},
             {"spoiled", count(Simulation::Spoiled)},
-            {"now", {{"meat_piles", meat_piles}, {"meat", meat}, {"fruit_piles", fruit_piles}, {"fruit", fruit}, {"carried", carried}}}};
+            {"now", {{"meat_piles", meat_piles}, {"meat", meat}, {"fruit_piles", fruit_piles}, {"fruit", fruit}, {"carried", carried},
+                     {"stone", stone}, {"bone", bone}, {"wood", wood}}}};
 }
 
 void Probe::install(httplib::Server& server, const std::string& prefix) {

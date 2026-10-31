@@ -118,12 +118,26 @@ enum Sense : int {
     SenseFruitCarried,
     SenseMeatPileCloseness,
     SenseFruitPileCloseness,
+    // Then materials and gear: the share of its load that is stone, bone and wood; how close the nearest pile of each
+    // and of gear lies, and the nearest fire; whether that fire is its own or its herd's; what it wields and wears.
+    SenseStoneCarried,
+    SenseBoneCarried,
+    SenseWoodCarried,
+    SenseStonePileCloseness,
+    SenseBonePileCloseness,
+    SenseWoodPileCloseness,
+    SenseGearPileCloseness,
+    SenseFireCloseness,
+    SenseFireFriendly,
+    SenseWielding,
+    SenseArmoured,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach,
-                    TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried };
-constexpr int ACTION_COUNT = 31;
+                    TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried,
+                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook };
+constexpr int ACTION_COUNT = 51;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -154,7 +168,8 @@ constexpr int call_output(int call) { return ACTION_COUNT + call; }  // the outp
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
-    "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried"};
+    "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
+    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
@@ -209,7 +224,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "map_comfort", "map_comfort_east", "map_comfort_south",
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
-    "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness", "aggression", "libido", "curiosity",
+    "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

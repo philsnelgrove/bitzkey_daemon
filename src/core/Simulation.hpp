@@ -447,6 +447,9 @@ inline double PLANT_MEAL_FOR_SIZE = 0;
 // meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
 inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
+enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, PILE_KINDS };  // stone and bone never spoil
+inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood lasts
+inline constexpr int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
@@ -612,6 +615,7 @@ struct Bitzkey {
     int children = 0;
     int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
+    int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
@@ -714,7 +718,7 @@ struct Bitzkey {
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
     int capacity() const { return trait(Size) + 1; }  // the portions it can carry
-    int load() const { return carried_meat + carried_fruit; }
+    int load() const { return carried_meat + carried_fruit + carried_stone + carried_bone + carried_wood; }
     bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
     // The squares it goes a step from where it stands: its steps, but an amphibious animal on land AMPHIBIOUS_SPEED of
     // them, rounded half up, at least one.
@@ -868,13 +872,15 @@ public:
     const std::vector<std::unique_ptr<Bitzkey>>& agents() const { return agents_; }
     std::vector<Bitzkey*> living() const;
     int grass_at(int x, int y) const;
-    int meat_pile_at(int x, int y) const { return in_bounds(x, y) ? meat_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // portions lying there
-    int fruit_pile_at(int x, int y) const { return in_bounds(x, y) ? fruit_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }
-    void add_to_pile(int x, int y, bool meat, int portions = 1) {
+    int pile_at(int x, int y, PileKind kind) const { return in_bounds(x, y) ? piles_[kind][static_cast<std::size_t>(y) * width_ + x] : 0; }
+    int meat_pile_at(int x, int y) const { return pile_at(x, y, MeatPile); }  // portions lying there
+    int fruit_pile_at(int x, int y) const { return pile_at(x, y, FruitPile); }
+    void add_to_pile(int x, int y, PileKind kind, int portions = 1) {
         const std::size_t cell = static_cast<std::size_t>(y) * width_ + x;
-        (meat ? meat_piles_ : fruit_piles_)[cell] += portions;
-        if (portions > 0) (meat ? meat_pile_turns_ : fruit_pile_turns_)[cell] = turn_;
+        piles_[kind][cell] += portions;
+        if (portions > 0) pile_turns_[kind][cell] = turn_;
     }
+    void add_to_pile(int x, int y, bool meat, int portions = 1) { add_to_pile(x, y, meat ? MeatPile : FruitPile, portions); }
     void spoil_piles();  // those left PILE_LASTS corpses' lifetimes since their last drop are gone
     // What has become of food carried, since the world was loaded or begun, for the probe (counted as acting tiles run).
     enum Carrying { MeatFromKill, MeatFromPile, FruitFromPlant, FruitTorn, FruitFromPile, MeatDropped, FruitDropped,
@@ -992,6 +998,8 @@ public:
         std::optional<Cell> suitor_at;  // where it was when seen
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
+        std::optional<Cell> stone_pile, bone_pile, wood_pile;
+        Bitzkey* dressable = nullptr;  // the body it would dress: a fresh kill, or else carrion
         bool grass_here = false;
         Bitzkey* carrion = nullptr;
         Bitzkey* kill = nullptr;
@@ -1118,6 +1126,9 @@ public:
     void scavenge(Bitzkey& agent, Bitzkey& corpse);
     void take_meat(Bitzkey& agent, Situation& s);  // a portion from the nearer of a pile and a fresh kill, carried off
     void take_fruit(Bitzkey& agent, Situation& s);  // from the nearer of a pile and a plant, or torn from one it may uproot
+    void take_material(Bitzkey& agent, Cell pile, PileKind kind, int& carried);  // one from a pile, carried off
+    void dress(Bitzkey& agent, Bitzkey& corpse);  // all that is left of a body made into bone, a pile where it lay
+    void scatter_stones();  // one world's only stones, on the land, by a draw of its own
     void eat_pile(Bitzkey& agent, Situation& s);  // a portion of whichever pile in sight would fill it more
     void eat_carried(Bitzkey& agent);  // a portion of whichever it carries would fill it more
     void feast(Bitzkey& agent, Bitzkey& corpse);
@@ -1309,7 +1320,7 @@ private:
     static void effort(Bitzkey& agent, int cells) { agent.hunger += agent.burn * GO_EFFORT * std::max(0, cells - 1); }
     // The nearest grass in sight, but none in a row further from its home temperature than here.
     std::optional<Cell> nearest_grass(const Bitzkey& agent, int sight) const;
-    std::optional<Cell> nearest_pile(const Bitzkey& agent, int sight, bool meat) const;
+    std::optional<Cell> nearest_pile(const Bitzkey& agent, int sight, PileKind kind) const;
     Bitzkey* nearest_carrion(const Bitzkey& agent, int sight) const;
     struct Seen {
         Bitzkey* quarry = nullptr;
@@ -1432,8 +1443,9 @@ private:
     bool act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans);
     // A death written down: its record and tally, the counts, and the parents' grief.
     void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
-    std::vector<int> meat_piles_, fruit_piles_;  // the portions lying on each square
-    std::vector<int> meat_pile_turns_, fruit_pile_turns_;  // the turn of each's last drop
+    std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
+    std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
+    bool stones_scattered_ = false;
     bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;

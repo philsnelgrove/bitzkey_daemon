@@ -216,6 +216,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -306,6 +307,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
     agent->father = record.value("father", -1);
     agent->taught_by = record.value("taught_by", -1);  // none in a world saved before teaching
+    agent->carried_stone = record.value("carried_stone", 0);
+    agent->carried_bone = record.value("carried_bone", 0);
+    agent->carried_wood = record.value("carried_wood", 0);
     agent->carried_meat = record.value("carried_meat", 0);  // nothing in a world saved before carrying
     agent->carried_fruit = record.value("carried_fruit", 0);
     agent->died_turn = optional_int(record.at("died_turn"));
@@ -428,11 +432,15 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     json grass = json::array();
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
     json piles = json::array();  // each square with any: x, y, its meat, its fruit, and the turn of each's last drop
+    json materials = json::array();  // x, y, kind, count
     for (int y = 0; y < simulation.height_; ++y) {
         for (int x = 0; x < simulation.width_; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
             const std::size_t cell = static_cast<std::size_t>(y) * simulation.width_ + x;
-            if (meat || fruit) piles.push_back({x, y, meat, fruit, simulation.meat_pile_turns_[cell], simulation.fruit_pile_turns_[cell]});
+            for (const PileKind kind : {StonePile, BonePile, WoodPile}) {
+                if (const int count = simulation.pile_at(x, y, kind)) materials.push_back({x, y, static_cast<int>(kind), count, simulation.pile_turns_[kind][static_cast<std::size_t>(y) * simulation.width_ + x]});
+            }
+            if (meat || fruit) piles.push_back({x, y, meat, fruit, simulation.pile_turns_[MeatPile][cell], simulation.pile_turns_[FruitPile][cell]});
         }
     }
     json sea = json::array();  // the sea's runs, row by row: land, then sea, then land, and so on
@@ -523,7 +531,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"stones_scattered", simulation.stones_scattered_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -604,7 +612,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
                 // pile as it does scavenging, or it would never try them.
                 std::string_view name = OUTPUTS[output];
                 if (!saved_at.contains(std::string(name))) {
-                    if (output == Teach || (output >= TakeMeat && output <= DropFruit)) name = OUTPUTS[FeedYoung];
+                    if (output == Teach || (output >= TakeMeat && output <= DropFruit) || (output >= TakeStone && output < ACTION_COUNT)) name = OUTPUTS[FeedYoung];
                     else if (output == EatPile || output == EatCarried) name = OUTPUTS[Scavenge];
                 }
                 const auto found = saved_at.find(std::string(name));
@@ -686,10 +694,19 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.add_to_pile(x, y, false, pile.at(3).get<int>());
             if (pile.size() > 4) {  // dropped now, in a world saved before they spoiled
                 const std::size_t cell = static_cast<std::size_t>(y) * world.width_ + x;
-                world.meat_pile_turns_[cell] = pile.at(4).get<int>();
-                world.fruit_pile_turns_[cell] = pile.at(5).get<int>();
+                world.pile_turns_[MeatPile][cell] = pile.at(4).get<int>();
+                world.pile_turns_[FruitPile][cell] = pile.at(5).get<int>();
             }
         }
+        std::fill(world.piles_[StonePile].begin(), world.piles_[StonePile].end(), 0);  // the blank world's own
+        for (const json& pile : record.value("materials", json::array())) {
+            const int x = pile.at(0).get<int>(), y = pile.at(1).get<int>();
+            const PileKind kind = static_cast<PileKind>(pile.at(2).get<int>());
+            world.add_to_pile(x, y, kind, pile.at(3).get<int>());
+            world.pile_turns_[kind][static_cast<std::size_t>(y) * world.width_ + x] = pile.at(4).get<int>();
+        }
+        world.stones_scattered_ = record.value("stones_scattered", false);
+        world.scatter_stones();  // a world saved before stones has them now, the once
         world.seeds_.clear();
         for (const json& seed : record.at("seeds")) {
             world.seeds_.push_back({seed.at(0).get<int>(), seed.at(1).get<int>(), genome_from(seed.at(2)),
