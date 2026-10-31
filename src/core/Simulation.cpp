@@ -2178,6 +2178,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[MakeBoneArmour] = bare && agent.carried_bone > 0;
     available[MakeWoodArmour] = bare && agent.carried_wood > 0;
     available[TakeGear] = s.gear_pile.has_value();
+    available[Cut] = s.flora && (agent.weapon == BoneAxe || agent.weapon == StoneAxe);
+    available[Dig] = agent.weapon != NoWeapon && !sea(agent.x, agent.y);
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
     available[EatCarried] = (agent.carried_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0);
@@ -2763,6 +2765,12 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case MakeWoodArmour:
             make_gear(agent, action);
             break;
+        case Cut:
+            cut(agent, *s.flora);
+            break;
+        case Dig:
+            dig(agent);
+            break;
         case TakeGear:
             take_gear(agent, s);
             break;
@@ -3182,6 +3190,25 @@ double Simulation::gear_toughness(const Bitzkey& agent) {
 
 double Simulation::gear_force(const Bitzkey& agent) {
     return agent.weapon ? WEAPON_FORCE : agent.carried_stone > 0 ? STONE_FORCE : 1.0;
+}
+
+void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
+    move_toward(agent, plant.x, plant.y);
+    if (distance(plant.x, plant.y, agent.x, agent.y) > 1 || !plant.alive()) {
+        agent.last_action = "sought plants";
+        return;
+    }
+    plant.health = 0;
+    wear_weapon(agent);
+    agent.last_action = "cut down a plant";
+    die(plant, "cut down", &agent, "cutting");
+}
+
+void Simulation::dig(Bitzkey& agent) {
+    if (agent.load() < agent.capacity()) ++agent.carried_stone;
+    else add_to_pile(agent.x, agent.y, StonePile);
+    wear_weapon(agent);
+    agent.last_action = "dug up a stone";
 }
 
 void Simulation::drop_gear(int x, int y, PileKind kind, int uses) {

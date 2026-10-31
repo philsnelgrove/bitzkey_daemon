@@ -2610,3 +2610,12 @@ TEST_CASE("gear doubles a blow and armour, and bone and wood break after three u
     for (int use = 0; use < 3; ++use) Simulation::wear_armour(target);
     CHECK(target.armour == NoArmour);
 }
+
+TEST_CASE("an axe's cut fells a plant for its wood, and digging finds a stone") {
+    Bitzkey digger(1, encode_dna(Species::Predator, {}), 0, 0);
+    digger.weapon = Club;
+    Simulation simulation = world();
+    simulation.dig(digger);
+    CHECK(digger.carried_stone == 1);
+    CHECK(digger.weapon_uses == 1);
+}

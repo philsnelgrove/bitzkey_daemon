@@ -1146,6 +1146,7 @@ public:
     static void wear_armour(Bitzkey& agent);
     static double gear_toughness(const Bitzkey& agent);  // with what it wears
     static double gear_force(const Bitzkey& agent);      // how many times as hard what it wields strikes
+    void cut(Bitzkey& agent, Bitzkey& plant);  // an axe fells a plant, which leaves its wood
     void scatter_stones();  // one world's only stones, on the land, by a draw of its own
     void eat_pile(Bitzkey& agent, Situation& s);  // a portion of whichever pile in sight would fill it more
     void eat_carried(Bitzkey& agent);  // a portion of whichever it carries would fill it more
@@ -1224,6 +1225,7 @@ public:
     int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
     // One blow; struck in defence, a grazer's or omnivore's weapons count for less.
+    void dig(Bitzkey& agent);  // an axe or club finds a stone in the ground, carried or left here
     static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
     static double defence_share(const Bitzkey& animal);  // the share of its weapons an animal brings to defence
     // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over, an
