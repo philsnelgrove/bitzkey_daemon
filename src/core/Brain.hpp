@@ -349,6 +349,7 @@ public:
     static Brain from_record(const nlohmann::json& record);
     // The senses, then each hidden layer's output: for the probe to see which neurons have jammed at either end.
     std::vector<std::vector<double>> activations(const Senses& inputs) const;
+    void activate(const Senses& inputs, std::vector<std::vector<double>>& found) const;  // the same, into memory already held
 
     // The same weights; traces don't count.
     bool operator==(const Brain& other) const {

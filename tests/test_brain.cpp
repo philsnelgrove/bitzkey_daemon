@@ -1,3 +1,6 @@
+#include <chrono>
+
+#include "core/Vectors.hpp"
 #include <doctest/doctest.h>
 
 #include <nlohmann/json.hpp>
@@ -419,4 +422,49 @@ TEST_CASE("learning back in time teaches the gates to hold what values the next 
     Brain still = brain;
     still.learn_memory(read_on(brain), {}, action, target, 0.05);  // with nothing before, nothing to learn
     CHECK(still == brain);
+}
+
+TEST_CASE("brains learn alike to the last bit, four at a time or one") {
+    const auto lessons = [] {
+        PyRandom rng(7);
+        Brain brain = Brain::random(rng, 2, 30);
+        Senses senses{};
+        for (int lesson = 0; lesson < 300; ++lesson) {
+            for (double& sense : senses) sense = rng.random() * 2 - 1;
+            brain.learn(senses, lesson % ACTION_COUNT, rng.random(), 0.01);
+            brain.learn_traced_by(senses, (lesson * 7) % ACTION_COUNT, rng.random(), 0.01, 0.9);
+            const std::array<const Senses*, 1> past{&senses};
+            brain.learn_memory(senses, past, (lesson * 3) % ACTION_COUNT, rng.random(), 0.01);
+        }
+        return brain;
+    };
+    const bool was = vectors::use_wide(true);
+    const auto started = std::chrono::steady_clock::now();
+    const Brain wide = lessons();
+    const auto middle = std::chrono::steady_clock::now();
+    vectors::use_wide(false);
+    const Brain plain = lessons();
+    const auto ended = std::chrono::steady_clock::now();
+    vectors::use_wide(was);
+    MESSAGE("four at a time: " << was << ", lessons took " << std::chrono::duration<double, std::milli>(middle - started).count() << " ms, one at a time "
+                               << std::chrono::duration<double, std::milli>(ended - middle).count() << " ms");
+    CHECK(wide.layers == plain.layers);
+    CHECK(wide.output_weights == plain.output_weights);
+    CHECK(wide.output_biases == plain.output_biases);
+    CHECK(wide.traces->layers == plain.traces->layers);
+}
+
+TEST_CASE("a brain's lessons don't depend on what the thread's memory last held") {
+    PyRandom rng(9);
+    Brain small = Brain::random(rng, 1, 16);
+    Brain deep = Brain::random(rng, 3, 38);
+    Brain same = deep;
+    Senses senses{};
+    for (double& sense : senses) sense = rng.random() * 2 - 1;
+    same.learn(senses, 2, 0.5, 0.01);
+    small.learn(senses, 1, 0.5, 0.01);  // another shape between
+    deep.learn(senses, 2, 0.5, 0.01);
+    CHECK(deep.layers == same.layers);
+    CHECK(deep.values(senses) == same.values(senses));
+    CHECK(deep.activations(senses) == same.activations(senses));
 }

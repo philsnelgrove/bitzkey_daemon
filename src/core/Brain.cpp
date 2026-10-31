@@ -1,4 +1,5 @@
 #include "core/Brain.hpp"
+#include "core/Vectors.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -104,36 +105,14 @@ private:
     std::uint64_t state_[4];
 };
 
-// numpy's pairwise summation (the Python version adds up with numpy's sum), so that every sum matches
-// the Python version's to the last bit: up to 8 values in order; up to 128 in eight running sums,
-// combined in pairs, then the rest in order; more, in two halves split on a multiple of eight.
-double pairwise_sum(const double* values, std::size_t count) {
-    if (count < 8) {
-        double total = -0.0;
-        for (std::size_t index = 0; index < count; ++index) total += values[index];
-        return total;
-    }
-    if (count <= 128) {
-        double sums[8];
-        for (std::size_t lane = 0; lane < 8; ++lane) sums[lane] = values[lane];
-        std::size_t index = 8;
-        for (; index < count - count % 8; index += 8) {
-            for (std::size_t lane = 0; lane < 8; ++lane) sums[lane] += values[index + lane];
-        }
-        double total = ((sums[0] + sums[1]) + (sums[2] + sums[3])) + ((sums[4] + sums[5]) + (sums[6] + sums[7]));
-        for (; index < count; ++index) total += values[index];
-        return total;
-    }
-    std::size_t half = count / 2;
-    half -= half % 8;
-    return pairwise_sum(values, half) + pairwise_sum(values + half, count - half);
-}
+static_assert(std::max(INPUT_SIZE, MAX_WIDTH) <= vectors::MOST);
 
-// The products of two runs of numbers, added up as numpy's sum would.
-double dot(const double* first, const double* second, std::size_t count) {
-    std::array<double, std::max(INPUT_SIZE, MAX_WIDTH)> products;  // no layer reads more
-    for (std::size_t index = 0; index < count; ++index) products[index] = first[index] * second[index];
-    return pairwise_sum(products.data(), count);
+using vectors::dot;
+
+// What a lesson asks of the layer below: each input's weights in, by each neuron's delta, in the neurons' order.
+void carry_back(const Layer& layer, const double* delta, int width, std::vector<double>& gradient) {
+    std::fill_n(gradient.begin(), layer.reads, 0.0);
+    for (int neuron = 0; neuron < width; ++neuron) vectors::add_scaled(gradient.data(), layer.row(neuron), static_cast<std::size_t>(layer.reads), delta[neuron]);
 }
 
 }  // namespace
@@ -318,25 +297,32 @@ void Brain::scale_values() {
     traces.reset();
 }
 
-std::vector<std::vector<double>> Brain::activations(const Senses& inputs) const {
-    std::vector<std::vector<double>> found;
-    found.reserve(layers.size() + 1);
-    found.emplace_back(inputs.begin(), inputs.end());
-    for (int sense = 0; sense < INPUT_SIZE; ++sense) found.back()[static_cast<std::size_t>(sense)] = read_sense(sense, inputs[sense]);
-    for (const Layer& layer : layers) {
-        const std::vector<double>& below = found.back();
-        std::vector<double> output(static_cast<std::size_t>(layer.neurons()));
+void Brain::activate(const Senses& inputs, std::vector<std::vector<double>>& found) const {
+    found.resize(layers.size() + 1);
+    found[0].resize(INPUT_SIZE);
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) found[0][static_cast<std::size_t>(sense)] = read_sense(sense, inputs[sense]);
+    for (std::size_t index = 0; index < layers.size(); ++index) {
+        const Layer& layer = layers[index];
+        const std::vector<double>& below = found[index];
+        std::vector<double>& output = found[index + 1];
+        output.resize(static_cast<std::size_t>(layer.neurons()));
         for (int neuron = 0; neuron < layer.neurons(); ++neuron) {
             const double sum = dot(layer.row(neuron), below.data(), static_cast<std::size_t>(layer.reads));
             output[static_cast<std::size_t>(neuron)] = std::tanh(sum + layer.biases[static_cast<std::size_t>(neuron)]);
         }
-        found.push_back(std::move(output));
     }
+}
+
+std::vector<std::vector<double>> Brain::activations(const Senses& inputs) const {
+    std::vector<std::vector<double>> found;
+    activate(inputs, found);
     return found;
 }
 
 Values Brain::values(const Senses& inputs) const {
-    const std::vector<double> top = activations(inputs).back();
+    thread_local std::vector<std::vector<double>> found;  // kept for its memory, each thread's own
+    activate(inputs, found);
+    const std::vector<double>& top = found.back();
     Values values{};
     for (int output = 0; output < OUTPUT_COUNT; ++output) {
         const double sum = dot(output_weights[output].data(), top.data(), top.size());
@@ -347,12 +333,14 @@ Values Brain::values(const Senses& inputs) const {
 
 void Brain::learn(const Senses& inputs, int action, double target, double learning_rate) {
     if (learning_rate <= 0) return;
-    const std::vector<std::vector<double>> found = activations(inputs);
+    thread_local std::vector<std::vector<double>> found;  // kept for its memory, each thread's own
+    activate(inputs, found);
     const std::vector<double>& top = found.back();
     const int width = this->width();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
     const double error = std::max(-LESSON_LIMIT, std::min(LESSON_LIMIT, (sum + output_biases[action]) / VALUE_SCALE - target));
-    std::vector<double> gradient(static_cast<std::size_t>(width));
+    thread_local std::vector<double> gradient;
+    gradient.resize(static_cast<std::size_t>(width));
     for (int neuron = 0; neuron < width; ++neuron) gradient[static_cast<std::size_t>(neuron)] = error * output_weights[action][static_cast<std::size_t>(neuron)];
     const double output_step = learning_rate * error * VALUE_SCALE;  // the output layer moves the whole value as it would
     for (int neuron = 0; neuron < width; ++neuron) {
@@ -368,18 +356,11 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
             delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
         }
         if (index) {
-            for (int input = 0; input < layer.reads; ++input) {
-                double back = 0.0;
-                for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
-                gradient[static_cast<std::size_t>(input)] = back;
-            }
+            carry_back(layer, delta.data(), width, gradient);
         }
         for (int neuron = 0; neuron < width; ++neuron) layer.biases[static_cast<std::size_t>(neuron)] -= learning_rate * delta[neuron];
         for (int neuron = 0; neuron < width; ++neuron) {
-            double* weights = layer.row(neuron);
-            for (int input = 0; input < layer.reads; ++input) {
-                weights[input] -= learning_rate * (delta[neuron] * below[static_cast<std::size_t>(input)]);
-            }
+            vectors::add_scaled_twice(layer.row(neuron), below.data(), static_cast<std::size_t>(layer.reads), -learning_rate, delta[neuron]);
         }
     }
     output_biases[action] -= output_step;
@@ -398,18 +379,18 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
         for (const Layer& layer : layers) traces->layers.push_back(Layer::zeros(layer.neurons(), layer.reads));
         for (auto& row : traces->output_weights) row.assign(static_cast<std::size_t>(width), 0.0);
     }
-    const std::vector<std::vector<double>> found = activations(inputs);
+    thread_local std::vector<std::vector<double>> found;  // kept for its memory, each thread's own
+    activate(inputs, found);
     const std::vector<double>& top = found.back();
     const double sum = dot(output_weights[action].data(), top.data(), top.size());
     const double error = std::max(-LESSON_LIMIT, std::min(LESSON_LIMIT, (sum + output_biases[action]) / VALUE_SCALE - target));
-    for (auto& row : traces->output_weights) {
-        for (double& trace : row) trace *= decay;
-    }
+    for (auto& row : traces->output_weights) vectors::scale(row.data(), row.size(), decay);
     // The output layer's traces gather in hundredths, so it moves the whole value as it would.
     for (int neuron = 0; neuron < width; ++neuron) traces->output_weights[action][static_cast<std::size_t>(neuron)] += VALUE_SCALE * top[static_cast<std::size_t>(neuron)];
     for (double& trace : traces->output_biases) trace *= decay;
     traces->output_biases[action] += VALUE_SCALE;
-    std::vector<double> gradient(output_weights[action].begin(), output_weights[action].end());
+    thread_local std::vector<double> gradient;
+    gradient.assign(output_weights[action].begin(), output_weights[action].end());
     for (int index = depth() - 1; index >= 0; --index) {
         const Layer& layer = layers[static_cast<std::size_t>(index)];
         Layer& trace = traces->layers[static_cast<std::size_t>(index)];
@@ -421,16 +402,11 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
             delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
         }
         if (index) {
-            for (int input = 0; input < layer.reads; ++input) {
-                double back = 0.0;
-                for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
-                gradient[static_cast<std::size_t>(input)] = back;
-            }
+            carry_back(layer, delta.data(), width, gradient);
         }
-        for (double& weight : trace.weights) weight *= decay;
+        vectors::scale(trace.weights.data(), trace.weights.size(), decay);
         for (int neuron = 0; neuron < width; ++neuron) {
-            double* weights = trace.row(neuron);
-            for (int input = 0; input < layer.reads; ++input) weights[input] += delta[neuron] * below[static_cast<std::size_t>(input)];
+            vectors::add_scaled(trace.row(neuron), below.data(), static_cast<std::size_t>(layer.reads), delta[neuron]);
         }
         for (double& bias : trace.biases) bias *= decay;
         for (int neuron = 0; neuron < width; ++neuron) trace.biases[static_cast<std::size_t>(neuron)] += delta[neuron];
@@ -439,13 +415,11 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
     for (std::size_t index = 0; index < layers.size(); ++index) {
         Layer& layer = layers[index];
         const Layer& trace = traces->layers[index];
-        for (std::size_t weight = 0; weight < layer.weights.size(); ++weight) layer.weights[weight] -= step * trace.weights[weight];
+        vectors::add_scaled(layer.weights.data(), trace.weights.data(), layer.weights.size(), -step);
         for (std::size_t neuron = 0; neuron < layer.biases.size(); ++neuron) layer.biases[neuron] -= step * trace.biases[neuron];
     }
     for (int row = 0; row < OUTPUT_COUNT; ++row) {
-        for (int neuron = 0; neuron < width; ++neuron) {
-            output_weights[row][static_cast<std::size_t>(neuron)] -= step * traces->output_weights[row][static_cast<std::size_t>(neuron)];
-        }
+        vectors::add_scaled(output_weights[row].data(), traces->output_weights[row].data(), static_cast<std::size_t>(width), -step);
     }
     for (int row = 0; row < OUTPUT_COUNT; ++row) output_biases[row] -= step * traces->output_biases[row];
 }
@@ -474,11 +448,7 @@ void Brain::learn_memory(const Senses& inputs, std::span<const Senses* const> pa
                 delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
             }
             if (index) {
-                for (int input = 0; input < layer.reads; ++input) {
-                    double back = 0.0;
-                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
-                    gradient[static_cast<std::size_t>(input)] = back;
-                }
+                carry_back(layer, delta.data(), width, gradient);
             } else {
                 for (int held = 0; held < MEMORY_NEURONS; ++held) {
                     double back = 0.0;
@@ -528,11 +498,7 @@ void Brain::learn_memory(const Senses& inputs, std::span<const Senses* const> pa
                 delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
             }
             if (index) {
-                for (int input = 0; input < layer.reads; ++input) {
-                    double back = 0.0;
-                    for (int neuron = 0; neuron < width; ++neuron) back += layer.row(neuron)[input] * delta[neuron];
-                    gradient[static_cast<std::size_t>(input)] = back;
-                }
+                carry_back(layer, delta.data(), width, gradient);
             } else if (further) {
                 for (int held = 0; held < MEMORY_NEURONS; ++held) {
                     double back = 0.0;

@@ -49,6 +49,7 @@ add_library(bitzkey_core STATIC
     src/core/PyFormat.cpp
     src/core/Genome.cpp
     src/core/Brain.cpp
+    src/core/Vectors.cpp
     src/core/Insights.cpp
     src/core/Census.cpp
     src/core/Exchange.cpp
