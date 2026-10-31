@@ -438,11 +438,17 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
     json piles = json::array();  // each square with any: x, y, its meat, its fruit, and the turn of each's last drop
     json materials = json::array();  // x, y, kind, count
+    json fires = json::array();  // x, y, the turn it goes out, who lit it
+    for (std::size_t cell = 0; cell < simulation.fires_.size(); ++cell) {
+        if (simulation.fires_[cell] > simulation.turn_) {
+            fires.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.fires_[cell], simulation.fire_lighters_[cell]});
+        }
+    }
     for (int y = 0; y < simulation.height_; ++y) {
         for (int x = 0; x < simulation.width_; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
             const std::size_t cell = static_cast<std::size_t>(y) * simulation.width_ + x;
-            for (const PileKind kind : {StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) {
+            for (const PileKind kind : {StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile}) {
                 if (const int count = simulation.pile_at(x, y, kind)) materials.push_back({x, y, static_cast<int>(kind), count, simulation.pile_turns_[kind][static_cast<std::size_t>(y) * simulation.width_ + x]});
             }
             if (meat || fruit) piles.push_back({x, y, meat, fruit, simulation.pile_turns_[MeatPile][cell], simulation.pile_turns_[FruitPile][cell]});
@@ -536,7 +542,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"stones_scattered", simulation.stones_scattered_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"stones_scattered", simulation.stones_scattered_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -709,6 +715,12 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             const PileKind kind = static_cast<PileKind>(pile.at(2).get<int>());
             world.add_to_pile(x, y, kind, pile.at(3).get<int>());
             world.pile_turns_[kind][static_cast<std::size_t>(y) * world.width_ + x] = pile.at(4).get<int>();
+        }
+        for (const json& fire : record.value("fires", json::array())) {
+            const std::size_t cell = static_cast<std::size_t>(fire.at(1).get<int>()) * world.width_ + fire.at(0).get<int>();
+            world.fires_[cell] = fire.at(2).get<int>();
+            world.fire_lighters_[cell] = fire.at(3).get<int>();
+            world.any_fires_ = true;
         }
         world.stones_scattered_ = record.value("stones_scattered", false);
         world.scatter_stones();  // a world saved before stones has them now, the once

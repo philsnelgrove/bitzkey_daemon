@@ -271,10 +271,11 @@ function parseFrame(view) {
   }
   const piles = new Array(view.getUint32(offset, true));
   offset += 4;
-  for (let index = 0; index < piles.length; ++index, offset += 14) {
+  for (let index = 0; index < piles.length; ++index, offset += 18) {
     piles[index] = { x: view.getUint16(offset, true), y: view.getUint16(offset + 2, true),
                      meat: view.getUint16(offset + 4, true), fruit: view.getUint16(offset + 6, true),
-                     stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true) };
+                     stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true),
+                     gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true) };
   }
   return { width, height, turn, temperatures, grass, agents, living, piles };
 }
@@ -450,11 +451,21 @@ function drawMap() {
   }
   {  // the piles: meat to the left of a square and fruit to the right, each with its count
     const half = Math.max(2, pyRound(cell * 0.25));
-    for (const { x, y, meat, fruit, stone, bone, wood } of frame.piles) {
+    for (const { x, y, meat, fruit, stone, bone, wood, gear, fire } of frame.piles) {
       const px = geometry.x + (x + 0.5) * cell, py = geometry.y + (y + 0.5) * cell;
       if (meat) drawPile(ctx, true, meat, fruit ? px - half : px, py, half);
       if (fruit) drawPile(ctx, false, fruit, meat ? px + half : px, py, half);
       drawMaterials(ctx, stone, bone, wood, px, py, half);
+      if (gear) {  // gear, a steel mark at the head of the square
+        ctx.fillStyle = 'rgb(96,130,160)';
+        ctx.fillRect(px - half / 2, py - half, half, Math.max(2, half / 2));
+      }
+      if (fire) {  // a fire, a flame on the square
+        ctx.fillStyle = 'rgb(255,120,20)';
+        ctx.beginPath();
+        ctx.arc(px, py, Math.max(2, half * 0.7), 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
   {  // each climate band named where it starts, at the left of what is seen, so the zones read without colour

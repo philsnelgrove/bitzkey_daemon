@@ -447,7 +447,11 @@ inline double PLANT_MEAL_FOR_SIZE = 0;
 // meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
 inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
-enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, PILE_KINDS };
+enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile, PILE_KINDS };
+inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
+inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
+inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
+inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
 // with armour. Armour counts as at least ARMOUR_LEAST of the trait's points, doubled.
@@ -1009,6 +1013,7 @@ public:
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
         std::optional<Cell> stone_pile, bone_pile, wood_pile, gear_pile;
+        std::optional<Cell> eat_meat, eat_fruit, fire;  // the nearest food to eat, cooked or not, and fire
         PileKind gear_kind = BoneAxePile;  // of the gear it may take
         Bitzkey* dressable = nullptr;  // the body it would dress: a fresh kill, or else carrion
         bool grass_here = false;
@@ -1147,6 +1152,7 @@ public:
     static double gear_toughness(const Bitzkey& agent);  // with what it wears
     static double gear_force(const Bitzkey& agent);      // how many times as hard what it wields strikes
     void cut(Bitzkey& agent, Bitzkey& plant);  // an axe fells a plant, which leaves its wood
+    bool fire_friendly(const Bitzkey& agent, Cell fire) const;  // lit by it or a herd-mate
     void scatter_stones();  // one world's only stones, on the land, by a draw of its own
     void eat_pile(Bitzkey& agent, Situation& s);  // a portion of whichever pile in sight would fill it more
     void eat_carried(Bitzkey& agent);  // a portion of whichever it carries would fill it more
@@ -1225,6 +1231,10 @@ public:
     int crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind = false) const;
 
     // One blow; struck in defence, a grazer's or omnivore's weapons count for less.
+    int fire_at(int x, int y) const { return in_bounds(x, y) ? fires_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // the turn it goes out
+    void light_fire(Bitzkey& agent);  // of its club
+    void feed_fire(Bitzkey& agent, Cell fire);
+    void cook(Bitzkey& agent, Cell fire);  // what it carries, left in a cooked pile here
     void dig(Bitzkey& agent);  // an axe or club finds a stone in the ground, carried or left here
     static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
     static double defence_share(const Bitzkey& animal);  // the share of its weapons an animal brings to defence
@@ -1466,6 +1476,8 @@ private:
     std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
     std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
     bool stones_scattered_ = false;
+    std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
+    bool any_fires_ = false;
     bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;

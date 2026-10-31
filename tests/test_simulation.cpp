@@ -2615,7 +2615,27 @@ TEST_CASE("an axe's cut fells a plant for its wood, and digging finds a stone") 
     Bitzkey digger(1, encode_dna(Species::Predator, {}), 0, 0);
     digger.weapon = Club;
     Simulation simulation = world();
+    const double chance = DIG_CHANCE;
+    DIG_CHANCE = 1;
     simulation.dig(digger);
+    DIG_CHANCE = chance;
     CHECK(digger.carried_stone == 1);
     CHECK(digger.weapon_uses == 1);
+}
+
+TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils") {
+    Simulation simulation = world();
+    Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    lighter.weapon = Club;
+    simulation.light_fire(lighter);
+    CHECK(lighter.weapon == NoWeapon);
+    CHECK(simulation.fire_at(5, 5) == simulation.turn() + FIRE_TURNS);
+    lighter.carried_wood = 1;
+    simulation.feed_fire(lighter, Cell{5, 5});
+    CHECK(lighter.carried_wood == 0);
+    CHECK(simulation.fire_at(5, 5) == simulation.turn() + 2 * FIRE_TURNS);
+    lighter.carried_meat = 1;
+    simulation.cook(lighter, Cell{5, 5});
+    CHECK(lighter.carried_meat == 0);
+    CHECK(simulation.pile_at(5, 5, CookedMeatPile) == 1);
 }

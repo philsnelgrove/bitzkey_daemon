@@ -164,7 +164,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         world.step();
         const Simulation& simulation = world.simulation();
         const std::string data = frame(simulation);
-        CHECK(data.substr(0, 4) == "BZF3");
+        CHECK(data.substr(0, 4) == "BZF4");
         CHECK(read<std::uint32_t>(data, 4) == 30);
         CHECK(read<std::uint32_t>(data, 8) == 30);
         CHECK(read<std::uint32_t>(data, 12) == 1);
@@ -173,7 +173,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         std::size_t piled = 0;
         for (int y = 0; y < 30; ++y) {
             for (int x = 0; x < 30; ++x) {
-                for (const PileKind kind : {MeatPile, FruitPile, StonePile, BonePile, WoodPile}) {
+                for (const PileKind kind : {MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) {
                     if (simulation.pile_at(x, y, kind)) {
                         ++piled;
                         break;
@@ -181,7 +181,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
                 }
             }
         }
-        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8 + 4 + piled * 14);
+        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8 + 4 + piled * 18);
         const std::size_t first = 24 + 4 * 30 + 30 * 30;
         CHECK(read<std::uint32_t>(data, first) == static_cast<std::uint32_t>(simulation.agents()[0]->identifier));
         CHECK(read<std::uint32_t>(data, first + 20) == social_word(simulation.agents()[0]->dna));  // its social background, last
@@ -246,7 +246,7 @@ TEST_CASE("the web API shows the world and steers it") {
 
         const auto frame = client.Get("/api/frame");
         REQUIRE(frame);
-        CHECK(frame->body.substr(0, 4) == "BZF3");
+        CHECK(frame->body.substr(0, 4) == "BZF4");
 
         int identifier = 0;
         {
