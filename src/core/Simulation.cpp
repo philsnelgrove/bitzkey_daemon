@@ -2966,7 +2966,13 @@ void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young)
     }
 }
 
+bool Simulation::first_chance(const Bitzkey& elder, const Bitzkey& student) const {
+    return student.infant() && !student.infant_taught && (student.mother == elder.identifier || student.father == elder.identifier);
+}
+
 bool Simulation::willing_student(const Bitzkey& elder, const Bitzkey& student) const {
+    // An infant, once, from a parent beside it, whatever their years: its first chance at tutelage.
+    if (elder.brain && student.brain && first_chance(elder, student)) return !resting_time(student);
     // Its elder feeble with age; and it bright enough, awake, trusting enough, never taught, young enough for this elder,
     // and with nothing against it.
     if (!elder.brain || !student.brain || elder.age <= AGEING * elder.lifespan || student.inborn[Intellect] < STUDENT_INTELLECT ||
@@ -2987,13 +2993,19 @@ void Simulation::teach(Bitzkey& elder, Bitzkey& student) {
 void Simulation::teach_all() {
     // Last in the turn: a student's brain leaves the GPUs only once the lessons queued for it are learnt.
     for (const auto& [elder, student] : teachings_) {
-        if (!elder->alive() || !student->alive() || student->taught_by >= 0) continue;  // a student is the first elder's
+        const bool first = first_chance(*elder, *student);
+        if (!elder->alive() || !student->alive() || (!first && student->taught_by >= 0)) continue;  // a student is the first teacher's
         Bitzkey* const taught[] = {elder};
         elder->synced = -1;  // it has learnt since any earlier look this turn
         sync(taught);
         // Its elder's brain, cut to the student's own, as its inborn intellect makes it; what it knew is gone.
         student->brain = std::make_shared<Brain>(elder->brain->resized(student->brain->depth(), student->brain->width()));
-        student->taught_by = elder->identifier;
+        if (first) student->infant_taught = true;
+        else student->taught_by = elder->identifier;
+        student->crafts |= elder->crafts;  // and what it can make, as far as it has got at each
+        for (std::size_t craft = 0; craft < elder->craft_tries.size(); ++craft) {
+            student->craft_tries[craft] = std::max(student->craft_tries[craft], elder->craft_tries[craft]);
+        }
         if (gpu_ && student->gpu >= 0) {
             gpu_->detach(student->gpu);
             student->gpu = -1;

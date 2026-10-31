@@ -634,6 +634,7 @@ struct Bitzkey {
     std::shared_ptr<Brain> brain;  // shared with history snapshots; copied before it learns
     int generation = 0;
     int children = 0;
+    bool infant_taught = false;  // whether a parent has given it its brain, its first chance
     int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
     int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
@@ -1075,6 +1076,7 @@ public:
     void think_all(const std::vector<Bitzkey*>& agents);
     void teach(Bitzkey& elder, Bitzkey& student);  // agreed now, done at the turn's end
     void teach_all();  // each student given its elder's brain, once the turn's lessons are learnt
+    bool first_chance(const Bitzkey& elder, const Bitzkey& student) const;  // an infant untaught, and this its parent
     bool willing_student(const Bitzkey& elder, const Bitzkey& student) const;
     void learn_witnessed();  // herd-mates learn from what they saw this turn, each brain in the order it saw it
     void conceive();  // make the brains of the young conceived since it last did, all at once

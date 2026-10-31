@@ -2674,3 +2674,26 @@ TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, a
     DISCOVERY_CHANCE = chance;
     CHECK((crafter.crafts & (1 << (MakeStoneAxe - MakeBoneAxe))) != 0);
 }
+
+TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may teach it again") {
+    Simulation simulation = world();
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Omnivore, {{"intellect", 4}}), 5, 5);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Omnivore, {{"intellect", 4}}), 5, 6);
+    child.mother = parent.identifier;
+    parent.crafts = 1 << 2;
+    parent.craft_tries[2] = CRAFT_TRIES;
+    child.age = 0;
+    const double youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.5;
+    child.derive();
+    REQUIRE(child.infant());
+    CHECK(simulation.willing_student(parent, child));
+    simulation.teach(parent, child);
+    simulation.teach_all();
+    CHECK(child.infant_taught);
+    CHECK(child.taught_by == -1);  // its second chance still to come
+    CHECK(child.crafts == parent.crafts);
+    CHECK(child.craft_tries[2] == CRAFT_TRIES);
+    CHECK_FALSE(simulation.willing_student(parent, child));
+    FEEBLE_YOUTH = youth;
+}

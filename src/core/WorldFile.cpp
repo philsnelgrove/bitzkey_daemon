@@ -217,7 +217,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
-        {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries},
+        {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
@@ -309,6 +309,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->children = record.at("children").get<int>();
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
     agent->father = record.value("father", -1);
+    agent->infant_taught = record.value("infant_taught", false);
     agent->taught_by = record.value("taught_by", -1);  // none in a world saved before teaching
     agent->weapon = record.value("weapon", 0);
     agent->armour = record.value("armour", 0);
