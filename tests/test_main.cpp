@@ -10,6 +10,7 @@ struct Grown : doctest::IReporter {
     explicit Grown(const doctest::ContextOptions&) {}
     void test_case_start(const doctest::TestCaseData&) override {
         bitzkey::rules::defaults();  // the defaults, taken before the change
+        bitzkey::PREGROWTH_TURNS = 50;  // a new world's head start is most of what a test costs
         bitzkey::FEEBLE_YOUTH = 0.0;
         bitzkey::RARE_BREEDING_COST = 1.0;  // the few Bitzkeys of a test breed at the usual cost, unless a test says so
         bitzkey::RARE_PREY = 0;  // a test's lone hunters may breed with no prey alive

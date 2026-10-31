@@ -677,6 +677,8 @@ map.addEventListener('mousedown', event => {
 // while the pointer is over it; clicking a name selects that Bitzkey.
 let square = null;
 const squarePanel = element('div', { class: 'square-popup', hidden: true });
+const SQUARE_DELAY = 400;  // milliseconds on a square before its popup
+let squareTimer = 0;
 $('map-holder').append(squarePanel);
 
 function showSquare() {
@@ -723,8 +725,13 @@ window.addEventListener('mousemove', event => {
     return;
   }
   if (!squarePanel.contains(event.target)) {
-    square = event.buttons === 0 && !deploying && !globe && event.target === map ? cellAt(x, y) : null;
-    showSquare();
+    const cell = event.buttons === 0 && !deploying && !globe && event.target === map ? cellAt(x, y) : null;
+    if (String(cell) !== String(square)) {  // its popup waits a moment on the square
+      square = cell;
+      squarePanel.hidden = true;
+      clearTimeout(squareTimer);
+      if (cell) squareTimer = setTimeout(showSquare, SQUARE_DELAY);
+    }
   }
   if (deploying && painted && event.buttons & 1) {  // painting: another group every DEPLOY_GROUP cells
     const cell = cellAt(x, y);
