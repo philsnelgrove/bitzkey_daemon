@@ -276,3 +276,7 @@ The version is in `VERSION`.
 Copyright (C) 2026 Phil Snelgrove. Bitzkey is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License, version 3 or (at your option) any later version, as published by the Free
 Software Foundation. It is distributed in the hope that it will be useful, but without any warranty; see `LICENSE`.
+
+## Carrying food
+
+A bitzkey can carry up to its size + 1 portions of food. Rather than eat, it may take a portion of meat from a fresh kill or of fruit from a plant (a starving grazer may tear it from a plant it could uproot), carry it, and drop it. Drops build a meat pile or a fruit pile on that square, shown with its count. Any bitzkey may add to a pile, take from it, or eat from it, and what an animal carries falls where it dies. Once hungry enough (Carried hunger), it may eat what it carries. Meat portion and Fruit portion set what a portion is worth.

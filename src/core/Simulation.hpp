@@ -441,6 +441,12 @@ inline double GRASS_MEAL = 18;  // hunger a tuft of grass sates: about a tenth o
 // largest, none by default) and takes PLANT_BITE of its health, so a plant's food is in proportion to its size.
 inline double PLANT_MEAL = 70;
 inline double PLANT_MEAL_FOR_SIZE = 0;
+// An animal may carry food off rather than eat it, up to its size + 1 portions, and drop it in a pile any may take
+// from or eat from. Eaten from a pile, a portion sates this much hunger, by the eater's gut: a middle-sized feast of
+// meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
+inline double MEAT_PORTION = 855;
+inline double FRUIT_PORTION = 70;
+inline double CARRIED_HUNGER = 50;  // hunger at which it may eat what it carries
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
 inline int PLANT_RECOVERY = 24;  // a day
@@ -604,6 +610,7 @@ struct Bitzkey {
     int generation = 0;
     int children = 0;
     int taught_by = -1;  // the elder whose brain it was given, once in its life; -1 while it has none
+    int carried_meat = 0, carried_fruit = 0;  // the portions it carries
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
     std::optional<int> assailant;       // the animal that struck it since it last acted
@@ -705,6 +712,8 @@ struct Bitzkey {
     }
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
+    int capacity() const { return trait(Size) + 1; }  // the portions it can carry
+    int load() const { return carried_meat + carried_fruit; }
     bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
     // The squares it goes a step from where it stands: its steps, but an amphibious animal on land AMPHIBIOUS_SPEED of
     // them, rounded half up, at least one.
@@ -858,6 +867,9 @@ public:
     const std::vector<std::unique_ptr<Bitzkey>>& agents() const { return agents_; }
     std::vector<Bitzkey*> living() const;
     int grass_at(int x, int y) const;
+    int meat_pile_at(int x, int y) const { return in_bounds(x, y) ? meat_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // portions lying there
+    int fruit_pile_at(int x, int y) const { return in_bounds(x, y) ? fruit_piles_[static_cast<std::size_t>(y) * width_ + x] : 0; }
+    void add_to_pile(int x, int y, bool meat, int portions = 1) { (meat ? meat_piles_ : fruit_piles_)[static_cast<std::size_t>(y) * width_ + x] += portions; }
     // The sea: whether a square lies under it (none off the map, nor in a world without sea).
     // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
     bool night(int x) const;
@@ -960,6 +972,7 @@ public:
         Bitzkey* suitor = nullptr;
         std::optional<Cell> suitor_at;  // where it was when seen
         std::optional<Cell> grass;
+        std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
         bool grass_here = false;
         Bitzkey* carrion = nullptr;
         Bitzkey* kill = nullptr;
@@ -974,6 +987,7 @@ public:
         int others = 0;
         Bitzkey* defend_target = nullptr;
         Bitzkey* uprootable = nullptr;  // a plant beside a starving grazer, with food scarce
+        bool tears = false;  // it may tear into that plant, so it may tear its fruit from it too
         bool for_herd = false;
         bool herd = true;
         int herd_near = 0;
@@ -1083,6 +1097,10 @@ public:
     void alert(Bitzkey& agent, const Bitzkey& about);
     void feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young);  // its infants about it fed full, at no cost to it  // alert its herd to a hunter, or a fresh kill
     void scavenge(Bitzkey& agent, Bitzkey& corpse);
+    void take_meat(Bitzkey& agent, Situation& s);  // a portion from the nearer of a pile and a fresh kill, carried off
+    void take_fruit(Bitzkey& agent, Situation& s);  // from the nearer of a pile and a plant, or torn from one it may uproot
+    void eat_pile(Bitzkey& agent, Situation& s);  // a portion of whichever pile in sight would fill it more
+    void eat_carried(Bitzkey& agent);  // a portion of whichever it carries would fill it more
     void feast(Bitzkey& agent, Bitzkey& corpse);
     void eat_portion(Bitzkey& corpse);  // a portion of a body eaten: once the last is, the body is gone at the turn's end
     bool fresh(const Bitzkey& corpse) const;  // still a fresh kill, not yet carrion
@@ -1272,6 +1290,7 @@ private:
     static void effort(Bitzkey& agent, int cells) { agent.hunger += agent.burn * GO_EFFORT * std::max(0, cells - 1); }
     // The nearest grass in sight, but none in a row further from its home temperature than here.
     std::optional<Cell> nearest_grass(const Bitzkey& agent, int sight) const;
+    std::optional<Cell> nearest_pile(const Bitzkey& agent, int sight, bool meat) const;
     Bitzkey* nearest_carrion(const Bitzkey& agent, int sight) const;
     struct Seen {
         Bitzkey* quarry = nullptr;
@@ -1394,6 +1413,8 @@ private:
     bool act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans);
     // A death written down: its record and tally, the counts, and the parents' grief.
     void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
+    std::vector<int> meat_piles_, fruit_piles_;  // the portions lying on each square
+    bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;
     std::vector<std::pair<Bitzkey*, Bitzkey*>> teachings_;  // (elder, student) this turn

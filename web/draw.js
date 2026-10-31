@@ -277,6 +277,30 @@ function strokeLine(ctx, points, colour, width = 1) {
   ctx.stroke();
 }
 
+// A heap of meat or of fruit about (cx, cy), with how many portions it holds once there's room to read it.
+export function drawPile(ctx, meat, count, cx, cy, half) {
+  const lump = Math.max(1, Math.floor(half * 3 / 5));
+  const blob = (x, y, radius, colour) => {
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  const dark = meat ? 'rgb(120,34,38)' : 'rgb(176,92,24)', light = meat ? 'rgb(190,62,62)' : 'rgb(230,150,46)';
+  blob(cx - lump, cy + lump / 2, lump, dark);
+  blob(cx + lump, cy + lump / 2, lump, dark);
+  blob(cx, cy - lump / 2, lump, light);
+  if (meat) blob(cx, cy - lump / 2, Math.max(1, lump / 2), 'rgb(236,226,205)');  // the bone
+  else blob(cx + lump / 2, cy - lump * 1.5, Math.max(1, lump / 3), 'rgb(74,140,60)');  // a leaf
+  if (half < 5) return;
+  ctx.font = '11px "Segoe UI", sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = 'black';
+  ctx.fillText(String(count), cx + 1, cy + 1);
+  ctx.fillStyle = 'white';
+  ctx.fillText(String(count), cx, cy);
+}
+
 export function grassTuft(size, sea) {
   const key = `${size}|${sea}|${window.devicePixelRatio || 1}`;
   if (!tufts.has(key)) {

@@ -1514,5 +1514,12 @@
 "Student trust": "אמון התלמיד",
 "how trusting, 0 to 1, an animal must be to be willing to be taught": "כמה אמון, 0 עד 1, נדרש מבעל חיים כדי להסכים ללמוד",
 "Teaching joy": "שמחת ההוראה",
-"how glad an elder is of teaching a student; more if empathetic": "כמה שמח זקן ללמד תלמיד; יותר אם הוא אמפתי"
+"how glad an elder is of teaching a student; more if empathetic": "כמה שמח זקן ללמד תלמיד; יותר אם הוא אמפתי",
+"Meat portion": "מנת בשר",
+"hunger a portion of meat from a pile sates, times how well the eater digests carrion": "הרעב שמנת בשר מערימה משביעה, כפול מידת עיכול הנבלות של האוכל",
+"Fruit portion": "מנת פרי",
+"hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "הרעב שמנת פרי מערימה משביעה, כפול חלקו של האוכל במזון שבצמחים",
+"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "פעולה אחרונה: {*}     נושא {#} בשר, {#} פרי, מקום ל-{#}",
+"Carried hunger": "רעב למזון הנישא",
+"hunger at which an animal may eat what it carries": "הרעב שממנו בעל חיים רשאי לאכול את מה שהוא נושא"
 }

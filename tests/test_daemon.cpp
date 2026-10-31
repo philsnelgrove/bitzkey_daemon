@@ -170,7 +170,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         CHECK(read<std::uint32_t>(data, 12) == 1);
         const auto agents = read<std::uint32_t>(data, 16), trails = read<std::uint32_t>(data, 20);
         CHECK(agents == simulation.agents().size());
-        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8);
+        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8 + 4);  // and no piles yet
         const std::size_t first = 24 + 4 * 30 + 30 * 30;
         CHECK(read<std::uint32_t>(data, first) == static_cast<std::uint32_t>(simulation.agents()[0]->identifier));
         CHECK(read<std::uint32_t>(data, first + 20) == social_word(simulation.agents()[0]->dna));  // its social background, last

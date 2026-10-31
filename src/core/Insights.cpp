@@ -405,7 +405,7 @@ namespace {
 constexpr std::array<std::string_view, 4> SPECIES_ORDER = {"plant", "grazer", "omnivore", "predator"};
 constexpr std::array<std::string_view, ACTION_COUNT> SHORT_ACTIONS = {
     "eat", "forage", "browse", "uproot", "scaven", "feast", "rest", "court", "breed", "hunt", "attack", "defend", "flee", "herd",
-    "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "revisit", "feed", "teach"};
+    "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "revisit", "feed", "teach", "take M", "take F", "drop M", "drop F", "pile", "carried"};
 constexpr int CELL = 7;        // characters to a column of figures
 constexpr int SITUATION = 42;  // characters to the situations' column
 

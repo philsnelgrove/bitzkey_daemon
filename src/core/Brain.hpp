@@ -111,11 +111,19 @@ enum Sense : int {
     SenseElderEast,
     SenseElderSouth,
     SenseStudentNear,
+    // Then what it carries: how full its load is, the share of it that is meat and that is fruit; and how close the
+    // nearest pile of each lies, 1 beside it falling to 0 at the edge of its sight.
+    SenseLoad,
+    SenseMeatCarried,
+    SenseFruitCarried,
+    SenseMeatPileCloseness,
+    SenseFruitPileCloseness,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
-                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach };
-constexpr int ACTION_COUNT = 25;
+                    GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach,
+                    TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried };
+constexpr int ACTION_COUNT = 31;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -146,7 +154,7 @@ constexpr int call_output(int call) { return ACTION_COUNT + call; }  // the outp
 constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
-    "revisit", "feed_young", "teach"};
+    "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
@@ -200,7 +208,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
     "map_comfort", "map_comfort_east", "map_comfort_south",
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard",
-    "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near", "aggression", "libido", "curiosity",
+    "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
+    "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

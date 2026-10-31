@@ -433,6 +433,8 @@ Simulation::Simulation(Settings settings)
     cells_.resize(area);
     carrion_.resize(area);
     kills_.resize(area);
+    meat_piles_.assign(area, 0);
+    fruit_piles_.assign(area, 0);
     grass_.assign(area, 0);
     update_climate();
     const int initial_grass = static_cast<int>(py_round(static_cast<double>(width_ * height_) * settings.grass_density / 100));
@@ -1044,6 +1046,8 @@ void Simulation::index_cells() {
     carrion_count_ = 0;
     for (auto& cell : kills_) cell.clear();
     kill_count_ = 0;
+    any_piles_ = std::any_of(meat_piles_.begin(), meat_piles_.end(), [](int portions) { return portions > 0; }) ||
+                 std::any_of(fruit_piles_.begin(), fruit_piles_.end(), [](int portions) { return portions > 0; });
     if (band_of_row_.size() != static_cast<std::size_t>(height_)) index_bands();
     const std::size_t band_count = band_of_row_.empty() ? 0 : static_cast<std::size_t>(band_of_row_.back()) + 1;
     band_plants_.assign(band_count, 0);
@@ -1389,7 +1393,7 @@ double choice_learning(int choice) {
         case Breed: return BREED_LEARNING;
         case Court: return COURT_LEARNING;
         case Hunt: case Attack: case Feast: return KILL_FOOD_LEARNING;
-        case Eat: case Forage: case Browse: case Uproot: return PLANT_FOOD_LEARNING;
+        case Eat: case Forage: case Browse: case Uproot: case EatPile: case EatCarried: return PLANT_FOOD_LEARNING;
         default: return 1.0;
     }
 }
@@ -2033,6 +2037,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (grazes) s.grass = nearest_grass(agent, sight);
     if (agent.species != Species::Grazer) s.carrion = nearest_carrion(agent, sight);  // grazers don't scavenge
     if (agent.species == Species::Omnivore || agent.species == Species::Predator) s.kill = nearest_kill(agent, sight);
+    if (any_piles_) {
+        s.meat_pile = nearest_pile(agent, sight, true);
+        s.fruit_pile = nearest_pile(agent, sight, false);
+    }
     const int prey_sight = sight + (agent.species == Species::Predator ? PREDATOR_SIGHT : 0);
     const Seen seen = look_around(agent, sight, prey_sight);
     s.quarry = seen.quarry;
@@ -2129,7 +2137,17 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         // Starving, with food scarce: it may tear into a plant beside it.
         available[Uproot] = s.uprootable && food_supply(agent) < UPROOT_FOOD;
+        s.tears = available[Uproot];
     }
+    // Food to carry off, with room for it; what it carries to put down; a pile with food in it for this gut.
+    const bool room = agent.load() < agent.capacity();
+    available[TakeMeat] = room && (s.kill || s.meat_pile);
+    available[TakeFruit] = room && (s.flora || s.tears || s.fruit_pile);
+    available[DropMeat] = agent.carried_meat > 0;
+    available[DropFruit] = agent.carried_fruit > 0;
+    available[EatCarried] = agent.hunger >= CARRIED_HUNGER && ((agent.carried_meat && MEAT_PORTION * agent.digestion > 0) ||
+                                                               (agent.carried_fruit && FRUIT_PORTION * agent.browsing > 0));
+    available[EatPile] = (s.meat_pile && MEAT_PORTION * agent.digestion > 0) || (s.fruit_pile && FRUIT_PORTION * agent.browsing > 0);
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
@@ -2194,6 +2212,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseCarrionCloseness] = closeness(agent, cell_of(s.carrion), sight);
     senses[SenseKillCloseness] = closeness(agent, cell_of(s.kill), sight);
     senses[SensePlantCloseness] = closeness(agent, cell_of(s.flora), sight);
+    senses[SenseLoad] = std::min(1.0, static_cast<double>(agent.load()) / agent.capacity());
+    senses[SenseMeatCarried] = agent.load() ? static_cast<double>(agent.carried_meat) / agent.load() : 0.0;
+    senses[SenseFruitCarried] = agent.load() ? static_cast<double>(agent.carried_fruit) / agent.load() : 0.0;
+    senses[SenseMeatPileCloseness] = closeness(agent, s.meat_pile, sight);
+    senses[SenseFruitPileCloseness] = closeness(agent, s.fruit_pile, sight);
     senses[SenseAssailantNear] = s.assailant != nullptr;
     senses[SenseCounterFrailty] =
         s.defend_target ? std::min(1.0, damage(agent, *s.defend_target) / s.defend_target->health) : 0.0;
@@ -2489,6 +2512,11 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     agent.meat = (CARRION_MEAT + CARRION_MEAT_FOR_SIZE * agent.physique(Size)) * nourished * (cause == "killed" ? 0.5 : 1);
     agent.rot = agent.meat / std::max(1, CORPSE_TURNS - FRESH_KILL_TURNS);  // it rots once no longer fresh
     agent.portions = agent.species == Species::Plant ? 0 : 1 + agent.trait(Size);
+    if (in_bounds(agent.x, agent.y)) {  // what it carried falls where it died
+        add_to_pile(agent.x, agent.y, true, agent.carried_meat);
+        add_to_pile(agent.x, agent.y, false, agent.carried_fruit);
+    }
+    agent.carried_meat = agent.carried_fruit = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
         if (tile) ++tile->kills;
@@ -2507,7 +2535,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     const std::size_t passed = agent.trail.size();
     perform(agent, action, s);
     const std::string_view did = agent.last_action;
-    if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged") {
+    if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged" || did == "ate from a pile" || did == "ate what it carried") {
         agent.food_memory = Place{agent.x, agent.y, turn_};
     }
     if (!agent.alive()) return;
@@ -2630,6 +2658,28 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Teach:
             teach(agent, *s.student);
+            break;
+        case TakeMeat:
+            take_meat(agent, s);
+            break;
+        case TakeFruit:
+            take_fruit(agent, s);
+            break;
+        case DropMeat:
+            --agent.carried_meat;
+            add_to_pile(agent.x, agent.y, true);
+            agent.last_action = "dropped meat";
+            break;
+        case DropFruit:
+            --agent.carried_fruit;
+            add_to_pile(agent.x, agent.y, false);
+            agent.last_action = "dropped fruit";
+            break;
+        case EatPile:
+            eat_pile(agent, s);
+            break;
+        case EatCarried:
+            eat_carried(agent);
             break;
         case GoNorth:
         case GoSouth:
@@ -2842,6 +2892,83 @@ void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
     corpse.meat -= corpse.meat / corpse.portions;
     agent.last_action = "feasted";
     eat_portion(corpse);
+}
+
+void Simulation::take_meat(Bitzkey& agent, Situation& s) {
+    const auto far = [&](int x, int y) { return distance(x, y, agent.x, agent.y); };
+    if (s.meat_pile && (!s.kill || far(s.meat_pile->x, s.meat_pile->y) <= far(s.kill->x, s.kill->y))) {
+        move_toward(agent, s.meat_pile->x, s.meat_pile->y);
+        if (far(s.meat_pile->x, s.meat_pile->y) > 1 || meat_pile_at(s.meat_pile->x, s.meat_pile->y) <= 0) {
+            agent.last_action = "sought a pile";
+            return;
+        }
+        add_to_pile(s.meat_pile->x, s.meat_pile->y, true, -1);
+    } else {
+        Bitzkey& corpse = *s.kill;
+        move_toward(agent, corpse.x, corpse.y);
+        if (far(corpse.x, corpse.y) > 1 || !fresh(corpse) || corpse.meat <= 0 || corpse.portions <= 0) {
+            agent.last_action = "sought a kill";
+            return;
+        }
+        corpse.meat -= corpse.meat / corpse.portions;
+        eat_portion(corpse);
+    }
+    ++agent.carried_meat;
+    agent.last_action = "took meat";
+}
+
+void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
+    const auto far = [&](int x, int y) { return distance(x, y, agent.x, agent.y); };
+    Bitzkey* const plant = s.tears ? s.uprootable : s.flora;
+    if (s.fruit_pile && (!plant || far(s.fruit_pile->x, s.fruit_pile->y) <= far(plant->x, plant->y))) {
+        move_toward(agent, s.fruit_pile->x, s.fruit_pile->y);
+        if (far(s.fruit_pile->x, s.fruit_pile->y) > 1 || fruit_pile_at(s.fruit_pile->x, s.fruit_pile->y) <= 0) {
+            agent.last_action = "sought a pile";
+            return;
+        }
+        add_to_pile(s.fruit_pile->x, s.fruit_pile->y, false, -1);
+        ++agent.carried_fruit;
+        agent.last_action = "took fruit";
+        return;
+    }
+    if (!s.tears) move_toward(agent, plant->x, plant->y);
+    // As browsing or uprooting wound a plant, its fruit carried off rather than eaten.
+    if (!plant->alive() || far(plant->x, plant->y) > 1 || (!s.tears && plant->cooldown)) {
+        agent.last_action = "sought plants";
+        return;
+    }
+    plant->health -= s.tears ? UPROOT_BITE : PLANT_BITE;
+    plant->cooldown = PLANT_RECOVERY;
+    ++agent.carried_fruit;
+    agent.last_action = "took fruit";
+    if (!plant->alive()) {
+        if (s.tears) die(*plant, "uprooted", &agent, "uprooting");
+        else die(*plant, "eaten", &agent, "browsing");
+    } else if (plant->physique(Weapons) > 0) {
+        defend(*plant, agent);
+    }
+}
+
+void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
+    const double meat = s.meat_pile ? MEAT_PORTION * agent.digestion : 0.0, fruit = s.fruit_pile ? FRUIT_PORTION * agent.browsing : 0.0;
+    const bool eats_meat = meat >= fruit;
+    const Cell pile = eats_meat ? *s.meat_pile : *s.fruit_pile;
+    move_toward(agent, pile.x, pile.y);
+    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || (eats_meat ? meat_pile_at(pile.x, pile.y) : fruit_pile_at(pile.x, pile.y)) <= 0) {
+        agent.last_action = "sought a pile";
+        return;
+    }
+    add_to_pile(pile.x, pile.y, eats_meat, -1);
+    agent.nourish(eats_meat ? meat : fruit, eats_meat);
+    agent.last_action = "ate from a pile";
+}
+
+void Simulation::eat_carried(Bitzkey& agent) {
+    const double meat = agent.carried_meat ? MEAT_PORTION * agent.digestion : 0.0, fruit = agent.carried_fruit ? FRUIT_PORTION * agent.browsing : 0.0;
+    const bool eats_meat = meat >= fruit;
+    --(eats_meat ? agent.carried_meat : agent.carried_fruit);
+    agent.nourish(eats_meat ? meat : fruit, eats_meat);
+    agent.last_action = "ate what it carried";
 }
 
 void Simulation::eat_portion(Bitzkey& corpse) {
@@ -3293,6 +3420,15 @@ std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) c
     for (const Offset& offset : SIGHT_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
         if (grass_at(x, y) > 0 && can_enter(agent, Cell{x, y}) && agent.climate_steps(temperature(y)) <= worst) return Cell{x, y};
+    }
+    return std::nullopt;
+}
+
+std::optional<Cell> Simulation::nearest_pile(const Bitzkey& agent, int sight, bool meat) const {
+    const Side side = tie_side(agent);
+    for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
+        if ((meat ? meat_pile_at(x, y) : fruit_pile_at(x, y)) > 0 && can_enter(agent, Cell{x, y})) return Cell{x, y};
     }
     return std::nullopt;
 }

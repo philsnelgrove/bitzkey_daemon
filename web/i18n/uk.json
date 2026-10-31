@@ -1514,5 +1514,12 @@
 "Student trust": "Довіра учня",
 "how trusting, 0 to 1, an animal must be to be willing to be taught": "наскільки довірливою, від 0 до 1, має бути тварина, щоб погодитися вчитися",
 "Teaching joy": "Радість навчання",
-"how glad an elder is of teaching a student; more if empathetic": "наскільки старійшина радіє навчанню учня; більше, якщо співчутливий"
+"how glad an elder is of teaching a student; more if empathetic": "наскільки старійшина радіє навчанню учня; більше, якщо співчутливий",
+"Meat portion": "Порція м'яса",
+"hunger a portion of meat from a pile sates, times how well the eater digests carrion": "голод, який втамовує порція м'яса з купи, помножений на те, як добре їдець перетравлює падло",
+"Fruit portion": "Порція плодів",
+"hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "голод, який втамовує порція плодів з купи, помножений на частку їжі з рослин, яку отримує їдець",
+"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Остання дія: {*}     Несе {#} м'яса, {#} плодів, місця на {#}",
+"Carried hunger": "Голод на ношене",
+"hunger at which an animal may eat what it carries": "голод, за якого тварина може з'їсти те, що несе"
 }

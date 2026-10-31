@@ -1514,5 +1514,12 @@
 "Student trust": "学生信任",
 "how trusting, 0 to 1, an animal must be to be willing to be taught": "动物愿意受教所需的信任程度(0到1)",
 "Teaching joy": "教导之乐",
-"how glad an elder is of teaching a student; more if empathetic": "长者教导学生时的喜悦程度;越有同理心越高"
+"how glad an elder is of teaching a student; more if empathetic": "长者教导学生时的喜悦程度;越有同理心越高",
+"Meat portion": "肉份量",
+"hunger a portion of meat from a pile sates, times how well the eater digests carrion": "一堆肉中一份所能缓解的饥饿，乘以进食者消化腐肉的能力",
+"Fruit portion": "果份量",
+"hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "一堆果实中一份所能缓解的饥饿，乘以进食者从植物中获取食物的比例",
+"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "最后行动：{*}     携带肉 {#}、果 {#}，容量 {#}",
+"Carried hunger": "携带物进食饥饿",
+"hunger at which an animal may eat what it carries": "动物可以吃掉所携带食物的饥饿值"
 }

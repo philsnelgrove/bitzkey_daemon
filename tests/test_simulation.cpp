@@ -2190,6 +2190,98 @@ TEST_CASE("ties between targets equally near favour no side: east and west, nort
     CHECK(rows == std::set<int>{4, 6});
 }
 
+TEST_CASE("food is carried up to size + 1 portions, dropped in piles, and taken or eaten from them by any") {
+    const double active = ACTIVE_SHARE;
+    ACTIVE_SHARE = 1.0;  // none asleep
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& carrier = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 1}}), 10, 10);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    const auto offered = [](const auto& sensed, int action) { return std::find(sensed.options.begin(), sensed.options.end(), action) != sensed.options.end(); };
+    CHECK(carrier.capacity() == carrier.trait(Size) + 1);
+    simulation.add_to_pile(10, 10, true, carrier.capacity() + 1);
+    simulation.add_to_pile(13, 10, false, 2);
+    simulation.index_cells();
+    for (int portion = 0; portion < carrier.capacity(); ++portion) {
+        auto sensed = simulation.sense(carrier);
+        REQUIRE(offered(sensed, TakeMeat));
+        simulation.act(carrier, TakeMeat, sensed.situation);
+    }
+    CHECK(carrier.carried_meat == carrier.capacity());
+    CHECK(simulation.meat_pile_at(10, 10) == 1);
+    auto full = simulation.sense(carrier);
+    CHECK_FALSE(offered(full, TakeMeat));  // no room for more
+    CHECK(full.senses[SenseLoad] == doctest::Approx(1.0));
+    simulation.act(carrier, DropMeat, full.situation);
+    CHECK(simulation.meat_pile_at(10, 10) == 2);
+    CHECK(carrier.last_action == "dropped meat");
+    other.hunger = 80;  // a grazer too eats from a pile, the one that fills it more
+    auto grazer = simulation.sense(other);
+    CHECK(grazer.senses[SenseFruitPileCloseness] > 0);
+    simulation.act(other, EatPile, grazer.situation);
+    CHECK(simulation.meat_pile_at(10, 10) == 1);
+    CHECK(simulation.fruit_pile_at(13, 10) == 2);
+    CHECK(other.hunger < 80);
+    const int carried = carrier.carried_meat;
+    carrier.health = 0;
+    simulation.die(carrier, "killed");  // what it carried falls where it died
+    CHECK(simulation.meat_pile_at(10, 10) == 1 + carried);
+    CHECK(carrier.carried_meat == 0);
+    ACTIVE_SHARE = active;
+}
+
+TEST_CASE("a hungry animal may eat what it carries") {
+    const double active = ACTIVE_SHARE;
+    ACTIVE_SHARE = 1.0;
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& carrier = simulation.add_agent(encode_dna(Species::Omnivore), 10, 10);
+    carrier.carried_fruit = 1;
+    carrier.hunger = CARRIED_HUNGER - 1;
+    auto fed = simulation.sense(carrier);
+    CHECK(std::find(fed.options.begin(), fed.options.end(), EatCarried) == fed.options.end());
+    carrier.hunger = 90;
+    auto hungry = simulation.sense(carrier);
+    CHECK(std::find(hungry.options.begin(), hungry.options.end(), EatCarried) != hungry.options.end());
+    simulation.act(carrier, EatCarried, hungry.situation);
+    CHECK(carrier.carried_fruit == 0);
+    CHECK(carrier.hunger < 90);
+    ACTIVE_SHARE = active;
+}
+
+TEST_CASE("meat is taken from a fresh kill and fruit from a plant, as portions of them") {
+    const double active = ACTIVE_SHARE;
+    ACTIVE_SHARE = 1.0;
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Omnivore), 10, 10);
+    Bitzkey& body = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 11, 10);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant), 9, 10);
+    simulation.index_cells();
+    body.health = 0;
+    simulation.die(body, "killed");
+    const int portions = body.portions;
+    auto sensed = simulation.sense(hunter);
+    simulation.act(hunter, TakeMeat, sensed.situation);
+    CHECK(hunter.carried_meat == 1);
+    CHECK(body.portions == portions - 1);
+    const double health = plant.health;
+    auto again = simulation.sense(hunter);
+    simulation.act(hunter, TakeFruit, again.situation);
+    CHECK(hunter.carried_fruit == 1);
+    CHECK(plant.health < health);
+    ACTIVE_SHARE = active;
+}
+
+TEST_CASE("an animal's load and the piles are kept in a saved world") {
+    Simulation simulation(Simulation::Settings{30, 30, 0, 1});
+    Bitzkey& carrier = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    carrier.carried_fruit = 1;
+    simulation.add_to_pile(3, 4, true, 2);
+    simulation.add_to_pile(3, 4, false, 5);
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    CHECK(loaded->meat_pile_at(3, 4) == 2);
+    CHECK(loaded->fruit_pile_at(3, 4) == 5);
+    CHECK(loaded->agents().front()->carried_fruit == 1);
+}
+
 TEST_CASE("an elder gives a willing student a copy of its brain, once, and it fits the student") {
     const double active = ACTIVE_SHARE, trusting = STUDENT_TRUST;
     ACTIVE_SHARE = 1.0;  // none asleep

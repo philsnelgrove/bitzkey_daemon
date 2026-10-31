@@ -1514,5 +1514,12 @@
 "Student trust": "Confiance de l'élève",
 "how trusting, 0 to 1, an animal must be to be willing to be taught": "la confiance, de 0 à 1, qu'il faut à un animal pour accepter d'être instruit",
 "Teaching joy": "Joie d'enseigner",
-"how glad an elder is of teaching a student; more if empathetic": "la joie d'un ancien à instruire un élève ; plus grande s'il est empathique"
+"how glad an elder is of teaching a student; more if empathetic": "la joie d'un ancien à instruire un élève ; plus grande s'il est empathique",
+"Meat portion": "Portion de viande",
+"hunger a portion of meat from a pile sates, times how well the eater digests carrion": "faim apaisée par une portion de viande d'un tas, multipliée par la capacité du mangeur à digérer la charogne",
+"Fruit portion": "Portion de fruits",
+"hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "faim apaisée par une portion de fruits d'un tas, multipliée par la part de nourriture végétale que tire le mangeur",
+"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Dernière action : {*}     Porte {#} viande, {#} fruits, place pour {#}",
+"Carried hunger": "Faim de ce qu'il porte",
+"hunger at which an animal may eat what it carries": "faim à partir de laquelle un animal peut manger ce qu'il porte"
 }

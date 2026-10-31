@@ -215,6 +215,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
+        {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -305,6 +306,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->mother = record.value("mother", -1);  // unknown in a world saved before parents were kept
     agent->father = record.value("father", -1);
     agent->taught_by = record.value("taught_by", -1);  // none in a world saved before teaching
+    agent->carried_meat = record.value("carried_meat", 0);  // nothing in a world saved before carrying
+    agent->carried_fruit = record.value("carried_fruit", 0);
     agent->died_turn = optional_int(record.at("died_turn"));
     agent->assailant = optional_int(record.at("assailant"));
     agent->panicked = record.at("panicked").get<bool>();
@@ -424,6 +427,13 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     const PyRandom::State& random = simulation.random_.getstate();
     json grass = json::array();
     for (const int tufts : simulation.grass_) grass.push_back(tufts);
+    json piles = json::array();  // each square with any: x, y, its meat and its fruit
+    for (int y = 0; y < simulation.height_; ++y) {
+        for (int x = 0; x < simulation.width_; ++x) {
+            const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
+            if (meat || fruit) piles.push_back({x, y, meat, fruit});
+        }
+    }
     json sea = json::array();  // the sea's runs, row by row: land, then sea, then land, and so on
     if (simulation.has_sea()) {
         std::uint8_t now = 0;
@@ -512,7 +522,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -589,8 +599,14 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             reader.saved_outputs = saved.size();
             reader.output_from.resize(OUTPUT_COUNT);
             for (int output = 0; output < OUTPUT_COUNT; ++output) {
-                // A brain from before teaching values it as it does feeding its young, or it would never try it.
-                const auto found = saved_at.find(std::string(output == Teach && !saved_at.contains("teach") ? OUTPUTS[FeedYoung] : OUTPUTS[output]));
+                // A brain from before teaching or carrying values each as it does feeding its young, and eating from a
+                // pile as it does scavenging, or it would never try them.
+                std::string_view name = OUTPUTS[output];
+                if (!saved_at.contains(std::string(name))) {
+                    if (output == Teach || (output >= TakeMeat && output <= DropFruit)) name = OUTPUTS[FeedYoung];
+                    else if (output == EatPile || output == EatCarried) name = OUTPUTS[Scavenge];
+                }
+                const auto found = saved_at.find(std::string(name));
                 reader.output_from[output] = found == saved_at.end() ? -1 : found->second;
             }
             for (const json& name : saved) reader.action_now.push_back(action_index(name.get<std::string>()));
@@ -663,6 +679,11 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         const json& grass = record.at("grass");
         if (grass.size() != world.grass_.size()) throw std::runtime_error("The world file's grass doesn't fit its map.");
         for (std::size_t index = 0; index < grass.size(); ++index) world.grass_[index] = grass[index].get<int>();
+        for (const json& pile : record.value("piles", json::array())) {  // none in a world saved before piles
+            const int x = pile.at(0).get<int>(), y = pile.at(1).get<int>();
+            world.add_to_pile(x, y, true, pile.at(2).get<int>());
+            world.add_to_pile(x, y, false, pile.at(3).get<int>());
+        }
         world.seeds_.clear();
         for (const json& seed : record.at("seeds")) {
             world.seeds_.push_back({seed.at(0).get<int>(), seed.at(1).get<int>(), genome_from(seed.at(2)),

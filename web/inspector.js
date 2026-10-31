@@ -210,6 +210,7 @@ export function details(agent, { large = 0 } = {}) {
     `AGE ${agent.age} / ~${fixed(agent.lifespan, 0)}${agent.feeble ? ' FEEBLE' : ''}    GENERATION ${agent.generation}    CHILDREN ${agent.children}`));
   let state = `LAST ACTION: ${upper(agent.last_action)}`;
   if (agent.alive === false) state += `     MEAT LEFT ${fixed(agent.meat, 0)}`;
+  else if (agent.carried_meat + agent.carried_fruit) state += `     CARRYING ${agent.carried_meat} MEAT, ${agent.carried_fruit} FRUIT, ROOM FOR ${agent.capacity}`;
   panel.append(element('div', { class: 'note' }, state));
   if (agent.chances?.length) {
     panel.append(element('div', { class: 'note light' }, `CHANCES  ${agent.chances.map(([action, share]) => `${action} ${share}`).join('   ')}`));

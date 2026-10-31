@@ -167,6 +167,9 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["feeble"] = agent->feeble;
     result["generation"] = agent->generation;
     result["taught_by"] = agent->taught_by;
+    result["carried_meat"] = agent->carried_meat;
+    result["carried_fruit"] = agent->carried_fruit;
+    result["capacity"] = agent->capacity();
     result["mother"] = agent->mother;
     result["father"] = agent->father;
     result["children"] = agent->children;

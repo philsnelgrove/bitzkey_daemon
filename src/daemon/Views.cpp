@@ -287,6 +287,21 @@ std::string frame(const Simulation& simulation) {
             put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
         }
     }
+    const std::size_t counted = out.size();  // the piles' count, once known
+    put<std::uint32_t>(out, 0);
+    std::uint32_t piles = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
+            if (!meat && !fruit) continue;
+            ++piles;
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(x));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(meat, 65535)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(fruit, 65535)));
+        }
+    }
+    std::memcpy(out.data() + counted, &piles, sizeof piles);
     return out;
 }
 
@@ -332,6 +347,9 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
     result["generation"] = agent.generation;
     result["children"] = agent.children;
     result["last_action"] = std::string(agent.last_action);
+    result["carried_meat"] = agent.carried_meat;
+    result["carried_fruit"] = agent.carried_fruit;
+    result["capacity"] = agent.capacity();
     result["meat"] = agent.meat;
     result["brain_depth"] = agent.brain ? agent.brain->depth() : 0;
     Json chances = Json::array();
