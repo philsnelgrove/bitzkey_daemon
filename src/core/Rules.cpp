@@ -142,7 +142,7 @@ std::vector<Rule> make_rules() {
         {"LOYALTY_PULL", "Society", "Loyalty pull", "how much more an animal values keeping to its herd, times its loyalty", 0.0, 5.0, 0.05, false, &LOYALTY_PULL},
         {"DOMINANCE_EASE", "Society", "Dominance ease", "share less a crowded territory troubles the most dominant, and more the most submissive", 0.0, 1.0, 0.05, false, &DOMINANCE_EASE},
         {"TRUST_HEED", "Society", "Trust heed", "share more the most trusting take in what herd-mates do, and less the least", 0.0, 1.0, 0.05, false, &TRUST_HEED},
-        {"ELDER_AGE", "Society", "Elder age", "turns old an animal must be to teach", 0, 8640, 24, true, &ELDER_AGE},
+        {"STUDENT_INTELLECT", "Society", "Student intellect", "the least inborn intellect an animal needs to be taught", 0, 7, 1, true, &STUDENT_INTELLECT},
         {"STUDENT_AGE", "Society", "Student age", "the oldest a student may be, as a share of its elder's age", 0.0, 1.0, 0.05, false, &STUDENT_AGE},
         {"STUDENT_TRUST", "Society", "Student trust", "how trusting, 0 to 1, an animal must be to be willing to be taught", 0.0, 1.0, 0.05, false, &STUDENT_TRUST},
         {"TEACHING_JOY", "Society", "Teaching joy", "how glad an elder is of teaching a student; more if empathetic", 0.0, 5.0, 0.05, false, &TEACHING_JOY},

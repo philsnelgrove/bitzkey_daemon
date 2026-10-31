@@ -227,7 +227,7 @@ inline double DOMINANCE_EASE = 0.5;
 // this share; and an alert reaches it from a herd-mate this many times its trust times its sight away.
 inline double TRUST_HEED = 0.5;
 inline double TRUST_REACH = 2.0;
-inline int ELDER_AGE = 720;  // turns old an animal must be to teach
+inline int STUDENT_INTELLECT = 4;  // the least inborn intellect an animal needs to be taught
 inline double STUDENT_AGE = 0.5;  // the oldest a student may be, as a share of its elder's age
 inline double STUDENT_TRUST = 0.25;  // how trusting an animal must be to be willing to be taught
 inline double TEACHING_JOY = 1.0;  // how glad an elder is of teaching a student; more if empathetic

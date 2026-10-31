@@ -2749,8 +2749,10 @@ void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young)
 }
 
 bool Simulation::willing_student(const Bitzkey& elder, const Bitzkey& student) const {
-    // Awake, trusting enough, never taught, young enough for this elder, and with nothing against it.
-    if (!elder.brain || !student.brain || elder.age < ELDER_AGE || student.age > STUDENT_AGE * elder.age || student.taught_by >= 0 ||
+    // Its elder feeble with age; and it bright enough, awake, trusting enough, never taught, young enough for this elder,
+    // and with nothing against it.
+    if (!elder.brain || !student.brain || elder.age <= AGEING * elder.lifespan || student.inborn[Intellect] < STUDENT_INTELLECT ||
+        student.age > STUDENT_AGE * elder.age || student.taught_by >= 0 ||
         student.feeling(Trust) < STUDENT_TRUST || resting_time(student)) {
         return false;
     }

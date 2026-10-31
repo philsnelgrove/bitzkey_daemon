@@ -2196,14 +2196,14 @@ TEST_CASE("an elder gives a willing student a copy of its brain, once, and it fi
     STUDENT_TRUST = 0.0;
     Simulation simulation(Simulation::Settings{30, 30, 0, 1});
     Bitzkey& elder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
-    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
-    elder.age = ELDER_AGE;
+    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", STUDENT_INTELLECT}}), 11, 10);
+    elder.age = static_cast<int>(AGEING * elder.lifespan) + 1;
     student.age = 10;
     elder.reward = 0;
     auto sensed = simulation.sense(elder);
     CHECK(std::find(sensed.options.begin(), sensed.options.end(), Teach) != sensed.options.end());
     CHECK(sensed.senses[SenseStudentNear] == doctest::Approx(1.0 / 3));
-    CHECK(simulation.sense(student).senses[SenseElderAge] == doctest::Approx(std::min(1.0, static_cast<double>(ELDER_AGE) / YEAR_LENGTH)));
+    CHECK(simulation.sense(student).senses[SenseElderAge] == doctest::Approx(std::min(1.0, static_cast<double>(elder.age) / YEAR_LENGTH)));
     const std::vector<int> studied = {student.brain->depth(), student.brain->width()};
     simulation.act(elder, Teach, sensed.situation);
     simulation.teach_all();
@@ -2225,8 +2225,8 @@ TEST_CASE("the young, the old and the distrustful aren't taught") {
     STUDENT_TRUST = 2.0;  // none so trusting
     Simulation simulation(Simulation::Settings{30, 30, 0, 1});
     Bitzkey& elder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
-    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
-    elder.age = ELDER_AGE;
+    Bitzkey& student = simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", STUDENT_INTELLECT}}), 11, 10);
+    elder.age = static_cast<int>(AGEING * elder.lifespan) + 1;
     student.age = 10;
     const auto offered = [&] {
         const auto options = simulation.sense(elder).options;
@@ -2235,11 +2235,16 @@ TEST_CASE("the young, the old and the distrustful aren't taught") {
     CHECK_FALSE(offered());
     STUDENT_TRUST = 0.0;
     CHECK(offered());
-    student.age = ELDER_AGE;
+    student.age = elder.age;
     CHECK_FALSE(offered());  // no younger than half its age
     student.age = 10;
-    elder.age = ELDER_AGE - 1;
-    CHECK_FALSE(offered());  // not yet an elder
+    elder.age = static_cast<int>(AGEING * elder.lifespan);
+    CHECK_FALSE(offered());  // not yet feeble with age
+    elder.age += 1;
+    const int bright = STUDENT_INTELLECT;
+    STUDENT_INTELLECT = 8;  // none so bright
+    CHECK_FALSE(offered());
+    STUDENT_INTELLECT = bright;
     ACTIVE_SHARE = active;
     STUDENT_TRUST = trusting;
 }
