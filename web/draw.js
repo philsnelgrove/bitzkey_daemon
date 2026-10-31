@@ -301,6 +301,22 @@ export function drawPile(ctx, meat, count, cx, cy, half) {
   ctx.fillText(String(count), cx, cy);
 }
 
+// Stone, bone and wood, small marks along the foot of a square, each with its count once there's room to read it.
+export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
+  const size = Math.max(2, Math.floor(half / 2));
+  [[stone, 'rgb(136,138,142)'], [bone, 'rgb(236,226,205)'], [wood, 'rgb(122,80,44)']].forEach(([count, colour], index) => {
+    if (!count) return;
+    const x = cx + (index - 1) * (size + half / 2) - size / 2, y = cy + half;
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, y, size, size);
+    if (half < 5) return;
+    ctx.font = '9px "Segoe UI", sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = 'white';
+    ctx.fillText(String(count), x, y);
+  });
+}
+
 export function grassTuft(size, sea) {
   const key = `${size}|${sea}|${window.devicePixelRatio || 1}`;
   if (!tufts.has(key)) {

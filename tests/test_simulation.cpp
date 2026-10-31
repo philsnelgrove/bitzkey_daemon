@@ -2575,3 +2575,13 @@ TEST_CASE("stones lie scattered once, and bone and wood pile up where bodies fal
     WOOD_LASTS = wood_lasts;
     CHECK(simulation.pile_at(5, 5, WoodPile) == 0);
 }
+
+TEST_CASE("stones fall where the Python version's do") {
+    Simulation simulation(30, 30, 0, 1);
+    int stones = 0;
+    for (int y = 0; y < 30; ++y) {
+        for (int x = 0; x < 30; ++x) stones += simulation.pile_at(x, y, StonePile);
+    }
+    CHECK(stones == 9);
+    for (const auto& [x, y] : {std::pair{0, 17}, {2, 14}, {5, 24}, {9, 22}, {11, 0}, {20, 1}, {21, 27}, {23, 12}, {26, 26}}) CHECK(simulation.pile_at(x, y, StonePile) == 1);
+}

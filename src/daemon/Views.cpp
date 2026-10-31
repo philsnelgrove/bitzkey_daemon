@@ -256,7 +256,7 @@ std::string frame(const Simulation& simulation) {
     }
     std::string out;
     out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 24 + trail_cells * 8);
-    out += "BZF2";
+    out += "BZF3";
     put<std::uint32_t>(out, static_cast<std::uint32_t>(width));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(height));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(simulation.turn()));
@@ -293,12 +293,16 @@ std::string frame(const Simulation& simulation) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
-            if (!meat && !fruit) continue;
+            const int stone = simulation.pile_at(x, y, StonePile), bone = simulation.pile_at(x, y, BonePile), wood = simulation.pile_at(x, y, WoodPile);
+            if (!meat && !fruit && !stone && !bone && !wood) continue;
             ++piles;
             put<std::uint16_t>(out, static_cast<std::uint16_t>(x));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(meat, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(fruit, 65535)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(stone, 65535)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(bone, 65535)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(wood, 65535)));
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);

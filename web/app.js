@@ -5,7 +5,7 @@
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -271,9 +271,10 @@ function parseFrame(view) {
   }
   const piles = new Array(view.getUint32(offset, true));
   offset += 4;
-  for (let index = 0; index < piles.length; ++index, offset += 8) {
+  for (let index = 0; index < piles.length; ++index, offset += 14) {
     piles[index] = { x: view.getUint16(offset, true), y: view.getUint16(offset + 2, true),
-                     meat: view.getUint16(offset + 4, true), fruit: view.getUint16(offset + 6, true) };
+                     meat: view.getUint16(offset + 4, true), fruit: view.getUint16(offset + 6, true),
+                     stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true) };
   }
   return { width, height, turn, temperatures, grass, agents, living, piles };
 }
@@ -449,10 +450,11 @@ function drawMap() {
   }
   {  // the piles: meat to the left of a square and fruit to the right, each with its count
     const half = Math.max(2, pyRound(cell * 0.25));
-    for (const { x, y, meat, fruit } of frame.piles) {
+    for (const { x, y, meat, fruit, stone, bone, wood } of frame.piles) {
       const px = geometry.x + (x + 0.5) * cell, py = geometry.y + (y + 0.5) * cell;
       if (meat) drawPile(ctx, true, meat, fruit ? px - half : px, py, half);
       if (fruit) drawPile(ctx, false, fruit, meat ? px + half : px, py, half);
+      drawMaterials(ctx, stone, bone, wood, px, py, half);
     }
   }
   {  // each climate band named where it starts, at the left of what is seen, so the zones read without colour

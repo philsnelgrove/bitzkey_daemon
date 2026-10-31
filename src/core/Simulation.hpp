@@ -34,8 +34,8 @@ namespace bitzkey {
 
 constexpr int GRID_SIZE = 100;
 // A new world from the setup panel: twice as wide as it is tall, as a globe has it.
-constexpr int DEFAULT_WIDTH = 360;
-constexpr int DEFAULT_HEIGHT = 180;
+constexpr int DEFAULT_WIDTH = 200;
+constexpr int DEFAULT_HEIGHT = 100;
 constexpr int INITIAL_POPULATION = 300;
 constexpr double GRASS_DENSITY = 50;      // percent of cells that start with grass
 inline double GRASS_REGROWTH = 0.032;  // share of the starting grass that grows back each turn
@@ -449,7 +449,7 @@ inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
 enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, PILE_KINDS };  // stone and bone never spoil
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood lasts
-inline constexpr int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
+inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;

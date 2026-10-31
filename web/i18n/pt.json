@@ -1523,5 +1523,9 @@
 "Carried hunger": "Fome do carregado",
 "hunger at which an animal may eat what it carries": "fome a partir da qual um animal pode comer o que carrega",
 "Pile life": "Duração da pilha",
-"times as long as a corpse a pile lasts, since food was last dropped on it": "quantas vezes a duração de um cadáver dura uma pilha, desde a última vez que nela se deixou comida"
+"times as long as a corpse a pile lasts, since food was last dropped on it": "quantas vezes a duração de um cadáver dura uma pilha, desde a última vez que nela se deixou comida",
+"Stone scatter": "Dispersão de pedras",
+"squares to each stone scattered, once in a world's life": "casas por pedra espalhada, uma vez na vida de um mundo",
+"Wood life": "Duração da madeira",
+"times as long as a pile of food a pile of wood lasts, unless sheltered": "quantas vezes a duração de uma pilha de comida dura uma pilha de madeira, salvo abrigada"
 }

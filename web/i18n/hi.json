@@ -1523,5 +1523,9 @@
 "Carried hunger": "साथ के भोजन की भूख",
 "hunger at which an animal may eat what it carries": "वह भूख जिस पर जानवर अपने साथ लिया भोजन खा सकता है",
 "Pile life": "ढेर की आयु",
-"times as long as a corpse a pile lasts, since food was last dropped on it": "आखिरी बार भोजन रखे जाने के बाद ढेर शव से कितने गुना टिकता है"
+"times as long as a corpse a pile lasts, since food was last dropped on it": "आखिरी बार भोजन रखे जाने के बाद ढेर शव से कितने गुना टिकता है",
+"Stone scatter": "पत्थर बिखराव",
+"squares to each stone scattered, once in a world's life": "प्रति बिखरे पत्थर वर्ग, दुनिया के जीवन में एक बार",
+"Wood life": "लकड़ी की आयु",
+"times as long as a pile of food a pile of wood lasts, unless sheltered": "भोजन के ढेर से कितने गुना लकड़ी का ढेर टिकता है, आश्रय में न हो तो"
 }
