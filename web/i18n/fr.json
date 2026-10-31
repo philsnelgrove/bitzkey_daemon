@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "essais au bout desquels un artisanat réussit à coup sûr",
 "Craft thrill": "Frisson de l'artisanat",
 "the thrill of a failed craft, times curiosity": "le frisson d'un essai raté, fois la curiosité",
-"tried to craft": "a tenté de fabriquer"
+"tried to craft": "a tenté de fabriquer",
+"WEATHER: {*}, {*}": "MÉTÉO : {*}, {*}",
+"SHELTER": "ABRI",
+"SHELTER SITE {#}/{#}": "CHANTIER D'ABRI {#}/{#}",
+"FIRE: {#} TURNS LEFT": "FEU : ENCORE {#} TOURS",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "VIANDE {#}  FRUITS {#}  CUIT {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "PIERRE {#}  OS {#}  BOIS {#}  ÉQUIPEMENT {#}"
 }

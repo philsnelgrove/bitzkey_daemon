@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "próby, po których rzemiosło na pewno się uda",
 "Craft thrill": "Dreszcz rzemiosła",
 "the thrill of a failed craft, times curiosity": "dreszcz nieudanej próby, razy ciekawość",
-"tried to craft": "próbował wytworzyć"
+"tried to craft": "próbował wytworzyć",
+"WEATHER: {*}, {*}": "POGODA: {*}, {*}",
+"SHELTER": "SCHRONIENIE",
+"SHELTER SITE {#}/{#}": "BUDOWA SCHRONIENIA {#}/{#}",
+"FIRE: {#} TURNS LEFT": "OGIEŃ: ZOSTAŁO {#} TUR",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "MIĘSO {#}  OWOCE {#}  GOTOWANE {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "KAMIEŃ {#}  KOŚĆ {#}  DREWNO {#}  SPRZĘT {#}"
 }

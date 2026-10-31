@@ -23,7 +23,7 @@ std::string end_note(const Simulation& simulation);
 
 // The map as it is this turn, little-endian:
 //   (after the trail cells, u32 pile count, then u16 x, y, meat and fruit for each square with a pile)
-//   "BZF4", u32 width, u32 height, u32 turn, u32 agent count, u32 trail cell count;
+//   "BZF5", u32 width, u32 height, u32 turn, u32 agent count, u32 trail cell count;
 //   width x height f32 each row's temperature (one per row: height of them);
 //   width x height bytes, 1 where a cell has grass;
 //   per agent (24 bytes): u32 identifier, u16 x, u16 y, u8 species, u8 size, u8 flags (1 alive),

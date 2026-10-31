@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "प्रयास जिनके बाद शिल्प निश्चित सफल होता है",
 "Craft thrill": "शिल्प रोमांच",
 "the thrill of a failed craft, times curiosity": "असफल प्रयास का रोमांच, जिज्ञासा गुना",
-"tried to craft": "बनाने की कोशिश की"
+"tried to craft": "बनाने की कोशिश की",
+"WEATHER: {*}, {*}": "मौसम: {*}, {*}",
+"SHELTER": "आश्रय",
+"SHELTER SITE {#}/{#}": "आश्रय स्थल {#}/{#}",
+"FIRE: {#} TURNS LEFT": "आग: {#} मोड़ शेष",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "मांस {#}  फल {#}  पका {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "पत्थर {#}  हड्डी {#}  लकड़ी {#}  उपकरण {#}"
 }

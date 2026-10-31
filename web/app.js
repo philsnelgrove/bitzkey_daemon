@@ -273,11 +273,11 @@ function parseFrame(view) {
   }
   const piles = new Array(view.getUint32(offset, true));
   offset += 4;
-  for (let index = 0; index < piles.length; ++index, offset += 18) {
+  for (let index = 0; index < piles.length; ++index, offset += 20) {
     piles[index] = { x: view.getUint16(offset, true), y: view.getUint16(offset + 2, true),
                      meat: view.getUint16(offset + 4, true), fruit: view.getUint16(offset + 6, true),
                      stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true),
-                     gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true) };
+                     gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true), cooked: view.getUint16(offset + 18, true) };
   }
   return { width, height, turn, temperatures, grass, agents, living, piles };
 }
@@ -462,10 +462,10 @@ function drawMap() {
         ctx.fillStyle = 'rgb(96,130,160)';
         ctx.fillRect(px - half / 2, py - half, half, Math.max(2, half / 2));
       }
-      if (fire >> 1) {  // a shelter, or a dotted one still building
+      if (fire >> 1 & 3) {  // a shelter, or a dotted one still building
         ctx.strokeStyle = 'rgb(150,110,70)';
         ctx.lineWidth = Math.max(1, half / 4);
-        ctx.setLineDash(fire >> 1 === 1 ? [2, 2] : []);
+        ctx.setLineDash((fire >> 1 & 3) === 1 ? [2, 2] : []);
         ctx.strokeRect(px - half * 1.6, py - half * 1.6, half * 3.2, half * 3.2);
         ctx.setLineDash([]);
       }
@@ -681,14 +681,24 @@ $('map-holder').append(squarePanel);
 
 function showSquare() {
   const here = square && app.frame ? app.frame.agents.filter(agent => agent.alive && agent.x === square[0] && agent.y === square[1]) : [];
-  if (!here.length) {
+  if (!square || !app.frame) {
     squarePanel.hidden = true;
     return;
   }
+  const pile = app.frame.piles.find(({ x, y }) => x === square[0] && y === square[1]);
+  const flags = pile?.fire ?? 0, building = flags >> 1 & 3;
+  const zone = Math.max(0, Math.min(HOMES.length - 1, Math.round(app.frame.temperatures[square[1]])));
+  const notes = [`WEATHER: ${HOMES[zone]}, ${app.state?.season ?? ''}`];
+  if (building === 2) notes.push('SHELTER');
+  else if (building === 1) notes.push(`SHELTER SITE ${flags >> 3 & 31}/${app.state?.shelter_units ?? 7}`);
+  if (flags & 1) notes.push(`FIRE: ${flags >> 8} TURNS LEFT`);
+  if (pile?.meat || pile?.fruit || pile?.cooked) notes.push(`MEAT ${pile.meat}  FRUIT ${pile.fruit}  COOKED ${pile.cooked}`);
+  if (pile?.stone || pile?.bone || pile?.wood || pile?.gear) notes.push(`STONE ${pile.stone}  BONE ${pile.bone}  WOOD ${pile.wood}  GEAR ${pile.gear}`);
   const geometry = board();
   const used = here.reduce((total, agent) => total + 1 + agent.size, 0);
   squarePanel.replaceChildren(
     element('div', { class: 'square-title' }, `SQUARE (${square[0]}, ${square[1]})   ${used}/${app.state?.cell_space ?? 10} SPACES`),
+    ...notes.map(note => element('div', { class: 'square-title' }, note)),
     ...here.map(agent => element('div', {
       class: agent.identifier === app.selectedId ? 'square-row chosen' : 'square-row',
       onclick: () => { select(agent.identifier); showSquare(); },

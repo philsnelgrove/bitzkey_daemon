@@ -256,7 +256,7 @@ std::string frame(const Simulation& simulation) {
     }
     std::string out;
     out.reserve(24 + 4 * static_cast<std::size_t>(height) + static_cast<std::size_t>(width) * height + agents.size() * 24 + trail_cells * 8);
-    out += "BZF4";
+    out += "BZF5";
     put<std::uint32_t>(out, static_cast<std::uint32_t>(width));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(height));
     put<std::uint32_t>(out, static_cast<std::uint32_t>(simulation.turn()));
@@ -300,7 +300,7 @@ std::string frame(const Simulation& simulation) {
             for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) gear += simulation.pile_at(x, y, kind);
             const bool fire = simulation.fire_at(x, y) > simulation.turn();
             const int building = simulation.shelter_at(x, y) ? 2 : simulation.site_at(x, y) ? 1 : 0;
-            if (!meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building) continue;
+            if (!meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building && !simulation.pile_at(x, y, CookedMeatPile) && !simulation.pile_at(x, y, CookedFruitPile)) continue;
             ++piles;
             put<std::uint16_t>(out, static_cast<std::uint16_t>(x));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
@@ -310,7 +310,8 @@ std::string frame(const Simulation& simulation) {
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(bone, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(wood, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(gear, 65535)));
-            put<std::uint16_t>(out, static_cast<std::uint16_t>(fire + 2 * building));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(fire + 2 * building + 8 * std::min(simulation.site_at(x, y), 31) + 256 * (fire ? std::min(simulation.fire_at(x, y) - simulation.turn(), 255) : 0)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.pile_at(x, y, CookedMeatPile) + simulation.pile_at(x, y, CookedFruitPile)));
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);

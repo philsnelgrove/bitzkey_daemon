@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "tentativi dopo i quali un mestiere riesce di certo",
 "Craft thrill": "Brivido del mestiere",
 "the thrill of a failed craft, times curiosity": "il brivido di un tentativo fallito, per curiosità",
-"tried to craft": "ha provato a fabbricare"
+"tried to craft": "ha provato a fabbricare",
+"WEATHER: {*}, {*}": "TEMPO: {*}, {*}",
+"SHELTER": "RIPARO",
+"SHELTER SITE {#}/{#}": "CANTIERE DI RIPARO {#}/{#}",
+"FIRE: {#} TURNS LEFT": "FUOCO: ANCORA {#} TURNI",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "CARNE {#}  FRUTTA {#}  COTTO {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "PIETRA {#}  OSSO {#}  LEGNO {#}  EQUIPAGGIAMENTO {#}"
 }

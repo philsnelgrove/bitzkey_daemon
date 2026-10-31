@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "спроби, після яких ремесло точно вдасться",
 "Craft thrill": "Захват ремесла",
 "the thrill of a failed craft, times curiosity": "захват від невдалої спроби, помножений на цікавість",
-"tried to craft": "спробував зробити"
+"tried to craft": "спробував зробити",
+"WEATHER: {*}, {*}": "ПОГОДА: {*}, {*}",
+"SHELTER": "УКРИТТЯ",
+"SHELTER SITE {#}/{#}": "БУДОВА УКРИТТЯ {#}/{#}",
+"FIRE: {#} TURNS LEFT": "ВОГОНЬ: ЛИШИЛОСЬ {#} ХОДІВ",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "М'ЯСО {#}  ПЛОДИ {#}  ПРИГОТОВАНЕ {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "КАМІНЬ {#}  КІСТКА {#}  ДЕРЕВО {#}  СПОРЯДЖЕННЯ {#}"
 }

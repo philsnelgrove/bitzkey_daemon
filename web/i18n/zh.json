@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "技艺必定成功所需的尝试次数",
 "Craft thrill": "制作兴奋",
 "the thrill of a failed craft, times curiosity": "失败制作带来的兴奋(乘好奇心)",
-"tried to craft": "尝试制作"
+"tried to craft": "尝试制作",
+"WEATHER: {*}, {*}": "天气: {*}, {*}",
+"SHELTER": "庇护所",
+"SHELTER SITE {#}/{#}": "庇护所工地 {#}/{#}",
+"FIRE: {#} TURNS LEFT": "火: 剩余{#}回合",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "肉 {#}  果实 {#}  熟食 {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石头 {#}  骨头 {#}  木材 {#}  装备 {#}"
 }

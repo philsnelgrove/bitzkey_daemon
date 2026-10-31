@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "製作が必ず成功する試行回数",
 "Craft thrill": "製作のスリル",
 "the thrill of a failed craft, times curiosity": "失敗した製作のスリル(好奇心倍)",
-"tried to craft": "製作を試みた"
+"tried to craft": "製作を試みた",
+"WEATHER: {*}, {*}": "天候: {*}, {*}",
+"SHELTER": "避難所",
+"SHELTER SITE {#}/{#}": "建設中の避難所 {#}/{#}",
+"FIRE: {#} TURNS LEFT": "火: 残り{#}ターン",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "肉 {#}  果実 {#}  調理済み {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石 {#}  骨 {#}  木 {#}  装備 {#}"
 }

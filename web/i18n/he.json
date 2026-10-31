@@ -1579,5 +1579,11 @@
 "tries by which a craft is sure to work": "מספר ניסיונות שאחריו מלאכה מצליחה בוודאות",
 "Craft thrill": "ריגוש מלאכה",
 "the thrill of a failed craft, times curiosity": "הריגוש שבניסיון כושל, כפול סקרנות",
-"tried to craft": "ניסה ליצור"
+"tried to craft": "ניסה ליצור",
+"WEATHER: {*}, {*}": "מזג אוויר: {*}, {*}",
+"SHELTER": "מחסה",
+"SHELTER SITE {#}/{#}": "אתר מחסה {#}/{#}",
+"FIRE: {#} TURNS LEFT": "אש: נותרו {#} תורות",
+"MEAT {#}  FRUIT {#}  COOKED {#}": "בשר {#}  פרי {#}  מבושל {#}",
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "אבן {#}  עצם {#}  עץ {#}  ציוד {#}"
 }
