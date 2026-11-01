@@ -241,6 +241,7 @@ TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lesso
     Bitzkey& plain = world.add_agent(encode_dna(Species::Omnivore), 20, 20);
     maker.crafts = 1 << 2;  // a club
     maker.craft_tries[2] = 3;
+    maker.craft_source[2] = 1;
     maker.weapon = Club;
     maker.armour = BoneArmour;
     maker.carried_wood = 2;
@@ -253,6 +254,8 @@ TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lesso
     CHECK(full["infant_taught"] == true);
     CHECK(full["crafts"]["make_club"]["known"] == true);
     CHECK(full["crafts"]["make_club"]["tries"] == 3);
+    CHECK(full["crafts"]["make_club"]["source"] == "discovered");
+    CHECK(full["crafts"]["make_bone_axe"]["source"] == "unrecorded");
     CHECK(full["crafts"]["make_bone_axe"]["known"] == false);
     CHECK((full["gear"]["weapon"] == "club" && full["gear"]["armour"] == "bone_armour" && full["gear"]["wood"] == 2));
     CHECK(probe.animal(world, plain.identifier)["taught_by"] == maker.identifier);

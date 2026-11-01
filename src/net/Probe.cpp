@@ -205,10 +205,12 @@ Json Probe::animal(Simulation& world, int identifier) const {
     }
     if (agent->species == Species::Plant) return result;
     result["infant_taught"] = agent->infant_taught;  // given its brain by a parent, its first chance
-    Json crafts = Json::object();  // each craft: whether it has discovered it, and how often it has tried
+    static constexpr std::array<std::string_view, 4> CRAFT_SOURCES = {"unrecorded", "discovered", "parent", "elder"};  // how it came to know it
+    Json crafts = Json::object();  // each craft: whether it has discovered it, how often it has tried, and from whom it came
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         crafts[std::string(ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)])] = {{"known", (agent->crafts >> craft & 1) != 0},
-                                                                                      {"tries", agent->craft_tries[static_cast<std::size_t>(craft)]}};
+                                                                                      {"tries", agent->craft_tries[static_cast<std::size_t>(craft)]},
+                                                                                      {"source", CRAFT_SOURCES[static_cast<std::size_t>(agent->craft_source[static_cast<std::size_t>(craft)])]}};
     }
     result["crafts"] = crafts;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},

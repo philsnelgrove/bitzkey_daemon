@@ -2751,6 +2751,8 @@ TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may te
     CHECK(child.taught_by == -1);  // its second chance still to come
     CHECK(child.crafts == parent.crafts);
     CHECK(child.craft_tries[2] == CRAFT_TRIES);
+    CHECK(child.craft_source[2] == 2);  // from its parent, and nothing else
+    CHECK(child.craft_source[0] == 0);
     CHECK_FALSE(simulation.willing_student(parent, child));
     FEEBLE_YOUTH = youth;
 }

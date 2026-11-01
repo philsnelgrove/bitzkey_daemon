@@ -648,6 +648,7 @@ struct Bitzkey {
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered
     std::array<int, 5> craft_tries{};  // how often it has tried each
+    std::array<int, 5> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;

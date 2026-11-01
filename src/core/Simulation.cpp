@@ -3019,6 +3019,9 @@ void Simulation::teach_all() {
         student->brain = std::make_shared<Brain>(elder->brain->resized(student->brain->depth(), student->brain->width()));
         if (first) student->infant_taught = true;
         else student->taught_by = elder->identifier;
+        for (std::size_t craft = 0; craft < student->craft_source.size(); ++craft) {  // each recipe it had not, from its teacher
+            if ((elder->crafts >> craft & 1) && !(student->crafts >> craft & 1)) student->craft_source[craft] = first ? 2 : 3;
+        }
         student->crafts |= elder->crafts;  // and what it can make, as far as it has got at each
         for (std::size_t craft = 0; craft < elder->craft_tries.size(); ++craft) {
             student->craft_tries[craft] = std::max(student->craft_tries[craft], elder->craft_tries[craft]);
@@ -3423,6 +3426,7 @@ void Simulation::discover(Bitzkey& agent) {
     for (int craft = 0; craft < 5; ++craft) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
+            agent.craft_source[static_cast<std::size_t>(craft)] = 1;
             experience(agent, Discovery);
         }
     }

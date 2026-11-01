@@ -217,7 +217,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
-        {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries},
+        {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
@@ -317,6 +317,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->armour_uses = record.value("armour_uses", 0);
     agent->crafts = record.value("crafts", 0);
     if (record.contains("craft_tries")) agent->craft_tries = record.at("craft_tries").get<std::array<int, 5>>();
+    if (record.contains("craft_source")) agent->craft_source = record.at("craft_source").get<std::array<int, 5>>();
     agent->cooked_meat = record.value("cooked_meat", 0);
     agent->cooked_fruit = record.value("cooked_fruit", 0);
     agent->carried_stone = record.value("carried_stone", 0);
