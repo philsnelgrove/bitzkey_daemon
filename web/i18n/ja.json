@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "火: 残り{#}ターン",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "肉 {#}  果実 {#}  調理済み {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石 {#}  骨 {#}  木 {#}  装備 {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "肉 {#}、果実 {#} を運搬中、容量 {#}"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "肉 {#}、果実 {#} を運搬中、容量 {#}",
+"Build thrill": "建築の高揚",
+"Fire comfort": "火の安らぎ",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "避難所を築く各段階の高揚。段階ごとに増し、完成で2倍、好奇心を掛ける",
+"comfort in sight of a fire that is its own or its herd's": "自分または群れの火を見たときの安らぎ"
 }

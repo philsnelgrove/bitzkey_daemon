@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "ВОГОНЬ: ЛИШИЛОСЬ {#} ХОДІВ",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "М'ЯСО {#}  ПЛОДИ {#}  ПРИГОТОВАНЕ {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "КАМІНЬ {#}  КІСТКА {#}  ДЕРЕВО {#}  СПОРЯДЖЕННЯ {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Несе {#} м'яса, {#} плодів, місця на {#}"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Несе {#} м'яса, {#} плодів, місця на {#}",
+"Build thrill": "Захват від будівництва",
+"Fire comfort": "Втіха від вогню",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "захват від кожного етапу побудови схованки, що зростає з кожним етапом і подвоюється по завершенні, помножений на цікавість",
+"comfort in sight of a fire that is its own or its herd's": "втіха від вигляду вогню власного чи свого стада"
 }

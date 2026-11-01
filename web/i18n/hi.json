@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "आग: {#} मोड़ शेष",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "मांस {#}  फल {#}  पका {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "पत्थर {#}  हड्डी {#}  लकड़ी {#}  उपकरण {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "{#} मांस, {#} फल ले जा रहा है, {#} की जगह"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "{#} मांस, {#} फल ले जा रहा है, {#} की जगह",
+"Build thrill": "निर्माण का रोमांच",
+"Fire comfort": "आग का सुकून",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "आश्रय के हर बने चरण का रोमांच, हर चरण के साथ बढ़ता और पूरा होने पर दोगुना, जिज्ञासा से गुणित",
+"comfort in sight of a fire that is its own or its herd's": "अपनी या अपने झुंड की आग देखने का सुकून"
 }

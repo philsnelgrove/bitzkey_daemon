@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "אש: נותרו {#} תורות",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "בשר {#}  פרי {#}  מבושל {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "אבן {#}  עצם {#}  עץ {#}  ציוד {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "נושא {#} בשר, {#} פרי, מקום ל-{#}"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "נושא {#} בשר, {#} פרי, מקום ל-{#}",
+"Build thrill": "סיפוק הבנייה",
+"Fire comfort": "נחמת האש",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "סיפוק כל שלב בבניית מחסה, גדל עם כל שלב ומוכפל בסיומו, כפול הסקרנות",
+"comfort in sight of a fire that is its own or its herd's": "נחמה למראה אש שהיא שלו או של העדר שלו"
 }

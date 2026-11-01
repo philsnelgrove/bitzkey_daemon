@@ -2641,6 +2641,18 @@ TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils"
     CHECK_FALSE(simulation.warmed_by_fire(lighter, lighter.climate.temperature));
 }
 
+TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a stranger's does not") {
+    Simulation simulation = world();
+    Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 20, 20);
+    lighter.weapon = Club;
+    simulation.light_fire(lighter);
+    Simulation::Situation without, seen;
+    seen.fire = Cell{5, 5};
+    CHECK(simulation.comfort(lighter, seen) - simulation.comfort(lighter, without) == doctest::Approx(FIRE_COMFORT));
+    CHECK(simulation.comfort(stranger, seen) == doctest::Approx(simulation.comfort(stranger, without)));
+}
+
 TEST_CASE("seven units make a shelter, which doubles a square and keeps wood from rotting") {
     Simulation simulation = world();
     Bitzkey& builder = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 5, 5);
@@ -2649,10 +2661,22 @@ TEST_CASE("seven units make a shelter, which doubles a square and keeps wood fro
     builder.carried_stone = 4;
     builder.carried_wood = 3;
     builder.weapon = StoneAxe;
-    for (int unit = 0; unit < SHELTER_UNITS - 1; ++unit) simulation.construct(builder);
+    builder.mind[Curiosity] = 7.0;
+    const double thrill = BUILD_THRILL * builder.feeling(Curiosity);
+    double last = 0;
+    for (int unit = 0; unit < SHELTER_UNITS - 1; ++unit) {
+        builder.reward = 0;
+        simulation.construct(builder);
+        CHECK(builder.reward == doctest::Approx(thrill * (unit + 1) / SHELTER_UNITS));  // each stage thrills more
+        CHECK(builder.reward > last);
+        last = builder.reward;
+    }
     CHECK(simulation.room_in(Cell{5, 5}) == open - (SHELTER_UNITS - 1));
     CHECK_FALSE(simulation.shelter_at(5, 5));
+    builder.reward = 0;
     simulation.construct(builder);
+    CHECK(builder.reward == doctest::Approx(2 * thrill));  // finishing thrills twice the whole
+    CHECK(builder.reward > last);
     CHECK(simulation.shelter_at(5, 5));
     CHECK(builder.load() == 0);
     CHECK(simulation.room_in(Cell{5, 5}) == open + CELL_SPACE);

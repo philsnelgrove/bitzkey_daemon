@@ -450,6 +450,7 @@ inline double FRUIT_PORTION = 70;
 enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile, PILE_KINDS };
 inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
+inline double FIRE_COMFORT = 0.3;  // the comfort of seeing a fire that is its own or its herd's, as an unfamiliar one frightens
 inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
 inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls away
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
@@ -460,6 +461,7 @@ inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal 
 inline double DISCOVERY_CHANCE = 0.02;
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
+inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity)
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go

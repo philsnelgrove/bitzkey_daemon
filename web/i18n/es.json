@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "FUEGO: QUEDAN {#} TURNOS",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "CARNE {#}  FRUTA {#}  COCINADO {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "PIEDRA {#}  HUESO {#}  MADERA {#}  EQUIPO {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Lleva {#} de carne, {#} de fruta, espacio para {#}"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Lleva {#} de carne, {#} de fruta, espacio para {#}",
+"Build thrill": "Emoción de construir",
+"Fire comfort": "Consuelo del fuego",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "la emoción de cada etapa de un refugio construido, creciente con cada etapa y doblada al terminarlo, por la curiosidad",
+"comfort in sight of a fire that is its own or its herd's": "consuelo al ver un fuego propio o de su manada"
 }

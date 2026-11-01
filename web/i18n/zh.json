@@ -1585,5 +1585,9 @@
 "FIRE: {#} TURNS LEFT": "火: 剩余{#}回合",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "肉 {#}  果实 {#}  熟食 {#}",
 "STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石头 {#}  骨头 {#}  木材 {#}  装备 {#}",
-"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "携带肉 {#}、果 {#}，容量 {#}"
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "携带肉 {#}、果 {#}，容量 {#}",
+"Build thrill": "建造的振奋",
+"Fire comfort": "炉火的慰藉",
+"the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "搭建庇护所每个阶段带来的振奋，随阶段递增，完工时加倍，乘以好奇心",
+"comfort in sight of a fire that is its own or its herd's": "看到自己或同群的火时的慰藉"
 }

@@ -2521,7 +2521,9 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double exposed = CLIMATE_UNEASE * s.exposure + HOMEWARD_UNEASE * s.home_distance;
     // A parent is glad of its own young close by, the more so the more empathetic.
     const double parental = PARENT_JOY * (0.5 + agent.feeling(Empathy)) * std::min(3, s.young_near) / 3;
-    return company - dread - unease - crowded + herding - exposed + parental;
+    // A fire of its own or its herd's is a comfort to see; one it doesn't know frightens it (see FIRE_PANIC).
+    const double hearth = s.fire && fire_friendly(agent, *s.fire) ? FIRE_COMFORT : 0.0;
+    return company - dread - unease - crowded + herding - exposed + parental + hearth;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -3313,10 +3315,15 @@ void Simulation::construct(Bitzkey& agent) {
     wear_weapon(agent);
     site_turns_[cell] = turn_;
     agent.last_action = "built";
+    // Each stage thrills more than the last, the curious most; finishing the shelter, twice the thrill of a whole one.
+    const double inspiration = BUILD_THRILL * agent.feeling(Curiosity);
     if (++sites_[cell] >= SHELTER_UNITS) {
         sites_[cell] = 0;
         shelters_[cell] = 1;
+        agent.reward += 2 * inspiration;
         agent.last_action = "finished a shelter";
+    } else {
+        agent.reward += inspiration * sites_[cell] / SHELTER_UNITS;
     }
 }
 
