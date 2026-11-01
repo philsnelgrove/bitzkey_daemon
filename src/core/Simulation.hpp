@@ -500,7 +500,8 @@ inline double TEMPERAMENT_RELAPSE = 0.0005;
 // YEAR_LENGTH turns is a year, starting mild. Through its second quarter the north, from the top
 // down to and through the equator, is a step colder; through its fourth the south, from the bottom up
 // to and through the equator, is; but the polar caps never change, and a strip of WINTER_EQUATOR_SHARE
-// across the equator's middle stays hot through both winters. Every Bitzkey has a home temperature,
+// at the equator's far end from the winter stays hot through it: the south end in the north's winter, the north end in the
+// south's. As the winter washes in, the hot equator narrows from its winter side, its far edge unmoved. Every Bitzkey has a home temperature,
 // and may tolerate heat or cold, suffering HARDINESS of its penalties, and FRAILTY of the other's; plants tolerate nothing, and a plant
 // spawned at the start is at home in its zone's usual temperature.
 // Days: every DAY_LENGTH turns is a day, and a new world's year is 360 of them. Night covers half the map, its

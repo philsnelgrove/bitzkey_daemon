@@ -333,7 +333,7 @@ std::vector<Rule> make_rules() {
         {"ARCTIC_SHARE", "Climate", "Arctic", "share of the map's height that is arctic, at the top and again at the bottom", 0.0, 0.5, 0.05, false, &ARCTIC_SHARE},
         {"EQUATOR_SHARE", "Climate", "Equator", "share of the map's height across its middle that is the equator", 0.0, 1.0, 0.05, false, &EQUATOR_SHARE},
         {"POLAR_SHARE", "Climate", "Polar caps", "share of the map's height at the top and again at the bottom that is very cold all year", 0.0, 0.5, 0.005, false, &POLAR_SHARE},
-        {"WINTER_EQUATOR_SHARE", "Climate", "Winter equator", "share of the map's height across the equator's middle that stays hot through both winters", 0.0, 1.0, 0.01, false, &WINTER_EQUATOR_SHARE},
+        {"WINTER_EQUATOR_SHARE", "Climate", "Winter equator", "share of the map's height at the equator's end away from the winter that stays hot through each winter", 0.0, 1.0, 0.01, false, &WINTER_EQUATOR_SHARE},
         {"CLIMATE_HUNGER", "Climate", "Climate hunger", "times the food needed a step or more from home (a plant, only too hot)", 1.0, 5.0, 0.1, false, &CLIMATE_HUNGER},
         {"CLIMATE_DAMAGE", "Climate", "Climate damage", "share of full health lost a turn for each step from home (plants from two)", 0.0, 1.0, 0.01, false, &CLIMATE_DAMAGE},
         {"RESTING_EXPOSURE", "Climate", "Resting exposure", "times the weather's harm to an animal that chose to rest out of its temperature (not asleep or spent)", 1.0, 10.0, 0.1, false, &RESTING_EXPOSURE},

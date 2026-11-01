@@ -364,16 +364,44 @@ TEST_CASE("a plant is eaten in portions of the same meal, more of them the large
     CHECK((bites(small) == 4 && bites(large) == 10));  // but the larger holds more of them
 }
 
-TEST_CASE("the polar caps are very cold all year, and the equator's heart stays hot through both winters") {
+TEST_CASE("the polar caps are very cold all year, and the equator's far end stays hot through each winter") {
     for (int quarter = 0; quarter < 4; ++quarter) {
         for (const int y : {0, 1, 98, 99}) CHECK(season_temperature(y, 100, quarter) == VeryCold);
         CHECK((season_temperature(2, 100, quarter) == (quarter == 1 ? VeryCold : Cold) &&
                season_temperature(97, 100, quarter) == (quarter == 3 ? VeryCold : Cold)));  // the arctic still turns
-        for (const int y : {48, 49, 50, 51}) CHECK(season_temperature(y, 100, quarter) == Hot);
-        CHECK(season_temperature(45, 100, quarter) == (quarter % 2 ? Medium : Hot));  // the rest of the equator still turns
+        for (int y = 40; y < 60; ++y) {  // the equator: its southern 5 rows stay hot in the north's winter, its northern 5 in the south's
+            const bool stays = quarter % 2 == 0 || (quarter == 1 ? y >= 55 : y < 45);
+            CHECK(season_temperature(y, 100, quarter) == (stays ? Hot : Medium));
+        }
     }
     CHECK(rules::find("POLAR_SHARE"));
     CHECK(rules::find("WINTER_EQUATOR_SHARE"));
+}
+
+TEST_CASE("a winter narrows the hot equator from its winter side, its far edge unmoved") {
+    const SlowWaves slow;  // the wave takes 45 turns: 27 turns in, a band front has crossed 0.6 of its way
+    const auto hot_rows = [](int turn) {
+        int first = -1, last = -1;
+        for (int y = 40; y < 60; ++y) {
+            if (temperature_at(y, 100, turn) > 0.5) continue;
+            if (first < 0) first = y;
+            last = y;
+        }
+        return std::pair{first, last};
+    };
+    CHECK(hot_rows(10) == std::pair{40, 59});    // mild: the whole equator
+    CHECK(hot_rows(90) == std::pair{40, 59});    // the north's winter just begun
+    for (const int turn : {100, 110, 117, 125, 135}) {  // the southern edge holds, the northern slides south
+        CHECK(hot_rows(turn).second == 59);
+        CHECK(hot_rows(turn).first >= hot_rows(turn - 5).first);
+    }
+    CHECK(hot_rows(135) == std::pair{55, 59});   // settled: the southern 5 rows
+    CHECK(hot_rows(162).second == 59);           // ebbing back, the northern edge returns
+    CHECK(hot_rows(162).first < 55);
+    CHECK(hot_rows(240) == std::pair{40, 59});
+    CHECK(hot_rows(315) == std::pair{40, 44});   // the south's winter: the northern 5 rows
+    CHECK(hot_rows(297).first == 40);            // and the southern edge slides north
+    CHECK(hot_rows(297).second >= hot_rows(315).second);
 }
 
 TEST_CASE("spawned plants are at home in their zone, and imports keep theirs") {

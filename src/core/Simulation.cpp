@@ -184,7 +184,10 @@ bool in_winter(int y, int height, int quarter) {
     const double place = (y + 0.5) / height;
     if (place < POLAR_SHARE || place > 1 - POLAR_SHARE) return false;  // the polar caps are very cold all year
     const bool equator = std::abs(place - 0.5) < EQUATOR_SHARE / 2;
-    if (equator && std::abs(place - 0.5) < WINTER_EQUATOR_SHARE / 2) return false;  // the equator's heart stays hot
+    // The equator's hot strip keeps to the edge away from the winter's side: the southern end of the equator in the
+    // north's winter, the northern end in the south's.
+    if (equator && quarter == 1 && place > 0.5 + EQUATOR_SHARE / 2 - WINTER_EQUATOR_SHARE) return false;
+    if (equator && quarter == 3 && place < 0.5 - EQUATOR_SHARE / 2 + WINTER_EQUATOR_SHARE) return false;
     return (quarter == 1 && (place < 0.5 || equator)) || (quarter == 3 && (place > 0.5 || equator));
 }
 
@@ -203,7 +206,19 @@ std::pair<int, int> zone_rows(int y, int height) {
 std::pair<int, int> wave_band(int y, int height, int quarter) {
     // Every zone's wave sets off at once, crossing its own zone.
     const bool north = quarter == 1 || quarter == 2;
-    const auto [first, last] = zone_rows(y, height);
+    auto [first, last] = zone_rows(y, height);
+    if (zone_temperature(y, height) == Hot) {  // the equator's wave crosses only what turns, narrowing the hot strip
+        const int winter = north ? 1 : 3;
+        const int zone_first = first, zone_last = last;
+        first = zone_last;
+        last = zone_first;
+        for (int row = zone_first; row <= zone_last; ++row) {
+            if (!in_winter(row, height, winter)) continue;
+            first = std::min(first, row);
+            last = std::max(last, row);
+        }
+        if (first > last) return {0, 1};
+    }
     const bool inward = quarter == 1 || quarter == 3;
     const int offset = north == inward ? y - first : last - y;
     return {offset / WAVE_BAND, (last - first) / WAVE_BAND + 1};
