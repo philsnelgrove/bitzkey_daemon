@@ -1597,5 +1597,7 @@
 "the joy of the harm a weapon added to a blow, times the share of its victim's health that harm was": "радість від шкоди, яку зброя додала удару, помножена на її частку здоров'я жертви",
 "the joy of the harm its armour took off a blow, times the share of its health that harm was": "радість від шкоди, яку його броня зняла з удару, помножена на її частку його здоров'я",
 "Discovery joy": "Радість відкриття",
-"the joy of first discovering a craft, times curiosity": "радість першого відкриття ремесла, помножена на цікавість"
+"the joy of first discovering a craft, times curiosity": "радість першого відкриття ремесла, помножена на цікавість",
+"the joy of a craft that works, a weapon's in full and armour's in half; more if curious": "радість від вдалого виробу, повна за зброю і половина за броню; більша для цікавого",
+"the joy of first discovering a craft; more if curious": "радість першого відкриття ремесла; більша для цікавого"
 }

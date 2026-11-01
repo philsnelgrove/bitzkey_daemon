@@ -3427,7 +3427,7 @@ void Simulation::discover(Bitzkey& agent) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
             agent.craft_source[static_cast<std::size_t>(craft)] = 1;
-            agent.reward += DISCOVERY_JOY * agent.feeling(Curiosity);
+            agent.reward += DISCOVERY_JOY * (0.5 + agent.feeling(Curiosity));
             experience(agent, Discovery);
         }
     }
@@ -3451,7 +3451,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
             --(agent.carried_bone ? agent.carried_bone : agent.carried_wood);
             agent.weapon = StoneAxe;
     }
-    agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * agent.feeling(Curiosity);
+    agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
     agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
 }

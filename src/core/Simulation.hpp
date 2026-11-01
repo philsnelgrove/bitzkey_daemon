@@ -459,10 +459,10 @@ inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal 
 // made to work: the chance rises with each try to certainty at CRAFT_TRIES, the sooner the cleverer. A failure spends
 // nothing, and is a small thrill of discovery to the curious.
 inline double DISCOVERY_CHANCE = 0.0005;  // rare: a find is news, and a taught recipe spreads it
-inline double DISCOVERY_JOY = 5.0;  // the joy of first discovering a craft (times curiosity), so its finder comes to prize the materials
+inline double DISCOVERY_JOY = 5.0;  // the joy of first discovering a craft (half plus curiosity), so its finder comes to prize the materials
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
-inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (times curiosity)
+inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (half plus curiosity)
 inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity)

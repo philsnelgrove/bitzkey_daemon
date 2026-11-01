@@ -2699,7 +2699,7 @@ TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, a
     simulation.discover(crafter);
     DISCOVERY_CHANCE = chance;
     CHECK((crafter.crafts & (1 << (MakeStoneAxe - MakeBoneAxe))) != 0);
-    CHECK(crafter.reward - before >= DISCOVERY_JOY * curiosity - 1e-9);  // and finding it was a joy
+    CHECK(crafter.reward - before >= DISCOVERY_JOY * (0.5 + curiosity) - 1e-9);  // and finding it was a joy
 }
 
 TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a joy") {
@@ -2711,11 +2711,11 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     crafter.craft_tries[MakeClub - MakeBoneAxe] = CRAFT_TRIES - 1;
     crafter.reward = 0;
     simulation.make_gear(crafter, MakeClub);
-    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY));
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 1.5));  // half plus a full curiosity
     crafter.craft_tries[MakeBoneArmour - MakeBoneAxe] = CRAFT_TRIES - 1;
     crafter.reward = 0;
     simulation.make_gear(crafter, MakeBoneArmour);
-    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY / 2));  // armour, half
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 0.75));  // armour, half
 
     Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 8, 8);
     Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 8, 9);
