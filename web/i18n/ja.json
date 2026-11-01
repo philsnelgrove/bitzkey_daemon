@@ -1519,7 +1519,6 @@
 "hunger a portion of meat from a pile sates, times how well the eater digests carrion": "山の肉一人前が満たす空腹、食べる者の腐肉の消化力を掛ける",
 "Fruit portion": "果実の一人前",
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "山の果実一人前が満たす空腹、食べる者が植物から得る割合を掛ける",
-"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "最後の行動: {*}     肉 {#}、果実 {#} を運搬中、容量 {#}",
 "Carried hunger": "運搬物を食べる空腹",
 "hunger at which an animal may eat what it carries": "動物が運んでいるものを食べられる空腹度",
 "Pile life": "山の寿命",
@@ -1585,5 +1584,6 @@
 "SHELTER SITE {#}/{#}": "建設中の避難所 {#}/{#}",
 "FIRE: {#} TURNS LEFT": "火: 残り{#}ターン",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "肉 {#}  果実 {#}  調理済み {#}",
-"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石 {#}  骨 {#}  木 {#}  装備 {#}"
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "石 {#}  骨 {#}  木 {#}  装備 {#}",
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "肉 {#}、果実 {#} を運搬中、容量 {#}"
 }

@@ -1519,7 +1519,6 @@
 "hunger a portion of meat from a pile sates, times how well the eater digests carrion": "הרעב שמנת בשר מערימה משביעה, כפול מידת עיכול הנבלות של האוכל",
 "Fruit portion": "מנת פרי",
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "הרעב שמנת פרי מערימה משביעה, כפול חלקו של האוכל במזון שבצמחים",
-"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "פעולה אחרונה: {*}     נושא {#} בשר, {#} פרי, מקום ל-{#}",
 "Carried hunger": "רעב למזון הנישא",
 "hunger at which an animal may eat what it carries": "הרעב שממנו בעל חיים רשאי לאכול את מה שהוא נושא",
 "Pile life": "חיי ערימה",
@@ -1585,5 +1584,6 @@
 "SHELTER SITE {#}/{#}": "אתר מחסה {#}/{#}",
 "FIRE: {#} TURNS LEFT": "אש: נותרו {#} תורות",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "בשר {#}  פרי {#}  מבושל {#}",
-"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "אבן {#}  עצם {#}  עץ {#}  ציוד {#}"
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "אבן {#}  עצם {#}  עץ {#}  ציוד {#}",
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "נושא {#} בשר, {#} פרי, מקום ל-{#}"
 }

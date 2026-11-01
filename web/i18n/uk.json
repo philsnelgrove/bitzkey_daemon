@@ -1519,7 +1519,6 @@
 "hunger a portion of meat from a pile sates, times how well the eater digests carrion": "голод, який втамовує порція м'яса з купи, помножений на те, як добре їдець перетравлює падло",
 "Fruit portion": "Порція плодів",
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "голод, який втамовує порція плодів з купи, помножений на частку їжі з рослин, яку отримує їдець",
-"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Остання дія: {*}     Несе {#} м'яса, {#} плодів, місця на {#}",
 "Carried hunger": "Голод на ношене",
 "hunger at which an animal may eat what it carries": "голод, за якого тварина може з'їсти те, що несе",
 "Pile life": "Тривалість купи",
@@ -1585,5 +1584,6 @@
 "SHELTER SITE {#}/{#}": "БУДОВА УКРИТТЯ {#}/{#}",
 "FIRE: {#} TURNS LEFT": "ВОГОНЬ: ЛИШИЛОСЬ {#} ХОДІВ",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "М'ЯСО {#}  ПЛОДИ {#}  ПРИГОТОВАНЕ {#}",
-"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "КАМІНЬ {#}  КІСТКА {#}  ДЕРЕВО {#}  СПОРЯДЖЕННЯ {#}"
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "КАМІНЬ {#}  КІСТКА {#}  ДЕРЕВО {#}  СПОРЯДЖЕННЯ {#}",
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "Несе {#} м'яса, {#} плодів, місця на {#}"
 }

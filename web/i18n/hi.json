@@ -1519,7 +1519,6 @@
 "hunger a portion of meat from a pile sates, times how well the eater digests carrion": "ढेर से मांस का एक हिस्सा जितनी भूख मिटाता है, खाने वाले की सड़े मांस को पचाने की क्षमता से गुणा",
 "Fruit portion": "फल का हिस्सा",
 "hunger a portion of fruit from a pile sates, times the eater's share of the food in plants": "ढेर से फल का एक हिस्सा जितनी भूख मिटाता है, पौधों के भोजन में खाने वाले के हिस्से से गुणा",
-"LAST ACTION: {*}     CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "अंतिम क्रिया: {*}     {#} मांस, {#} फल ले जा रहा है, {#} की जगह",
 "Carried hunger": "साथ के भोजन की भूख",
 "hunger at which an animal may eat what it carries": "वह भूख जिस पर जानवर अपने साथ लिया भोजन खा सकता है",
 "Pile life": "ढेर की आयु",
@@ -1585,5 +1584,6 @@
 "SHELTER SITE {#}/{#}": "आश्रय स्थल {#}/{#}",
 "FIRE: {#} TURNS LEFT": "आग: {#} मोड़ शेष",
 "MEAT {#}  FRUIT {#}  COOKED {#}": "मांस {#}  फल {#}  पका {#}",
-"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "पत्थर {#}  हड्डी {#}  लकड़ी {#}  उपकरण {#}"
+"STONE {#}  BONE {#}  WOOD {#}  GEAR {#}": "पत्थर {#}  हड्डी {#}  लकड़ी {#}  उपकरण {#}",
+"CARRYING {#} MEAT, {#} FRUIT, ROOM FOR {#}": "{#} मांस, {#} फल ले जा रहा है, {#} की जगह"
 }

@@ -320,7 +320,7 @@ export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
 // What a Bitzkey wears and wields: a small shield at its lower left, a small tool at its upper right.
 export function drawGear(ctx, wields, wears, x, y, radius) {
   const size = Math.max(2, radius * 0.6);
-  if (wears) {
+  if (wears) {  // a shield: flat across the top, narrowing to a point below
     const cx = x - radius, cy = y + radius * 0.6;
     ctx.fillStyle = wears === 1 ? 'rgb(236,226,205)' : 'rgb(122,80,44)';
     ctx.beginPath();
@@ -332,14 +332,35 @@ export function drawGear(ctx, wields, wears, x, y, radius) {
     ctx.closePath();
     ctx.fill();
   }
-  if (wields) {
-    const cx = x + radius, cy = y - radius * 0.6;
-    ctx.strokeStyle = wields === 2 ? 'rgb(122,80,44)' : wields === 1 ? 'rgb(236,226,205)' : 'rgb(136,138,142)';
+  if (!wields) return;
+  const cx = x + radius, cy = y - radius * 0.6;
+  const colour = wields === 2 ? 'rgb(122,80,44)' : wields === 1 ? 'rgb(236,226,205)' : 'rgb(136,138,142)';
+  // A point along the tool's handle, from its foot (-1) to its tip (1), and across it.
+  const at = (along, across) => [cx + (along + across) * size, cy + (across - along) * size];
+  const fill = (...points) => {
+    ctx.beginPath();
+    points.forEach(([px, py], index) => (index ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  ctx.fillStyle = colour;
+  ctx.strokeStyle = colour;
+  if (wields === 4) {  // a stone carried: a pebble
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(2, size * 2 / 3), 0, 2 * Math.PI);
+    ctx.fill();
+  } else if (wields === 2) {  // a club: thin at the grip, heavy at the head
+    fill(at(-1, 0.12), at(1, 0.4), at(1, -0.4), at(-1, -0.12));
+    ctx.beginPath();
+    ctx.arc(...at(1, 0), Math.max(2, size * 3 / 5), 0, 2 * Math.PI);
+    ctx.fill();
+  } else {  // an axe, of bone or stone: a handle, and a blade at its tip
     ctx.lineWidth = Math.max(1, size / 2);
     ctx.beginPath();
-    ctx.moveTo(cx - size, cy + size);
-    ctx.lineTo(cx + size, cy - size);
+    ctx.moveTo(...at(-1, 0));
+    ctx.lineTo(...at(0.9, 0));
     ctx.stroke();
+    fill(at(0.45, 0), at(1, 0), at(1.15, -0.75), at(0.3, -0.75));  // the blade flares from the haft
   }
 }
 
