@@ -168,7 +168,8 @@ struct GpuGroup {
 struct GpuLesson {
     std::uint32_t action, traced;      // 0 plain, 1 traced, 2 back in time, 3 the senses of a choice before
     float target, rate, decay, limit;  // the lesson limit
-    std::uint32_t steps, unused;
+    std::uint32_t steps;
+    float flat;  // FLAT_SPOT
 };
 static_assert(sizeof(GpuLesson) == 32);
 
@@ -459,7 +460,7 @@ public:
                     const std::uint32_t kind = lesson.steps > 0 ? 2u : lesson.steps < 0 ? 3u : lesson.traced ? 1u : 0u;
                     lesson_data[at] = {static_cast<std::uint32_t>(lesson.action), kind, static_cast<float>(lesson.target),
                                        static_cast<float>(lesson.rate), static_cast<float>(lesson.decay), static_cast<float>(LESSON_LIMIT),
-                                       static_cast<std::uint32_t>(std::max(0, lesson.steps)), 0};
+                                       static_cast<std::uint32_t>(std::max(0, lesson.steps)), static_cast<float>(FLAT_SPOT)};
                     float* into = inputs + static_cast<std::size_t>(at) * INPUT_SIZE;
                     for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = static_cast<float>(read_sense(sense, (*lesson.senses)[sense]));
                     ++at;

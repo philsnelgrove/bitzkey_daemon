@@ -23,6 +23,9 @@ using Json = Probe::Json;
 
 constexpr std::size_t MOST_KEPT = 100000;  // turns of a watched track kept at most
 constexpr int FAMILY_DEPTH = 4;            // generations up and down a family is followed
+constexpr int CRAFT_COUNT = 5;             // the crafts, in the order of their actions from MakeBoneAxe
+constexpr std::array<const char*, 4> WEAPON_NAMES{"none", "bone_axe", "club", "stone_axe"};
+constexpr std::array<const char*, 3> ARMOUR_NAMES{"none", "bone_armour", "wood_armour"};
 
 std::optional<Species> species_named(const std::string& name) {
     for (std::size_t index = 0; index < SPECIES.size(); ++index) {
@@ -201,6 +204,17 @@ Json Probe::animal(Simulation& world, int identifier) const {
         result["steps_from_home"] = agent->climate_steps(here);
     }
     if (agent->species == Species::Plant) return result;
+    result["infant_taught"] = agent->infant_taught;  // given its brain by a parent, its first chance
+    Json crafts = Json::object();  // each craft: whether it has discovered it, and how often it has tried
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
+        crafts[std::string(ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)])] = {{"known", (agent->crafts >> craft & 1) != 0},
+                                                                                      {"tries", agent->craft_tries[static_cast<std::size_t>(craft)]}};
+    }
+    result["crafts"] = crafts;
+    result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
+                      {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
+                      {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
+                      {"cooked_meat", agent->cooked_meat}, {"cooked_fruit", agent->cooked_fruit}};
     Json mind = Json::object();
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) mind[std::string(TEMPERAMENT[static_cast<std::size_t>(trait)])] = agent->feeling(trait);
     result["mind"] = mind;
@@ -699,6 +713,41 @@ Json Probe::brain(Simulation& world, int identifier, bool weights) const {
     return result;
 }
 
+Json Probe::skills(Simulation& world) const {
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0;
+        std::array<std::size_t, CRAFT_COUNT> known{}, tried{};
+        std::array<std::size_t, WEAPON_NAMES.size()> wielding{};
+        std::array<std::size_t, ARMOUR_NAMES.size()> wearing{};
+        double oldest = 0;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            ++living;
+            infants_taught += agent->infant_taught;
+            elders_taught += agent->taught_by >= 0;
+            elders += agent->age > AGEING * agent->lifespan;  // old enough to teach
+            if (agent->lifespan > 0) oldest = std::max(oldest, agent->age / agent->lifespan);
+            for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
+                known[craft] += (agent->crafts >> craft & 1) != 0;
+                tried[craft] += agent->craft_tries[craft] > 0;
+            }
+            ++wielding[static_cast<std::size_t>(agent->weapon)];
+            ++wearing[static_cast<std::size_t>(agent->armour)];
+        }
+        Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
+        for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
+            crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}};
+        }
+        for (std::size_t weapon = 0; weapon < WEAPON_NAMES.size(); ++weapon) weapons[WEAPON_NAMES[weapon]] = wielding[weapon];
+        for (std::size_t armour = 0; armour < ARMOUR_NAMES.size(); ++armour) armours[ARMOUR_NAMES[armour]] = wearing[armour];
+        result[std::string(species_name(species))] = {{"living", living}, {"infants_taught", infants_taught}, {"taught_by_elder", elders_taught},
+                                                      {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
+                                                      {"wielding", weapons}, {"wearing", armours}};
+    }
+    return {{"turn", world.turn()}, {"skills", result}};
+}
+
 Json Probe::minds(Simulation& world) const {
     world.sync_brains();  // every brain as it now is
     Json result = Json::object();
@@ -888,6 +937,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/skills", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return skills(world); }));
     }));
     server.Get(prefix + "/minds", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return minds(world); }));

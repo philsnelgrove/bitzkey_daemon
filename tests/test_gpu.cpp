@@ -106,7 +106,7 @@ TEST_CASE("brains on the GPU value and learn as on the CPU, near enough") {
     engine->download(handles, into);
     for (std::size_t index = 0; index < brains.size(); ++index) {
         CAPTURE(index);
-        CHECK(furthest(back[index], brains[index]) < 1e-4);
+        CHECK(furthest(back[index], brains[index]) < 5e-4);  // floats against doubles: the flat spot gives saturated neurons larger steps to round
     }
     for (const auto handle : handles) engine->detach(handle);
     CHECK(engine->attached() == 0);

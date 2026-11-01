@@ -166,6 +166,7 @@ std::vector<Rule> make_rules() {
         {"CURIOUS_EXPLORATION", "Mind", "Curious exploration", "the chance, times its curiosity, that an animal tries any of its options at random rather than as its brain values them; none in peril", 0.0, 1.0, 0.01, false, &CURIOUS_EXPLORATION},
         {"FATAL_LESSON", "Mind", "Fatal lesson", "how many times as hard a herd-mate's death teaches those who see it what it last did", 1.0, 20.0, 0.5, false, &FATAL_LESSON},
         {"RESTLESS_CURIOSITY", "Mind", "Restless curiosity", "the chance, times a half and its curiosity, that an animal whose brain chose to rest (not made to) does any of its other options instead; none in peril (a hunter or threat near, struck, or starving)", 0.0, 1.0, 0.05, false, &RESTLESS_CURIOSITY},
+        {"FLAT_SPOT", "Mind", "Flat spot", "how much learning a saturated neuron keeps: added to each hidden neuron's slope, so one pinned at either end of its range still learns a little; 0 is the plain slope, which lets a jammed neuron stall", 0.0, 0.5, 0.01, false, &FLAT_SPOT},
         {"LESSON_LIMIT", "Mind", "Lesson limit", "the most one lesson's error counts for: higher, and a rare but large surprise teaches faster, but learning runs jumpier", 0.5, 20.0, 0.5, false, &LESSON_LIMIT},
         {"TEMPERATURE", "Mind", "Choice temperature", "how loosely a brain picks among its options", 0.01, 5.0, 0.05, false, &TEMPERATURE},
         {"MUTATION", "Mind", "Brain mutation", "how much a newborn's brain varies from its parents'", 0.0, 1.0, 0.01, false, &MUTATION},

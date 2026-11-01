@@ -353,7 +353,7 @@ void Brain::learn(const Senses& inputs, int action, double target, double learni
         std::array<double, MAX_WIDTH> delta{};
         for (int neuron = 0; neuron < width; ++neuron) {
             const double value = output[static_cast<std::size_t>(neuron)];
-            delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+            delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value + FLAT_SPOT);
         }
         if (index) {
             carry_back(layer, delta.data(), width, gradient);
@@ -399,7 +399,7 @@ void Brain::learn_traced_by(const Senses& inputs, int action, double target, dou
         std::array<double, MAX_WIDTH> delta{};
         for (int neuron = 0; neuron < width; ++neuron) {
             const double value = output[static_cast<std::size_t>(neuron)];
-            delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+            delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value + FLAT_SPOT);
         }
         if (index) {
             carry_back(layer, delta.data(), width, gradient);
@@ -445,7 +445,7 @@ void Brain::learn_memory(const Senses& inputs, std::span<const Senses* const> pa
             std::array<double, MAX_WIDTH> delta{};
             for (int neuron = 0; neuron < width; ++neuron) {
                 const double value = output[static_cast<std::size_t>(neuron)];
-                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value + FLAT_SPOT);
             }
             if (index) {
                 carry_back(layer, delta.data(), width, gradient);
@@ -495,7 +495,7 @@ void Brain::learn_memory(const Senses& inputs, std::span<const Senses* const> pa
             std::array<double, MAX_WIDTH> delta{};
             for (int neuron = 0; neuron < width; ++neuron) {
                 const double value = output[static_cast<std::size_t>(neuron)];
-                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value);
+                delta[neuron] = gradient[static_cast<std::size_t>(neuron)] * (1 - value * value + FLAT_SPOT);
             }
             if (index) {
                 carry_back(layer, delta.data(), width, gradient);

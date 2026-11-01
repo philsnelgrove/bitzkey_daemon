@@ -234,3 +234,31 @@ TEST_CASE("the probe counts each species' infants, and those sheltered beside a 
     CHECK((young["infants"] == 2 && young["sheltered"] == 1));
     FEEBLE_YOUTH = 0.0;
 }
+
+TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lessons, and counts them by species") {
+    Simulation world = empty_world();
+    Bitzkey& maker = world.add_agent(encode_dna(Species::Omnivore), 5, 5);
+    Bitzkey& plain = world.add_agent(encode_dna(Species::Omnivore), 20, 20);
+    maker.crafts = 1 << 2;  // a club
+    maker.craft_tries[2] = 3;
+    maker.weapon = Club;
+    maker.armour = BoneArmour;
+    maker.carried_wood = 2;
+    maker.infant_taught = true;
+    plain.taught_by = maker.identifier;
+    world.index_cells();
+    net::Probe probe = direct(world);
+
+    const Json full = probe.animal(world, maker.identifier);
+    CHECK(full["infant_taught"] == true);
+    CHECK(full["crafts"]["make_club"]["known"] == true);
+    CHECK(full["crafts"]["make_club"]["tries"] == 3);
+    CHECK(full["crafts"]["make_bone_axe"]["known"] == false);
+    CHECK((full["gear"]["weapon"] == "club" && full["gear"]["armour"] == "bone_armour" && full["gear"]["wood"] == 2));
+    CHECK(probe.animal(world, plain.identifier)["taught_by"] == maker.identifier);
+
+    const Json omnivores = probe.skills(world)["skills"]["omnivore"];
+    CHECK((omnivores["living"] == 2 && omnivores["infants_taught"] == 1 && omnivores["taught_by_elder"] == 1 && omnivores["elders"] == 0));
+    CHECK((omnivores["crafts"]["make_club"]["known"] == 1 && omnivores["crafts"]["make_club"]["tried"] == 1));
+    CHECK((omnivores["wielding"]["club"] == 1 && omnivores["wielding"]["none"] == 1 && omnivores["wearing"]["bone_armour"] == 1));
+}

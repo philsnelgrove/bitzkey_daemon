@@ -368,6 +368,27 @@ TEST_CASE("a lesson's error counts for no more than the lesson limit") {
     LESSON_LIMIT = 5.0;
 }
 
+TEST_CASE("a jammed neuron still learns by the flat spot, and not at all without it") {
+    PyRandom rng(6);
+    Brain start = Brain::random(rng, 1, BASE_WIDTH);
+    for (double& bias : start.layers[0].biases) bias = 8;  // every hidden neuron pinned at the top of its range
+    Senses senses{};
+    const auto moved = [&](double flat) {
+        FLAT_SPOT = flat;
+        Brain brain = start;
+        const double before = brain.values(senses)[Eat];
+        brain.learn(senses, Eat, before + 20, 0.01);
+        double change = 0;
+        for (int neuron = 0; neuron < brain.width(); ++neuron) change += std::abs(brain.layers[0].biases[static_cast<std::size_t>(neuron)] - 8);
+        return change;
+    };
+    const double plain = moved(0.0), flat = moved(0.1);
+    CHECK(plain < 1e-6);
+    CHECK(flat > 1000 * plain);
+    CHECK(flat > 1e-5);
+    FLAT_SPOT = 0.1;
+}
+
 TEST_CASE("memory neurons keep, overwrite or clear what they hold, by their gates") {
     Values values{};
     Held held{};

@@ -58,6 +58,8 @@ public:
     //   GET    prefix/history?points=        each species' numbers over the run, as the graph remembers it
     //   GET    prefix/insights               how often each species took each action when it could, lately
     //   GET    prefix/brain/ID?weights=1     a brain: its shape, its values for what it last sensed, its weights if asked
+    //   GET    prefix/skills                 each species' crafts known and tried, gear in hand, and the teaching done: infants
+    //                                        taught by a parent, students by an elder, and elders old enough to teach
     //   GET    prefix/minds                  each species' brains at a glance: how far their values run and how
     //                                        many of their neurons have jammed
     //   GET    prefix/reports/brain          the brain report, as text
@@ -96,6 +98,7 @@ public:
     // A value this far from nothing has run away; a neuron this near either end of tanh has jammed there.
     static constexpr double RUNAWAY_VALUE = 50;
     static constexpr double JAMMED = 0.99;
+    Json skills(Simulation& world) const;
     Json minds(Simulation& world) const;
     std::string brain_report_text(Simulation& world) const;
     std::string death_report_text(Simulation& world) const;
