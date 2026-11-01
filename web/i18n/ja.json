@@ -1589,5 +1589,11 @@
 "Build thrill": "建築の高揚",
 "Fire comfort": "火の安らぎ",
 "the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity": "避難所を築く各段階の高揚。段階ごとに増し、完成で2倍、好奇心を掛ける",
-"comfort in sight of a fire that is its own or its herd's": "自分または群れの火を見たときの安らぎ"
+"comfort in sight of a fire that is its own or its herd's": "自分または群れの火を見たときの安らぎ",
+"Craft joy": "制作の喜び",
+"Tool joy": "道具の喜び",
+"Armour joy": "防具の喜び",
+"the joy of a craft that works, a weapon's in full and armour's in half, times curiosity": "制作が成功した喜び。武器は全額、防具は半分、好奇心を掛ける",
+"the joy of the harm a weapon added to a blow, times the share of its victim's health that harm was": "武器が一撃に上乗せした損害の喜び。被害者の体力に占める割合を掛ける",
+"the joy of the harm its armour took off a blow, times the share of its health that harm was": "防具が一撃から減らした損害の喜び。自分の体力に占める割合を掛ける"
 }

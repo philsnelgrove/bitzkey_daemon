@@ -2699,6 +2699,39 @@ TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, a
     CHECK((crafter.crafts & (1 << (MakeStoneAxe - MakeBoneAxe))) != 0);
 }
 
+TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a joy") {
+    Simulation simulation = world();
+    Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    crafter.mind[Curiosity] = 7.0;
+    crafter.carried_wood = 1;
+    crafter.carried_bone = 1;
+    crafter.craft_tries[MakeClub - MakeBoneAxe] = CRAFT_TRIES - 1;
+    crafter.reward = 0;
+    simulation.make_gear(crafter, MakeClub);
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY));
+    crafter.craft_tries[MakeBoneArmour - MakeBoneAxe] = CRAFT_TRIES - 1;
+    crafter.reward = 0;
+    simulation.make_gear(crafter, MakeBoneArmour);
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY / 2));  // armour, half
+
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 8, 8);
+    Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 8, 9);
+    striker.reward = victim.reward = 0;
+    Simulation::gear_pays(striker, victim, 3.0);
+    CHECK(striker.reward == 0);  // bare-handed
+    CHECK(victim.reward == 0);
+    striker.weapon = Club;
+    Simulation::gear_pays(striker, victim, 3.0);
+    CHECK(striker.reward == doctest::Approx(TOOL_JOY * 3.0 * (1 - 1 / WEAPON_FORCE) / victim.max_health));
+    CHECK(victim.reward == 0);
+    victim.armour = BoneArmour;
+    Simulation::gear_pays(striker, victim, 3.0);
+    CHECK(victim.reward > 0);
+    const double saved = victim.reward;
+    Simulation::gear_pays(striker, victim, 6.0);
+    CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
+}
+
 TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may teach it again") {
     Simulation simulation = world();
     Bitzkey& parent = simulation.add_agent(encode_dna(Species::Omnivore, {{"intellect", 4}}), 5, 5);

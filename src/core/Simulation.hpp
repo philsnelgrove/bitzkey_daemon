@@ -461,6 +461,9 @@ inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal 
 inline double DISCOVERY_CHANCE = 0.02;
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
+inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (times curiosity)
+inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
+inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity)
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
@@ -1260,6 +1263,8 @@ public:
     void construct(Bitzkey& agent);  // a unit of what it carries, stone first, into the shelter on its square
     void dig(Bitzkey& agent);  // an axe or club finds a stone in the ground, carried or left here
     static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
+    // The worth of a blow's gear: what the striker's weapon added is a joy to it, and what the struck one's armour took off a joy to that, each by its share of the defender's health.
+    static void gear_pays(Bitzkey& striker, Bitzkey& struck, double blow);
     static double defence_share(const Bitzkey& animal);  // the share of its weapons an animal brings to defence
     // Its natural weapons as a share of their full range: a predator's count PREDATOR_WEAPONS times over, an
     // omnivore's three quarters and a grazer's half as many times.

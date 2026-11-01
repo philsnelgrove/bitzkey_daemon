@@ -3282,6 +3282,17 @@ double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender, bool
     return force * (1 + 0.75 * weapons) * (1 - 0.6 * gear_toughness(defender)) * gear_force(attacker);
 }
 
+void Simulation::gear_pays(Bitzkey& striker, Bitzkey& struck, double blow) {
+    if (striker.species == Species::Plant || struck.max_health <= 0) return;
+    const double force = gear_force(striker);
+    if (force > 1) striker.reward += TOOL_JOY * std::min(1.0, blow * (1 - 1 / force) / struck.max_health);
+    if (struck.armour != NoArmour && struck.species != Species::Plant) {
+        const double worn = gear_toughness(struck);
+        const double taken = blow * 0.6 * (worn - struck.toughness) / (1 - 0.6 * worn);  // the blow without it, less the blow
+        struck.reward += ARMOUR_JOY * std::min(1.0, taken / struck.max_health);
+    }
+}
+
 double Simulation::gear_toughness(const Bitzkey& agent) {
     if (!agent.armour) return agent.toughness;
     const double natural = agent.physique(Armour);
@@ -3420,6 +3431,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
             --(agent.carried_bone ? agent.carried_bone : agent.carried_wood);
             agent.weapon = StoneAxe;
     }
+    agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * agent.feeling(Curiosity);
     agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
 }
@@ -3469,6 +3481,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     const double empathy = agent.feeling(Empathy);
     const double joy = FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * empathy) * (1 - 0.75 * agent.feeling(Tolerance));
     double blow = damage(agent, victim);
+    gear_pays(agent, victim, blow);
     wear_weapon(agent);
     wear_armour(victim);
     for (const Bitzkey* other : around(victim, 1)) {
@@ -3532,6 +3545,7 @@ void Simulation::exhausted(Bitzkey& agent) {
 
 void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
     const double blow = damage(agent, assailant, true);
+    gear_pays(agent, assailant, blow);
     wear_weapon(agent);
     wear_armour(assailant);
     assailant.health -= blow;
