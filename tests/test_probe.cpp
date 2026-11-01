@@ -263,5 +263,11 @@ TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lesso
     const Json omnivores = probe.skills(world)["skills"]["omnivore"];
     CHECK((omnivores["living"] == 2 && omnivores["infants_taught"] == 1 && omnivores["taught_by_elder"] == 1 && omnivores["elders"] == 0));
     CHECK((omnivores["crafts"]["make_club"]["known"] == 1 && omnivores["crafts"]["make_club"]["tried"] == 1));
+    CHECK((omnivores["crafts"]["make_club"]["discovered"] == 1 && omnivores["crafts"]["make_club"]["by_parent"] == 0 && omnivores["crafts"]["make_club"]["mastered"] == 0));
+    CHECK(probe.skills(world)["works"]["fires"] == 0);
+    world.note_first("cooked", Species::Omnivore, maker.identifier);
+    const Json diary = probe.diary(world);
+    REQUIRE(diary["entries"].size() == 1);
+    CHECK((diary["entries"][0]["event"] == "cooked" && diary["entries"][0]["species"] == "omnivore"));
     CHECK((omnivores["wielding"]["club"] == 1 && omnivores["wielding"]["none"] == 1 && omnivores["wearing"]["bone_armour"] == 1));
 }

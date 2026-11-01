@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <fstream>
 #include <limits>
+#include <mutex>
 #include <set>
 #include <type_traits>
 #include <random>
@@ -983,6 +984,34 @@ void Simulation::take_census() {
     for (const Bitzkey* agent : living()) identifiers.push_back(agent->identifier);
     if (census_.record(turn_, std::move(identifiers))) forget_before(census_.snapshots().front().turn);
     forget_old_deaths();
+    constexpr int DIARY_LOOK = 100;  // turns between looks
+    if (turn_ % DIARY_LOOK == 0) look_for_firsts();
+}
+
+void Simulation::note_first(std::string_view event, Species species, int who, std::string_view craft) {
+    static std::mutex writing;  // animals act side by side
+    const std::lock_guard lock(writing);
+    const std::string_view kind = species_name(species);
+    for (const Milestone& entry : diary_) {
+        if (entry.event == event && entry.species == kind && entry.craft == craft) return;
+    }
+    diary_.push_back({turn_, std::string(event), std::string(kind), std::string(craft), who});
+}
+
+void Simulation::look_for_firsts() {
+    constexpr std::array<Species, 3> KINDS = {Species::Grazer, Species::Omnivore, Species::Predator};
+    std::array<bool, 3> alive{};
+    for (const Bitzkey* agent : living()) {
+        for (std::size_t kind = 0; kind < KINDS.size(); ++kind) {
+            if (agent->species != KINDS[kind]) continue;
+            alive[kind] = true;
+            if (agent->age > AGEING * agent->lifespan) note_first("first_elder", agent->species, agent->identifier);
+        }
+    }
+    for (std::size_t kind = 0; kind < KINDS.size(); ++kind) {
+        if (kinds_seen_[kind] && !alive[kind]) note_first("extinct", KINDS[kind], -1);
+        kinds_seen_[kind] = alive[kind];
+    }
 }
 
 void Simulation::forget_old_deaths() {
@@ -3020,7 +3049,16 @@ void Simulation::teach_all() {
         if (first) student->infant_taught = true;
         else student->taught_by = elder->identifier;
         for (std::size_t craft = 0; craft < student->craft_source.size(); ++craft) {  // each recipe it had not, from its teacher
-            if ((elder->crafts >> craft & 1) && !(student->crafts >> craft & 1)) student->craft_source[craft] = first ? 2 : 3;
+            if (!(elder->crafts >> craft & 1) || (student->crafts >> craft & 1)) continue;
+            student->craft_source[craft] = first ? 2 : 3;
+            // A teacher taught before chains were kept still counts as one link.
+            const int chain = std::max(elder->craft_chain[craft], elder->craft_source[craft] >= 2 ? 1 : 0) + 1;
+            student->craft_chain[craft] = chain;
+            const std::string_view name = ACTIONS[MakeBoneAxe + craft];
+            note_first(first ? "taught_by_parent" : "taught_by_elder", student->species, student->identifier, name);
+            for (const int noted : {2, 3, 5, 10, 20, 50, 100}) {
+                if (chain == noted) note_first("chain_" + std::to_string(noted), student->species, student->identifier, name);
+            }
         }
         student->crafts |= elder->crafts;  // and what it can make, as far as it has got at each
         for (std::size_t craft = 0; craft < elder->craft_tries.size(); ++craft) {
@@ -3349,6 +3387,7 @@ void Simulation::construct(Bitzkey& agent) {
     if (++sites_[cell] >= SHELTER_UNITS) {
         sites_[cell] = 0;
         shelters_[cell] = 1;
+        note_first("shelter_finished", agent.species, agent.identifier);
         agent.reward += 2 * inspiration;
         agent.last_action = "finished a shelter";
     } else {
@@ -3385,6 +3424,7 @@ void Simulation::light_fire(Bitzkey& agent) {
     agent.weapon = NoWeapon;
     agent.weapon_uses = 0;
     agent.last_action = "lit a fire";
+    note_first("fire_lit", agent.species, agent.identifier);
 }
 
 void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
@@ -3398,6 +3438,7 @@ void Simulation::cook(Bitzkey& agent, Cell) {
     --(meat ? agent.carried_meat : agent.carried_fruit);
     ++(meat ? agent.cooked_meat : agent.cooked_fruit);
     agent.last_action = "cooked";
+    note_first("cooked", agent.species, agent.identifier);
 }
 
 void Simulation::drop_gear(int x, int y, PileKind kind, int uses) {
@@ -3427,6 +3468,7 @@ void Simulation::discover(Bitzkey& agent) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
             agent.craft_source[static_cast<std::size_t>(craft)] = 1;
+            note_first("discovered", agent.species, agent.identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
             agent.reward += DISCOVERY_JOY * (0.5 + agent.feeling(Curiosity));
             experience(agent, Discovery);
         }
@@ -3441,6 +3483,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
         return;
     }
     tries = CRAFT_TRIES;  // it has it now
+    if (agent.craft_source[static_cast<std::size_t>(action - MakeBoneAxe)] >= 2) note_first("made_taught", agent.species, agent.identifier, ACTIONS[static_cast<std::size_t>(action)]);
     switch (action) {
         case MakeBoneAxe: --agent.carried_bone; agent.weapon = BoneAxe; break;
         case MakeClub: --agent.carried_wood; agent.weapon = Club; break;

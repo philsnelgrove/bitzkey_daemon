@@ -2756,6 +2756,11 @@ TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may te
     CHECK(child.craft_tries[2] == CRAFT_TRIES);
     CHECK(child.craft_source[2] == 2);  // from its parent, and nothing else
     CHECK(child.craft_source[0] == 0);
+    CHECK(child.craft_chain[2] == 1);
+    CHECK(std::any_of(simulation.diary().begin(), simulation.diary().end(), [](const Simulation::Milestone& entry) { return entry.event == "taught_by_parent" && entry.craft == "make_club"; }));
+    const std::size_t written = simulation.diary().size();
+    simulation.note_first("taught_by_parent", child.species, child.identifier, "make_club");
+    CHECK(simulation.diary().size() == written);  // once only
     CHECK_FALSE(simulation.willing_student(parent, child));
     FEEBLE_YOUTH = youth;
 }

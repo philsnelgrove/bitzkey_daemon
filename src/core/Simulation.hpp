@@ -650,6 +650,7 @@ struct Bitzkey {
     int crafts = 0;  // a bit for each craft it has discovered
     std::array<int, 5> craft_tries{};  // how often it has tried each
     std::array<int, 5> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder
+    std::array<int, 5> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
@@ -893,6 +894,16 @@ public:
     int width() const { return width_; }
     int height() const { return height_; }
     int turn() const { return turn_; }
+    // The world's diary: the first time each thing was done, kept in the world file. It only watches, and draws on no
+    // chance, so a world unfolds the same with it. Each event is written once, for each species and craft.
+    struct Milestone {
+        int turn;
+        std::string event, species, craft;
+        int who;  // the Bitzkey who did it, or -1
+    };
+    const std::vector<Milestone>& diary() const { return diary_; }
+    int diary_since() const { return diary_since_; }  // what came before this turn went unrecorded, in a world older than the diary
+    void note_first(std::string_view event, Species species, int who, std::string_view craft = {});
     int deaths() const { return deaths_; }
     // Every death so far, by species and then cause.
     using DeathCauses = std::array<std::map<std::string, int, std::less<>>, 4>;
@@ -1511,6 +1522,10 @@ private:
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;
+    std::vector<Milestone> diary_;
+    int diary_since_ = 0;
+    std::array<bool, 3> kinds_seen_{};  // the animals seen alive at the last look, so that one can be seen to die out
+    void look_for_firsts();  // those no single act shows: the first elder of a kind, and a kind dying out
     bool any_piles_ = false;  // as last indexed, so that an empty map isn't searched
     std::unique_ptr<gpu::BrainEngine> gpu_;  // the GPUs every brain lives on, when the world thinks there
     std::string gpu_status_;

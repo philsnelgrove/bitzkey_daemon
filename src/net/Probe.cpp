@@ -719,7 +719,9 @@ Json Probe::skills(Simulation& world) const {
     Json result = Json::object();
     for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
         std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0;
-        std::array<std::size_t, CRAFT_COUNT> known{}, tried{};
+        std::array<std::size_t, CRAFT_COUNT> known{}, tried{}, mastered{};
+        std::array<std::array<std::size_t, 4>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
+        std::array<int, CRAFT_COUNT> chain{};
         std::array<std::size_t, WEAPON_NAMES.size()> wielding{};
         std::array<std::size_t, ARMOUR_NAMES.size()> wearing{};
         double oldest = 0;
@@ -733,13 +735,18 @@ Json Probe::skills(Simulation& world) const {
             for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
                 known[craft] += (agent->crafts >> craft & 1) != 0;
                 tried[craft] += agent->craft_tries[craft] > 0;
+                if (!(agent->crafts >> craft & 1)) continue;
+                ++sources[craft][static_cast<std::size_t>(agent->craft_source[craft])];
+                mastered[craft] += agent->craft_tries[craft] >= CRAFT_TRIES;
+                chain[craft] = std::max(chain[craft], agent->craft_chain[craft]);
             }
             ++wielding[static_cast<std::size_t>(agent->weapon)];
             ++wearing[static_cast<std::size_t>(agent->armour)];
         }
         Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
         for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
-            crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}};
+            crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}, {"mastered", mastered[craft]}, {"unrecorded", sources[craft][0]},
+                                                                 {"discovered", sources[craft][1]}, {"by_parent", sources[craft][2]}, {"by_elder", sources[craft][3]}, {"longest_chain", chain[craft]}};
         }
         for (std::size_t weapon = 0; weapon < WEAPON_NAMES.size(); ++weapon) weapons[WEAPON_NAMES[weapon]] = wielding[weapon];
         for (std::size_t armour = 0; armour < ARMOUR_NAMES.size(); ++armour) armours[ARMOUR_NAMES[armour]] = wearing[armour];
@@ -747,7 +754,23 @@ Json Probe::skills(Simulation& world) const {
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
                                                       {"wielding", weapons}, {"wearing", armours}};
     }
-    return {{"turn", world.turn()}, {"skills", result}};
+    int fires = 0, shelters = 0, sites = 0;
+    for (int y = 0; y < world.height(); ++y) {
+        for (int x = 0; x < world.width(); ++x) {
+            fires += world.fire_at(x, y) > world.turn();
+            shelters += world.shelter_at(x, y);
+            sites += world.site_at(x, y) > 0;
+        }
+    }
+    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"fires", fires}, {"shelters", shelters}, {"sites", sites}}}};
+}
+
+Json Probe::diary(Simulation& world) const {
+    Json entries = Json::array();
+    for (const Simulation::Milestone& entry : world.diary()) {
+        entries.push_back({{"turn", entry.turn}, {"event", entry.event}, {"species", entry.species}, {"craft", entry.craft}, {"who", entry.who}});
+    }
+    return {{"turn", world.turn()}, {"since", world.diary_since()}, {"entries", entries}};
 }
 
 Json Probe::minds(Simulation& world) const {
@@ -939,6 +962,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return diary(world); }));
     }));
     server.Get(prefix + "/skills", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return skills(world); }));

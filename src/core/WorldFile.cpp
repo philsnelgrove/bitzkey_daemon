@@ -217,7 +217,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
-        {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source},
+        {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
@@ -318,6 +318,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->crafts = record.value("crafts", 0);
     if (record.contains("craft_tries")) agent->craft_tries = record.at("craft_tries").get<std::array<int, 5>>();
     if (record.contains("craft_source")) agent->craft_source = record.at("craft_source").get<std::array<int, 5>>();
+    if (record.contains("craft_chain")) agent->craft_chain = record.at("craft_chain").get<std::array<int, 5>>();
     agent->cooked_meat = record.value("cooked_meat", 0);
     agent->cooked_fruit = record.value("cooked_fruit", 0);
     agent->carried_stone = record.value("carried_stone", 0);
@@ -545,6 +546,8 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         const rules::Rule* rule = rules::find(key);
         rules[key] = rule && rule->integer ? json(static_cast<long long>(value)) : json(value);
     }
+    json diary = json::array();  // turn, event, species, craft, who
+    for (const Simulation::Milestone& entry : simulation.diary_) diary.push_back({entry.turn, entry.event, entry.species, entry.craft, entry.who});
     const json record = {
         {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"value_scale", VALUE_SCALE}, {"actions", names(OUTPUTS)},
         {"temperament", names(TEMPERAMENT)},
@@ -556,7 +559,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -741,6 +744,11 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.sites_[cell] = shelter.at(2).get<int>();
             world.shelters_[cell] = shelter.at(3).get<int>();
             world.site_turns_[cell] = shelter.size() > 4 ? shelter.at(4).get<int>() : world.turn_;  // built now, in a world saved before they fell
+        }
+        world.diary_since_ = record.value("diary_since", record.at("turn").get<int>());  // an older world's firsts begin now
+        world.diary_.clear();
+        for (const json& entry : record.value("diary", json::array())) {
+            world.diary_.push_back({entry.at(0).get<int>(), entry.at(1).get<std::string>(), entry.at(2).get<std::string>(), entry.at(3).get<std::string>(), entry.at(4).get<int>()});
         }
         world.stones_scattered_ = record.value("stones_scattered", false);
         world.scatter_stones();  // a world saved before stones has them now, the once
