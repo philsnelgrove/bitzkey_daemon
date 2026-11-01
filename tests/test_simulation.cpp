@@ -2694,9 +2694,12 @@ TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, a
     const double chance = DISCOVERY_CHANCE;
     DISCOVERY_CHANCE = 1000;
     crafter.carried_stone = 1;
+    crafter.mind[Curiosity] = 7.0;
+    const double before = crafter.reward, curiosity = crafter.feeling(Curiosity);
     simulation.discover(crafter);
     DISCOVERY_CHANCE = chance;
     CHECK((crafter.crafts & (1 << (MakeStoneAxe - MakeBoneAxe))) != 0);
+    CHECK(crafter.reward - before >= DISCOVERY_JOY * curiosity - 1e-9);  // and finding it was a joy
 }
 
 TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a joy") {

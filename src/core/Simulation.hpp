@@ -458,7 +458,8 @@ inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal 
 // A craft must first be discovered, the more likely each turn the cleverer the animal holding its materials, and then
 // made to work: the chance rises with each try to certainty at CRAFT_TRIES, the sooner the cleverer. A failure spends
 // nothing, and is a small thrill of discovery to the curious.
-inline double DISCOVERY_CHANCE = 0.02;
+inline double DISCOVERY_CHANCE = 0.0005;  // rare: a find is news, and a taught recipe spreads it
+inline double DISCOVERY_JOY = 5.0;  // the joy of first discovering a craft (times curiosity), so its finder comes to prize the materials
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
 inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (times curiosity)

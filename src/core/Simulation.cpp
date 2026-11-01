@@ -3427,6 +3427,7 @@ void Simulation::discover(Bitzkey& agent) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
             agent.craft_source[static_cast<std::size_t>(craft)] = 1;
+            agent.reward += DISCOVERY_JOY * agent.feeling(Curiosity);
             experience(agent, Discovery);
         }
     }

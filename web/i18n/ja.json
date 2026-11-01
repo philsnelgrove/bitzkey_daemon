@@ -1595,5 +1595,7 @@
 "Armour joy": "防具の喜び",
 "the joy of a craft that works, a weapon's in full and armour's in half, times curiosity": "制作が成功した喜び。武器は全額、防具は半分、好奇心を掛ける",
 "the joy of the harm a weapon added to a blow, times the share of its victim's health that harm was": "武器が一撃に上乗せした損害の喜び。被害者の体力に占める割合を掛ける",
-"the joy of the harm its armour took off a blow, times the share of its health that harm was": "防具が一撃から減らした損害の喜び。自分の体力に占める割合を掛ける"
+"the joy of the harm its armour took off a blow, times the share of its health that harm was": "防具が一撃から減らした損害の喜び。自分の体力に占める割合を掛ける",
+"Discovery joy": "発見の喜び",
+"the joy of first discovering a craft, times curiosity": "技を初めて発見した喜び。好奇心を掛ける"
 }

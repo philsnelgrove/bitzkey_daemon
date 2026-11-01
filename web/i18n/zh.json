@@ -1595,5 +1595,7 @@
 "Armour joy": "护甲之乐",
 "the joy of a craft that works, a weapon's in full and armour's in half, times curiosity": "制作成功的喜悦，武器全额、护甲减半，乘以好奇心",
 "the joy of the harm a weapon added to a blow, times the share of its victim's health that harm was": "武器为一击增加的伤害带来的喜悦，乘以该伤害占受害者生命的比例",
-"the joy of the harm its armour took off a blow, times the share of its health that harm was": "护甲为一击减去的伤害带来的喜悦，乘以该伤害占自身生命的比例"
+"the joy of the harm its armour took off a blow, times the share of its health that harm was": "护甲为一击减去的伤害带来的喜悦，乘以该伤害占自身生命的比例",
+"Discovery joy": "发现之乐",
+"the joy of first discovering a craft, times curiosity": "首次发现一门手艺的快乐，乘以好奇心"
 }
