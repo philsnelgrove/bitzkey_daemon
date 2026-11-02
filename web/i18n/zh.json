@@ -1615,5 +1615,9 @@
 "Faction share": "派系比重",
 "how much of a deed's weight also falls on the doer's whole colour": "行为的分量有多少也落在行为者的整个颜色上",
 "Faction width": "派系宽度",
-"how far apart on the body ring two animals may be and count as one faction": "身体环上相距多远的两只动物仍算同一派系"
+"how far apart on the body ring two animals may be and count as one faction": "身体环上相距多远的两只动物仍算同一派系",
+"Seed food": "种子养分",
+"how much of a fruit's portion a seed feeds": "一粒种子相当于一份果实的多少养分",
+"Planting joy": "播种之乐",
+"the gladness of planting a seed; more if curious": "播种的喜悦;越好奇越强"
 }

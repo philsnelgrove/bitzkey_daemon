@@ -277,7 +277,7 @@ function parseFrame(view) {
     piles[index] = { x: view.getUint16(offset, true), y: view.getUint16(offset + 2, true),
                      meat: view.getUint16(offset + 4, true), fruit: view.getUint16(offset + 6, true),
                      stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true),
-                     gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true), cooked: view.getUint16(offset + 18, true) };
+                     gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true), cooked: view.getUint16(offset + 18, true) & 32767, arable: view.getUint16(offset + 18, true) >> 15 };
   }
   return { width, height, turn, temperatures, grass, agents, living, piles };
 }
@@ -453,8 +453,12 @@ function drawMap() {
   }
   {  // the piles: meat to the left of a square and fruit to the right, each with its count
     const half = Math.max(2, pyRound(cell * 0.25));
-    for (const { x, y, meat, fruit, stone, bone, wood, gear, fire } of frame.piles) {
+    for (const { x, y, meat, fruit, stone, bone, wood, gear, fire, arable } of frame.piles) {
       const px = geometry.x + (x + 0.5) * cell, py = geometry.y + (y + 0.5) * cell;
+      if (arable) {  // worked land, brown
+        ctx.fillStyle = 'rgb(122,84,48)';
+        ctx.fillRect(px - cell / 2, py - cell / 2, cell, cell);
+      }
       if (meat) drawPile(ctx, true, meat, fruit ? px - half : px, py, half);
       if (fruit) drawPile(ctx, false, fruit, meat ? px + half : px, py, half);
       drawMaterials(ctx, stone, bone, wood, px, py, half);

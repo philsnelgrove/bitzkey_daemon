@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -327,6 +327,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->carried_stone = record.value("carried_stone", 0);
     agent->carried_bone = record.value("carried_bone", 0);
     agent->carried_wood = record.value("carried_wood", 0);
+    agent->carried_seed = record.value("carried_seed", 0);
     agent->carried_meat = record.value("carried_meat", 0);  // nothing in a world saved before carrying
     agent->carried_fruit = record.value("carried_fruit", 0);
     agent->died_turn = optional_int(record.at("died_turn"));
@@ -455,6 +456,10 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     json piles = json::array();  // each square with any: x, y, its meat, its fruit, and the turn of each's last drop
     json materials = json::array();  // x, y, kind, count
     json fires = json::array();  // x, y, the turn it goes out, who lit it
+    json arable = json::array();  // each worked square
+    for (std::size_t cell = 0; cell < simulation.arable_.size(); ++cell) {
+        if (simulation.arable_[cell]) arable.push_back(cell);
+    }
     json shelters = json::array();  // x, y, units in it unfinished, whether it stands
     for (std::size_t cell = 0; cell < simulation.sites_.size(); ++cell) {
         if (simulation.sites_[cell] || simulation.shelters_[cell]) {
@@ -566,7 +571,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -746,6 +751,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.fire_lighters_[cell] = fire.at(3).get<int>();
             world.any_fires_ = true;
         }
+        for (const json& cell : record.value("arable", json::array())) world.arable_[cell.get<std::size_t>()] = 1;  // none in an older world
         for (const json& shelter : record.value("shelters", json::array())) {
             const std::size_t cell = static_cast<std::size_t>(shelter.at(1).get<int>()) * world.width_ + shelter.at(0).get<int>();
             world.sites_[cell] = shelter.at(2).get<int>();

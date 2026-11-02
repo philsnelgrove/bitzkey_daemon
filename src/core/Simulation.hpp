@@ -494,6 +494,9 @@ enum Armouring : int { NoArmour, BoneArmour, WoodArmour };
 inline int GEAR_USES = 7;
 inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
 inline int ARMOUR_LEAST = 2;  // stone never spoils
+// Agriculture: raw fruit eaten leaves a seed, which feeds SEED_FOOD of a fruit's portion or may be planted in worked
+// land. Digging with any tool works the land, only in the medium zone; it stays worked.
+inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -674,6 +677,7 @@ struct Bitzkey {
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
     int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
+    int carried_seed = 0;  // kept from raw fruit it ate, up to its capacity, and no weight to it
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered
     std::array<int, 5> craft_tries{};  // how often it has tried each
@@ -1315,6 +1319,10 @@ public:
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
     bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there
+    bool arable_at(int x, int y) const { return in_bounds(x, y) && arable_[static_cast<std::size_t>(y) * width_ + x]; }
+    void keep_seed(Bitzkey& agent);
+    void eat_seed(Bitzkey& agent);
+    void plant_seed(Bitzkey& agent);
     bool shelter_at(int x, int y) const { return in_bounds(x, y) && shelters_[static_cast<std::size_t>(y) * width_ + x]; }
     bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && shelter_at(animal.x, animal.y); }
     int site_at(int x, int y) const { return in_bounds(x, y) ? sites_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // units in an unfinished shelter
@@ -1542,6 +1550,7 @@ private:
         std::vector<DeathNote> deaths;
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
+        std::vector<Seed> sown;  // seeds planted
         std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind>> deeds_seen;  // (doer, worth, done to, what kind)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)
@@ -1564,6 +1573,7 @@ private:
     std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
     bool stones_scattered_ = false;
     std::vector<int> site_turns_;  // the turn each site was last built on
+    std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;

@@ -217,7 +217,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["crafts"] = crafts;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
-                      {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
+                      {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
                       {"cooked_meat", agent->cooked_meat}, {"cooked_fruit", agent->cooked_fruit}};
     Json mind = Json::object();
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) mind[std::string(TEMPERAMENT[static_cast<std::size_t>(trait)])] = agent->feeling(trait);
@@ -756,15 +756,16 @@ Json Probe::skills(Simulation& world) const {
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
                                                       {"wielding", weapons}, {"wearing", armours}};
     }
-    int fires = 0, shelters = 0, sites = 0;
+    int fires = 0, shelters = 0, sites = 0, arable = 0;
     for (int y = 0; y < world.height(); ++y) {
         for (int x = 0; x < world.width(); ++x) {
             fires += world.fire_at(x, y) > world.turn();
             shelters += world.shelter_at(x, y);
             sites += world.site_at(x, y) > 0;
+            arable += world.arable_at(x, y);
         }
     }
-    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"fires", fires}, {"shelters", shelters}, {"sites", sites}}}};
+    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"arable", arable}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}}}};
 }
 
 Json Probe::regard(Simulation& world) const {

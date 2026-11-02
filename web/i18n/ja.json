@@ -1615,5 +1615,9 @@
 "Faction share": "派閥の割合",
 "how much of a deed's weight also falls on the doer's whole colour": "行いの重みのうち行為者の色全体にも及ぶ割合",
 "Faction width": "派閥の幅",
-"how far apart on the body ring two animals may be and count as one faction": "体のリング上でどれだけ離れていても同じ派閥とみなすか"
+"how far apart on the body ring two animals may be and count as one faction": "体のリング上でどれだけ離れていても同じ派閥とみなすか",
+"Seed food": "種の栄養",
+"how much of a fruit's portion a seed feeds": "種が果実一人分の何割の栄養になるか",
+"Planting joy": "植える喜び",
+"the gladness of planting a seed; more if curious": "種を植える喜び(好奇心が強いほど大きい)"
 }

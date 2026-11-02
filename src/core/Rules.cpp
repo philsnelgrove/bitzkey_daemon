@@ -282,6 +282,8 @@ std::vector<Rule> make_rules() {
         {"FIRE_PANIC", "Food", "Fire panic", "chance an animal panics, seeing a fire not its own or its herd's", 0.0, 1.0, 0.05, false, &FIRE_PANIC},
         {"FIRE_JOY", "Food", "Fire joy", "the sense of accomplishment in lighting a fire, beside the comfort of it", 0.0, 5.0, 0.1, false, &FIRE_JOY},
         {"FIRE_COMFORT", "Food", "Fire comfort", "comfort in sight of a fire that is its own or its herd's", 0.0, 2.0, 0.05, false, &FIRE_COMFORT},
+        {"SEED_FOOD", "Food", "Seed food", "how much of a fruit's portion a seed feeds", 0.0, 1.0, 0.05, false, &SEED_FOOD},
+        {"PLANTING_JOY", "Food", "Planting joy", "the gladness of planting a seed; more if curious", 0.0, 5.0, 0.1, false, &PLANTING_JOY},
         {"DIG_CHANCE", "Food", "Dig chance", "chance that digging finds a stone", 0.0, 1.0, 0.05, false, &DIG_CHANCE},
         {"COOKED_FOOD", "Food", "Cooked food", "times as nourishing as raw", 1.0, 5.0, 0.1, false, &COOKED_FOOD},
         {"KILL_MEAL", "Fighting", "Kill meal", "hunger a kill sates", 0, 200, 5, true, &KILL_MEAL},

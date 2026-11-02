@@ -455,6 +455,7 @@ Simulation::Simulation(Settings settings)
     sites_.assign(area, 0);
     site_turns_.assign(area, 0);
     shelters_.assign(area, 0);
+    arable_.assign(area, 0);
     fire_lighters_.assign(area, -1);
     grass_.assign(area, 0);
     update_climate();
@@ -1464,7 +1465,7 @@ double choice_learning(int choice) {
         case Breed: return BREED_LEARNING;
         case Court: return COURT_LEARNING;
         case Hunt: case Attack: case Feast: return KILL_FOOD_LEARNING;
-        case Eat: case Forage: case Browse: case Uproot: case EatPile: case EatCarried: return PLANT_FOOD_LEARNING;
+        case Eat: case Forage: case Browse: case Uproot: case EatPile: case EatCarried: case EatSeed: return PLANT_FOOD_LEARNING;
         default: return 1.0;
     }
 }
@@ -2023,6 +2024,9 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [actor, outcome] : tile.witnessed) witness(*actor, outcome);
     }
     for (ActingTile& tile : tiles) {
+        seeds_.insert(seeds_.end(), tile.sown.begin(), tile.sown.end());
+    }
+    for (ActingTile& tile : tiles) {
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
     for (ActingTile& tile : tiles) {
@@ -2268,6 +2272,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[TakeGear] = s.gear_pile.has_value();
     available[Cut] = s.flora && (agent.weapon == BoneAxe || agent.weapon == StoneAxe);
     available[Dig] = agent.weapon != NoWeapon && !sea(agent.x, agent.y);
+    available[EatSeed] = agent.carried_seed > 0 && agent.browsing > 0;
+    available[PlantSeed] = agent.carried_seed > 0 && arable_at(agent.x, agent.y);
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
     available[EatCarried] = (agent.carried_meat + agent.cooked_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit && FRUIT_PORTION * agent.browsing > 0);
@@ -2356,6 +2362,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseGearPileCloseness] = closeness(agent, s.gear_pile, sight);
     senses[SenseFireCloseness] = closeness(agent, s.fire, sight);
     senses[SenseFireFriendly] = s.fire && fire_friendly(agent, *s.fire);
+    senses[SenseArableHere] = arable_at(agent.x, agent.y) ? 1.0 : 0.0;
+    senses[SenseSeedCarried] = agent.carried_seed > 0 ? 1.0 : 0.0;
     senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
     senses[SenseWielding] = gear_force(agent) > 1;
     senses[SenseArmoured] = agent.armour != NoArmour;
@@ -2996,6 +3004,12 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Dig:
             dig(agent);
             break;
+        case EatSeed:
+            eat_seed(agent);
+            break;
+        case PlantSeed:
+            plant_seed(agent);
+            break;
         case Construct:
             construct(agent);
             break;
@@ -3432,6 +3446,7 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
     }
     add_to_pile(pile.x, pile.y, kind, -1);
     ++carrying[PileEaten];
+    if (kind == FruitPile) keep_seed(agent);
     agent.nourish((eats_meat ? meat : fruit) * (kind == raw ? 1.0 : COOKED_FOOD), eats_meat);
     agent.last_action = "ate from a pile";
 }
@@ -3442,7 +3457,10 @@ void Simulation::eat_carried(Bitzkey& agent) {
     const bool eats_meat = meat >= fruit;
     int& cooked = eats_meat ? agent.cooked_meat : agent.cooked_fruit;  // the cooked first
     if (cooked) --cooked;
-    else --(eats_meat ? agent.carried_meat : agent.carried_fruit);
+    else {
+        --(eats_meat ? agent.carried_meat : agent.carried_fruit);
+        if (!eats_meat) keep_seed(agent);
+    }
     ++carrying[CarriedEaten];
     agent.nourish(eats_meat ? meat : fruit, eats_meat);
     agent.last_action = "ate what it carried";
@@ -3557,10 +3575,37 @@ void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
 void Simulation::dig(Bitzkey& agent) {
     wear_weapon(agent);
     agent.last_action = "dug";
+    if (zone_temperature(agent.y, height_) == Medium) {  // only temperate land can be worked
+        arable_[static_cast<std::size_t>(agent.y) * width_ + agent.x] = 1;
+        note_first("tilled", agent.species, agent.identifier);
+    }
     if (rng().random() >= DIG_CHANCE) return;
     if (agent.load() < agent.capacity()) ++agent.carried_stone;
     else add_to_pile(agent.x, agent.y, StonePile);
     agent.last_action = "dug up a stone";
+}
+
+void Simulation::keep_seed(Bitzkey& agent) {
+    if (agent.carried_seed < agent.capacity()) ++agent.carried_seed;
+}
+
+void Simulation::eat_seed(Bitzkey& agent) {
+    --agent.carried_seed;
+    agent.nourish(FRUIT_PORTION * SEED_FOOD * agent.browsing, false);
+    agent.last_action = "ate a seed";
+}
+
+void Simulation::plant_seed(Bitzkey& agent) {
+    // A plant at home where it is sown, sprouting as any seed does.
+    --agent.carried_seed;
+    Dna dna = make_dna(rng(), static_cast<int>(Species::Plant));
+    dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(zone_temperature(agent.y, height_)) << TEMPERATURE_SHIFT;
+    dna = with_terrain(dna, Terrain::Terrestrial);
+    (acting_ ? acting_->sown : seeds_).push_back({agent.x, agent.y, dna, 0, turn_});
+    agent.reward += PLANTING_JOY * (0.5 + agent.feeling(Curiosity));
+    agent.last_action = "planted a seed";
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);
+    note_first("planted", agent.species, agent.identifier);
 }
 
 void Simulation::light_fire(Bitzkey& agent) {

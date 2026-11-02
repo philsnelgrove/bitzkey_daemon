@@ -300,7 +300,7 @@ std::string frame(const Simulation& simulation) {
             for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) gear += simulation.pile_at(x, y, kind);
             const bool fire = simulation.fire_at(x, y) > simulation.turn();
             const int building = simulation.shelter_at(x, y) ? 2 : simulation.site_at(x, y) ? 1 : 0;
-            if (!meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building && !simulation.pile_at(x, y, CookedMeatPile) && !simulation.pile_at(x, y, CookedFruitPile)) continue;
+            if (!simulation.arable_at(x, y) && !meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building && !simulation.pile_at(x, y, CookedMeatPile) && !simulation.pile_at(x, y, CookedFruitPile)) continue;
             ++piles;
             put<std::uint16_t>(out, static_cast<std::uint16_t>(x));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(y));
@@ -311,7 +311,7 @@ std::string frame(const Simulation& simulation) {
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(wood, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(std::min(gear, 65535)));
             put<std::uint16_t>(out, static_cast<std::uint16_t>(fire + 2 * building + 8 * std::min(simulation.site_at(x, y), 31) + 256 * (fire ? std::min(simulation.fire_at(x, y) - simulation.turn(), 255) : 0)));
-            put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.pile_at(x, y, CookedMeatPile) + simulation.pile_at(x, y, CookedFruitPile)));
+            put<std::uint16_t>(out, static_cast<std::uint16_t>((simulation.arable_at(x, y) ? 32768 : 0) + simulation.pile_at(x, y, CookedMeatPile) + simulation.pile_at(x, y, CookedFruitPile)));
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);

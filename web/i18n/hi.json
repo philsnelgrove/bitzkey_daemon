@@ -1615,5 +1615,9 @@
 "Faction share": "गुट अंश",
 "how much of a deed's weight also falls on the doer's whole colour": "किसी कर्म के भार का कितना अंश कर्ता के पूरे रंग पर भी पड़ता है",
 "Faction width": "गुट की चौड़ाई",
-"how far apart on the body ring two animals may be and count as one faction": "शरीर-वलय पर दो पशु कितनी दूर होकर भी एक गुट गिने जाएँ"
+"how far apart on the body ring two animals may be and count as one faction": "शरीर-वलय पर दो पशु कितनी दूर होकर भी एक गुट गिने जाएँ",
+"Seed food": "बीज का पोषण",
+"how much of a fruit's portion a seed feeds": "फल के एक भाग का कितना अंश एक बीज पोषित करता है",
+"Planting joy": "रोपण का आनंद",
+"the gladness of planting a seed; more if curious": "बीज बोने का आनंद; जिज्ञासु हो तो अधिक"
 }

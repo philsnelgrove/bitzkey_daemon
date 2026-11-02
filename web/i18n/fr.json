@@ -1615,5 +1615,9 @@
 "Faction share": "Part de la faction",
 "how much of a deed's weight also falls on the doer's whole colour": "la part du poids d'un acte qui retombe aussi sur toute la couleur de son auteur",
 "Faction width": "Largeur de la faction",
-"how far apart on the body ring two animals may be and count as one faction": "l'écart permis sur l'anneau du corps pour que deux animaux comptent comme une même faction"
+"how far apart on the body ring two animals may be and count as one faction": "l'écart permis sur l'anneau du corps pour que deux animaux comptent comme une même faction",
+"Seed food": "Nourriture de graine",
+"how much of a fruit's portion a seed feeds": "la part d'une portion de fruit que nourrit une graine",
+"Planting joy": "Joie de planter",
+"the gladness of planting a seed; more if curious": "la joie de planter une graine ; plus grande si curieux"
 }

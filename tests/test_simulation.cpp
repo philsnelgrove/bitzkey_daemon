@@ -2661,6 +2661,40 @@ TEST_CASE("a deed colours the view of the doer's whole faction, and a stranger i
     REQUIRE(loaded->find_agent(agent.identifier)->factions.size() == 1);
 }
 
+TEST_CASE("fruit leaves a seed, a tool works temperate land, and a seed is planted there or eaten") {
+    Simulation simulation(40, 40, 0, 1);
+    int temperate = -1, hot = -1;
+    for (int y = 0; y < 40; ++y) {
+        if (zone_temperature(y, 40) == Medium) temperate = y;
+        if (zone_temperature(y, 40) == Hot) hot = y;
+    }
+    REQUIRE((temperate >= 0 && hot >= 0));
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, temperate);
+    Bitzkey& nomad = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, hot);
+    farmer.weapon = nomad.weapon = Club;
+    simulation.dig(farmer);
+    simulation.dig(nomad);
+    CHECK(simulation.arable_at(5, temperate));
+    CHECK_FALSE(simulation.arable_at(5, hot));
+    farmer.carried_fruit = 1;
+    simulation.eat_carried(farmer);
+    CHECK(farmer.carried_seed == 1);
+    farmer.cooked_fruit = 1;
+    simulation.eat_carried(farmer);
+    CHECK(farmer.carried_seed == 1);  // cooking ends a seed
+    const double reward = farmer.reward;
+    const std::size_t seeds = simulation.seeds().size();
+    simulation.plant_seed(farmer);
+    CHECK(simulation.seeds().size() == seeds + 1);
+    CHECK(farmer.carried_seed == 0);
+    CHECK(farmer.reward == doctest::Approx(reward + PLANTING_JOY * (0.5 + farmer.feeling(Curiosity))));
+    farmer.carried_seed = 1;
+    farmer.hunger = 50;
+    simulation.eat_seed(farmer);
+    CHECK(farmer.carried_seed == 0);
+    CHECK(farmer.hunger < 50);
+}
+
 TEST_CASE("bone rots like wood") {
     Simulation simulation(10, 10, 0, 1);
     simulation.add_to_pile(5, 5, BonePile, 2);
@@ -2784,8 +2818,7 @@ TEST_CASE("seven units make a shelter, which doubles a square and keeps wood fro
     simulation.add_to_pile(5, 5, WoodPile, 2);
     const double wood_lasts = WOOD_LASTS;
     WOOD_LASTS = 0;
-    simulation.index_cells();
-    simulation.take_turn();
+    simulation.spoil_piles();  // alone: its builder might otherwise take from the pile
     WOOD_LASTS = wood_lasts;
     CHECK(simulation.pile_at(5, 5, BonePile) == 2);
     CHECK(simulation.pile_at(5, 5, WoodPile) == 2);
