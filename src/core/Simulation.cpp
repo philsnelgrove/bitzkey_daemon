@@ -648,6 +648,23 @@ void Simulation::spawn_biomes(bool plants) {
             }
         }
     }
+    if (plants || !has_sea()) return;
+    // The avian and amphibious live on land and sea alike: BIOME_GROUPS groups of each animal in every temperature zone.
+    for (const std::vector<int>& rows : zones()) {
+        const int home = zone_temperature(rows.front(), height_);
+        for (const Terrain terrain : {Terrain::Avian, Terrain::Amphibious}) {
+            for (int set = 0; set < BIOME_GROUPS; ++set) {
+                for (const Species species : {Species::Omnivore, Species::Predator, Species::Grazer}) {
+                    const int kind = static_cast<int>(species);
+                    Dna dna = make_dna(rng(), kind);
+                    dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(home) << TEMPERATURE_SHIFT;
+                    dna = with_terrain(dna, terrain);
+                    const int size = species == Species::Grazer ? std::max(1, GRAZER_SPAWN_GROUP) : static_cast<int>(rng().randint(SPAWN_GROUP[0], SPAWN_GROUP[1]));
+                    spawn_group(dna, size, nullptr, std::nullopt, true, rows);
+                }
+            }
+        }
+    }
 }
 
 std::optional<Cell> Simulation::group_centre(Terrain terrain, const std::vector<int>& rows) {
