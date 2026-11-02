@@ -193,7 +193,7 @@ async function poll(force = false) {
     if (force || (state.version !== shownVersion && now - lastFrame >= FRAME_MS)) {
       shownVersion = state.version;
       lastFrame = now;
-      await loadFrame();
+      if (!blind) await loadFrame();  // blind, no map is asked for, nor made
       app.overlay?.update?.(state);
     }
     if (force || now - lastSlow > SLOW_POLL_MS) {
@@ -646,7 +646,7 @@ const TEXT_SIZES = [1, 1.25, 1.5, 2];
 let textSize = 0;
 
 map.addEventListener('mousedown', event => {
-  if (!app.frame) return;
+  if (!app.frame || blind) return;
   const [x, y] = mousePoint(event);
   if (globe) {  // a right or middle drag turns the globe; a click picks the Bitzkey there
     if (event.button === 0) {
@@ -792,9 +792,9 @@ const filterRow = (labels, shown) => element('div', { class: 'filter-row' }, lab
     drawMap();
   } }, label)));
 const viewButtons = element('div', { class: 'view-buttons' },
-  element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); } }, 'MAP'),
-  element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); } }, 'GLOBE'),
-  element('button', { class: 'view-blind', onclick: () => { blind = true; showViewButtons(); drawMap(); } }, 'BLIND'),
+  element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); loadFrame(); } }, 'MAP'),
+  element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); loadFrame(); } }, 'GLOBE'),
+  element('button', { class: 'view-blind', onclick: () => { blind = true; selectAll(new Set()); showViewButtons(); drawMap(); } }, 'BLIND'),
   element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'));
 // Beneath them, the filters: a row by species, a row by terrain
 const filterButtons = element('div', { class: 'filter-buttons' },
