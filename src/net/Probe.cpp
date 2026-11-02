@@ -1,5 +1,7 @@
 #include "net/Probe.hpp"
 
+#include <cstdio>
+#include <unordered_map>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -837,6 +839,154 @@ Json Probe::regard(Simulation& world) const {
                                     {"refused_from_enemies", count(Simulation::AlertsRefused)}}}};
 }
 
+Json Probe::society(Simulation& world) const {
+    // Whether groups and leaders are forming, by species. Each closeness is in steps, to be read against `strangers`, the
+    // mean distance of unrelated animals of the species: a group that means anything stands nearer than that.
+    //   families: those living descended from one living mother, and how near mother and child stay.
+    //   tribes: those joined by friendship both ways, directly or through others.
+    //   factions: animals within Faction width of one colour, and whether they think better of their own than of others.
+    //   leaders: those the most hold as friends, or as skilled, and whether their followers stay near them.
+    const auto steps = [](const Bitzkey& a, const Bitzkey& b) { return std::abs(a.x - b.x) + std::abs(a.y - b.y); };
+    const auto mean = [](double sum, long long count) { return count > 0 ? Json(sum / count) : Json(nullptr); };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::vector<const Bitzkey*> animals;
+        std::unordered_map<int, std::size_t> index;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            index[agent->identifier] = animals.size();
+            animals.push_back(agent);
+        }
+        const std::size_t count = animals.size();
+        double apart = 0;
+        for (std::size_t at = 0; at < count; ++at) apart += steps(*animals[at], *animals[(at + count / 2) % count]);
+
+        // Unions of the living: `joined` is its own for families and tribes in turn.
+        std::vector<std::size_t> joined(count);
+        const auto root = [&](std::size_t at) {
+            while (joined[at] != at) at = joined[at] = joined[joined[at]];
+            return at;
+        };
+        const auto groups = [&](double spread_sum, long long spread_count) {
+            std::unordered_map<std::size_t, long long> sizes;
+            for (std::size_t at = 0; at < count; ++at) sizes[root(at)] += 1;
+            long long largest = 0, of_three = 0, within = 0;
+            for (const auto& [group, size] : sizes) {
+                largest = std::max(largest, size);
+                if (size >= 3) {
+                    of_three += 1;
+                    within += size;
+                }
+            }
+            return Json{{"groups_of_three_or_more", of_three}, {"largest", largest}, {"share_in_a_group", count ? Json(static_cast<double>(within) / count) : Json(nullptr)},
+                        {"mean_steps_apart", mean(spread_sum, spread_count)}};
+        };
+
+        std::iota(joined.begin(), joined.end(), std::size_t{0});
+        double family_steps = 0;
+        long long family_ties = 0;
+        for (std::size_t at = 0; at < count; ++at) {
+            const auto mother = index.find(animals[at]->mother);
+            if (mother == index.end()) continue;
+            joined[root(at)] = root(mother->second);
+            family_steps += steps(*animals[at], *animals[mother->second]);
+            family_ties += 1;
+        }
+        const Json families = groups(family_steps, family_ties);
+
+        std::iota(joined.begin(), joined.end(), std::size_t{0});
+        struct Follow {
+            long long friends = 0, skilled = 0, dangerous = 0, hostile = 0;
+            double friend_steps = 0;
+        };
+        std::vector<Follow> follows(count);
+        double tribe_steps = 0;
+        long long tribe_ties = 0;
+        for (std::size_t at = 0; at < count; ++at) {
+            for (const Acquaintance& known : animals[at]->known) {
+                const auto other = index.find(known.identifier);
+                if (other == index.end()) continue;
+                Follow& follow = follows[other->second];
+                follow.skilled += known.skill >= 0.5;
+                follow.dangerous += known.danger >= 0.5;
+                follow.hostile += known.regard <= -REGARD_STRONG;
+                if (known.regard < REGARD_STRONG) continue;
+                follow.friends += 1;
+                follow.friend_steps += steps(*animals[at], *animals[other->second]);
+                const auto& theirs = animals[other->second]->known;
+                const bool mutual = std::any_of(theirs.begin(), theirs.end(), [&](const Acquaintance& one) {
+                    return one.identifier == animals[at]->identifier && one.regard >= REGARD_STRONG;
+                });
+                if (!mutual) continue;
+                joined[root(at)] = root(other->second);
+                tribe_steps += steps(*animals[at], *animals[other->second]);
+                tribe_ties += 1;
+            }
+        }
+        const Json tribes = groups(tribe_steps, tribe_ties);
+
+        // Colours, each the first animal met of it, in turn: too many to compare all against all, so the largest are kept.
+        struct Colour {
+            std::uint32_t ring = 0;
+            long long members = 0, hostile = 0, friendly = 0;  // of all animals' views of it
+        };
+        std::vector<Colour> colours;
+        for (const Bitzkey* agent : animals) {
+            const std::uint32_t ring = body_word(agent->dna);
+            const auto found = std::find_if(colours.begin(), colours.end(), [&](const Colour& one) { return colour_difference(one.ring, ring) <= FACTION_WIDTH; });
+            if (found != colours.end()) found->members += 1;
+            else if (colours.size() < 200) colours.push_back({ring, 1});
+        }
+        double own_regard = 0, other_regard = 0;
+        long long own_views = 0, other_views = 0;
+        for (const Bitzkey* agent : animals) {
+            const std::uint32_t ring = body_word(agent->dna);
+            for (const Faction& view : agent->factions) {
+                const bool own = colour_difference(view.ring, ring) <= FACTION_WIDTH;
+                (own ? own_regard : other_regard) += view.regard;
+                (own ? own_views : other_views) += 1;
+                for (Colour& colour : colours) {
+                    if (colour_difference(colour.ring, view.ring) > FACTION_WIDTH) continue;
+                    colour.hostile += view.regard <= -REGARD_STRONG;
+                    colour.friendly += view.regard >= REGARD_STRONG;
+                    break;
+                }
+            }
+        }
+        std::sort(colours.begin(), colours.end(), [](const Colour& a, const Colour& b) { return a.members > b.members; });
+        Json largest_colours = Json::array();
+        for (std::size_t at = 0; at < std::min<std::size_t>(colours.size(), 5); ++at) {
+            char ring[9];
+            std::snprintf(ring, sizeof ring, "%08x", colours[at].ring);
+            largest_colours.push_back({{"ring", ring}, {"members", colours[at].members}, {"held_hostile_by", colours[at].hostile}, {"held_friendly_by", colours[at].friendly}});
+        }
+
+        std::vector<std::size_t> ranked(count);
+        std::iota(ranked.begin(), ranked.end(), std::size_t{0});
+        const auto standing = [&](std::size_t at) { return follows[at].friends + follows[at].skilled; };
+        std::sort(ranked.begin(), ranked.end(), [&](std::size_t a, std::size_t b) { return standing(a) != standing(b) ? standing(a) > standing(b) : animals[a]->identifier < animals[b]->identifier; });
+        Json leaders = Json::array();
+        long long followed_by_three = 0, followers = 0, top_followers = 0;
+        for (std::size_t at = 0; at < count; ++at) {
+            const long long held = standing(ranked[at]);
+            followers += held;
+            followed_by_three += follows[ranked[at]].friends >= 3;
+            if (at < 5) top_followers += held;
+            if (at >= 5 || held == 0) continue;
+            const Follow& follow = follows[ranked[at]];
+            const Bitzkey& leader = *animals[ranked[at]];
+            leaders.push_back({{"id", leader.identifier}, {"friends", follow.friends}, {"held_skilled_by", follow.skilled}, {"held_dangerous_by", follow.dangerous},
+                               {"enemies", follow.hostile}, {"friends_mean_steps", mean(follow.friend_steps, follow.friends)},
+                               {"age_share", static_cast<double>(leader.age) / std::max(1.0, static_cast<double>(leader.lifespan))}, {"elder", leader.age > AGEING * leader.lifespan}});
+        }
+        result[std::string(species_name(species))] = {
+            {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
+            {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}}},
+            {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders}}}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
 Json Probe::diary(Simulation& world) const {
     Json entries = Json::array();
     for (const Simulation::Milestone& entry : world.diary()) {
@@ -1037,6 +1187,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/society", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return society(world); }));
     }));
     server.Get(prefix + "/regard", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return regard(world); }));

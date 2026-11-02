@@ -235,6 +235,31 @@ TEST_CASE("the probe counts each species' infants, and those sheltered beside a 
     FEEBLE_YOUTH = 0.0;
 }
 
+TEST_CASE("the society route finds a family, a tribe of mutual friends and the one most followed") {
+    Simulation world(40, 40, 0, 1);
+    Bitzkey& mother = world.add_agent(encode_dna(Species::Omnivore), 5, 5);
+    Bitzkey& child = world.add_agent(mother.dna, 6, 5);
+    Bitzkey& grandchild = world.add_agent(mother.dna, 7, 5);
+    Bitzkey& follower = world.add_agent(mother.dna, 20, 20);
+    child.mother = mother.identifier;
+    grandchild.mother = child.identifier;
+    for (Bitzkey* one : {&child, &grandchild, &follower}) {
+        one->known.push_back(Acquaintance{mother.identifier, 0.9, 0, 0.0, 0.8});
+        mother.known.push_back(Acquaintance{one->identifier, 0.9, 0});
+    }
+    world.index_cells();
+    const Json omnivores = direct(world).society(world)["species"]["omnivore"];
+    CHECK(omnivores["living"] == 4);
+    CHECK(omnivores["families"]["largest"] == 3);
+    CHECK(omnivores["families"]["groups_of_three_or_more"] == 1);
+    CHECK(omnivores["tribes"]["largest"] == 4);
+    const Json top = omnivores["leaders"]["top"][0];
+    CHECK(top["id"] == mother.identifier);
+    CHECK(top["friends"] == 3);
+    CHECK(top["held_skilled_by"] == 3);
+    CHECK(omnivores["leaders"]["followed_by_three_or_more"] == 1);
+}
+
 TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lessons, and counts them by species") {
     Simulation world = empty_world();
     Bitzkey& maker = world.add_agent(encode_dna(Species::Omnivore), 5, 5);
