@@ -1619,5 +1619,13 @@
 "Seed food": "Pożywność nasiona",
 "how much of a fruit's portion a seed feeds": "jaką część porcji owocu daje nasiono",
 "Planting joy": "Radość sadzenia",
-"the gladness of planting a seed; more if curious": "radość z posadzenia nasiona; większa u ciekawskich"
+"the gladness of planting a seed; more if curious": "radość z posadzenia nasiona; większa u ciekawskich",
+"Boredom rise": "Wzrost nudy",
+"how much boredom a turn of doing what it did lately adds, out of 1": "ile nudy dodaje tura powtarzania niedawnych czynności, z 1",
+"Boredom relief": "Ulga od nudy",
+"how much boredom doing something long undone takes away": "ile nudy zabiera zrobienie czegoś dawno niezrobionego",
+"Boredom drive": "Popęd nudy",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "szansa, przy pełnej nudzie, że zwierzę poza niebezpieczeństwem zrobi coś innego, najchętniej to najdawniej niezrobione",
+"Boredom unease": "Dyskomfort nudy",
+"how unpleasant a turn of full boredom is": "jak nieprzyjemna jest tura pełnej nudy"
 }

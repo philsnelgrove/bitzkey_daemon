@@ -1619,5 +1619,13 @@
 "Seed food": "Nutrimento del seme",
 "how much of a fruit's portion a seed feeds": "quanto di una porzione di frutta nutre un seme",
 "Planting joy": "Gioia di piantare",
-"the gladness of planting a seed; more if curious": "la gioia di piantare un seme; maggiore se curioso"
+"the gladness of planting a seed; more if curious": "la gioia di piantare un seme; maggiore se curioso",
+"Boredom rise": "Aumento della noia",
+"how much boredom a turn of doing what it did lately adds, out of 1": "quanta noia aggiunge un turno passato a ripetere ciò che ha fatto di recente, su 1",
+"Boredom relief": "Sollievo dalla noia",
+"how much boredom doing something long undone takes away": "quanta noia toglie fare qualcosa trascurato a lungo",
+"Boredom drive": "Spinta della noia",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "la probabilità, a noia piena, che un animale non in pericolo faccia altro, soprattutto ciò che ha trascurato di più",
+"Boredom unease": "Disagio della noia",
+"how unpleasant a turn of full boredom is": "quanto è sgradevole un turno di noia piena"
 }

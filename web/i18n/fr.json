@@ -1619,5 +1619,13 @@
 "Seed food": "Nourriture de graine",
 "how much of a fruit's portion a seed feeds": "la part d'une portion de fruit que nourrit une graine",
 "Planting joy": "Joie de planter",
-"the gladness of planting a seed; more if curious": "la joie de planter une graine ; plus grande si curieux"
+"the gladness of planting a seed; more if curious": "la joie de planter une graine ; plus grande si curieux",
+"Boredom rise": "Hausse de l'ennui",
+"how much boredom a turn of doing what it did lately adds, out of 1": "combien d'ennui ajoute un tour à refaire ce qu'il a fait récemment, sur 1",
+"Boredom relief": "Soulagement de l'ennui",
+"how much boredom doing something long undone takes away": "combien d'ennui retire le fait de faire une chose longtemps délaissée",
+"Boredom drive": "Élan de l'ennui",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "la chance, à ennui complet, qu'un animal hors de danger fasse autre chose, de préférence ce qu'il a le plus délaissé",
+"Boredom unease": "Malaise de l'ennui",
+"how unpleasant a turn of full boredom is": "à quel point un tour d'ennui complet est désagréable"
 }

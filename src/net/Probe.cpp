@@ -215,6 +215,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
                                                                                       {"source", CRAFT_SOURCES[static_cast<std::size_t>(agent->craft_source[static_cast<std::size_t>(craft)])]}};
     }
     result["crafts"] = crafts;
+    result["boredom"] = agent->boredom;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
                       {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},

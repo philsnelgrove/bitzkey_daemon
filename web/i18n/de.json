@@ -1619,5 +1619,13 @@
 "Seed food": "Samennahrung",
 "how much of a fruit's portion a seed feeds": "wie viel einer Fruchtportion ein Same nährt",
 "Planting joy": "Pflanzfreude",
-"the gladness of planting a seed; more if curious": "die Freude, einen Samen zu pflanzen; stärker wenn neugierig"
+"the gladness of planting a seed; more if curious": "die Freude, einen Samen zu pflanzen; stärker wenn neugierig",
+"Boredom rise": "Langeweile-Anstieg",
+"how much boredom a turn of doing what it did lately adds, out of 1": "wie viel Langeweile ein Zug mit dem kürzlich Getanen hinzufügt, von 1",
+"Boredom relief": "Langeweile-Linderung",
+"how much boredom doing something long undone takes away": "wie viel Langeweile etwas lange nicht Getanes nimmt",
+"Boredom drive": "Langeweile-Antrieb",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "die Chance bei voller Langeweile, dass ein Tier ohne Gefahr etwas anderes tut, am ehesten das am längsten Unterlassene",
+"Boredom unease": "Langeweile-Unbehagen",
+"how unpleasant a turn of full boredom is": "wie unangenehm ein Zug voller Langeweile ist"
 }

@@ -1833,6 +1833,14 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         restless[index] = rng().random();
         call_rolls[index] = rng().random();
     }
+    // How fresh an option is to an animal: 1 if untried or BOREDOM_HORIZON turns past, 0 if just done.
+    const auto novelty = [this](const Bitzkey& agent, int option) {
+        const int tried = agent.last_tried[static_cast<std::size_t>(option)];
+        return tried ? std::min(1.0, (turn_ + 1 - tried) / static_cast<double>(BOREDOM_HORIZON)) : 1.0;
+    };
+    const auto hungry_meal = [](const Bitzkey& agent, int option) {
+        return agent.hunger >= 50 && (option <= Feast || option == EatPile || option == EatCarried || option == EatSeed);
+    };
     std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
         Bitzkey& agent = *agents[index];
         Situation& situation = plans[index].situation;
@@ -1868,15 +1876,29 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                     break;
                 }
             }
-            const double restlessness = RESTLESS_CURIOSITY * (0.5 + curiosity);
-            if (!peril && choice == Rest && options.size() > 1 && restless[index] < restlessness) {
-                // Restless, it does any of its other options instead of resting.
+            // Restless, or bored of whatever it chose, it does another of its options, the likelier the longer since it
+            // last did it; a hungry animal is never bored off its meal.
+            const double restlessness = (choice == Rest ? RESTLESS_CURIOSITY * (0.5 + curiosity) : 0.0) + BOREDOM_DRIVE * agent.boredom;
+            if (!peril && !hungry_meal(agent, choice) && options.size() > 1 && restless[index] < restlessness) {
                 std::vector<int> others;
+                double weight = 0.0;
                 for (const int option : options) {
-                    if (option != Rest) others.push_back(option);
+                    if (option == choice) continue;
+                    others.push_back(option);
+                    weight += 0.01 + novelty(agent, option);
                 }
-                choice = others[std::min(others.size() - 1, static_cast<std::size_t>(restless[index] / restlessness * static_cast<double>(others.size())))];
+                double pick = restless[index] / restlessness * weight;
+                for (const int option : others) {
+                    choice = option;
+                    pick -= 0.01 + novelty(agent, option);
+                    if (pick < 0) break;
+                }
             }
+        }
+        if (!peril && options.size() > 1) {  // the same few things weary it; something long undone, or a needed meal, refreshes it
+            const double fresh = hungry_meal(agent, choice) ? 1.0 : novelty(agent, choice);
+            agent.boredom = std::clamp(agent.boredom + BOREDOM_RISE * (1.0 - fresh) - BOREDOM_RELIEF * fresh, 0.0, 1.0);
+            agent.last_tried[static_cast<std::size_t>(choice)] = turn_ + 1;
         }
         agent.odds.fill(0.0);
         agent.odds_offered = 0;
@@ -1916,7 +1938,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.last_panicked = situation.panic;
         agent.last_wellbeing = wellbeing(agent);
         agent.last_comfort = comforts[index];
-        agent.reward = 0.0;
+        agent.reward = -BOREDOM_UNEASE * agent.boredom;
         agent.assailant.reset();  // the chance to strike back, or need to flee, passes with this choice
         agent.panicked = false;
         agent.alarm.reset();
@@ -2364,6 +2386,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseFireFriendly] = s.fire && fire_friendly(agent, *s.fire);
     senses[SenseArableHere] = arable_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseSeedCarried] = agent.carried_seed > 0 ? 1.0 : 0.0;
+    senses[SenseBoredom] = agent.boredom;
     senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
     senses[SenseWielding] = gear_force(agent) > 1;
     senses[SenseArmoured] = agent.armour != NoArmour;

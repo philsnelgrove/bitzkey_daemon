@@ -1619,5 +1619,13 @@
 "Seed food": "מזון זרע",
 "how much of a fruit's portion a seed feeds": "כמה ממנת פרי מזין זרע",
 "Planting joy": "שמחת השתילה",
-"the gladness of planting a seed; more if curious": "השמחה בשתילת זרע; רבה יותר אם סקרן"
+"the gladness of planting a seed; more if curious": "השמחה בשתילת זרע; רבה יותר אם סקרן",
+"Boredom rise": "עליית השעמום",
+"how much boredom a turn of doing what it did lately adds, out of 1": "כמה שעמום מוסיף תור של עשיית מה שנעשה לאחרונה, מתוך 1",
+"Boredom relief": "הקלת השעמום",
+"how much boredom doing something long undone takes away": "כמה שעמום מסירה עשיית דבר שלא נעשה זמן רב",
+"Boredom drive": "דחף השעמום",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "הסיכוי, בשעמום מלא, שחיה שאינה בסכנה תעשה דבר אחר, בעיקר את מה שלא עשתה הכי הרבה זמן",
+"Boredom unease": "אי-נוחות השעמום",
+"how unpleasant a turn of full boredom is": "כמה לא נעים תור של שעמום מלא"
 }

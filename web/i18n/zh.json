@@ -1619,5 +1619,13 @@
 "Seed food": "种子养分",
 "how much of a fruit's portion a seed feeds": "一粒种子相当于一份果实的多少养分",
 "Planting joy": "播种之乐",
-"the gladness of planting a seed; more if curious": "播种的喜悦;越好奇越强"
+"the gladness of planting a seed; more if curious": "播种的喜悦;越好奇越强",
+"Boredom rise": "无聊上升",
+"how much boredom a turn of doing what it did lately adds, out of 1": "重复近期行为的一回合增加多少无聊(满值为1)",
+"Boredom relief": "无聊缓解",
+"how much boredom doing something long undone takes away": "做久未做的事能减少多少无聊",
+"Boredom drive": "无聊驱动",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "完全无聊时,未处于危险的动物改做其他选项的概率,最久未做的最可能",
+"Boredom unease": "无聊不适",
+"how unpleasant a turn of full boredom is": "完全无聊的一回合有多难受"
 }

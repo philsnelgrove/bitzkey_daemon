@@ -1619,5 +1619,13 @@
 "Seed food": "Alimento da semente",
 "how much of a fruit's portion a seed feeds": "quanto de uma porção de fruta alimenta uma semente",
 "Planting joy": "Alegria de plantar",
-"the gladness of planting a seed; more if curious": "a alegria de plantar uma semente; maior se curioso"
+"the gladness of planting a seed; more if curious": "a alegria de plantar uma semente; maior se curioso",
+"Boredom rise": "Aumento do tédio",
+"how much boredom a turn of doing what it did lately adds, out of 1": "quanto tédio um turno a repetir o que fez há pouco acrescenta, em 1",
+"Boredom relief": "Alívio do tédio",
+"how much boredom doing something long undone takes away": "quanto tédio tira fazer algo há muito por fazer",
+"Boredom drive": "Impulso do tédio",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "a probabilidade, com tédio total, de um animal fora de perigo fazer outra opção, sobretudo a mais esquecida",
+"Boredom unease": "Desconforto do tédio",
+"how unpleasant a turn of full boredom is": "quão desagradável é um turno de tédio total"
 }

@@ -183,6 +183,10 @@ inline double COMPANY_JOY = 0.1;
 inline double CURIOSITY_JOY = 0.15;
 inline double CURIOUS_EXPLORATION = 0.1;  // the chance, times its curiosity, that an animal tries any of its options at
                                            // random rather than as its brain values them, so no option goes untried for good
+// Boredom, 0..1: rising as an animal keeps to what it did lately, easing as it does what it hasn't for BOREDOM_HORIZON turns.
+// It is felt, unpleasant, and may turn any choice into another, the longest undone the likeliest.
+constexpr int BOREDOM_HORIZON = 200;
+inline double BOREDOM_RISE = 0.02, BOREDOM_RELIEF = 0.25, BOREDOM_DRIVE = 0.2, BOREDOM_UNEASE = 0.2;
 inline double RESTLESS_CURIOSITY = 0.5;  // the chance, times a half and its curiosity, that an animal whose brain chose to rest
                                          // (not made to) does any of its other options instead; in peril, neither, but as its brain chooses
 // Moving costs food. A walk, a single cell, saves this share of the turn's burn, as resting does; going as
@@ -677,6 +681,8 @@ struct Bitzkey {
     int carried_meat = 0, carried_fruit = 0;  // the portions it carries
     int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
+    double boredom = 0.0;  // see BOREDOM_RISE
+    std::array<int, ACTION_COUNT> last_tried{};  // the turn after it last chose each action; 0 for never
     int carried_seed = 0;  // kept from raw fruit it ate, up to its capacity, and no weight to it
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered

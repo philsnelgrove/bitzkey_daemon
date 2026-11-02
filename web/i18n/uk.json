@@ -1619,5 +1619,13 @@
 "Seed food": "Поживність насінини",
 "how much of a fruit's portion a seed feeds": "яку частку порції плоду дає насінина",
 "Planting joy": "Радість садіння",
-"the gladness of planting a seed; more if curious": "радість від садіння насінини; більша в допитливих"
+"the gladness of planting a seed; more if curious": "радість від садіння насінини; більша в допитливих",
+"Boredom rise": "Зростання нудьги",
+"how much boredom a turn of doing what it did lately adds, out of 1": "скільки нудьги додає хід повторення недавнього, з 1",
+"Boredom relief": "Полегшення нудьги",
+"how much boredom doing something long undone takes away": "скільки нудьги знімає те, чого давно не робили",
+"Boredom drive": "Спонука нудьги",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "імовірність, за повної нудьги, що тварина поза небезпекою зробить інше, передусім найдавніше не зроблене",
+"Boredom unease": "Неспокій нудьги",
+"how unpleasant a turn of full boredom is": "наскільки неприємний хід повної нудьги"
 }

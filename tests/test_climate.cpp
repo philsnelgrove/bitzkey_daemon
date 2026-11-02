@@ -847,6 +847,7 @@ TEST_CASE("an animal that chose to rest out of its temperature learns the rest f
 TEST_CASE("a curious animal tries its options at random now and then, an incurious one as its brain values them") {
     TEMPERATURE = 0.01;  // its brain's choice all but certain
     RESTLESS_CURIOSITY = 0;  // and resting as it chooses
+    BOREDOM_DRIVE = 0;
     const auto choices = [](double curiosity, double exploration) {
         CURIOUS_EXPLORATION = exploration;
         Simulation simulation = world_at(239);
@@ -869,9 +870,42 @@ TEST_CASE("a curious animal tries its options at random now and then, an incurio
     CHECK(unmoved < curious);
 }
 
+TEST_CASE("boredom rises with repetition, drives an animal to what it has long left undone, and something new eases it") {
+    TEMPERATURE = 0.01;
+    CURIOUS_EXPLORATION = 0;
+    RESTLESS_CURIOSITY = 0;
+    const auto run = [](double drive) {
+        BOREDOM_DRIVE = drive;
+        Simulation simulation = world_at(239);
+        Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"temperature", Medium}}), 30, 30);
+        grazer.brain->output_biases[Rest] += 100 * VALUE_SCALE;  // a brain set on resting
+        simulation.add_agent(encode_dna(Species::Predator), 90, 90);
+        std::set<int> made;
+        double most = 0.0;
+        for (int turn = 0; turn < 150; ++turn) {
+            grazer.hunger = 0;
+            grazer.health = grazer.max_health;
+            grazer.stamina = FULL_STAMINA;
+            grazer.x = 30;
+            grazer.y = 30;
+            simulation.take_turn();
+            if (grazer.last_forced) continue;
+            made.insert(grazer.last_choice);
+            most = std::max(most, grazer.boredom);
+        }
+        return std::pair{made.size(), most};
+    };
+    const auto [dull, dull_boredom] = run(0.0);
+    const auto [bored, bored_boredom] = run(1.0);
+    CHECK(dull_boredom == doctest::Approx(1.0));  // nothing but rest, and undriven, it grows wholly bored
+    CHECK(bored > dull + 2);                      // driven, it does other things
+    CHECK(bored_boredom > 0.0);
+}
+
 TEST_CASE("an animal whose brain chooses to rest is restless instead, unless in peril, and a panicked flight teaches") {
     TEMPERATURE = 0.01;
     CURIOUS_EXPLORATION = 0;
+    BOREDOM_DRIVE = 0;
     const auto rests = [](double restless, bool starving) {
         RESTLESS_CURIOSITY = restless;
         Simulation simulation = world_at(239);

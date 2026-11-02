@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -328,6 +328,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->carried_bone = record.value("carried_bone", 0);
     agent->carried_wood = record.value("carried_wood", 0);
     agent->carried_seed = record.value("carried_seed", 0);
+    agent->boredom = record.value("boredom", 0.0);  // none in an older world
+    if (record.contains("last_tried") && record.at("last_tried").size() == agent->last_tried.size()) agent->last_tried = record.at("last_tried").get<std::array<int, ACTION_COUNT>>();
     agent->carried_meat = record.value("carried_meat", 0);  // nothing in a world saved before carrying
     agent->carried_fruit = record.value("carried_fruit", 0);
     agent->died_turn = optional_int(record.at("died_turn"));

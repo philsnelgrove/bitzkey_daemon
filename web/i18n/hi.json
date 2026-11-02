@@ -1619,5 +1619,13 @@
 "Seed food": "बीज का पोषण",
 "how much of a fruit's portion a seed feeds": "फल के एक भाग का कितना अंश एक बीज पोषित करता है",
 "Planting joy": "रोपण का आनंद",
-"the gladness of planting a seed; more if curious": "बीज बोने का आनंद; जिज्ञासु हो तो अधिक"
+"the gladness of planting a seed; more if curious": "बीज बोने का आनंद; जिज्ञासु हो तो अधिक",
+"Boredom rise": "ऊब की वृद्धि",
+"how much boredom a turn of doing what it did lately adds, out of 1": "हाल का काम दोहराने का एक दौर कितनी ऊब जोड़ता है, 1 में से",
+"Boredom relief": "ऊब से राहत",
+"how much boredom doing something long undone takes away": "लंबे समय से न किया काम करने से कितनी ऊब घटती है",
+"Boredom drive": "ऊब का आवेग",
+"the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "पूरी ऊब में, खतरे से बाहर जानवर के कुछ और करने की संभावना, सबसे लंबे समय से न किया काम सबसे संभावित",
+"Boredom unease": "ऊब की बेचैनी",
+"how unpleasant a turn of full boredom is": "पूरी ऊब का एक दौर कितना अप्रिय है"
 }
