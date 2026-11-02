@@ -2576,6 +2576,20 @@ TEST_CASE("stones lie scattered once, and bone and wood pile up where bodies fal
     CHECK(simulation.pile_at(5, 5, WoodPile) == 0);
 }
 
+TEST_CASE("bone rots like wood") {
+    Simulation simulation(10, 10, 0, 1);
+    simulation.add_to_pile(5, 5, BonePile, 2);
+    simulation.index_cells();
+    simulation.take_turn();
+    CHECK(simulation.pile_at(5, 5, BonePile) == 2);  // not rotted yet
+    const double wood_lasts = WOOD_LASTS;
+    WOOD_LASTS = 0;
+    simulation.index_cells();
+    simulation.take_turn();
+    WOOD_LASTS = wood_lasts;
+    CHECK(simulation.pile_at(5, 5, BonePile) == 0);
+}
+
 TEST_CASE("stones fall where the Python version's do") {
     Simulation simulation(30, 30, 0, 1);
     int stones = 0;
@@ -2680,6 +2694,16 @@ TEST_CASE("seven units make a shelter, which doubles a square and keeps wood fro
     CHECK(simulation.shelter_at(5, 5));
     CHECK(builder.load() == 0);
     CHECK(simulation.room_in(Cell{5, 5}) == open + CELL_SPACE);
+
+    simulation.add_to_pile(5, 5, BonePile, 2);  // nor does a shelter let bone or wood rot
+    simulation.add_to_pile(5, 5, WoodPile, 2);
+    const double wood_lasts = WOOD_LASTS;
+    WOOD_LASTS = 0;
+    simulation.index_cells();
+    simulation.take_turn();
+    WOOD_LASTS = wood_lasts;
+    CHECK(simulation.pile_at(5, 5, BonePile) == 2);
+    CHECK(simulation.pile_at(5, 5, WoodPile) == 2);
 }
 
 TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, and a failure thrills the curious") {

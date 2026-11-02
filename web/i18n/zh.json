@@ -1526,7 +1526,7 @@
 "Stone scatter": "石头散布",
 "squares to each stone scattered, once in a world's life": "每块散布石头对应的格数,一个世界一生一次",
 "Wood life": "木材寿命",
-"times as long as a pile of food a pile of wood lasts, unless sheltered": "木材堆持续时间是食物堆的多少倍,除非在庇护所内",
+"times as long as a pile of food a pile of wood or bone lasts, unless sheltered": "木头或骨头堆的存留时间是食物堆的多少倍,庇护所内除外",
 "Gear uses": "装备使用次数",
 "uses before a tool or armour of bone or wood breaks": "骨制或木制工具、护甲损坏前的使用次数",
 "Weapon force": "武器力量",

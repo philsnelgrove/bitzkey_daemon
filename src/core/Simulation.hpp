@@ -474,8 +474,8 @@ enum Weapon : int { NoWeapon, BoneAxe, Club, StoneAxe };
 enum Armouring : int { NoArmour, BoneArmour, WoodArmour };
 inline int GEAR_USES = 7;
 inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
-inline int ARMOUR_LEAST = 2;  // stone and bone never spoil
-inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood lasts
+inline int ARMOUR_LEAST = 2;  // stone never spoils
+inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
 inline double PLANT_BITE = 15;

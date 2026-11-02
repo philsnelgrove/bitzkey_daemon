@@ -1526,7 +1526,7 @@
 "Stone scatter": "石の散布",
 "squares to each stone scattered, once in a world's life": "石1個あたりのマス数(世界の一生に一度)",
 "Wood life": "木材の寿命",
-"times as long as a pile of food a pile of wood lasts, unless sheltered": "食料の山の何倍、木材の山が持つか(避難所の中を除く)",
+"times as long as a pile of food a pile of wood or bone lasts, unless sheltered": "木または骨の山が食べ物の山の何倍もつか(シェルター内を除く)",
 "Gear uses": "装備の使用回数",
 "uses before a tool or armour of bone or wood breaks": "骨や木の道具や鎧が壊れるまでの使用回数",
 "Weapon force": "武器の力",

@@ -1526,7 +1526,7 @@
 "Stone scatter": "पत्थर बिखराव",
 "squares to each stone scattered, once in a world's life": "प्रति बिखरे पत्थर वर्ग, दुनिया के जीवन में एक बार",
 "Wood life": "लकड़ी की आयु",
-"times as long as a pile of food a pile of wood lasts, unless sheltered": "भोजन के ढेर से कितने गुना लकड़ी का ढेर टिकता है, आश्रय में न हो तो",
+"times as long as a pile of food a pile of wood or bone lasts, unless sheltered": "भोजन के ढेर की तुलना में लकड़ी या हड्डी का ढेर कितने गुना टिकता है, जब तक आश्रय में न हो",
 "Gear uses": "उपकरण उपयोग",
 "uses before a tool or armour of bone or wood breaks": "हड्डी या लकड़ी का औज़ार या कवच टूटने से पहले उपयोग",
 "Weapon force": "हथियार बल",

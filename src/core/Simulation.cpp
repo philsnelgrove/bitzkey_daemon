@@ -3147,9 +3147,11 @@ void Simulation::spoil_piles() {
     for (std::size_t cell = 0; cell < sites_.size(); ++cell) {
         if (sites_[cell] && turn_ - site_turns_[cell] >= SITE_TURNS) sites_[cell] = 0;
     }
-    std::vector<int>& wood = piles_[WoodPile];
-    for (std::size_t cell = 0; cell < wood.size(); ++cell) {
-        if (wood[cell] > 0 && !shelters_[cell] && turn_ - pile_turns_[WoodPile][cell] >= life * WOOD_LASTS) wood[cell] = 0;  // rotted away
+    for (const PileKind kind : {BonePile, WoodPile}) {
+        std::vector<int>& piles = piles_[kind];
+        for (std::size_t cell = 0; cell < piles.size(); ++cell) {
+            if (piles[cell] > 0 && !shelters_[cell] && turn_ - pile_turns_[kind][cell] >= life * WOOD_LASTS) piles[cell] = 0;  // rotted away
+        }
     }
 }
 
