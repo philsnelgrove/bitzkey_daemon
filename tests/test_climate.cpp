@@ -870,6 +870,23 @@ TEST_CASE("a curious animal tries its options at random now and then, an incurio
     CHECK(unmoved < curious);
 }
 
+TEST_CASE("the feeble old grow patient and curious, and infants curious, however little they were born with") {
+    FEEBLE_YOUTH = 1.0 / 30;  // the tests otherwise have no infants
+    Simulation simulation = world_at(239);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 30, 30);
+    grazer.mind[Curiosity] = 0;
+    grazer.mind[Patience] = 0;
+    grazer.age = static_cast<int>(grazer.lifespan / 2);
+    CHECK(grazer.feeling(Curiosity) == 0.0);
+    CHECK(grazer.feeling(Patience) == 0.0);
+    grazer.age = static_cast<int>(grazer.lifespan) - 1;
+    CHECK(grazer.feeling(Curiosity) == 1.0);
+    CHECK(grazer.feeling(Patience) == 1.0);
+    grazer.age = 0;
+    CHECK(grazer.feeling(Curiosity) == 1.0);
+    CHECK(grazer.feeling(Patience) == 0.0);
+}
+
 TEST_CASE("boredom rises with repetition, drives an animal to what it has long left undone, and something new eases it") {
     TEMPERATURE = 0.01;
     CURIOUS_EXPLORATION = 0;

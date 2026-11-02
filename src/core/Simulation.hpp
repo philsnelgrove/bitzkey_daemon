@@ -821,7 +821,14 @@ struct Bitzkey {
     }
     bool infant() const { return species != Species::Plant && age < infancy(); }
     bool feeble_at_age() const { return species != Species::Plant && (age < infancy() || age > AGEING * lifespan); }
-    double feeling(int trait) const { return share(mind[trait]); }
+    // A temperament trait as it is now: the feeble are drawn out of themselves, the old thrice as patient and twice as
+    // curious and infants twice as curious, each of a half plus the trait, so that none is left at nothing, and up to 1.
+    double feeling(int trait) const {
+        const double value = share(mind[trait]);
+        if (trait == Curiosity && feeble_at_age()) return std::min(1.0, 2.0 * (0.5 + value));
+        if (trait == Patience && feeble_at_age() && !infant()) return std::min(1.0, 3.0 * (0.5 + value));
+        return value;
+    }
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
     // PREDATOR_INTELLIGENCE times over, up to the full range.
     double intelligence() const { return std::min(1.0, feeling(Intellect) * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)); }
