@@ -1599,5 +1599,21 @@
 "Discovery joy": "Радість відкриття",
 "the joy of first discovering a craft, times curiosity": "радість першого відкриття ремесла, помножена на цікавість",
 "the joy of a craft that works, a weapon's in full and armour's in half; more if curious": "радість від вдалого виробу, повна за зброю і половина за броню; більша для цікавого",
-"the joy of first discovering a craft; more if curious": "радість першого відкриття ремесла; більша для цікавого"
+"the joy of first discovering a craft; more if curious": "радість першого відкриття ремесла; більша для цікавого",
+"Witness share": "Частка свідка",
+"how much of a deed's weight it has on regard when only seen done, not done to the animal": "яку вагу має вчинок для повіги, коли його лише бачать, а не зазнають самі",
+"Fire joy": "Радість вогню",
+"the sense of accomplishment in lighting a fire, beside the comfort of it": "відчуття досягнення від розпалювання вогню, окрім його затишку",
+"Regard comfort": "Затишок поваги",
+"ease near a friend, more if trusting, and unease near an enemy, more if fearful": "спокій біля друга, більший у довірливих, і тривога біля ворога, більша в лякливих",
+"Grudge joy": "Радість образи",
+"gladness in harming an enemy, more if aggressive, and pain in harming a friend, more if empathetic": "радість від шкоди ворогові, більша в агресивних, і біль від шкоди другові, більший в емпатичних",
+"Friend joy": "Радість дружби",
+"extra gladness in feeding or teaching a friend; more if empathetic": "додаткова радість від годування чи навчання друга; більша в емпатичних",
+"Factions": "Фракції",
+"how many body colours an animal keeps a reputation for; none at 0": "для скількох кольорів тіла тварина пам'ятає репутацію; за 0 жодного",
+"Faction share": "Частка фракції",
+"how much of a deed's weight also falls on the doer's whole colour": "яка частка ваги вчинку падає також на весь колір того, хто його вчинив",
+"Faction width": "Ширина фракції",
+"how far apart on the body ring two animals may be and count as one faction": "як далеко на кільці тіла можуть бути дві тварини, щоб лічитися однією фракцією"
 }

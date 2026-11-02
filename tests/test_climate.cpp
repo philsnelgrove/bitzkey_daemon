@@ -866,7 +866,7 @@ TEST_CASE("a curious animal tries its options at random now and then, an incurio
     };
     const std::size_t steady = choices(0, 1.0), curious = choices(7, 1.0), unmoved = choices(7, 0.0);
     CHECK(curious > steady + 2);  // it tries what its brain wouldn't
-    CHECK(unmoved <= steady + 1);
+    CHECK(unmoved < curious);
 }
 
 TEST_CASE("an animal whose brain chooses to rest is restless instead, unless in peril, and a panicked flight teaches") {

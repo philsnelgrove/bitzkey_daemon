@@ -2542,7 +2542,7 @@ TEST_CASE("an animal remembers others by what they did to it, senses the nearest
     const int acquaintances = ACQUAINTANCES;
     ACQUAINTANCES = 2;
     Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
-    simulation.note_deed(grazer, stranger, MATING_DEED);  // a third: the one dealt with longest ago is forgotten
+    simulation.note_deed(grazer, stranger, MATING_DEED);  // a third: the one regarded least, either way, is forgotten
     CHECK(grazer.known.size() == 2);
     CHECK(std::none_of(grazer.known.begin(), grazer.known.end(), [&](const Acquaintance& one) { return one.identifier == friendly.identifier; }));
     ACQUAINTANCES = acquaintances;
@@ -2574,6 +2574,91 @@ TEST_CASE("stones lie scattered once, and bone and wood pile up where bodies fal
     simulation.take_turn();
     WOOD_LASTS = wood_lasts;
     CHECK(simulation.pile_at(5, 5, WoodPile) == 0);
+}
+
+TEST_CASE("a deed seen counts for a share, a blow only against one's own kind, and lighting a fire pays") {
+    Simulation simulation(40, 40, 0, 1);
+    Bitzkey& doer = simulation.add_agent(encode_dna(Species::Omnivore, {{"sight", 7}}), 10, 10);
+    Bitzkey& watcher = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 12, 10);
+    Bitzkey& kin = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 11, 10);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 7}}), 10, 11);
+    simulation.index_cells();
+    simulation.deed_seen(doer, BLOW_DEED, &kin, HarmDeed);
+    REQUIRE(watcher.known.size() == 1);
+    CHECK(watcher.known[0].regard == doctest::Approx(BLOW_DEED * WITNESS_SHARE));
+    CHECK(kin.known.empty());  // the victim's own regard is the blow's, not a witness's
+    CHECK(watcher.known[0].danger == doctest::Approx(WITNESS_SHARE));
+    const double regard_before = watcher.known[0].regard, danger_before = watcher.known[0].danger;
+    simulation.deed_seen(doer, BLOW_DEED, &stranger, HarmDeed);
+    CHECK(watcher.known[0].regard == regard_before);  // no wrong to it, not its own kind struck
+    CHECK(watcher.known[0].danger > danger_before);   // yet it has seen what the doer can do
+    doer.weapon = NoWeapon;
+    const double skill_before = watcher.known[0].skill;
+    simulation.note_deed(watcher, doer, CRAFT_DEED, 1.0, SkillDeed, false);
+    CHECK(watcher.known[0].skill > skill_before);
+    CHECK(simulation.sense(watcher).senses[SenseKnownSkill] == doctest::Approx(watcher.known[0].skill));
+    CHECK(simulation.sense(watcher).senses[SenseKnownDanger] == doctest::Approx(watcher.known[0].danger));
+    watcher.known[0].regard = regard_before;
+    const double reward = doer.reward;
+    doer.weapon = Club;
+    simulation.light_fire(doer);
+    CHECK(doer.reward == doctest::Approx(reward + FIRE_JOY));
+    CHECK(watcher.known[0].regard == doctest::Approx(regard_before + REGARD_LEARNING * WITNESS_SHARE * (FIRE_DEED - regard_before)));
+}
+
+TEST_CASE("an enemy is no pleasure to see but a pleasure to strike, and a friend the reverse") {
+    Simulation simulation(40, 40, 0, 1);
+    Bitzkey& agent = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 10, 10);
+    Simulation::Situation near;
+    const double plain = simulation.comfort(agent, near);
+    near.regard_near = 0.8;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain + REGARD_COMFORT * 0.8 * (0.5 + agent.feeling(Trust))));
+    near.regard_near = -0.8;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain - REGARD_COMFORT * 0.8 * (0.5 + agent.fearfulness())));
+    near.regard_near = 0.3;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain));  // neither friend nor enemy
+    CHECK(simulation.harm_felt(agent, -1.0) == doctest::Approx(GRUDGE_JOY * (0.5 + agent.feeling(Aggression))));
+    CHECK(simulation.harm_felt(agent, 1.0) == doctest::Approx(-GRUDGE_JOY * (0.5 + agent.feeling(Empathy))));
+    CHECK(simulation.harm_felt(agent, 0.2) == 0.0);
+    CHECK(simulation.help_felt(agent, 1.0) == doctest::Approx(FRIEND_JOY * (0.5 + agent.feeling(Empathy))));
+    CHECK(simulation.help_felt(agent, -1.0) == 0.0);
+}
+
+TEST_CASE("an enemy's alert is refused, and a friend's is heeded from further") {
+    Simulation simulation(40, 40, 0, 1);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 10, 10);
+    Bitzkey& listener = simulation.add_agent(caller.dna, 11, 10);
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 20, 20);
+    simulation.index_cells();
+    REQUIRE(simulation.herd_mate(caller, listener));
+    listener.known.push_back(Acquaintance{caller.identifier, -0.9, 0});
+    simulation.alert(caller, hunter);
+    CHECK_FALSE(listener.alarm);
+    CHECK(simulation.regard_counts[Simulation::AlertsRefused].load() == 1);
+    listener.known[0].regard = 0.9;
+    listener.mind[Trust] = 0;  // no trust of its own: only a friend's word reaches it
+    simulation.alert(caller, hunter);
+    CHECK(simulation.regard_counts[Simulation::AlertsFromFriends].load() == 1);
+}
+
+TEST_CASE("a deed colours the view of the doer's whole faction, and a stranger is taken at its colour's worth") {
+    Simulation simulation(40, 40, 0, 1);
+    Bitzkey& agent = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 10, 10);
+    Bitzkey& brute = simulation.add_agent(encode_dna(Species::Predator), 11, 10);
+    Bitzkey& same = simulation.add_agent(brute.dna, 13, 10);
+    Bitzkey& unlike = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"speed", 1}}), 10, 13);
+    simulation.index_cells();
+    simulation.note_deed(agent, brute, BLOW_DEED);
+    REQUIRE(agent.factions.size() == 1);
+    CHECK(simulation.regard_for(agent, brute) == doctest::Approx(BLOW_DEED));  // its own deed counts in full
+    CHECK(simulation.regard_for(agent, same) == doctest::Approx(BLOW_DEED * FACTION_SHARE));
+    if (ring_difference(unlike.dna, brute.dna) > FACTION_WIDTH) CHECK(simulation.regard_for(agent, unlike) == 0.0);
+    agent.known.clear();
+    Senses senses = simulation.sense(agent).senses;
+    CHECK(senses[SenseKnownRegard] == doctest::Approx(BLOW_DEED * FACTION_SHARE));  // sensed as one it knows would be
+    CHECK(senses[SenseKnownCloseness] > 0);
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    REQUIRE(loaded->find_agent(agent.identifier)->factions.size() == 1);
 }
 
 TEST_CASE("bone rots like wood") {

@@ -104,6 +104,9 @@ enum Sense : int {
     SenseKnownSouth,
     SenseCallerKnown,
     SenseCallerRegard,
+    // How dangerous and how skilled it holds the nearest it knows, or that one's colour, each 0 to 1.
+    SenseKnownDanger,
+    SenseKnownSkill,
     // Then the oldest of its kind within its sight: its age, 0 newborn to 1 a year old or more; how close, 1 beside it
     // falling to 0 at the edge of its sight; and which way it lies. And how many willing students stand beside it.
     SenseElderAge,
@@ -224,7 +227,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8",
     "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
     "map_comfort", "map_comfort_east", "map_comfort_south",
-    "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard",
+    "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
     "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "aggression", "libido", "curiosity",

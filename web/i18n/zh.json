@@ -1599,5 +1599,21 @@
 "Discovery joy": "发现之乐",
 "the joy of first discovering a craft, times curiosity": "首次发现一门手艺的快乐，乘以好奇心",
 "the joy of a craft that works, a weapon's in full and armour's in half; more if curious": "成功制作的快乐，武器全额，护甲减半；越好奇越大",
-"the joy of first discovering a craft; more if curious": "首次发现一门手艺的快乐；越好奇越大"
+"the joy of first discovering a craft; more if curious": "首次发现一门手艺的快乐；越好奇越大",
+"Witness share": "目击比重",
+"how much of a deed's weight it has on regard when only seen done, not done to the animal": "只是看到而非自身遭受的行为对评价的影响程度",
+"Fire joy": "生火之乐",
+"the sense of accomplishment in lighting a fire, beside the comfort of it": "生火的成就感,独立于火带来的舒适",
+"Regard comfort": "评价之慰",
+"ease near a friend, more if trusting, and unease near an enemy, more if fearful": "靠近朋友时的安心(越信任越强)和靠近敌人时的不安(越胆怯越强)",
+"Grudge joy": "怨恨之乐",
+"gladness in harming an enemy, more if aggressive, and pain in harming a friend, more if empathetic": "伤害敌人的快意(越好斗越强)和伤害朋友的痛苦(越有同理心越强)",
+"Friend joy": "友谊之乐",
+"extra gladness in feeding or teaching a friend; more if empathetic": "喂养或教导朋友时额外的喜悦;越有同理心越强",
+"Factions": "派系",
+"how many body colours an animal keeps a reputation for; none at 0": "动物记住多少种体色的名声;0 表示不记",
+"Faction share": "派系比重",
+"how much of a deed's weight also falls on the doer's whole colour": "行为的分量有多少也落在行为者的整个颜色上",
+"Faction width": "派系宽度",
+"how far apart on the body ring two animals may be and count as one faction": "身体环上相距多远的两只动物仍算同一派系"
 }

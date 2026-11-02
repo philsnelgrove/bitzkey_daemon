@@ -258,8 +258,11 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     }
     record["places"] = std::move(places);
     json known = json::array();  // each [identifier, regard, last]
-    for (const Acquaintance& one : agent.known) known.push_back({one.identifier, one.regard, one.last});
+    for (const Acquaintance& one : agent.known) known.push_back({one.identifier, one.regard, one.last, one.danger, one.skill});
     record["known"] = std::move(known);
+    json factions = json::array();  // each [body word, regard, last]
+    for (const Faction& one : agent.factions) factions.push_back({one.ring, one.regard, one.last, one.danger, one.skill});
+    record["factions"] = std::move(factions);
     json trail = json::array();
     for (const auto& [x, y] : agent.trail) trail.push_back({x, y});
     record["trail"] = std::move(trail);
@@ -400,8 +403,12 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         }
         agent->places.push_back(place);
     }
+    for (const json& entry : record.value("factions", json::array())) {  // none, in a world saved before
+        agent->factions.push_back(Faction{entry.at(0).get<std::uint32_t>(), entry.at(1).get<double>(), entry.at(2).get<int>(), entry.size() > 3 ? entry.at(3).get<double>() : 0.0, entry.size() > 4 ? entry.at(4).get<double>() : 0.0});
+    }
     for (const json& entry : record.value("known", json::array())) {  // none, in a world saved before
-        agent->known.push_back(Acquaintance{entry.at(0).get<int>(), entry.at(1).get<double>(), entry.at(2).get<int>()});
+        agent->known.push_back(Acquaintance{entry.at(0).get<int>(), entry.at(1).get<double>(), entry.at(2).get<int>(), entry.size() > 3 ? entry.at(3).get<double>() : 0.0,
+                                            entry.size() > 4 ? entry.at(4).get<double>() : 0.0});
     }
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);

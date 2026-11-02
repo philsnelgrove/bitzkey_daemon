@@ -101,6 +101,7 @@ public:
     static constexpr double JAMMED = 0.99;
     Json skills(Simulation& world) const;
     Json diary(Simulation& world) const;
+    Json regard(Simulation& world) const;
     Json minds(Simulation& world) const;
     std::string brain_report_text(Simulation& world) const;
     std::string death_report_text(Simulation& world) const;

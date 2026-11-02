@@ -1599,5 +1599,21 @@
 "Discovery joy": "発見の喜び",
 "the joy of first discovering a craft, times curiosity": "技を初めて発見した喜び。好奇心を掛ける",
 "the joy of a craft that works, a weapon's in full and armour's in half; more if curious": "制作が成功した喜び。武器は全額、防具は半額。好奇心が強いほど大きい",
-"the joy of first discovering a craft; more if curious": "技を初めて発見した喜び。好奇心が強いほど大きい"
+"the joy of first discovering a craft; more if curious": "技を初めて発見した喜び。好奇心が強いほど大きい",
+"Witness share": "目撃の割合",
+"how much of a deed's weight it has on regard when only seen done, not done to the animal": "自分にされたのではなく見ただけの行いが評価に与える重み",
+"Fire joy": "火の喜び",
+"the sense of accomplishment in lighting a fire, beside the comfort of it": "火をおこす達成感(火の安らぎとは別に)",
+"Regard comfort": "評価の安らぎ",
+"ease near a friend, more if trusting, and unease near an enemy, more if fearful": "友の近くでの安心(信頼が強いほど大きい)と敵の近くでの不安(臆病なほど大きい)",
+"Grudge joy": "恨みの喜び",
+"gladness in harming an enemy, more if aggressive, and pain in harming a friend, more if empathetic": "敵を傷つける喜び(攻撃的なほど大きい)と友を傷つける痛み(共感が強いほど大きい)",
+"Friend joy": "友の喜び",
+"extra gladness in feeding or teaching a friend; more if empathetic": "友に食べさせたり教えたりする追加の喜び(共感が強いほど大きい)",
+"Factions": "派閥",
+"how many body colours an animal keeps a reputation for; none at 0": "動物が評判を覚える体色の数(0で無し)",
+"Faction share": "派閥の割合",
+"how much of a deed's weight also falls on the doer's whole colour": "行いの重みのうち行為者の色全体にも及ぶ割合",
+"Faction width": "派閥の幅",
+"how far apart on the body ring two animals may be and count as one faction": "体のリング上でどれだけ離れていても同じ派閥とみなすか"
 }

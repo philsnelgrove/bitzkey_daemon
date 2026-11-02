@@ -319,12 +319,30 @@ inline int MAP_PLACES = 16;
 inline double MAP_LEARNING = 0.2;
 constexpr double MAP_NEARNESS = 0.01;
 // Those it knows: an animal remembers up to Acquaintances others (none at 0) by what they did to it, the one it dealt
-// with longest ago forgotten for a new one; each deed moves its regard for the doer toward the deed's worth by Regard
+// with least (the regard nearest nothing, then the one longest ago) forgotten for a new one; each deed moves its regard for the doer toward the deed's worth by Regard
 // learning (the first sets it): a blow -1, being fed or nursed as an infant 1, an alert it heeded or a mating a half.
+// A deed seen done to another, within both's sight, counts Witness share as much: a blow only if the victim is of the
+// witness's species, and feeding, teaching, a craft or a lit fire whoever it was for.
 constexpr int MAX_ACQUAINTANCES = 16;
 inline int ACQUAINTANCES = 8;
 inline double REGARD_LEARNING = 0.3;
-constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5, TEACHING_DEED = 1.0;
+inline double WITNESS_SHARE = 0.25;
+// Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
+// danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed };
+// Factions: up to Factions body colours (none at 0), each remembered by the first of it met. Every deed noted of an
+// animal also moves the regard for its colour, by Faction share as much, and one it doesn't know is taken at its
+// colour's worth, anything within Faction width on the body ring. The weakest is forgotten for a new one.
+constexpr int MAX_FACTIONS = 16;
+inline int FACTIONS = 8;
+inline double FACTION_SHARE = 0.25, FACTION_WIDTH = 0.05;
+// Regard of Regard strong or more either way makes a friend or an enemy. The nearest it knows, so sensed, eases or
+// troubles it (Regard comfort); harming one gladdens or pains it (Grudge joy); helping a friend pleases it more (Friend
+// joy); and it heeds a friend's alert from further, an enemy's not at all. Each is half plus the trait, so none is lost
+// to a trait bred low.
+constexpr double REGARD_STRONG = 0.5;
+inline double REGARD_COMFORT = 0.5, GRUDGE_JOY = 1.0, FRIEND_JOY = 1.0;
+constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5, TEACHING_DEED = 1.0, CRAFT_DEED = 0.5, FIRE_DEED = 0.5;
 // The diary: an animal keeps up to Diary entries (none at 0) of its most vivid experiences, by how much came of them,
 // the vividness fading by Diary fading each turn since, the faintest forgotten for a more vivid one; and each turn it
 // re-learns from one of them, in turn, as from a replay.
@@ -462,6 +480,7 @@ inline double DISCOVERY_CHANCE = 0.0005;  // rare: a find is news, and a taught 
 inline double DISCOVERY_JOY = 5.0;  // the joy of first discovering a craft (half plus curiosity), so its finder comes to prize the materials
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
+inline double FIRE_JOY = 2.0;  // the sense of accomplishment in lighting a fire
 inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (half plus curiosity)
 inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
@@ -614,12 +633,21 @@ struct MapPlace {
     bool operator==(const MapPlace&) const = default;
 };
 
+// A colour it has a view of: the body word, how well it regards that kind, -1 to 1, and the turn of the last deed.
+struct Faction {
+    std::uint32_t ring = 0;
+    double regard = 0.0;
+    int last = 0;
+    double danger = 0.0, skill = 0.0;  // as an acquaintance's
+};
+
 // One it knows: who, how well it regards them, -1 to 1, and the turn they last dealt with it.
 struct Acquaintance {
     int identifier = 0;
     double regard = 0.0;
     int last = 0;
     bool operator==(const Acquaintance&) const = default;
+    double danger = 0.0, skill = 0.0;  // its reputation with this one
 };
 
 struct Bitzkey {
@@ -675,6 +703,7 @@ struct Bitzkey {
     bool last_wrote = false;
     std::vector<MapPlace> places;  // its mental map, in the order it first came to each place
     std::vector<Acquaintance> known;  // those it knows, in the order it came to know them
+    std::vector<Faction> factions;  // the colours it has a view of
     double seen_success = 0.0;          // a herd-mate's success it saw, fading turn by turn
     double seen_failure = 0.0;          // a herd-mate's failure it saw, the same
     double weathered = 0.0;             // turns endured out of its temperature, one regained each turn back in it; the weather harms it once past its grace
@@ -941,6 +970,11 @@ public:
         long long load() const { return count.load(); }
     };
     std::array<Tally, CARRYING_COUNT> carrying{};
+    // Since this run began: blows at its own kind, how many fell on enemies and friends, and how many of each stood in
+    // sight at those moments, to compare with chance; all blows at any enemy or friend; alerts heeded and refused.
+    enum RegardCount { KinBlows, KinBlowsEnemy, KinBlowsFriend, KinInSight, EnemiesInSight, FriendsInSight, BlowsEnemy, BlowsFriend,
+                       AlertsFromFriends, AlertsFromOthers, AlertsRefused, REGARD_COUNTS };
+    std::array<Tally, REGARD_COUNTS> regard_counts{};
     // The sea: whether a square lies under it (none off the map, nor in a world without sea).
     // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
     bool night(int x) const;
@@ -1058,6 +1092,7 @@ public:
         Bitzkey* student = nullptr;  // a willing student beside an elder
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
+        double regard_near = 0.0;  // for the nearest it knows
         int kin = 0;
         int others = 0;
         Bitzkey* defend_target = nullptr;
@@ -1086,7 +1121,16 @@ public:
     // What an animal finds where it stands, as it senses it, noted on its mental map.
     void note_place(Bitzkey& agent, const Senses& senses);
     // What `other` did to `agent`, worth `deed`, -1 to 1, noted in its regard for them.
-    void note_deed(Bitzkey& agent, const Bitzkey& other, double deed);
+    // Only its reputation moves, not its regard, unless `regarded`.
+    void note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight = 1.0, DeedKind kind = PlainDeed, bool regarded = true);
+    // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
+    void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed);
+    double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither
+    void note_faction(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded);
+    static const Faction* faction_of(const Bitzkey& agent, const Bitzkey& other);
+    double harm_felt(const Bitzkey& agent, double regard) const;    // Grudge joy
+    double help_felt(const Bitzkey& agent, double regard) const;    // Friend joy
+    void tally_attack(const Bitzkey& agent, const Bitzkey& victim);  // who it struck of those of its kind it could
     void think(Bitzkey& agent);  // one animal senses, learns, chooses and acts
     // Animals think at once, in phases, so that their brains can be worked as one batch: all sense the
     // world as it stands; all their brains value the actions open to them; all learn from their
@@ -1498,6 +1542,7 @@ private:
         std::vector<DeathNote> deaths;
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
+        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind>> deeds_seen;  // (doer, worth, done to, what kind)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)
         std::vector<Conception> conceptions;

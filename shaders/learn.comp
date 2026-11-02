@@ -24,7 +24,7 @@ struct Lesson {
     float decay;  // for a traced lesson: how much each trace fades first
     float limit;  // the most the error counts for
     uint steps;  // for learning back in time: how many choices back
-    float flat;  // added to each neuron's slope
+    float flat_spot;  // added to each neuron's slope
 };
 layout(std430, binding = 3) readonly buffer Lessons { Lesson lessons[]; };
 layout(std430, binding = 4) readonly buffer Inputs { float inputs[]; };  // INPUTS senses a lesson
@@ -86,7 +86,7 @@ void main() {
                 const uint row = weights_of(base, at);
                 if (thread < push.width) {
                     const float value = activation(at + 1u, thread);
-                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat);
+                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat_spot);
                 }
                 barrier();
                 if (at > 0u) {
@@ -115,7 +115,7 @@ void main() {
                 const uint row = weights_of(base, at);
                 if (thread < push.width) {
                     const float value = activation(at + 1u, thread);
-                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat);
+                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat_spot);
                 }
                 barrier();
                 if (at > 0u) {
@@ -169,7 +169,7 @@ void main() {
                     const uint row = weights_of(base, at);
                     if (thread < push.width) {
                         const float value = activation(at + 1u, thread);
-                        delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat);
+                        delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat_spot);
                     }
                     barrier();
                     if (at > 0u) {
@@ -213,7 +213,7 @@ void main() {
                 const uint row = weights_of(base, at);
                 if (thread < push.width) {
                     const float value = activation(at + 1u, thread);
-                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat);
+                    delta[thread] = gradient[thread] * (1.0 - value * value + lesson.flat_spot);
                 }
                 barrier();
                 if (at > 0u) {

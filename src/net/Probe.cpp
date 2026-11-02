@@ -765,6 +765,78 @@ Json Probe::skills(Simulation& world) const {
     return {{"turn", world.turn()}, {"skills", result}, {"works", {{"fires", fires}, {"shelters", shelters}, {"sites", sites}}}};
 }
 
+Json Probe::regard(Simulation& world) const {
+    // What regard is doing: how close animals stay to those they know, and, of each animal's last choice with a hunter
+    // in sight, how often it fled having heard a friend, an enemy, or a caller it doesn't know. The counts are since
+    // this run began, and blows at its own kind can be read against chance, the share of each among those in sight.
+    const auto share = [](long long part, long long whole) { return whole > 0 ? Json(static_cast<double>(part) / whole) : Json(nullptr); };
+    const auto mean = [](double sum, long long count) { return count > 0 ? Json(sum / count) : Json(nullptr); };
+    Json species_results = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        struct Tie {
+            long long known = 0, in_reach = 0;
+            double steps = 0;
+        };
+        std::array<Tie, 3> ties{};  // enemies, the rest, friends
+        struct Heard {
+            long long heard = 0, fled = 0;
+        };
+        std::array<Heard, 4> callers{};  // enemies, the rest it knows, friends, unknown
+        long long hostile = 0, friendly = 0, held = 0;  // factions
+        Tie dangerous, skilled;  // those it holds at half or more of either
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            for (const Acquaintance& known : agent->known) {
+                const std::size_t kind = known.regard <= -REGARD_STRONG ? 0 : known.regard >= REGARD_STRONG ? 2 : 1;
+                ties[kind].known += 1;
+                const Bitzkey* other = world.find_agent(known.identifier);
+                if (!other || !other->alive()) continue;
+                ties[kind].in_reach += 1;
+                ties[kind].steps += std::abs(other->x - agent->x) + std::abs(other->y - agent->y);
+                for (Tie* held_as : {known.danger >= 0.5 ? &dangerous : nullptr, known.skill >= 0.5 ? &skilled : nullptr}) {
+                    if (!held_as) continue;
+                    held_as->in_reach += 1;
+                    held_as->steps += std::abs(other->x - agent->x) + std::abs(other->y - agent->y);
+                }
+            }
+            for (const Faction& faction : agent->factions) {
+                held += 1;
+                hostile += faction.regard <= -REGARD_STRONG;
+                friendly += faction.regard >= REGARD_STRONG;
+            }
+            if (!agent->has_last_senses || agent->last_senses[SenseThreatCloseness] <= 0) continue;
+            const Senses& senses = agent->last_senses;
+            bool heard_any = false;
+            for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) heard_any = heard_any || senses[heard_sense(call, HeardLoudness)] > 0;
+            if (!heard_any) continue;
+            const double caller = senses[SenseCallerRegard];
+            Heard& heard = callers[senses[SenseCallerKnown] <= 0 ? 3 : caller <= -REGARD_STRONG ? 0 : caller >= REGARD_STRONG ? 2 : 1];
+            heard.heard += 1;
+            heard.fled += agent->last_choice == Flee;
+        }
+        const auto tie = [&](std::size_t kind) {
+            return Json{{"remembered", ties[kind].known}, {"alive", ties[kind].in_reach}, {"mean_steps_away", mean(ties[kind].steps, ties[kind].in_reach)}};
+        };
+        const auto caller = [&](std::size_t kind) { return Json{{"heard", callers[kind].heard}, {"fled", share(callers[kind].fled, callers[kind].heard)}}; };
+        species_results[std::string(species_name(species))] = {
+            {"enemies", tie(0)}, {"others", tie(1)}, {"friends", tie(2)},
+            {"dangerous", {{"alive", dangerous.in_reach}, {"mean_steps_away", mean(dangerous.steps, dangerous.in_reach)}}},
+            {"skilled", {{"alive", skilled.in_reach}, {"mean_steps_away", mean(skilled.steps, skilled.in_reach)}}},
+            {"factions", {{"held", held}, {"hostile", hostile}, {"friendly", friendly}}},
+            {"with_hunter_in_sight", {{"heard_enemy", caller(0)}, {"heard_other_known", caller(1)}, {"heard_friend", caller(2)}, {"heard_unknown", caller(3)}}}};
+    }
+    const auto count = [&](Simulation::RegardCount which) { return world.regard_counts[which].load(); };
+    return {{"turn", world.turn()}, {"species", species_results},
+            {"blows_since_start", {{"at_enemies", count(Simulation::BlowsEnemy)}, {"at_friends", count(Simulation::BlowsFriend)},
+                                   {"at_own_kind", count(Simulation::KinBlows)},
+                                   {"own_kind_share_at_enemies", share(count(Simulation::KinBlowsEnemy), count(Simulation::KinBlows))},
+                                   {"own_kind_share_at_friends", share(count(Simulation::KinBlowsFriend), count(Simulation::KinBlows))},
+                                   {"chance_of_enemy", share(count(Simulation::EnemiesInSight), count(Simulation::KinInSight))},
+                                   {"chance_of_friend", share(count(Simulation::FriendsInSight), count(Simulation::KinInSight))}}},
+            {"alerts_since_start", {{"heeded_from_friends", count(Simulation::AlertsFromFriends)}, {"heeded_from_others", count(Simulation::AlertsFromOthers)},
+                                    {"refused_from_enemies", count(Simulation::AlertsRefused)}}}};
+}
+
 Json Probe::diary(Simulation& world) const {
     Json entries = Json::array();
     for (const Simulation::Milestone& entry : world.diary()) {
@@ -965,6 +1037,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/regard", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return regard(world); }));
     }));
     server.Get(prefix + "/skills", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return skills(world); }));

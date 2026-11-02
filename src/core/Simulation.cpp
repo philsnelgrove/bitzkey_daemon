@@ -1307,6 +1307,8 @@ void Simulation::nurse(Bitzkey& agent) {
     agent.hunger += cost;
     infant->hunger -= fed;
     note_deed(*infant, agent, FEEDING_DEED);
+    deed_seen(agent, FEEDING_DEED, infant);
+    agent.reward += help_felt(agent, regard_for(agent, *infant));
 }
 
 void Simulation::seed_corpse(const Bitzkey& corpse) {
@@ -2007,6 +2009,9 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
     for (ActingTile& tile : tiles) {
+        for (const auto& [doer, deed, target, kind] : tile.deeds_seen) deed_seen(*doer, deed, target, kind);
+    }
+    for (ActingTile& tile : tiles) {
         for (const auto& [parent, young] : tile.feeding) feed_young(*parent, young);
     }
     for (ActingTile& tile : tiles) {
@@ -2456,7 +2461,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     {  // those it knows: the nearest within its sight, and whether it knows the loudest caller
         const Bitzkey* nearest = nullptr;
-        double regard = 0.0;
+        double regard = 0.0, danger = 0.0, skill = 0.0;
         for (const Acquaintance& known : agent.known) {
             const Bitzkey* other = find_agent(known.identifier);
             if (caller && known.identifier == caller->identifier) {
@@ -2467,11 +2472,29 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             if (!nearest || distance(other->x, other->y, agent.x, agent.y) < distance(nearest->x, nearest->y, agent.x, agent.y)) {
                 nearest = other;
                 regard = known.regard;
+                danger = known.danger;
+                skill = known.skill;
             }
         }
+        if (!nearest && !agent.factions.empty()) {  // none it knows in sight: the nearest of a colour it has a view of
+            for (const Bitzkey* other : around(agent, sight)) {
+                if (other == &agent || !other->alive() || !other->brain) continue;
+                const Faction* faction = faction_of(agent, *other);
+                if (!faction) continue;
+                if (!nearest || distance(other->x, other->y, agent.x, agent.y) < distance(nearest->x, nearest->y, agent.x, agent.y)) {
+                    nearest = other;
+                    regard = faction->regard;
+                    danger = faction->danger;
+                    skill = faction->skill;
+                }
+            }
+        }
+        if (caller && senses[SenseCallerKnown] <= 0) senses[SenseCallerRegard] = regard_for(agent, *caller);
         if (nearest) {
             senses[SenseKnownCloseness] = closeness(agent, cell_of(nearest), sight);
             senses[SenseKnownRegard] = regard;
+            senses[SenseKnownDanger] = danger;
+            senses[SenseKnownSkill] = skill;
             senses[SenseKnownEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
             senses[SenseKnownSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
         }
@@ -2480,6 +2503,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     gene_senses(agent.dna, senses);
 
     s.rivalry = agent.rivalry;
+    s.regard_near = senses[SenseKnownRegard];
     s.for_herd = s.assailant == nullptr;
     s.herd = view.any;
     s.herd_near = view.close;
@@ -2526,19 +2550,110 @@ void Simulation::note_place(Bitzkey& agent, const Senses& senses) {
     place.last = turn_;
 }
 
-void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed) {
+namespace {
+
+template <typename Memory>
+double impact(const Memory& one) { return std::max({std::abs(one.regard), one.danger, one.skill}); }
+
+template <typename Memory>
+bool least_impact(const Memory& a, const Memory& b) { return impact(a) != impact(b) ? impact(a) < impact(b) : a.last < b.last; }
+
+template <typename Memory>
+void note_reputation(Memory& one, DeedKind kind, double rate) {
+    one.danger += rate * ((kind == HarmDeed ? 1.0 : 0.0) - one.danger);
+    if (kind == SkillDeed) one.skill += rate * (1 - one.skill);
+}
+
+}  // namespace
+
+void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded) {
     std::vector<Acquaintance>& known = agent.known;
-    const auto longest_ago = [](const Acquaintance& a, const Acquaintance& b) { return a.last < b.last; };
-    while (static_cast<int>(known.size()) > std::max(0, ACQUAINTANCES)) known.erase(std::min_element(known.begin(), known.end(), longest_ago));
+    const auto least = [](const Acquaintance& a, const Acquaintance& b) { return least_impact(a, b); };
+    while (static_cast<int>(known.size()) > std::max(0, ACQUAINTANCES)) known.erase(std::min_element(known.begin(), known.end(), least));
+    if (&agent != &other) note_faction(agent, other, deed, weight, kind, regarded);
     if (ACQUAINTANCES <= 0 || &agent == &other) return;
     auto found = std::find_if(known.begin(), known.end(), [&](const Acquaintance& one) { return one.identifier == other.identifier; });
     if (found == known.end()) {
-        if (static_cast<int>(known.size()) >= ACQUAINTANCES) known.erase(std::min_element(known.begin(), known.end(), longest_ago));
-        known.push_back(Acquaintance{other.identifier, deed, turn_});
+        if (static_cast<int>(known.size()) >= ACQUAINTANCES) known.erase(std::min_element(known.begin(), known.end(), least));
+        known.push_back(Acquaintance{other.identifier, regarded ? deed * weight : 0.0, turn_});
+        note_reputation(known.back(), kind, weight);
         return;
     }
-    found->regard += REGARD_LEARNING * (deed - found->regard);
+    if (regarded) found->regard += REGARD_LEARNING * weight * (deed - found->regard);
+    note_reputation(*found, kind, REGARD_LEARNING * weight);
     found->last = turn_;
+}
+
+double Simulation::regard_for(const Bitzkey& agent, const Bitzkey& other) const {
+    for (const Acquaintance& known : agent.known) {
+        if (known.identifier == other.identifier) return known.regard;
+    }
+    const Faction* faction = faction_of(agent, other);
+    return faction ? faction->regard : 0.0;
+}
+
+const Faction* Simulation::faction_of(const Bitzkey& agent, const Bitzkey& other) {
+    for (const Faction& faction : agent.factions) {
+        if (colour_difference(faction.ring, body_word(other.dna)) <= FACTION_WIDTH) return &faction;
+    }
+    return nullptr;
+}
+
+void Simulation::note_faction(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded) {
+    std::vector<Faction>& factions = agent.factions;
+    const auto least = [](const Faction& a, const Faction& b) { return least_impact(a, b); };
+    while (static_cast<int>(factions.size()) > std::max(0, FACTIONS)) factions.erase(std::min_element(factions.begin(), factions.end(), least));
+    if (FACTIONS <= 0 || FACTION_SHARE <= 0) return;
+    if (Faction* found = const_cast<Faction*>(faction_of(agent, other))) {
+        if (regarded) found->regard += REGARD_LEARNING * weight * FACTION_SHARE * (deed - found->regard);
+        note_reputation(*found, kind, REGARD_LEARNING * weight * FACTION_SHARE);
+        found->last = turn_;
+        return;
+    }
+    if (static_cast<int>(factions.size()) >= FACTIONS) factions.erase(std::min_element(factions.begin(), factions.end(), least));
+    factions.push_back(Faction{body_word(other.dna), regarded ? deed * weight * FACTION_SHARE : 0.0, turn_});
+    note_reputation(factions.back(), kind, weight * FACTION_SHARE);
+}
+
+double Simulation::harm_felt(const Bitzkey& agent, double regard) const {
+    if (regard <= -REGARD_STRONG) return -GRUDGE_JOY * regard * (0.5 + agent.feeling(Aggression));
+    if (regard >= REGARD_STRONG) return -GRUDGE_JOY * regard * (0.5 + agent.feeling(Empathy));
+    return 0.0;
+}
+
+double Simulation::help_felt(const Bitzkey& agent, double regard) const {
+    return regard >= REGARD_STRONG ? FRIEND_JOY * regard * (0.5 + agent.feeling(Empathy)) : 0.0;
+}
+
+void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
+    const double regard = regard_for(agent, victim);
+    if (regard <= -REGARD_STRONG) ++regard_counts[BlowsEnemy];
+    if (regard >= REGARD_STRONG) ++regard_counts[BlowsFriend];
+    if (victim.species != agent.species) return;
+    ++regard_counts[KinBlows];
+    if (regard <= -REGARD_STRONG) ++regard_counts[KinBlowsEnemy];
+    if (regard >= REGARD_STRONG) ++regard_counts[KinBlowsFriend];
+    for (const Bitzkey* other : around(agent, agent.sight)) {
+        if (other == &agent || other->species != agent.species || !other->alive()) continue;
+        const double seen = regard_for(agent, *other);
+        ++regard_counts[KinInSight];
+        if (seen <= -REGARD_STRONG) ++regard_counts[EnemiesInSight];
+        if (seen >= REGARD_STRONG) ++regard_counts[FriendsInSight];
+    }
+}
+
+void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target, DeedKind kind) {
+    if (WITNESS_SHARE <= 0) return;
+    if (acting_) {  // its witnesses may lie in other tiles
+        acting_->deeds_seen.emplace_back(&doer, deed, target, kind);
+        return;
+    }
+    for (Bitzkey* other : around(doer, doer.sight)) {
+        if (other == &doer || other == target || !other->alive() || !other->brain) continue;
+        if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
+        const bool wronged = deed >= 0 || !target || other->species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
+        note_deed(*other, doer, deed, WITNESS_SHARE, kind, wronged);
+    }
 }
 
 double Simulation::wellbeing(const Bitzkey& agent) const {
@@ -2567,7 +2682,10 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double parental = PARENT_JOY * (0.5 + agent.feeling(Empathy)) * std::min(3, s.young_near) / 3;
     // A fire of its own or its herd's is a comfort to see; one it doesn't know frightens it (see FIRE_PANIC).
     const double hearth = s.fire && fire_friendly(agent, *s.fire) ? FIRE_COMFORT : 0.0;
-    return company - dread - unease - crowded + herding - exposed + parental + hearth;
+    double regard = 0.0;
+    if (s.regard_near >= REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.feeling(Trust));
+    else if (s.regard_near <= -REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.fearfulness());
+    return company - dread - unease - crowded + herding - exposed + parental + hearth + regard;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -3009,6 +3127,8 @@ void Simulation::feed_young(Bitzkey& parent, const std::vector<Bitzkey*>& young)
         parent.reward += FEEDING_JOY * (0.5 + parent.feeling(Empathy)) * std::min(100.0, child->hunger) / 100;
         child->hunger = 0;
         note_deed(*child, parent, FEEDING_DEED);
+        deed_seen(parent, FEEDING_DEED, child);
+        parent.reward += help_felt(parent, regard_for(parent, *child));
     }
 }
 
@@ -3071,7 +3191,9 @@ void Simulation::teach_all() {
         }
         student->synced = -1;
         elder->reward += TEACHING_JOY * (0.5 + elder->feeling(Empathy));
-        note_deed(*student, *elder, TEACHING_DEED);
+        note_deed(*student, *elder, TEACHING_DEED, 1.0, SkillDeed);
+        deed_seen(*elder, TEACHING_DEED, student, SkillDeed);
+        elder->reward += help_felt(*elder, regard_for(*elder, *student));
     }
     teachings_.clear();
 }
@@ -3086,10 +3208,16 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
     }
     bool heeded = false;
     for (Bitzkey* other : around(agent, agent.sight)) {
-        if (!herd_mate(agent, *other) ||
-            distance(other->x, other->y, agent.x, agent.y) > TRUST_REACH * other->feeling(Trust) * other->sight) {
+        if (!herd_mate(agent, *other)) continue;
+        const double regard = regard_for(*other, agent);
+        if (regard <= -REGARD_STRONG) {  // no word of an enemy's is believed
+            ++regard_counts[AlertsRefused];
             continue;
         }
+        const double trust = other->feeling(Trust);
+        const double belief = regard >= REGARD_STRONG ? trust + regard * (0.5 + trust) : trust;  // a friend's carries further
+        if (distance(other->x, other->y, agent.x, agent.y) > TRUST_REACH * belief * other->sight) continue;
+        ++regard_counts[regard >= REGARD_STRONG ? AlertsFromFriends : AlertsFromOthers];
         heeded = true;
         note_deed(*other, agent, ALERT_DEED);
         if (agent.species == Species::Grazer) {
@@ -3426,6 +3554,8 @@ void Simulation::light_fire(Bitzkey& agent) {
     agent.weapon = NoWeapon;
     agent.weapon_uses = 0;
     agent.last_action = "lit a fire";
+    agent.reward += FIRE_JOY;
+    deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);
     note_first("fire_lit", agent.species, agent.identifier);
 }
 
@@ -3499,6 +3629,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
     agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
     agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);
 }
 
 void Simulation::take_gear(Bitzkey& agent, Situation& s) {
@@ -3558,7 +3689,8 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     victim.health -= blow;
     agent.nourish(5, true);
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;  // the harder the blow, the more it costs
-    agent.reward += joy;
+    agent.reward += joy + harm_felt(agent, regard_for(agent, victim));
+    if (victim.species != Species::Plant) tally_attack(agent, victim);
     agent.last_action = "attacked";
     experience(agent, Hit);
     const bool killed = !victim.alive();
@@ -3633,7 +3765,8 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
 
 void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     victim.assailant = striker.identifier;
-    note_deed(victim, striker, BLOW_DEED);
+    note_deed(victim, striker, BLOW_DEED, 1.0, HarmDeed);
+    deed_seen(striker, BLOW_DEED, &victim, HarmDeed);
     victim.danger_memory = Place{victim.x, victim.y, turn_};
     int herd_near = 0;
     for (Bitzkey* other : around(victim, 2)) {

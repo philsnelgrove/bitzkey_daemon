@@ -1599,5 +1599,21 @@
 "Discovery joy": "Entdeckerfreude",
 "the joy of first discovering a craft, times curiosity": "die Freude, ein Handwerk erstmals zu entdecken, mal Neugier",
 "the joy of a craft that works, a weapon's in full and armour's in half; more if curious": "die Freude an einem gelungenen Handwerk, bei Waffen voll und bei Rüstung zur Hälfte; größer, wenn neugierig",
-"the joy of first discovering a craft; more if curious": "die Freude, ein Handwerk erstmals zu entdecken; größer, wenn neugierig"
+"the joy of first discovering a craft; more if curious": "die Freude, ein Handwerk erstmals zu entdecken; größer, wenn neugierig",
+"Witness share": "Zeugenanteil",
+"how much of a deed's weight it has on regard when only seen done, not done to the animal": "wie viel Gewicht eine Tat für die Achtung hat, wenn sie nur gesehen und nicht am Tier selbst begangen wird",
+"Fire joy": "Feuerfreude",
+"the sense of accomplishment in lighting a fire, beside the comfort of it": "das Erfolgsgefühl beim Entzünden eines Feuers, neben dessen Behaglichkeit",
+"Regard comfort": "Achtungsbehagen",
+"ease near a friend, more if trusting, and unease near an enemy, more if fearful": "Ruhe bei einem Freund, stärker wenn vertrauensvoll, und Unruhe bei einem Feind, stärker wenn ängstlich",
+"Grudge joy": "Grollfreude",
+"gladness in harming an enemy, more if aggressive, and pain in harming a friend, more if empathetic": "Freude daran, einem Feind zu schaden, stärker wenn aggressiv, und Schmerz, einem Freund zu schaden, stärker wenn mitfühlend",
+"Friend joy": "Freundesfreude",
+"extra gladness in feeding or teaching a friend; more if empathetic": "zusätzliche Freude, einen Freund zu füttern oder zu lehren; stärker wenn mitfühlend",
+"Factions": "Fraktionen",
+"how many body colours an animal keeps a reputation for; none at 0": "für wie viele Körperfarben ein Tier einen Ruf merkt; bei 0 keine",
+"Faction share": "Fraktionsanteil",
+"how much of a deed's weight also falls on the doer's whole colour": "wie viel vom Gewicht einer Tat auch auf die ganze Farbe des Täters fällt",
+"Faction width": "Fraktionsbreite",
+"how far apart on the body ring two animals may be and count as one faction": "wie weit zwei Tiere auf dem Körperring auseinander sein dürfen und noch als eine Fraktion gelten"
 }
