@@ -44,6 +44,10 @@ World::World(Simulation::Settings settings, bool playing, const std::filesystem:
 void World::adopt_pool() {
     pool_->adopt(*simulation_);
     simulation_->on_turn = [this](const Simulation& turned) { probe_.after_turn(turned); };  // watched tracks follow it
+    probe_.on_rules = [this] {  // its restarts keep them, and the page sees them
+        rules_ = rules::changed(rules::current());
+        ++version_;
+    };
     touch();
 }
 

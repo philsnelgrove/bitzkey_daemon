@@ -33,6 +33,7 @@ public:
     using Run = std::function<void(const std::function<void(Simulation&)>&)>;
 
     explicit Probe(Run run);
+    std::function<void()> on_rules;  // told, in the look that changed them, that the rules have changed
 
     // Its routes, under `prefix` (such as "/probe" or "/api/probe"):
     //   GET    prefix/state                  the turn, season, map and how many of each species live
@@ -43,6 +44,9 @@ public:
     //   GET    prefix/herds?species=&members=1&reach=   the herds of a species, as they stand: herd-mates within
     //                                        `reach` steps of one another (HERD_REACH unless given), and theirs
     //   POST   prefix/watch  {"ids": [...], "keep": turns}   watch these Bitzkeys, turn by turn
+    //   POST   prefix/rules  {"rules": {KEY: value, ...}}    change rules from the next turn, the rest as they are
+    //   POST   prefix/settings  {"population_cap": N or null, "mind_mutation": percent, "body_mutation": percent}
+    //   These two answer only those on this machine: anything come through the web server is refused.
     //   GET    prefix/watch                  the tracks of those watched
     //   DELETE prefix/watch?ids=             stop watching these, or all of them
     // And the rest of the world:
@@ -83,6 +87,8 @@ public:
     Json tracks() const;
     void unwatch(const std::vector<int>& identifiers);  // all, when empty
     Json rules() const;
+    Json change_rules(Simulation& world, const Json& asked);
+    Json change_settings(Simulation& world, const Json& asked) const;
     Json settings(Simulation& world) const;
     Json climate(Simulation& world) const;
     Json grass(Simulation& world, bool map) const;

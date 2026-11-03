@@ -482,6 +482,51 @@ Json Probe::rules() const {
     return {{"rules", all}};
 }
 
+Json Probe::change_rules(Simulation& world, const Json& asked) {
+    if (!asked.is_object()) throw std::invalid_argument("expected {\"rules\": {KEY: value, ...}}");
+    rules::Values values = rules::current();
+    for (const auto& [key, value] : asked.items()) {
+        const rules::Rule* rule = rules::find(key);
+        if (!rule) throw std::invalid_argument("no rule " + key);
+        if (key == "USE_GPU") throw std::invalid_argument("USE_GPU holds for as long as the world runs");
+        if (!value.is_number()) throw std::invalid_argument(key + " needs a number");
+        values[key] = rule->clamp(value.get<double>());
+    }
+    if (const auto problems = rules::problems(values); !problems.empty()) return {{"problems", problems}};
+    const rules::Values changed = rules::changed(values);
+    rules::apply(changed);
+    world.rules_changed();
+    if (on_rules) on_rules();
+    Json now = Json::object();
+    for (const auto& [key, value] : asked.items()) now[key] = values.at(key);  // as clamped
+    return {{"problems", Json::array()}, {"set", now}, {"changed_from_defaults", changed.size()}, {"turn", world.turn()}};
+}
+
+Json Probe::change_settings(Simulation& world, const Json& asked) const {
+    if (!asked.is_object()) throw std::invalid_argument("expected an object of settings");
+    const auto percent = [](const Json& value, const std::string& key) {
+        if (!value.is_number() || value.get<double>() < 0 || value.get<double>() > 100) throw std::invalid_argument(key + " needs a percent, 0 to 100");
+        return value.get<double>();
+    };
+    for (const auto& [key, value] : asked.items()) {  // all checked before any is changed
+        if (key == "mind_mutation" || key == "body_mutation") percent(value, key);
+        else if (key == "population_cap") {
+            if (!value.is_null() && (!value.is_number_integer() || value.get<int>() < 1)) throw std::invalid_argument("population_cap needs a whole number from 1, or null for none");
+        } else if (key == "width" || key == "height" || key == "ocean" || key == "year_length") {
+            throw std::invalid_argument(key + " is fixed once a world is made");
+        } else {
+            throw std::invalid_argument("no setting " + key + " can be changed");
+        }
+    }
+    if (asked.contains("mind_mutation")) world.set_mind_mutation(asked["mind_mutation"].get<double>());
+    if (asked.contains("body_mutation")) world.set_body_mutation(asked["body_mutation"].get<double>());
+    if (asked.contains("population_cap")) {
+        const Json& cap = asked["population_cap"];
+        world.set_population_cap(cap.is_null() ? std::nullopt : std::optional<int>(cap.get<int>()));
+    }
+    return settings(world);
+}
+
 Json Probe::settings(Simulation& world) const {
     return {{"turn", world.turn()},
             {"width", world.width()},
@@ -1153,6 +1198,26 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     server.Get(prefix + "/settings", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return settings(world); }));
     }));
+    // Changing the world is for those on this machine. The web server marks all it passes on, and an outsider can't unmark it.
+    const auto local_only = [](auto handler) {
+        return [handler](const httplib::Request& request, httplib::Response& response) {
+            if (request.has_header("X-Forwarded-For")) {
+                reply(response, {{"error", "only from the machine itself"}});
+                response.status = 403;
+                return;
+            }
+            handler(request, response);
+        };
+    };
+    server.Post(prefix + "/rules", local_only(answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const Json body = Json::parse(request.body.empty() ? std::string("{}") : request.body);
+        if (!body.is_object() || !body.contains("rules")) throw std::invalid_argument("expected {\"rules\": {KEY: value, ...}}");
+        reply(response, looked([&](Simulation& world) { return change_rules(world, body["rules"]); }));
+    })));
+    server.Post(prefix + "/settings", local_only(answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const Json body = Json::parse(request.body.empty() ? std::string("{}") : request.body);
+        reply(response, looked([&](Simulation& world) { return change_settings(world, body); }));
+    })));
     server.Get(prefix + "/climate", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return climate(world); }));
     }));

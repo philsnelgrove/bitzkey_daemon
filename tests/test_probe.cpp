@@ -166,6 +166,33 @@ TEST_CASE("the probe served on a port answers between the world's turns, and not
     server.detach();
 }
 
+TEST_CASE("the probe changes rules and settings for those on the machine, between turns") {
+    net::ProbeServer server(49732);
+    httplib::Client client("127.0.0.1", server.port());
+    Simulation world = empty_world();
+    server.attach(world);
+    const double joy = SURPRISE_JOY;
+    std::atomic<bool> done{false};
+    std::thread turning([&] { while (!done) server.serve(world); });
+    auto set = client.Post("/probe/rules", R"({"rules": {"SURPRISE_JOY": 0.5}})", "application/json");
+    REQUIRE(set);
+    CHECK(set->status == 200);
+    CHECK(SURPRISE_JOY == 0.5);
+    CHECK(client.Post("/probe/rules", R"({"rules": {"NO_SUCH_RULE": 1}})", "application/json")->status == 400);
+    CHECK(client.Post("/probe/settings", R"({"population_cap": 50, "mind_mutation": 12})", "application/json")->status == 200);
+    CHECK(world.population_cap() == 50);
+    CHECK(world.mind_mutation() == 12);
+    CHECK(client.Post("/probe/settings", R"({"width": 50, "mind_mutation": 3})", "application/json")->status == 400);
+    CHECK(world.mind_mutation() == 12);  // nothing, if anything asked is refused
+    const httplib::Headers proxied = {{"X-Forwarded-For", "203.0.113.9"}};
+    CHECK(client.Post("/probe/rules", proxied, R"({"rules": {"SURPRISE_JOY": 1}})", "application/json")->status == 403);
+    CHECK(SURPRISE_JOY == 0.5);
+    done = true;
+    turning.join();
+    server.detach();
+    SURPRISE_JOY = joy;
+}
+
 TEST_CASE("a herd holds together within a couple of steps, not merely within sight") {
     Simulation world = empty_world(60);
     const Dna dna = encode_dna(Species::Grazer, {{"sight", 3}});  // they see far beyond the gap

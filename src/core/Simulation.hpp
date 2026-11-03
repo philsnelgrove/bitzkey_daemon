@@ -970,6 +970,8 @@ public:
     void set_population_cap(std::optional<int> cap) { population_cap_ = cap; }
     double mind_mutation() const { return mind_mutation_; }
     double body_mutation() const { return body_mutation_; }
+    void set_mind_mutation(double percent) { mind_mutation_ = percent; }
+    void set_body_mutation(double percent) { body_mutation_ = percent; }
     void set_mutation(double mind, double body) { mind_mutation_ = mind; body_mutation_ = body; }
 
     const std::vector<std::unique_ptr<Bitzkey>>& agents() const { return agents_; }
