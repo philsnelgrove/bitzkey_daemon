@@ -219,8 +219,8 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
     CHECK(old.layers[0].weights[5] == doctest::Approx(brain.layers[0].weights[5]).epsilon(1e-5));
 }
 
-TEST_CASE("there are 176 senses, and a narrower saved brain loads as saved, valuing alike") {
-    CHECK(INPUT_SIZE == 176);
+TEST_CASE("there are 182 senses, and a narrower saved brain loads as saved, valuing alike") {
+    CHECK(INPUT_SIZE == 182);
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;
@@ -299,9 +299,9 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
     const std::vector<double> found = {child.layers[0].row(3)[11], child.layers[0].row(44)[89], child.layers[1].biases[20],
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
-    CHECK(found == std::vector<double>{-0.08328467549240823, 0.06212807401795848, 0.0653962860420194, -0.0058471142667795364,
-                                       0.00020031967940636642, -0.0009222090607516698});  // the output layer held in hundredths
-    CHECK(rng.random() == 0.7146854561124348);  // one draw of the world's for the child
+    CHECK(found == std::vector<double>{-0.07996788135245048, 0.006844998198369229, 0.1126230694214355, -0.15334509931503282,
+                                       -0.00014984940014900944, -0.001104110249682783});  // the output layer held in hundredths
+    CHECK(rng.random() == 0.09353611303891773);  // one draw of the world's for the child
 }
 
 TEST_CASE("a brain that read its senses uncentred, made to read them centred, values everything just as before") {
@@ -387,6 +387,30 @@ TEST_CASE("a jammed neuron still learns by the flat spot, and not at all without
     CHECK(flat > 1000 * plain);
     CHECK(flat > 1e-5);
     FLAT_SPOT = 0.1;
+}
+
+TEST_CASE("a brain foresees differently what it pictures doing, by the senses of what it pictures") {
+    PyRandom rng(5);
+    Brain brain = Brain::random(rng);
+    const Senses senses{};
+    const Senses eating = imagining(senses, Eat), resting = imagining(senses, Rest);
+    CHECK(eating != resting);
+    for (int lesson = 0; lesson < 400; ++lesson) {
+        brain.learn(eating, FORESIGHT + ForeseenHunger, -0.5, 0.05);
+        brain.learn(resting, FORESIGHT + ForeseenHunger, 0.5, 0.05);
+    }
+    CHECK(brain.values(eating)[FORESIGHT + ForeseenHunger] < 0);
+    CHECK(brain.values(resting)[FORESIGHT + ForeseenHunger] > 0);
+    CHECK(signed_sense(SenseImagined + IMAGINED_BITS - 1));
+}
+
+TEST_CASE("a brain learns what it foresees as it learns a value") {
+    PyRandom rng(5);
+    Brain brain = Brain::random(rng);
+    const Senses senses{};
+    for (int lesson = 0; lesson < 200; ++lesson) brain.learn(senses, FORESIGHT + ForeseenHunger, 0.5, 0.05);
+    CHECK(brain.values(senses)[FORESIGHT + ForeseenHunger] == doctest::Approx(0.5).epsilon(0.05));
+    CHECK(OUTPUTS[FORESIGHT + ForeseenFood] == "foresee_food");
 }
 
 TEST_CASE("memory neurons keep, overwrite or clear what they hold, by their gates") {

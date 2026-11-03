@@ -187,6 +187,14 @@ inline double CURIOUS_EXPLORATION = 0.1;  // the chance, times its curiosity, th
 // It is felt, unpleasant, and may turn any choice into another, the longest undone the likeliest.
 constexpr int BOREDOM_HORIZON = 200;
 inline double BOREDOM_RISE = 0.02, BOREDOM_RELIEF = 0.25, BOREDOM_DRIVE = 0.2, BOREDOM_UNEASE = 0.2;
+// Foresight: a brain learns what its next turn will bring at this share of its learning rate, one foreseen thing a turn
+// in rotation. How far what came differs from what it foresaw is its surprise, felt as a small pleasure.
+inline double FORESIGHT_LEARNING = 0.5, SURPRISE_JOY = 0.2;
+// Imagining: an animal awake and in no peril asks its brain what would come of its IMAGINED_OPTIONS best-valued options,
+// and those it foresees leaving it better off gain on the others by this much for each whole unit.
+inline double IMAGINATION = 0.5;
+constexpr int IMAGINED_OPTIONS = 3;
+constexpr double FORESIGHT_SCALE = 10;  // hunger, health and stamina change by hundredths a turn: foreseen at this many times that
 inline double RESTLESS_CURIOSITY = 0.5;  // the chance, times a half and its curiosity, that an animal whose brain chose to rest
                                          // (not made to) does any of its other options instead; in peril, neither, but as its brain chooses
 // Moving costs food. A walk, a single cell, saves this share of the turn's burn, as resting does; going as
@@ -682,6 +690,9 @@ struct Bitzkey {
     int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
     double boredom = 0.0;  // see BOREDOM_RISE
+    bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
+    Foresight expected{};
+    double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
     std::array<int, ACTION_COUNT> last_tried{};  // the turn after it last chose each action; 0 for never
     int carried_seed = 0;  // kept from raw fruit it ate, up to its capacity, and no weight to it
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
@@ -1064,6 +1075,7 @@ public:
 
     // The rest is public so tests can drive single steps, as the Python tests do.
     void rein_in(Bitzkey& agent, const Senses& senses, const Values& valued);  // what it values beyond the Value limit, taught back
+    void foresee(Bitzkey& agent, const Foresight& change);  // one thing it foresaw, taught what came
     // Which way an animal breaks ties between targets equally near, or flees one straight in line: east (1) or west (-1),
     // south (1) or north (-1), turning with its number and the turn, so no way is favoured.
     struct Side {

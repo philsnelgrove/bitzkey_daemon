@@ -1627,5 +1627,11 @@
 "Boredom drive": "Langeweile-Antrieb",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "die Chance bei voller Langeweile, dass ein Tier ohne Gefahr etwas anderes tut, am ehesten das am längsten Unterlassene",
 "Boredom unease": "Langeweile-Unbehagen",
-"how unpleasant a turn of full boredom is": "wie unangenehm ein Zug voller Langeweile ist"
+"how unpleasant a turn of full boredom is": "wie unangenehm ein Zug voller Langeweile ist",
+"Foresight learning": "Vorausschau-Lernen",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "wie schnell ein Gehirn lernt, was sein nächster Zug mit Hunger, Gesundheit, Ausdauer und Nahrung macht, als Anteil seiner Lernrate; 0 stoppt es und damit auch die Überraschung",
+"Surprise joy": "Überraschungsfreude",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "wie angenehm ein Zug ist, der ganz anders ausfällt als vorausgesehen, mal einhalb plus Neugier; 0 schaltet das Gefühl ab",
+"Imagination": "Vorstellungskraft",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "wie stark das, was es sich von seinen wahrscheinlichsten Optionen vorstellt, seine Wahl beeinflusst: je besser es eine Option für sich voraussieht, desto wahrscheinlicher; 0 beendet das Vorstellen und damit die Überraschung"
 }

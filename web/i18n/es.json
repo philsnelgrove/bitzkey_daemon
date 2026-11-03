@@ -1627,5 +1627,11 @@
 "Boredom drive": "Impulso del aburrimiento",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "la probabilidad, con aburrimiento total, de que un animal sin peligro haga otra opción, sobre todo la más olvidada",
 "Boredom unease": "Malestar del aburrimiento",
-"how unpleasant a turn of full boredom is": "lo desagradable que es un turno de aburrimiento total"
+"how unpleasant a turn of full boredom is": "lo desagradable que es un turno de aburrimiento total",
+"Foresight learning": "Aprendizaje de previsión",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "lo rápido que un cerebro aprende qué hará su próximo turno con su hambre, salud, aguante y comida, como parte de su tasa de aprendizaje; 0 lo detiene, y la sorpresa con él",
+"Surprise joy": "Alegría de la sorpresa",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "lo agradable que es un turno totalmente distinto de lo previsto, por un medio más su curiosidad; 0 apaga el sentimiento",
+"Imagination": "Imaginación",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "cuánto influye en su elección lo que imagina de sus opciones más probables: cuanto mejor prevé que le dejará una opción, más probable; 0 detiene la imaginación, y la sorpresa con ella"
 }

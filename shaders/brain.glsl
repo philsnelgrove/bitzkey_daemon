@@ -10,9 +10,9 @@
 // Stored input by input, neighbouring threads, each a neuron, read neighbouring weights.
 // Its eligibility traces sit in a second buffer laid out the same way.
 
-const uint INPUTS = 176u;
+const uint INPUTS = 182u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
-const uint ACTIONS = 77u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values
+const uint ACTIONS = 81u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight
 const uint MEMORY_NEURONS = 8u;
 const uint MEMORY_SENSE = 74u;  // SenseMemory: the first sense of what the memory held
 const uint MEMORY_GATES = 61u;  // the first gate's output, then each neuron's, then the values to write

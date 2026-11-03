@@ -216,6 +216,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     }
     result["crafts"] = crafts;
     result["boredom"] = agent->boredom;
+    result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
                       {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
@@ -1004,12 +1005,16 @@ Json Probe::minds(Simulation& world) const {
         std::vector<double> reaches;  // each brain's farthest value from nothing, for what it last sensed
         std::size_t thinking = 0, runaway = 0, neurons = 0, jammed = 0;
         double depth = 0, width = 0;
+        std::array<double, 3> surprise{}, surprised{};  // by the third of its lifespan it is in: foresight learnt falls with age
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->brain) continue;
             ++thinking;
             depth += agent->brain->depth();
             width += agent->brain->width();
             if (!agent->has_last_senses) continue;
+            const auto third = static_cast<std::size_t>(std::clamp(3.0 * agent->age / agent->lifespan, 0.0, 2.0));
+            surprise[third] += agent->surprise;
+            surprised[third] += 1;
             const Values values = agent->brain->values(agent->last_senses);
             double reach = 0;
             for (const double value : values) reach = std::max(reach, std::abs(value));
@@ -1028,7 +1033,8 @@ Json Probe::minds(Simulation& world) const {
         const double count = std::max<double>(1, static_cast<double>(thinking));
         result[std::string(species_name(species))] = {{"thinking", thinking}, {"valued", reaches.size()}, {"depth", depth / count},
                                                       {"width", width / count}, {"value_median", at(0.5)}, {"value_p90", at(0.9)},
-                                                      {"value_max", at(1.0)}, {"runaway", runaway}, {"neurons", neurons}, {"jammed", jammed}};
+                                                      {"value_max", at(1.0)}, {"runaway", runaway}, {"neurons", neurons}, {"jammed", jammed},
+                                                      {"surprise_by_age", {surprise[0] / std::max(1.0, surprised[0]), surprise[1] / std::max(1.0, surprised[1]), surprise[2] / std::max(1.0, surprised[2])}}};
     }
     return {{"turn", world.turn()}, {"runaway_value", RUNAWAY_VALUE}, {"jammed_at", JAMMED}, {"minds", result}};
 }

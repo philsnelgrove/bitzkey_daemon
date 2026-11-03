@@ -1627,5 +1627,11 @@
 "Boredom drive": "Spinta della noia",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "la probabilità, a noia piena, che un animale non in pericolo faccia altro, soprattutto ciò che ha trascurato di più",
 "Boredom unease": "Disagio della noia",
-"how unpleasant a turn of full boredom is": "quanto è sgradevole un turno di noia piena"
+"how unpleasant a turn of full boredom is": "quanto è sgradevole un turno di noia piena",
+"Foresight learning": "Apprendimento della previsione",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "quanto velocemente un cervello impara cosa farà il prossimo turno a fame, salute, resistenza e cibo, come quota del suo tasso di apprendimento; 0 lo ferma, e con esso la sorpresa",
+"Surprise joy": "Gioia della sorpresa",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "quanto è piacevole un turno del tutto diverso dal previsto, per un mezzo più la sua curiosità; 0 spegne la sensazione",
+"Imagination": "Immaginazione",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "quanto ciò che immagina delle sue opzioni più probabili influenza la scelta: meglio prevede che un'opzione lo lasci, più è probabile; 0 ferma l'immaginazione, e con essa la sorpresa"
 }

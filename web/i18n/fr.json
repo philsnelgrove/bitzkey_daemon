@@ -1627,5 +1627,11 @@
 "Boredom drive": "Élan de l'ennui",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "la chance, à ennui complet, qu'un animal hors de danger fasse autre chose, de préférence ce qu'il a le plus délaissé",
 "Boredom unease": "Malaise de l'ennui",
-"how unpleasant a turn of full boredom is": "à quel point un tour d'ennui complet est désagréable"
+"how unpleasant a turn of full boredom is": "à quel point un tour d'ennui complet est désagréable",
+"Foresight learning": "Apprentissage de la prévision",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "la vitesse à laquelle un cerveau apprend ce que son prochain tour fera à sa faim, sa santé, son endurance et sa nourriture, en part de son taux d'apprentissage ; 0 l'arrête, et la surprise avec",
+"Surprise joy": "Joie de la surprise",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "à quel point un tour tout autre que prévu est agréable, fois un demi plus sa curiosité ; 0 coupe ce sentiment",
+"Imagination": "Imagination",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "à quel point ce qu'il imagine de ses options les plus probables pèse sur son choix : mieux il prévoit qu'une option le laissera, plus elle est probable ; 0 arrête l'imagination, et la surprise avec"
 }

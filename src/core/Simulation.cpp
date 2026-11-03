@@ -1581,6 +1581,16 @@ void Simulation::rein_in(Bitzkey& agent, const Senses& senses, const Values& val
     }
 }
 
+void Simulation::foresee(Bitzkey& agent, const Foresight& change) {
+    // One lesson a turn, whichever thing's turn it is, so foresight costs little beside what it already learns.
+    const int thing = py_mod(turn_, FORESEEN);
+    const double rate = learning_rate(agent) * FORESIGHT_LEARNING;
+    if (rate <= 0) return;
+    const Senses pictured = imagining(agent.last_senses, agent.last_choice);  // what it did, as if it had pictured it
+    if (gpu_) queue_lesson(agent, pictured, FORESIGHT + thing, change[thing], rate, false, 0.0);
+    else learning_brain(agent).learn(pictured, FORESIGHT + thing, change[thing], rate);
+}
+
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
                               double decay, int steps) {
     lesson_senses_.push_back(senses);
@@ -1701,6 +1711,28 @@ bool Simulation::dies_of_age(Bitzkey& agent) {
     return rng().random() < steepness * (agent.age - onset);
 }
 
+namespace {
+// The food it senses, by what it eats: 0 none near, to 1 beside it.
+double food_near(const Bitzkey& agent, const Senses& senses) {
+    const bool grazes = agent.species != Species::Predator, hunts = agent.species != Species::Grazer;
+    double food = 0.0;
+    if (grazes) food = std::max({senses[SenseGrassHere], senses[SenseGrassCloseness], senses[SensePlantCloseness]});
+    if (hunts) food = std::max({food, senses[SensePreyCloseness], senses[SenseKillCloseness], senses[SenseCarrionCloseness]});
+    return food;
+}
+
+// How much better off a brain foresees itself, all counting alike.
+double worth(const Foresight& sight) {
+    return sight[ForeseenHealth] + sight[ForeseenStamina] + sight[ForeseenFood] - sight[ForeseenHunger];
+}
+
+// What a turn did to what a brain foresees, as it foresees it.
+Foresight what_changed(const Bitzkey& agent, const Senses& before, const Senses& now) {
+    const auto scaled = [&](int sense) { return std::clamp(FORESIGHT_SCALE * (now[sense] - before[sense]), -1.0, 1.0); };
+    return {scaled(SenseHunger), scaled(SenseHealth), scaled(SenseStamina), food_near(agent, now) - food_near(agent, before)};
+}
+}  // namespace
+
 void Simulation::think(Bitzkey& agent) { think_all({&agent}); }
 
 void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
@@ -1772,12 +1804,21 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // success, whatever lowered them a failure, by how much; both may happen. Each learns from it on its own brain
     // alone, so on the CPU they all learn at once, on every core, each its lessons in their order, as one by one.
     std::vector<double> rewards(agents.size()), targets(agents.size()), call_targets(agents.size());
+    std::vector<Foresight> changes(agents.size());
     for (std::size_t index = 0; index < agents.size(); ++index) {
         Bitzkey& agent = *agents[index];
         if (!agent.has_last_senses) continue;
         rewards[index] = agent.reward + wellbeing(agent) - agent.last_wellbeing + comforts[index] - agent.last_comfort;
         // Having chosen to sit the weather out, it feels it the more (Resting unease); asleep or spent, it had no choice.
         if (agent.last_choice == Rest && !agent.last_forced) rewards[index] -= RESTING_UNEASE * plans[index].situation.exposure;
+        changes[index] = what_changed(agent, agent.last_senses, plans[index].senses);
+        if (agent.expects && FORESIGHT_LEARNING > 0) {  // what came, against what it imagined
+            agent.surprise = 0.0;
+            for (int thing = 0; thing < FORESEEN; ++thing) {
+                agent.surprise += std::abs(changes[index][thing] - std::clamp(agent.expected[thing], -1.0, 1.0)) / FORESEEN;
+            }
+            rewards[index] += SURPRISE_JOY * (0.5 + agent.feeling(Curiosity)) * agent.surprise;
+        }
         const std::vector<int>& options = plans[index].options;
         double best = values[index][options[0]];
         for (const int option : options) best = std::max(best, values[index][option]);
@@ -1791,6 +1832,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     };
     const auto teach = [&](std::size_t index) {
         if (taught(index)) learn(*agents[index], targets[index], rewards[index], true, call_targets[index]);
+        if (taught(index) && FORESIGHT_LEARNING > 0) foresee(*agents[index], changes[index]);
         rein_in(*agents[index], plans[index].senses, values[index]);
     };
     if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
@@ -1833,6 +1875,50 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         restless[index] = rng().random();
         call_rolls[index] = rng().random();
     }
+    // Imagining: each animal free to think pictures taking its best-valued options, and its brain foresees what would
+    // come of each. One more batch of brains, the same brain several times in it.
+    std::vector<std::vector<std::pair<int, Foresight>>> imagined(agents.size());
+    if (IMAGINATION > 0 && FORESIGHT_LEARNING > 0) {
+        clock = std::chrono::steady_clock::now();
+        std::vector<gpu::BrainEngine::Handle> handles;
+        std::vector<Senses> pictured;
+        std::vector<std::pair<std::size_t, int>> whose;  // which animal, and the option pictured
+        for (std::size_t index = 0; index < agents.size(); ++index) {
+            const Bitzkey& agent = *agents[index];
+            const Situation& situation = plans[index].situation;
+            std::vector<int> best = plans[index].options;
+            if (idle[index] || best.size() < 2 || agent.exhausted() || (SLEEP && resting_time(agent)) || situation.hunter ||
+                situation.threats > 0 || situation.assailant || agent.hunger >= 100) continue;
+            const std::size_t count = std::min<std::size_t>(IMAGINED_OPTIONS, best.size());
+            std::partial_sort(best.begin(), best.begin() + static_cast<std::ptrdiff_t>(count), best.end(),
+                              [&](int a, int b) { return values[index][a] > values[index][b]; });
+            for (std::size_t at = 0; at < count; ++at) {
+                handles.push_back(agent.gpu);
+                pictured.push_back(imagining(plans[index].senses, best[at]));
+                whose.emplace_back(index, best[at]);
+            }
+        }
+        std::vector<Values> foreseen(pictured.size());
+        if (gpu_ && !pictured.empty()) {
+            try {
+                gpu_->values(handles, pictured, foreseen);
+            } catch (const std::runtime_error& error) {
+                leave_gpu(error);  // and is done on the CPU, below
+            }
+        }
+        if (!gpu_) {
+            std::vector<std::size_t> places(pictured.size());
+            std::iota(places.begin(), places.end(), std::size_t{0});
+            std::for_each(std::execution::par, places.begin(), places.end(),
+                          [&](std::size_t place) { foreseen[place] = agents[whose[place].first]->brain->values(pictured[place]); });
+        }
+        for (std::size_t place = 0; place < pictured.size(); ++place) {
+            Foresight sight{};
+            for (int thing = 0; thing < FORESEEN; ++thing) sight[thing] = foreseen[place][FORESIGHT + thing];
+            imagined[whose[place].first].emplace_back(whose[place].second, sight);
+        }
+        timings.think += lap(clock);
+    }
     // How fresh an option is to an animal: 1 if untried or BOREDOM_HORIZON turns past, 0 if just done.
     const auto novelty = [this](const Bitzkey& agent, int option) {
         const int tried = agent.last_tried[static_cast<std::size_t>(option)];
@@ -1859,6 +1945,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         double hungriest = 0.0;  // of its infants about it
         for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
         add_instincts(agent, valued, options, agent.hunger, hungriest);
+        if (!imagined[index].empty()) {  // each against the others, so imagining favours none of them over the rest of its options
+            double mean = 0.0;
+            for (const auto& [option, sight] : imagined[index]) mean += worth(sight) / static_cast<double>(imagined[index].size());
+            for (const auto& [option, sight] : imagined[index]) valued[option] += IMAGINATION * (worth(sight) - mean);
+        }
         const auto odds = choice_odds(valued, options);
         double roll = rolls[index];
         int choice = options.back();
@@ -1931,6 +2022,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         agent.last_wrote = !idle[index];
         if (!idle[index]) agent.held = memory_after(values[index], agent.held);
+        agent.expects = false;
+        for (const auto& [option, sight] : imagined[index]) {
+            if (option != choice) continue;
+            agent.expects = true;
+            agent.expected = sight;
+        }
         agent.has_last_senses = true;
         agent.last_senses = plans[index].senses;
         agent.last_choice = choice;
@@ -2577,10 +2674,7 @@ void Simulation::note_place(Bitzkey& agent, const Senses& senses) {
         places.push_back(MapPlace{column, row, turn_});
         here = places.end() - 1;
     }
-    const bool grazes = agent.species != Species::Predator, hunts = agent.species != Species::Grazer;
-    double food = 0.0;
-    if (grazes) food = std::max({senses[SenseGrassHere], senses[SenseGrassCloseness], senses[SensePlantCloseness]});
-    if (hunts) food = std::max({food, senses[SensePreyCloseness], senses[SenseKillCloseness], senses[SenseCarrionCloseness]});
+    const double food = food_near(agent, senses);
     const double danger = std::max(senses[SenseThreatCloseness], senses[SenseAssailantNear]);
     const double comfort = 1 - senses[SenseClimateDiscomfort];
     const auto quarter = static_cast<std::size_t>(season(turn_));

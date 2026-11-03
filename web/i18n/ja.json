@@ -1627,5 +1627,11 @@
 "Boredom drive": "退屈の衝動",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "退屈が最大のとき、危険のない動物が別の行動をとる確率(長くしていない行動ほど選ばれやすい)",
 "Boredom unease": "退屈の不快",
-"how unpleasant a turn of full boredom is": "退屈が最大のターンの不快さ"
+"how unpleasant a turn of full boredom is": "退屈が最大のターンの不快さ",
+"Foresight learning": "予見の学習",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "脳が次のターンで空腹・健康・スタミナ・食物がどう変わるかを学ぶ速さ(学習率に対する割合)。0で停止し、驚きも止まる",
+"Surprise joy": "驚きの喜び",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "予見とまったく違うターンの心地よさ(0.5+好奇心を掛ける)。0でこの感情を切る",
+"Imagination": "想像力",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "有力な選択肢について想像した結果が選択をどれだけ左右するか。良い結果を予見した選択肢ほど選ばれやすい。0で想像が止まり、驚きも止まる"
 }

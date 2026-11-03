@@ -1627,5 +1627,11 @@
 "Boredom drive": "Спонука нудьги",
 "the chance, at full boredom, that an animal not in peril does another option instead, the longest undone the likeliest": "імовірність, за повної нудьги, що тварина поза небезпекою зробить інше, передусім найдавніше не зроблене",
 "Boredom unease": "Неспокій нудьги",
-"how unpleasant a turn of full boredom is": "наскільки неприємний хід повної нудьги"
+"how unpleasant a turn of full boredom is": "наскільки неприємний хід повної нудьги",
+"Foresight learning": "Навчання передбачення",
+"how fast a brain learns what its next turn will do to its hunger, health, stamina and food, as a share of its learning rate; 0 stops it, and surprise with it": "як швидко мозок вчиться, що наступний хід зробить із його голодом, здоров'ям, витривалістю та їжею, як частка темпу навчання; 0 зупиняє це, а з ним і подив",
+"Surprise joy": "Радість подиву",
+"how pleasant a turn wholly unlike what it foresaw is, times a half and its curiosity; 0 turns the feeling off": "наскільки приємний хід, зовсім не схожий на передбачений, помножено на половину плюс цікавість; 0 вимикає це почуття",
+"Imagination": "Уява",
+"how much what it imagines would come of its likeliest options sways its choice: the better it foresees an option leaving it, the likelier; 0 stops it imagining, and surprise with it": "наскільки те, що воно уявляє про найімовірніші варіанти, впливає на вибір: що краще воно передбачає наслідок варіанта, то він імовірніший; 0 зупиняє уяву, а з нею і подив"
 }

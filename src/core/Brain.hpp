@@ -161,7 +161,13 @@ constexpr int CALL_OPTIONS = FirstCall + CALL_COUNT;
 constexpr int MEMORY_NEURONS = 8;
 constexpr int MEMORY_GATES = ACTION_COUNT + CALL_OPTIONS;   // the first gate's output, then each neuron's in turn,
 constexpr int MEMORY_VALUES = MEMORY_GATES + MEMORY_NEURONS;  // then the first value to write, and each neuron's
-constexpr int OUTPUT_COUNT = MEMORY_VALUES + MEMORY_NEURONS;
+// Foresight: last of all its outputs, what a brain expects of its next turn, each by how much it will change, about -1 to 1.
+// They read what its actions' values read, but are taught by what then came about, no reward needed (see FORESIGHT_LEARNING).
+enum Foreseen : int { ForeseenHunger, ForeseenHealth, ForeseenStamina, ForeseenFood };
+constexpr int FORESEEN = 4;
+constexpr int FORESIGHT = MEMORY_VALUES + MEMORY_NEURONS;  // the first of them
+constexpr int OUTPUT_COUNT = FORESIGHT + FORESEEN;
+using Foresight = std::array<double, FORESEEN>;
 static_assert(SenseMapFood == SenseMemory + MEMORY_NEURONS);
 constexpr int MAX_MEMORY_STEPS = 4;  // the furthest back Memory steps may reach
 using Held = std::array<double, MEMORY_NEURONS>;  // what memory neurons hold
@@ -178,7 +184,7 @@ constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
     "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed"};
-// A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write.
+// A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write, then what it foresees.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
     for (int action = 0; action < ACTION_COUNT; ++action) names[action] = ACTIONS[action];
@@ -188,6 +194,8 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
         "memory_gate_1", "memory_gate_2", "memory_gate_3", "memory_gate_4", "memory_gate_5", "memory_gate_6", "memory_gate_7", "memory_gate_8",
         "memory_value_1", "memory_value_2", "memory_value_3", "memory_value_4", "memory_value_5", "memory_value_6", "memory_value_7", "memory_value_8"};
     for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) names[MEMORY_GATES + output] = memory[output];
+    constexpr std::array<std::string_view, FORESEEN> foreseen = {"foresee_hunger", "foresee_health", "foresee_stamina", "foresee_food"};
+    for (int output = 0; output < FORESEEN; ++output) names[FORESIGHT + output] = foreseen[output];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -199,7 +207,12 @@ constexpr int SenseSwims = SenseColdTolerance + 1;  // then its terrain: whether
 constexpr int SenseWalks = SenseSwims + 1;          // onto the land,
 constexpr int SenseFlies = SenseWalks + 1;          // and whether it flies
 constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 nocturnal, 0 diurnal
-constexpr int INPUT_SIZE = SenseNocturnal + 1;
+// Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
+// when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
+constexpr int SenseImagined = SenseNocturnal + 1;
+constexpr int IMAGINED_BITS = 6;
+static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
+constexpr int INPUT_SIZE = SenseImagined + IMAGINED_BITS;
 // The senses as a brain reads them: each that runs 0..1 centred, read as -1..1, so that a lesson moves a neuron's weights
 // both ways (senses never below 0 push all its weights the same way, lesson after lesson, until the neuron jams at its
 // limit, the same whatever it senses, and learns no more); those already running -1..1 read as they are.
@@ -211,7 +224,7 @@ constexpr bool signed_sense(int sense) {
            (sense >= SenseMemory && sense < SenseMapFood) || sense == SenseMapFoodEast || sense == SenseMapFoodSouth ||
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
-           sense == SenseElderEast || sense == SenseElderSouth;
+           sense == SenseElderEast || sense == SenseElderSouth || sense >= SenseImagined;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -240,7 +253,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "inborn_moodiness", "inborn_sociability", "inborn_empathy", "inborn_tolerance", "inborn_loyalty",
     "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
-    "heat_tolerance", "cold_tolerance", "swims", "walks", "flies", "nocturnal"};
+    "heat_tolerance", "cold_tolerance", "swims", "walks", "flies", "nocturnal",
+    "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6"};
 int action_index(std::string_view name);  // -1 when unknown
 int sense_index(std::string_view name);   // -1 when unknown
 
@@ -274,6 +288,11 @@ inline double output_spread(int width) { return 0.3 * std::sqrt(12.0 / width); }
 
 using Senses = std::array<double, INPUT_SIZE>;
 using Values = std::array<double, OUTPUT_COUNT>;  // its actions', then its calls'
+// The same senses, picturing itself taking `action`.
+inline Senses imagining(Senses senses, int action) {
+    for (int bit = 0; bit < IMAGINED_BITS; ++bit) senses[SenseImagined + bit] = (action >> bit & 1) ? 1.0 : -1.0;
+    return senses;
+}
 
 // How many hidden layers a brain has, by its owner's inborn intellect: one a point, from one to MAX_DEPTH.
 inline int depth_for(int intellect) { return std::max(1, std::min(MAX_DEPTH, intellect)); }
