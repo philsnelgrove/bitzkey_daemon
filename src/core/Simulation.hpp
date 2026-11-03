@@ -355,6 +355,12 @@ inline double FACTION_SHARE = 0.25, FACTION_WIDTH = 0.05;
 constexpr double REGARD_STRONG = 0.5;
 inline double REGARD_COMFORT = 0.5, GRUDGE_JOY = 1.0, FRIEND_JOY = 1.0;
 constexpr double BLOW_DEED = -1.0, FEEDING_DEED = 1.0, ALERT_DEED = 0.5, MATING_DEED = 0.5, TEACHING_DEED = 1.0, CRAFT_DEED = 0.5, FIRE_DEED = 0.5;
+// Shared moments: a fire enjoyed together, and a herd-mate defended. Each moves regard as a deed of these worths, at
+// SHARED_BOND of a deed's weight between those who share it; the one defended takes its defender's deed at full weight.
+constexpr double HEARTH_DEED = 1.0, DEFENCE_DEED = 1.0;
+constexpr int HEARTH_REACH = 2;    // steps from a fire to share it
+constexpr int HEARTH_COMPANY = 6;  // the most at one fire who bond, the first in the turn's order
+inline double SHARED_BOND = 0.2;
 // The diary: an animal keeps up to Diary entries (none at 0) of its most vivid experiences, by how much came of them,
 // the vividness fading by Diary fading each turn since, the faintest forgotten for a more vivid one; and each turn it
 // re-learns from one of them, in turn, as from a replay.
@@ -493,6 +499,7 @@ inline double DISCOVERY_JOY = 5.0;  // the joy of first discovering a craft (hal
 inline int CRAFT_TRIES = 10;
 inline double CRAFT_THRILL = 1.0;
 inline double FIRE_JOY = 2.0;  // the sense of accomplishment in lighting a fire
+inline double FIRE_FEED_JOY = 1.0;  // and in feeding one, so it burns on
 inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (half plus curiosity)
 inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
@@ -1154,6 +1161,8 @@ public:
     // What `other` did to `agent`, worth `deed`, -1 to 1, noted in its regard for them.
     // Only its reputation moves, not its regard, unless `regarded`.
     void note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight = 1.0, DeedKind kind = PlainDeed, bool regarded = true);
+    void share_hearths(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& plans);  // those at a fire together bond
+    void bond_in_defence(Bitzkey& defender, const Bitzkey& assailant);  // and those who stood together against an attacker
     // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
     void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed);
     double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither

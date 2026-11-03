@@ -2786,6 +2786,40 @@ TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a strang
     CHECK(simulation.comfort(stranger, seen) == doctest::Approx(simulation.comfort(stranger, without)));
 }
 
+TEST_CASE("feeding a fire pays, a friend's fire welcomes, and a fire shared bonds") {
+    Simulation simulation = world();
+    Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    lighter.weapon = Club;
+    lighter.carried_wood = 1;
+    simulation.light_fire(lighter);
+    lighter.reward = 0;
+    simulation.feed_fire(lighter, Cell{5, 5});
+    CHECK(lighter.reward == doctest::Approx(FIRE_FEED_JOY));
+    CHECK_FALSE(simulation.fire_friendly(friend_, Cell{5, 5}));  // omnivores live alone: a stranger's fire
+    for (int deed = 0; deed < 20; ++deed) simulation.note_deed(friend_, lighter, 1.0);
+    CHECK(simulation.fire_friendly(friend_, Cell{5, 5}));  // a friend's welcomes
+    const double before = simulation.regard_for(lighter, friend_);
+    std::vector<Simulation::Sensed> plans(2);
+    plans[0].situation.fire = plans[1].situation.fire = Cell{5, 5};
+    simulation.share_hearths({&lighter, &friend_}, plans);
+    CHECK(simulation.regard_for(lighter, friend_) > before);
+}
+
+TEST_CASE("defending a herd-mate bonds the defended most, and the defender too") {
+    Simulation simulation = world();
+    Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer), 5, 10);
+    Bitzkey& defender = simulation.add_agent(encode_dna(Species::Grazer), 6, 10);
+    Bitzkey& attacker = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 7, 10);
+    simulation.index_cells();
+    victim.assailant = attacker.identifier;
+    simulation.defend(defender, attacker, true);
+    const double grateful = simulation.regard_for(victim, defender), bonded = simulation.regard_for(defender, victim);
+    CHECK(bonded > 0);
+    CHECK(grateful > bonded);
+}
+
 TEST_CASE("seven units make a shelter, which doubles a square and keeps wood from rotting") {
     Simulation simulation = world();
     Bitzkey& builder = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 5, 5);

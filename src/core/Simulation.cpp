@@ -1,6 +1,7 @@
 #include "core/Simulation.hpp"
 
 #include <algorithm>
+#include <map>
 #include <chrono>
 #include <cmath>
 #include <execution>
@@ -1799,6 +1800,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                       [&](std::size_t index) { values[index] = agents[index]->brain->values(plans[index].senses); });
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
+    share_hearths(agents, plans);
     timings.think += lap(clock);
     // What came of each one's last choice: whatever raised its health (fullness counting with it) or its mood was a
     // success, whatever lowered them a failure, by how much; both may happen. Each learns from it on its own brain
@@ -3655,7 +3657,7 @@ bool Simulation::fire_friendly(const Bitzkey& agent, Cell fire) const {
     const int lighter = fire_lighters_[static_cast<std::size_t>(fire.y) * width_ + fire.x];
     if (lighter == agent.identifier) return true;
     const Bitzkey* other = find_agent(lighter);
-    return other && herd_mate(agent, *other);
+    return other && (herd_mate(agent, *other) || regard_for(agent, *other) >= REGARD_STRONG);  // a friend's welcomes too, so loners may share one
 }
 
 void Simulation::construct(Bitzkey& agent) {
@@ -3742,6 +3744,8 @@ void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
     --agent.carried_wood;
     fires_[static_cast<std::size_t>(fire.y) * width_ + fire.x] += FIRE_TURNS;
     agent.last_action = "fed a fire";
+    agent.reward += FIRE_FEED_JOY;
+    deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);  // keeping a fire is thought well of, as lighting one is
 }
 
 void Simulation::cook(Bitzkey& agent, Cell) {
@@ -3930,7 +3934,10 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
     if (agent.species != Species::Plant) {
         agent.reward += FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * agent.feeling(Empathy)) *
                         (1 - 0.75 * agent.feeling(Tolerance));  // as attacking is
-        if (for_herd) agent.reward += HERD_DEFEND_JOY * agent.herd_instinct();
+        if (for_herd) {
+            agent.reward += HERD_DEFEND_JOY * agent.herd_instinct();
+            bond_in_defence(agent, assailant);
+        }
         agent.last_action = "defended";
         experience(agent, Defended);
     }
@@ -3940,6 +3947,37 @@ void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
         struck(assailant, agent);
     }
     exhausted(agent);
+}
+
+void Simulation::share_hearths(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& plans) {
+    // Those beside a fire of their own or their herd's, together: each thinks the better of the others, a little each turn.
+    if (SHARED_BOND <= 0) return;
+    std::map<std::pair<int, int>, std::vector<Bitzkey*>> hearths;  // by the fire's column and row
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        Bitzkey* agent = agents[index];
+        const std::optional<Cell>& fire = plans[index].situation.fire;
+        if (!fire || !agent->alive() || !agent->brain || distance(agent->x, agent->y, fire->x, fire->y) > HEARTH_REACH) continue;
+        if (!fire_friendly(*agent, *fire)) continue;
+        std::vector<Bitzkey*>& company = hearths[{fire->x, fire->y}];
+        if (static_cast<int>(company.size()) < HEARTH_COMPANY) company.push_back(agent);
+    }
+    for (const auto& [cell, company] : hearths) {
+        for (Bitzkey* one : company) {
+            for (const Bitzkey* other : company) {
+                if (one != other) note_deed(*one, *other, HEARTH_DEED, SHARED_BOND);
+            }
+        }
+    }
+}
+
+void Simulation::bond_in_defence(Bitzkey& defender, const Bitzkey& assailant) {
+    // The herd-mates it struck back for think the better of it, and it of them, having stood together; those who saw it, too.
+    for (Bitzkey* other : around(defender, 2)) {
+        if (other == &defender || !other->alive() || !other->brain || other->assailant != assailant.identifier || !herd_mate(defender, *other)) continue;
+        note_deed(*other, defender, DEFENCE_DEED);
+        if (SHARED_BOND > 0) note_deed(defender, *other, DEFENCE_DEED, SHARED_BOND);
+    }
+    deed_seen(defender, DEFENCE_DEED, &assailant);
 }
 
 void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
