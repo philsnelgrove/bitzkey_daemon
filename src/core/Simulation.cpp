@@ -1947,6 +1947,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         double hungriest = 0.0;  // of its infants about it
         for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
         add_instincts(agent, valued, options, agent.hunger, hungriest);
+        hope_for_untried(agent, valued, options);
         if (!imagined[index].empty()) {  // each against the others, so imagining favours none of them over the rest of its options
             double mean = 0.0;
             for (const auto& [option, sight] : imagined[index]) mean += worth(sight) / static_cast<double>(imagined[index].size());
@@ -3228,6 +3229,22 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
         die(plant, "uprooted", &agent, "uprooting");
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
+    }
+}
+
+void hope_for_untried(const Bitzkey& agent, Values& valued, std::span<const int> options) {
+    if (UNTRIED_HOPE <= 0) return;
+    double total = 0.0;
+    int tried = 0;
+    for (const int option : options) {
+        if (!agent.last_tried[static_cast<std::size_t>(option)]) continue;
+        total += valued[option];
+        ++tried;
+    }
+    if (!tried) return;  // nothing to hope by: all is new to it
+    const double hoped = UNTRIED_HOPE * total / tried;
+    for (const int option : options) {
+        if (!agent.last_tried[static_cast<std::size_t>(option)]) valued[option] = std::max(valued[option], hoped);
     }
 }
 

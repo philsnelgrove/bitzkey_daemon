@@ -187,6 +187,7 @@ inline double CURIOUS_EXPLORATION = 0.1;  // the chance, times its curiosity, th
 // It is felt, unpleasant, and may turn any choice into another, the longest undone the likeliest.
 constexpr int BOREDOM_HORIZON = 200;
 inline double BOREDOM_RISE = 0.02, BOREDOM_RELIEF = 0.25, BOREDOM_DRIVE = 0.2, BOREDOM_UNEASE = 0.2;
+inline double UNTRIED_HOPE = 1.0;  // see hope_for_untried
 // Foresight: a brain learns what its next turn will bring at this share of its learning rate, one foreseen thing a turn
 // in rotation. How far what came differs from what it foresaw is its surprise, felt as a small pleasure.
 inline double FORESIGHT_LEARNING = 0.5, SURPRISE_JOY = 0.2;
@@ -924,6 +925,9 @@ int thinking_intellect(int intellect, Species species);
 // Its instincts, on top of what its brain values its `options` at: to hunt and feast, the mating call, a scavenger's
 // craving, loyalty to its herd, an infant's to its kind, and a parent's to feed its young (the hungriest that hungry).
 void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> options, double hunger, double hungriest_young);
+// Hope for what it has never done: an option it has never taken in its life valued at least at UNTRIED_HOPE of the average of
+// those it has, since a brain learns an action's worth only by taking it, and one never taken stays valued at next to nothing.
+void hope_for_untried(const Bitzkey& agent, Values& valued, std::span<const int> options);
 // The depth and width of a genome's brain, by its thinking intellect: deeper up to MAX_DEPTH, then wider.
 std::pair<int, int> brain_shape(Dna dna);
 

@@ -1637,5 +1637,7 @@
 "Shared bond": "共同纽带",
 "how much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none": "共同的时刻,如一起享受的火或被保护的群伴,在多大程度上改变好感,占一次行为权重的比例;0 表示没有",
 "Fire feeding joy": "添火之乐",
-"the satisfaction of feeding a fire, so that it burns on": "给火添柴、让它继续燃烧的满足感"
+"the satisfaction of feeding a fire, so that it burns on": "给火添柴、让它继续燃烧的满足感",
+"Untried hope": "对未尝试之事的期望",
+"how highly an animal values an option it has never taken in its life, as a share of the average of those it has: 1 as well as the average, so that what it has never tried gets tried; 0 as its brain alone does": "动物对一生中从未选过的选项评价有多高,占它选过的选项平均值的比例:1 与平均相同,让从未尝试的得以尝试;0 只按大脑自身评价"
 }

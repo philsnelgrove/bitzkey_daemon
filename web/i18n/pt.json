@@ -1637,5 +1637,7 @@
 "Shared bond": "Laço partilhado",
 "how much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none": "quanto os momentos partilhados, um fogo apreciado em conjunto ou um companheiro de manada defendido, movem a estima, como parte do peso de um ato; 0 para nenhum",
 "Fire feeding joy": "Alegria de alimentar o fogo",
-"the satisfaction of feeding a fire, so that it burns on": "a satisfação de alimentar um fogo para que continue a arder"
+"the satisfaction of feeding a fire, so that it burns on": "a satisfação de alimentar um fogo para que continue a arder",
+"Untried hope": "Esperança no não experimentado",
+"how highly an animal values an option it has never taken in its life, as a share of the average of those it has: 1 as well as the average, so that what it has never tried gets tried; 0 as its brain alone does": "quanto um animal valoriza uma opção que nunca tomou na vida, como parte da média das que tomou: 1 tanto quanto a média, para que o nunca experimentado seja experimentado; 0 como o seu cérebro sozinho faz"
 }

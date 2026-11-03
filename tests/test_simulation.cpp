@@ -2807,6 +2807,28 @@ TEST_CASE("feeding a fire pays, a friend's fire welcomes, and a fire shared bond
     CHECK(simulation.regard_for(lighter, friend_) > before);
 }
 
+TEST_CASE("an option never taken is hoped for as well as the average of those taken, until tried") {
+    Simulation simulation = world();
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Omnivore), 5, 5);
+    Values valued{};
+    valued[Eat] = 20;
+    valued[Rest] = 10;
+    valued[FeedFire] = -3;
+    const std::vector<int> options = {Eat, Rest, FeedFire};
+    Values untouched = valued;
+    hope_for_untried(animal, untouched, options);
+    CHECK(untouched[FeedFire] == -3);  // nothing tried yet: nothing to hope by
+    animal.last_tried[Eat] = animal.last_tried[Rest] = 1;
+    hope_for_untried(animal, valued, options);
+    CHECK(valued[FeedFire] == doctest::Approx(15));
+    CHECK(valued[Eat] == 20);
+    animal.last_tried[FeedFire] = 2;  // tried: its brain alone, from now on
+    Values again{};
+    again[Eat] = 20, again[Rest] = 10, again[FeedFire] = -3;
+    hope_for_untried(animal, again, options);
+    CHECK(again[FeedFire] == -3);
+}
+
 TEST_CASE("defending a herd-mate bonds the defended most, and the defender too") {
     Simulation simulation = world();
     Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer), 5, 10);

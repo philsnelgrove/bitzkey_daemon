@@ -1637,5 +1637,7 @@
 "Shared bond": "共有の絆",
 "how much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none": "共に楽しんだ火や守った群れの仲間といった共有の時が、行為の重みに対する割合としてどれだけ敬意を動かすか。0でなし",
 "Fire feeding joy": "火をくべる喜び",
-"the satisfaction of feeding a fire, so that it burns on": "火が燃え続けるように薪をくべる満足感"
+"the satisfaction of feeding a fire, so that it burns on": "火が燃え続けるように薪をくべる満足感",
+"Untried hope": "未経験への期待",
+"how highly an animal values an option it has never taken in its life, as a share of the average of those it has: 1 as well as the average, so that what it has never tried gets tried; 0 as its brain alone does": "生涯で一度も選んだことのない選択肢を、選んだことのある選択肢の平均に対する割合としてどれだけ評価するか。1は平均と同じで未経験のことも試される。0は脳だけの評価"
 }
