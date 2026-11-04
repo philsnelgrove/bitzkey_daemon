@@ -123,6 +123,7 @@ add_executable(bitzkey_tests
     tests/test_probe.cpp
     tests/test_sea.cpp
     tests/test_day.cpp
+    tests/test_i18n.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp
     src/daemon/Api.cpp
@@ -131,7 +132,8 @@ add_executable(bitzkey_tests
     "${BITZKEY_WEB_SOURCE}"
 )
 target_include_directories(bitzkey_tests PRIVATE src)
-target_compile_definitions(bitzkey_tests PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}")
+target_compile_definitions(bitzkey_tests PRIVATE BITZKEY_VERSION="${BITZKEY_VERSION}" BITZKEY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+                           BITZKEY_I18N_DIR="${CMAKE_CURRENT_SOURCE_DIR}/web/i18n")
 target_link_libraries(bitzkey_tests PRIVATE bitzkey_net doctest::doctest)
 
 include(GNUInstallDirs)
