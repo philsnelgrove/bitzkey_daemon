@@ -2624,6 +2624,48 @@ TEST_CASE("an enemy is no pleasure to see but a pleasure to strike, and a friend
     CHECK(simulation.help_felt(agent, -1.0) == 0.0);
 }
 
+TEST_CASE("one held skilled comforts and is copied, a teacher anchors its student, and one to follow spares dread") {
+    Simulation simulation(40, 40, 0, 1);
+    Bitzkey& agent = simulation.add_agent(encode_dna(Species::Omnivore, {{"sight", 7}}), 10, 10);
+    Simulation::Situation near;
+    const double plain = simulation.comfort(agent, near);
+    near.skill_near = 0.8;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain + SKILL_COMFORT * 0.8 * (0.5 + agent.feeling(Curiosity))));
+    near.skill_near = 0.3;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain));  // not held skilled
+    near.teacher_steps = ELDER_REACH;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain + ELDER_COMFORT * (0.5 + agent.feeling(Trust))));
+    near.teacher_steps = ELDER_REACH + 1;
+    CHECK(simulation.comfort(agent, near) == doctest::Approx(plain));  // too far from it
+    Simulation::Situation danger;
+    danger.threats = 2;
+    agent.mind[Fear] = 1.0;
+    danger.regard_near = 0.8;
+    const double alone = simulation.comfort(agent, danger);
+    danger.known_steps = FOLLOW_REACH;
+    CHECK(simulation.comfort(agent, danger) > alone);  // a friend beside it with danger in sight
+    danger.threats = 0;
+    const double calm = simulation.comfort(agent, danger);
+    danger.known_steps = -1;
+    CHECK(simulation.comfort(agent, danger) == doctest::Approx(calm));  // no danger, nothing spared
+
+    Bitzkey& doer = simulation.add_agent(agent.dna, 12, 10);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 11, 11);
+    simulation.index_cells();
+    const double watching = WATCH_LEARNING;
+    WATCH_LEARNING = 1.0;
+    agent.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.3});
+    stranger.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.9});
+    simulation.deed_seen(doer, CRAFT_DEED, nullptr, SkillDeed, 1);
+    CHECK((agent.crafts & 2) == 0);  // not yet held skilled
+    CHECK((stranger.crafts & 2) == 0);  // not of its kind
+    agent.known[0].skill = 0.9;
+    simulation.deed_seen(doer, CRAFT_DEED, nullptr, SkillDeed, 1);
+    CHECK((agent.crafts & 2) != 0);
+    CHECK(agent.craft_source[1] == 4);
+    WATCH_LEARNING = watching;
+}
+
 TEST_CASE("an enemy's alert is refused, and a friend's is heeded from further") {
     Simulation simulation(40, 40, 0, 1);
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 10, 10);

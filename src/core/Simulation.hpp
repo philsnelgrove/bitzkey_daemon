@@ -514,6 +514,17 @@ inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNIT
 inline double SHELTER_COMFORT = 0.3;
 inline double SHELTER_LONGING = 1.0;
 inline double PROTECTION_JOY = 1.0;
+// Leadership. One it holds skilled close by is a comfort (SKILL_COMFORT, more if curious), and a craft seen done by one
+// it holds skilled may be learnt from the watching (WATCH_LEARNING). A student within ELDER_REACH steps of the elder
+// who taught it is glad of it (ELDER_COMFORT, more if trusting). With danger in sight, a friend or one it holds skilled
+// within FOLLOW_REACH steps spares it FOLLOW_SAFETY of its dread, felt as relief as any protection is.
+constexpr double SKILL_HELD = 0.5;  // the skill at which another is held skilled
+inline double SKILL_COMFORT = 0.5;
+inline double WATCH_LEARNING = 0.1;
+inline double ELDER_COMFORT = 0.5;
+inline int ELDER_REACH = 3;
+inline double FOLLOW_SAFETY = 0.5;
+inline int FOLLOW_REACH = 2;
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
@@ -716,7 +727,7 @@ struct Bitzkey {
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered
     std::array<int, 5> craft_tries{};  // how often it has tried each
-    std::array<int, 5> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder
+    std::array<int, 5> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched
     std::array<int, 5> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
@@ -1149,6 +1160,9 @@ public:
         Bitzkey* assailant = nullptr;
         double rivalry = 0.0;
         double regard_near = 0.0;  // for the nearest it knows
+        double skill_near = 0.0;  // the nearest it knows: how skilled it holds them
+        int known_steps = -1;  // and how many steps off; -1 for none in sight
+        int teacher_steps = -1;  // steps to the elder who taught it, if in sight
         int kin = 0;
         int others = 0;
         Bitzkey* defend_target = nullptr;
@@ -1184,8 +1198,9 @@ public:
     void share_hearths(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& plans);  // those at a fire together bond
     void bond_in_defence(Bitzkey& defender, const Bitzkey& assailant);  // and those who stood together against an attacker
     // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
-    void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed);
+    void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed, int craft = -1);
     double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither
+    double skill_held(const Bitzkey& agent, const Bitzkey& other) const;  // how skilled it holds it, or else its colour
     void note_faction(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded);
     static const Faction* faction_of(const Bitzkey& agent, const Bitzkey& other);
     double harm_felt(const Bitzkey& agent, double regard) const;    // Grudge joy
@@ -1612,7 +1627,7 @@ private:
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
         std::vector<Seed> sown;  // seeds planted
-        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind>> deeds_seen;  // (doer, worth, done to, what kind)
+        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind, int>> deeds_seen;  // (doer, worth, done to, what kind, the craft or -1)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)
         std::vector<Conception> conceptions;

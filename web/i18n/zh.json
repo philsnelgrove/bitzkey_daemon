@@ -1682,5 +1682,17 @@
 "planted a seed": "种下了一颗种子",
 "taught": "教导了",
 "Watered land": "水润之地",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "距水多少步以内的炎热土地能长草并可耕种；0：无"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "距水多少步以内的炎热土地能长草并可耕种；0：无",
+"Skill comfort": "技艺之慰",
+"ease near one it holds skilled, more if curious; 0 for none": "在它视为有本领者身旁的安适，越好奇越强；0：无",
+"Watch learning": "观看学习",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "看到同类中有本领者做某项手艺时，借观看学会的几率；0：无",
+"Elder comfort": "长者之慰",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "留在教过它的长者身边的欣喜，越信任越强；0：无",
+"Elder reach": "长者范围",
+"steps from the elder who taught it within which a student is glad of it": "离教过它的长者多少步内，学生会因其而欣喜",
+"Follow safety": "追随之安",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "有朋友或有本领者在近旁时，被免去并化为宽慰的恐惧比例；0：无",
+"Follow reach": "追随范围",
+"steps within which a friend or one it holds skilled eases its dread": "朋友或有本领者能缓解其恐惧的步数"
 }

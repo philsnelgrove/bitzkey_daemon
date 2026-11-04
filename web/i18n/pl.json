@@ -1682,5 +1682,17 @@
 "planted a seed": "zasadził nasiono",
 "taught": "uczył",
 "Watered land": "Nawodniona ziemia",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "kroki od wody, w których gorąca ziemia rodzi trawę i można ją uprawiać; 0: brak"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "kroki od wody, w których gorąca ziemia rodzi trawę i można ją uprawiać; 0: brak",
+"Skill comfort": "Otucha umiejętności",
+"ease near one it holds skilled, more if curious; 0 for none": "spokój przy kimś, kogo uważa za zręcznego, większy u ciekawskich; 0: brak",
+"Watch learning": "Nauka przez patrzenie",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "szansa, że rzemiosło widziane u zręcznego ze swojego gatunku zostanie wyuczone przez patrzenie; 0: brak",
+"Elder comfort": "Otucha starszego",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "radość z pozostawania przy starszym, który go uczył, większa u ufnych; 0: brak",
+"Elder reach": "Zasięg starszego",
+"steps from the elder who taught it within which a student is glad of it": "kroki od uczącego starszego, w których uczeń się z niego cieszy",
+"Follow safety": "Bezpieczeństwo w podążaniu",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "część lęku oszczędzona, i odczuwana jako ulga, gdy przyjaciel lub zręczny jest blisko; 0: brak",
+"Follow reach": "Zasięg podążania",
+"steps within which a friend or one it holds skilled eases its dread": "kroki, w których przyjaciel lub zręczny łagodzi jego lęk"
 }

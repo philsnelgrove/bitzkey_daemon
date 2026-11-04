@@ -1682,5 +1682,17 @@
 "planted a seed": "बीज बोया",
 "taught": "सिखाया",
 "Watered land": "सिंचित भूमि",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "पानी से कदम जिनके भीतर गर्म भूमि पर घास उगती है और उसे जोता जा सकता है; 0: कोई नहीं"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "पानी से कदम जिनके भीतर गर्म भूमि पर घास उगती है और उसे जोता जा सकता है; 0: कोई नहीं",
+"Skill comfort": "कौशल से सुकून",
+"ease near one it holds skilled, more if curious; 0 for none": "जिसे वह कुशल मानता है उसके पास चैन, जिज्ञासु हो तो अधिक; 0: कुछ नहीं",
+"Watch learning": "देखकर सीखना",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "अपनी जाति के किसी कुशल को कोई शिल्प करते देखकर उसे सीख लेने की संभावना; 0: कुछ नहीं",
+"Elder comfort": "बुज़ुर्ग से सुकून",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "जिस बुज़ुर्ग ने सिखाया उसके पास रहने की खुशी, भरोसेमंद हो तो अधिक; 0: कुछ नहीं",
+"Elder reach": "बुज़ुर्ग की पहुँच",
+"steps from the elder who taught it within which a student is glad of it": "सिखाने वाले बुज़ुर्ग से वे कदम जिनके भीतर शिष्य उससे खुश रहता है",
+"Follow safety": "पीछे चलने में सुरक्षा",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "किसी मित्र या कुशल के पास होने पर उसके डर का बचा हुआ हिस्सा, जो राहत की तरह महसूस होता है; 0: कुछ नहीं",
+"Follow reach": "पीछे चलने की पहुँच",
+"steps within which a friend or one it holds skilled eases its dread": "वे कदम जिनके भीतर कोई मित्र या कुशल उसका डर कम करता है"
 }

@@ -1682,5 +1682,17 @@
 "planted a seed": "посадив насінину",
 "taught": "навчав",
 "Watered land": "Зрошена земля",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "кроки від води, у межах яких спекотна земля родить траву і її можна обробляти; 0: жодної"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "кроки від води, у межах яких спекотна земля родить траву і її можна обробляти; 0: жодної",
+"Skill comfort": "Розрада вмінням",
+"ease near one it holds skilled, more if curious; 0 for none": "спокій поруч із тим, кого вважає вправним, більший у допитливих; 0: немає",
+"Watch learning": "Навчання спостереженням",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "шанс, що ремесло, побачене у вправного свого виду, буде вивчене спостереженням; 0: немає",
+"Elder comfort": "Розрада старійшини",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "радість лишатися поруч зі старійшиною, що навчив його, більша у довірливих; 0: немає",
+"Elder reach": "Досяжність старійшини",
+"steps from the elder who taught it within which a student is glad of it": "кроки від старійшини-вчителя, в межах яких учень йому радіє",
+"Follow safety": "Безпека в слідуванні",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "частка страху, яку зберігає, і відчуває як полегшення, коли поруч друг або вправний; 0: немає",
+"Follow reach": "Досяжність слідування",
+"steps within which a friend or one it holds skilled eases its dread": "кроки, в межах яких друг або вправний полегшує його страх"
 }

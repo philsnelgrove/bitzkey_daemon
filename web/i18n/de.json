@@ -1682,5 +1682,17 @@
 "planted a seed": "hat einen Samen gepflanzt",
 "taught": "hat gelehrt",
 "Watered land": "Bewässertes Land",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "Schritte vom Wasser, innerhalb derer heißes Land Gras wachsen lässt und bestellt werden kann; 0: keines"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "Schritte vom Wasser, innerhalb derer heißes Land Gras wachsen lässt und bestellt werden kann; 0: keines",
+"Skill comfort": "Trost durch Können",
+"ease near one it holds skilled, more if curious; 0 for none": "Wohlgefühl nahe einem, den es für geschickt hält, mehr wenn neugierig; 0: keines",
+"Watch learning": "Lernen durch Zusehen",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "Chance, dass ein Handwerk, das es einen Geschickten seiner Art ausüben sieht, durch Zusehen gelernt wird; 0: keine",
+"Elder comfort": "Trost durch Älteste",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "Freude, in der Nähe des Ältesten zu bleiben, der es lehrte, mehr wenn vertrauensvoll; 0: keine",
+"Elder reach": "Reichweite der Ältesten",
+"steps from the elder who taught it within which a student is glad of it": "Schritte vom lehrenden Ältesten, innerhalb derer ein Schüler sich über ihn freut",
+"Follow safety": "Sicherheit im Folgen",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "Anteil seiner Furcht, der ihm mit einem Freund oder Geschickten in der Nähe erspart und als Erleichterung gespürt wird; 0: keiner",
+"Follow reach": "Reichweite des Folgens",
+"steps within which a friend or one it holds skilled eases its dread": "Schritte, innerhalb derer ein Freund oder Geschickter seine Furcht lindert"
 }

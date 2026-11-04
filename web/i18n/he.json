@@ -1682,5 +1682,17 @@
 "planted a seed": "שתל זרע",
 "taught": "לימד",
 "Watered land": "אדמה מושקית",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "צעדים מהמים שבתוכם אדמה חמה מצמיחה עשב וניתן לעבד אותה; 0: אין"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "צעדים מהמים שבתוכם אדמה חמה מצמיחה עשב וניתן לעבד אותה; 0: אין",
+"Skill comfort": "נחמת המיומנות",
+"ease near one it holds skilled, more if curious; 0 for none": "נוחות ליד מי שהוא מחשיב למיומן, יותר אם סקרן; 0: אין",
+"Watch learning": "למידה מצפייה",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "הסיכוי שמלאכה שנראתה נעשית בידי מיומן מבני מינו תילמד מהצפייה; 0: אין",
+"Elder comfort": "נחמת הזקן",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "שמחה להישאר ליד הזקן שלימד אותו, יותר אם בוטח; 0: אין",
+"Elder reach": "טווח הזקן",
+"steps from the elder who taught it within which a student is glad of it": "צעדים מהזקן שלימד אותו שבתוכם תלמיד שמח בו",
+"Follow safety": "ביטחון במעקב",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "חלק מאימתו שנחסך, ומורגש כהקלה, כשחבר או מיומן קרובים; 0: אין",
+"Follow reach": "טווח המעקב",
+"steps within which a friend or one it holds skilled eases its dread": "צעדים שבתוכם חבר או מיומן מקלים על אימתו"
 }

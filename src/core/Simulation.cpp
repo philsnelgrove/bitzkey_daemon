@@ -2205,7 +2205,7 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
     for (ActingTile& tile : tiles) {
-        for (const auto& [doer, deed, target, kind] : tile.deeds_seen) deed_seen(*doer, deed, target, kind);
+        for (const auto& [doer, deed, target, kind, craft] : tile.deeds_seen) deed_seen(*doer, deed, target, kind, craft);
     }
     for (ActingTile& tile : tiles) {
         for (const auto& [parent, young] : tile.feeding) feed_young(*parent, young);
@@ -2481,6 +2481,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         for (Bitzkey* other : around(agent, sight)) {
             if (other == &agent || !other->alive() || !same_kind(agent, *other)) continue;
             if (!oldest || other->age > oldest->age) oldest = other;
+            if (other->identifier == agent.taught_by) s.teacher_steps = distance(other->x, other->y, agent.x, agent.y);
             if (distance(other->x, other->y, agent.x, agent.y) <= 1 && willing_student(agent, *other)) {
                 ++students;
                 if (!s.student) s.student = other;
@@ -2696,6 +2697,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseKnownRegard] = regard;
             senses[SenseKnownDanger] = danger;
             senses[SenseKnownSkill] = skill;
+            s.known_steps = distance(nearest->x, nearest->y, agent.x, agent.y);
             senses[SenseKnownEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
             senses[SenseKnownSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
         }
@@ -2705,6 +2707,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
 
     s.rivalry = agent.rivalry;
     s.regard_near = senses[SenseKnownRegard];
+    s.skill_near = senses[SenseKnownSkill];
     s.for_herd = s.assailant == nullptr;
     s.herd = view.any;
     s.herd_near = view.close;
@@ -2845,10 +2848,10 @@ void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
     }
 }
 
-void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target, DeedKind kind) {
+void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target, DeedKind kind, int craft) {
     if (WITNESS_SHARE <= 0) return;
     if (acting_) {  // its witnesses may lie in other tiles
-        acting_->deeds_seen.emplace_back(&doer, deed, target, kind);
+        acting_->deeds_seen.emplace_back(&doer, deed, target, kind, craft);
         return;
     }
     for (Bitzkey* other : around(doer, doer.sight)) {
@@ -2856,7 +2859,21 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
         if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
         const bool wronged = deed >= 0 || !target || other->species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
         note_deed(*other, doer, deed, WITNESS_SHARE, kind, wronged);
+        if (craft >= 0 && !(other->crafts >> craft & 1) && same_kind(*other, doer) && skill_held(*other, doer) >= SKILL_HELD &&
+            rng().random() < WATCH_LEARNING) {  // a craft watched done by one it holds skilled, learnt from the watching
+            other->crafts |= 1 << craft;
+            other->craft_source[static_cast<std::size_t>(craft)] = 4;
+            note_first("watched", other->species, other->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
+        }
     }
+}
+
+double Simulation::skill_held(const Bitzkey& agent, const Bitzkey& other) const {
+    for (const Acquaintance& known : agent.known) {
+        if (known.identifier == other.identifier) return known.skill;
+    }
+    const Faction* faction = faction_of(agent, other);
+    return faction ? faction->skill : 0.0;
 }
 
 double Simulation::wellbeing(const Bitzkey& agent) const {
@@ -2870,7 +2887,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double herd_near = std::min(3, s.herd_near) / 3.0;
     const double company_around = std::min(3.0, s.kin + tolerance * s.others);
     const double company = COMPANY_JOY * agent.feeling(Sociability) * company_around / 3;
-    const double dread = FEAR_DREAD * agent.fearfulness() * (1 - 0.5 * tolerance) * std::min(2, s.threats) / 2 *
+    double dread = FEAR_DREAD * agent.fearfulness() * (1 - 0.5 * tolerance) * std::min(2, s.threats) / 2 *
                          (1 - HERD_SAFETY * instinct * herd_near);
     const double unease = UNEASE * (1 - tolerance) * std::min(3, s.others) / 3;
     const double crowded = RIVAL_UNEASE * (1 - 0.5 * tolerance) * s.rivalry *
@@ -2889,8 +2906,17 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     if (s.regard_near >= REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.feeling(Trust));
     else if (s.regard_near <= -REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.fearfulness());
     // Kept from the weather, it is glad of what keeps it; and a shelter is a comfort to rest in, whatever the weather.
-    const double relief = PROTECTION_JOY * s.spared + SHELTER_COMFORT * s.inside / 2;
-    return company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief;
+    double relief = PROTECTION_JOY * s.spared + SHELTER_COMFORT * s.inside / 2;
+    // Leadership: one it holds skilled close by, the elder who taught it, and, with danger in sight, one to follow.
+    const bool near = s.known_steps >= 0 && s.known_steps <= FOLLOW_REACH;
+    const double skilled = s.skill_near >= SKILL_HELD ? SKILL_COMFORT * s.skill_near * (0.5 + agent.feeling(Curiosity)) : 0.0;
+    const double taught = s.teacher_steps >= 0 && s.teacher_steps <= ELDER_REACH ? ELDER_COMFORT * (0.5 + agent.feeling(Trust)) : 0.0;
+    if (near && (s.regard_near >= REGARD_STRONG || s.skill_near >= SKILL_HELD)) {
+        const double spared = FOLLOW_SAFETY * dread;
+        dread -= spared;
+        relief += PROTECTION_JOY * spared;
+    }
+    return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -3903,7 +3929,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
     agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
     agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
-    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, action - MakeBoneAxe);
 }
 
 void Simulation::take_gear(Bitzkey& agent, Situation& s) {

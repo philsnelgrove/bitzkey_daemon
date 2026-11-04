@@ -1682,5 +1682,17 @@
 "planted a seed": "a planté une graine",
 "taught": "a enseigné",
 "Watered land": "Terre irriguée",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "pas depuis l'eau en deçà desquels une terre chaude fait pousser l'herbe et peut être cultivée ; 0 : aucune"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "pas depuis l'eau en deçà desquels une terre chaude fait pousser l'herbe et peut être cultivée ; 0 : aucune",
+"Skill comfort": "Réconfort de l'habileté",
+"ease near one it holds skilled, more if curious; 0 for none": "aise près de celui qu'il tient pour habile, davantage s'il est curieux ; 0 : aucune",
+"Watch learning": "Apprendre en regardant",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "chance qu'un artisanat vu fait par un habile de son espèce soit appris en regardant ; 0 : aucune",
+"Elder comfort": "Réconfort de l'ancien",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "joie de rester près de l'ancien qui l'a instruit, davantage s'il est confiant ; 0 : aucune",
+"Elder reach": "Portée de l'ancien",
+"steps from the elder who taught it within which a student is glad of it": "pas depuis l'ancien qui l'a instruit dans lesquels un élève s'en réjouit",
+"Follow safety": "Sécurité à suivre",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "part de sa crainte épargnée, et ressentie comme un soulagement, avec un ami ou un habile tout près ; 0 : aucune",
+"Follow reach": "Portée du suivi",
+"steps within which a friend or one it holds skilled eases its dread": "pas dans lesquels un ami ou un habile apaise sa crainte"
 }

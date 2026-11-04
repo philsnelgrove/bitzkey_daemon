@@ -1682,5 +1682,17 @@
 "planted a seed": "種を植えた",
 "taught": "教えた",
 "Watered land": "潤った土地",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "暑い土地が草を育て耕せるようになる水からの歩数。0：なし"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "暑い土地が草を育て耕せるようになる水からの歩数。0：なし",
+"Skill comfort": "技への安心",
+"ease near one it holds skilled, more if curious; 0 for none": "腕が立つと見なす相手のそばでの安らぎ。好奇心が強いほど大きい。0：なし",
+"Watch learning": "見て学ぶ",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "同じ種の腕利きが行う工作を見て、それを覚える確率。0：なし",
+"Elder comfort": "長老への安心",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "教えてくれた長老のそばにいる喜び。信頼が強いほど大きい。0：なし",
+"Elder reach": "長老の範囲",
+"steps from the elder who taught it within which a student is glad of it": "教えてくれた長老から、弟子がその存在を喜べる歩数",
+"Follow safety": "ついて行く安全",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "友や腕利きが近くにいるとき和らぐ恐れの割合。安堵として感じられる。0：なし",
+"Follow reach": "ついて行く範囲",
+"steps within which a friend or one it holds skilled eases its dread": "友や腕利きが恐れを和らげる歩数"
 }

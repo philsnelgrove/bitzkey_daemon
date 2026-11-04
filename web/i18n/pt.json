@@ -1682,5 +1682,17 @@
 "planted a seed": "plantou uma semente",
 "taught": "ensinou",
 "Watered land": "Terra irrigada",
-"steps from water within which hot land grows grass and can be tilled; 0: none": "passos desde a água dentro dos quais a terra quente dá erva e pode ser cultivada; 0: nenhuma"
+"steps from water within which hot land grows grass and can be tilled; 0: none": "passos desde a água dentro dos quais a terra quente dá erva e pode ser cultivada; 0: nenhuma",
+"Skill comfort": "Conforto da perícia",
+"ease near one it holds skilled, more if curious; 0 for none": "bem-estar perto de quem considera hábil, mais se curioso; 0: nenhum",
+"Watch learning": "Aprender observando",
+"chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none": "chance de um ofício visto feito por um hábil da sua espécie ser aprendido observando; 0: nenhuma",
+"Elder comfort": "Conforto do ancião",
+"gladness at staying near the elder who taught it, more if trusting; 0 for none": "alegria de ficar perto do ancião que o ensinou, mais se confiante; 0: nenhuma",
+"Elder reach": "Alcance do ancião",
+"steps from the elder who taught it within which a student is glad of it": "passos a partir do ancião que o ensinou dentro dos quais um aluno se alegra com ele",
+"Follow safety": "Segurança em seguir",
+"share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none": "parte do seu medo poupada, e sentida como alívio, com um amigo ou um hábil por perto; 0: nenhuma",
+"Follow reach": "Alcance do seguir",
+"steps within which a friend or one it holds skilled eases its dread": "passos dentro dos quais um amigo ou um hábil alivia o seu medo"
 }
