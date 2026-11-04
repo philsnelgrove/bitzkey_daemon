@@ -2455,7 +2455,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
-    available[LightFire] = agent.weapon == Club && !sea(agent.x, agent.y);
+    available[LightFire] = (agent.weapon == Club || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && agent.carried_meat + agent.carried_fruit > 0;
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
@@ -3821,8 +3821,10 @@ void Simulation::light_fire(Bitzkey& agent) {
     fires_[cell] = turn_ + FIRE_TURNS;
     fire_lighters_[cell] = agent.identifier;
     any_fires_ = true;
-    agent.weapon = NoWeapon;
-    agent.weapon_uses = 0;
+    if (agent.carried_stone < FIRE_STONES) {  // struck from two stones, kept; else of its club, spent
+        agent.weapon = NoWeapon;
+        agent.weapon_uses = 0;
+    }
     agent.last_action = "lit a fire";
     agent.reward += FIRE_JOY;
     deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);

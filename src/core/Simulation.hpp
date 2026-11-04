@@ -140,6 +140,7 @@ void remove_stale_histories();
 std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
+inline constexpr int FIRE_STONES = 2;  // carried stones that strike a fire, and are kept
 inline int WATERED_REACH = 7;  // steps from water within which hot land grows grass and can be tilled
 inline int CORPSE_TURNS = 90;  // under four days
 inline double CORPSE_PLANT = 0.1;  // chance an animal's body that rots away entirely leaves the seed of a new plant where it lay
@@ -1370,7 +1371,7 @@ public:
     // One blow; struck in defence, a grazer's or omnivore's weapons count for less.
     bool warmed_by_fire(const Bitzkey& agent, int here) const;
     int fire_at(int x, int y) const { return in_bounds(x, y) ? fires_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // the turn it goes out
-    void light_fire(Bitzkey& agent);  // of its club
+    void light_fire(Bitzkey& agent);  // struck from two stones it carries, which it keeps, or of its club, spent
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
     bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there

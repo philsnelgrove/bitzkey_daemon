@@ -2793,6 +2793,25 @@ TEST_CASE("an axe's cut fells a plant for its wood, and digging finds a stone") 
     CHECK(digger.weapon_uses == 1);
 }
 
+TEST_CASE("two stones strike a fire and are kept; a club lights one and is spent") {
+    Simulation simulation = world();
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    simulation.index_cells();
+    const auto can_light = [&] {
+        const std::vector<int> options = simulation.sense(striker).options;
+        return std::find(options.begin(), options.end(), static_cast<int>(LightFire)) != options.end();
+    };
+    striker.carried_stone = 1;
+    CHECK_FALSE(can_light());
+    striker.carried_stone = FIRE_STONES;
+    striker.weapon = Club;
+    CHECK(can_light());
+    simulation.light_fire(striker);
+    CHECK(simulation.fire_at(5, 5) == simulation.turn() + FIRE_TURNS);
+    CHECK(striker.carried_stone == FIRE_STONES);  // kept
+    CHECK(striker.weapon == Club);  // kept too: the stones struck it
+}
+
 TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils") {
     Simulation simulation = world();
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
