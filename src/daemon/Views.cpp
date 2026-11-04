@@ -446,6 +446,7 @@ Json exemplars(const Simulation& simulation, const std::vector<int>& choices) {
         if (best) {
             card["identifier"] = best->identifier;
             card["species"] = std::string(species_name(best->species));
+            card["terrain"] = std::string(terrain_name(best->terrain));
             card["species_index"] = static_cast<int>(best->species);
             card["size"] = best->body[Size];
             card["dot_rgb"] = rgb(color_from_word(mind_word(best->dna)));

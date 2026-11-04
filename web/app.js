@@ -996,7 +996,8 @@ function drawExemplars() {
       body.replaceChildren(
         bitzkeyCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius),
         element('div', { class: 'card-text' },
-          element('span', { class: 'card-name' }, `#${pad3(found.identifier)}  ${found.species}`),
+          element('span', { class: 'card-name' }, `#${pad3(found.identifier)}`),
+          element('span', { class: 'card-name' }, `${tr(found.terrain)} ${tr(found.species)}`),  // its own line, so a long name fits
           element('span', { class: 'card-said' }, found.said)));
     }
   }

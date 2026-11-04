@@ -71,7 +71,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .card select { width: 100%; font: 12px var(--sans); color: var(--text); background: var(--raised); border: 0; padding: 3px 4px; cursor: pointer; }
 .card .card-body { flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 5px; min-height: 0; }
 .card .card-text { display: flex; flex-direction: column; gap: 4px; font-size: 12px; min-width: 0; }
-.card .card-name { color: rgb(231, 236, 222); white-space: nowrap; }
+.card .card-name { color: rgb(231, 236, 222); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .card-said { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .card-none { color: var(--faint); font-size: 12px; padding: 6px 5px; }
 
