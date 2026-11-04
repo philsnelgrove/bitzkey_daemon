@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -329,6 +329,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->carried_wood = record.value("carried_wood", 0);
     agent->carried_seed = record.value("carried_seed", 0);
     agent->boredom = record.value("boredom", 0.0);  // none in an older world
+    agent->shelter_known = record.value("shelter_known", 0.0);
     if (const auto expected = record.find("expected"); expected != record.end() && !expected->is_null()) {  // nor this
         agent->expects = true;
         agent->expected = expected->get<Foresight>();
@@ -466,10 +467,10 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     for (std::size_t cell = 0; cell < simulation.arable_.size(); ++cell) {
         if (simulation.arable_[cell]) arable.push_back(cell);
     }
-    json shelters = json::array();  // x, y, units in it unfinished, whether it stands
+    json shelters = json::array();  // x, y, units in it unfinished, whether it stands, last built, units of stone
     for (std::size_t cell = 0; cell < simulation.sites_.size(); ++cell) {
         if (simulation.sites_[cell] || simulation.shelters_[cell]) {
-            shelters.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.sites_[cell], simulation.shelters_[cell], simulation.site_turns_[cell]});
+            shelters.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.sites_[cell], simulation.shelters_[cell], simulation.site_turns_[cell], simulation.site_stone_[cell]});
         }
     }
     for (std::size_t cell = 0; cell < simulation.fires_.size(); ++cell) {
@@ -763,6 +764,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.sites_[cell] = shelter.at(2).get<int>();
             world.shelters_[cell] = shelter.at(3).get<int>();
             world.site_turns_[cell] = shelter.size() > 4 ? shelter.at(4).get<int>() : world.turn_;  // built now, in a world saved before they fell
+            world.site_stone_[cell] = shelter.size() > 5 ? shelter.at(5).get<int>() : 0;  // all wood, in a world saved before
         }
         world.diary_since_ = record.value("diary_since", record.at("turn").get<int>());  // an older world's firsts begin now
         world.diary_.clear();

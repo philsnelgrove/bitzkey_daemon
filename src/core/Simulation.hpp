@@ -489,7 +489,7 @@ inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a cl
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double FIRE_COMFORT = 0.3;  // the comfort of seeing a fire that is its own or its herd's, as an unfamiliar one frightens
 inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
-inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls away
+inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls in, leaving its stone and wood in piles
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
 inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
 // A craft must first be discovered, the more likely each turn the cleverer the animal holding its materials, and then
@@ -504,7 +504,14 @@ inline double FIRE_FEED_JOY = 1.0;  // and in feeding one, so it burns on
 inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (half plus curiosity)
 inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
-inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity)
+inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
+// A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
+// (SHELTER_COMFORT, half standing in one), and each turn of it is remembered, to a full memory after a day, so that
+// one who has known a shelter longs to build one (SHELTER_LONGING). Whatever keeps the weather off, a shelter, a
+// fire, or an infant's parent close by, is felt as relief, by as much unease as it spares (PROTECTION_JOY).
+inline double SHELTER_COMFORT = 0.3;
+inline double SHELTER_LONGING = 1.0;
+inline double PROTECTION_JOY = 1.0;
 inline double DIG_CHANCE = 0.1;  // that a dig finds a stone
 // What an animal may wield and wear: a tool of bone or wood breaks after GEAR_USES, a stone axe never; a stone carried
 // and nothing else wielded strikes STONE_FORCE times as hard, an axe or club WEAPON_FORCE. A bone axe or club can't go
@@ -698,6 +705,7 @@ struct Bitzkey {
     int cooked_meat = 0, cooked_fruit = 0;  // the cooked portions, which never spoil
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
     double boredom = 0.0;  // see BOREDOM_RISE
+    double shelter_known = 0.0;  // its memory of resting in a shelter, 0 to 1 after a day of it (see SHELTER_LONGING)
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
@@ -1145,6 +1153,8 @@ public:
         int herd_near = 0;
         std::optional<Cell> herd_middle;
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
+        double spared = 0.0;  // the exposure kept off it by a shelter, a fire or a parent, which leaves it none
+        int inside = 0;  // 2 resting in a shelter, 1 standing in one
         double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
         int young_near = 0;  // its own young, still infants, within its sight
         bool panic = false;
@@ -1615,6 +1625,7 @@ private:
     std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
+    std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;
     std::vector<Milestone> diary_;

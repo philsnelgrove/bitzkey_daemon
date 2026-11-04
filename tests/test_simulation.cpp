@@ -2880,6 +2880,46 @@ TEST_CASE("seven units make a shelter, which doubles a square and keeps wood fro
     CHECK(simulation.pile_at(5, 5, WoodPile) == 2);
 }
 
+TEST_CASE("a shelter keeps the weather off, is a comfort to rest in, and one who has rested in it longs to build") {
+    Simulation simulation = world();
+    Bitzkey& rester = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"temperature", Hot}}), 5, 3);  // out of its temperature
+    Bitzkey& outside = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"temperature", Hot}}), 9, 3);
+    simulation.index_cells();
+    rester.carried_stone = SHELTER_UNITS;
+    rester.weapon = StoneAxe;
+    for (int unit = 0; unit < SHELTER_UNITS; ++unit) simulation.construct(rester);
+    REQUIRE(simulation.shelter_at(5, 3));
+    rester.last_choice = Rest;
+    Simulation::Sensed in = simulation.sense(rester);
+    const Simulation::Sensed out = simulation.sense(outside);
+    CHECK(out.situation.exposure > 0);
+    CHECK(in.situation.exposure == 0);  // no weather felt inside
+    CHECK(in.situation.spared == doctest::Approx(out.situation.exposure));  // but the relief of being spared it
+    CHECK(in.situation.inside == 2);
+    Simulation::Situation sheltered, bare;
+    sheltered.spared = 0.5;
+    sheltered.inside = 2;
+    CHECK(simulation.comfort(rester, sheltered) - simulation.comfort(rester, bare) == doctest::Approx(0.5 * PROTECTION_JOY + SHELTER_COMFORT));
+    simulation.act(rester, Rest, in.situation);
+    CHECK(rester.shelter_known == doctest::Approx(1.0 / DAY_LENGTH));  // a turn inside, remembered
+
+    outside.carried_stone = 1;  // one who knows a shelter is thrilled to build, whatever its curiosity
+    outside.carried_wood = 1;
+    outside.weapon = StoneAxe;
+    outside.shelter_known = 1.0;
+    outside.reward = 0;
+    simulation.construct(outside);
+    CHECK(outside.reward == doctest::Approx(BUILD_THRILL * (outside.feeling(Curiosity) + SHELTER_LONGING) / SHELTER_UNITS));
+    simulation.construct(outside);
+    const int site_turns = SITE_TURNS;
+    SITE_TURNS = 0;
+    simulation.spoil_piles();  // left unfinished, it falls in, and its stone and wood lie in piles
+    SITE_TURNS = site_turns;
+    CHECK(simulation.site_at(9, 3) == 0);
+    CHECK(simulation.pile_at(9, 3, StonePile) == 1);
+    CHECK(simulation.pile_at(9, 3, WoodPile) == 1);
+}
+
 TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, and a failure thrills the curious") {
     Simulation simulation = world();
     Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"intellect", 7}}), 5, 5);

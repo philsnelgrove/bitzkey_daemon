@@ -454,6 +454,7 @@ Simulation::Simulation(Settings settings)
     for (auto& turns : pile_turns_) turns.assign(area, 0);
     fires_.assign(area, 0);
     sites_.assign(area, 0);
+    site_stone_.assign(area, 0);
     site_turns_.assign(area, 0);
     shelters_.assign(area, 0);
     arable_.assign(area, 0);
@@ -917,7 +918,8 @@ void Simulation::take_turn() {
         const bool sheltered = agent->infant() && std::any_of(shelter.begin(), shelter.end(), [](const Bitzkey* parent) {
                                    return parent && parent->alive();
                                });
-        const double steps = sheltered || warmed_by_fire(*agent, here) ? 0.0 : agent->climate_steps(here);  // a sheltered infant feels no weather
+        const bool covered = sheltered || shelter_at(agent->x, agent->y) || warmed_by_fire(*agent, here);  // a sheltered infant, or one in a shelter, feels no weather
+        const double steps = covered ? 0.0 : agent->climate_steps(here);
         const bool hungrier = steps > 0 && (!plant || here < agent->climate.temperature);  // out of its temperature; a plant, too hot
         const double share = agent->exposure_share(here);  // less for the hardy
         // The extra food it needs rises with the weather's turning, to the full amount a step away.
@@ -2657,6 +2659,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.herd_near = view.close;
     s.herd_middle = view.middle;
     s.exposure = std::min(2.0, discomfort) / 2 * agent.exposure_share(here);
+    s.inside = shelter_at(agent.x, agent.y) ? (agent.last_choice == Rest ? 2 : 1) : 0;
+    if (s.exposure > 0 && (s.inside || sheltered(agent) || warmed_by_fire(agent, here))) {  // kept from the weather, it feels none, only relief
+        s.spared = s.exposure;
+        s.exposure = 0.0;
+    }
     s.home_distance = home_distance * agent.exposure_share(here);
     s.young_near = young;
     return sensed;
@@ -2830,7 +2837,9 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     double regard = 0.0;
     if (s.regard_near >= REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.feeling(Trust));
     else if (s.regard_near <= -REGARD_STRONG) regard = REGARD_COMFORT * s.regard_near * (0.5 + agent.fearfulness());
-    return company - dread - unease - crowded + herding - exposed + parental + hearth + regard;
+    // Kept from the weather, it is glad of what keeps it; and a shelter is a comfort to rest in, whatever the weather.
+    const double relief = PROTECTION_JOY * s.spared + SHELTER_COMFORT * s.inside / 2;
+    return company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -2994,6 +3003,10 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             agent.hunger = std::max(0.0, agent.hunger - agent.burn / 2);  // burns less, but eases no hunger
             agent.heal(0.015);
             agent.last_action = "rested";
+            if (shelter_at(agent.x, agent.y)) {  // a turn inside, remembered: it learns what a shelter is for
+                agent.shelter_known = std::min(1.0, agent.shelter_known + 1.0 / DAY_LENGTH);
+                note_first("rested_in_shelter", agent.species, agent.identifier);
+            }
             break;
         case Court: {
             // Toward where it saw its suitor; the suitor itself is looked at only if it was seen within sight (the
@@ -3440,7 +3453,12 @@ void Simulation::spoil_piles() {
         }
     }
     for (std::size_t cell = 0; cell < sites_.size(); ++cell) {
-        if (sites_[cell] && turn_ - site_turns_[cell] >= SITE_TURNS) sites_[cell] = 0;
+        if (!sites_[cell] || turn_ - site_turns_[cell] < SITE_TURNS) continue;
+        const int x = static_cast<int>(cell % width_), y = static_cast<int>(cell / width_);
+        const int stone = site_stone_[cell], wood = sites_[cell] - stone;
+        sites_[cell] = site_stone_[cell] = 0;  // fallen in, its stone and wood lie where it stood
+        add_to_pile(x, y, StonePile, stone);
+        add_to_pile(x, y, WoodPile, wood);
     }
     for (const PileKind kind : {BonePile, WoodPile}) {
         std::vector<int>& piles = piles_[kind];
@@ -3678,15 +3696,18 @@ bool Simulation::fire_friendly(const Bitzkey& agent, Cell fire) const {
 }
 
 void Simulation::construct(Bitzkey& agent) {
-    --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
+    if (agent.carried_stone) site_stone_[cell] += 1;
+    --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
     wear_weapon(agent);
     site_turns_[cell] = turn_;
     agent.last_action = "built";
     // Each stage thrills more than the last, the curious most; finishing the shelter, twice the thrill of a whole one.
-    const double inspiration = BUILD_THRILL * agent.feeling(Curiosity);
+    // One who has rested in a shelter knows what it builds, and longs for it whatever its curiosity.
+    const double inspiration = BUILD_THRILL * (agent.feeling(Curiosity) + SHELTER_LONGING * agent.shelter_known);
     if (++sites_[cell] >= SHELTER_UNITS) {
         sites_[cell] = 0;
+        site_stone_[cell] = 0;
         shelters_[cell] = 1;
         note_first("shelter_finished", agent.species, agent.identifier);
         agent.reward += 2 * inspiration;
