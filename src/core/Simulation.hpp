@@ -140,6 +140,7 @@ void remove_stale_histories();
 std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
+inline int WATERED_REACH = 7;  // steps from water within which hot land grows grass and can be tilled
 inline int CORPSE_TURNS = 90;  // under four days
 inline double CORPSE_PLANT = 0.1;  // chance an animal's body that rots away entirely leaves the seed of a new plant where it lay
 inline double BREED_RESERVE = 0;
@@ -1075,6 +1076,10 @@ public:
     double temperature(int y) const { return climate_[static_cast<std::size_t>(y)]; }
     // How well grass grows in a row: fully where it is medium, less the further it has turned from medium.
     double growth(int y) const { return growth_[static_cast<std::size_t>(y)]; }
+    // Hot land near enough water: it grows grass as if medium, and can be tilled.
+    bool watered(int x, int y) const { return in_bounds(x, y) && !watered_.empty() && watered_[static_cast<std::size_t>(y) * width_ + x]; }
+    int watered_in_row(int y) const { return watered_rows_.empty() ? 0 : watered_rows_[static_cast<std::size_t>(y)]; }
+    double growth_at(int x, int y) const { return watered(x, y) ? 1.0 : growth(y); }
     // A seed waiting where it fell for the temperature it can grow in.
     struct Seed {
         int x, y;
@@ -1569,6 +1574,11 @@ private:
     void index_bands();
     std::vector<int> grass_rows_;      // the rows where grass grows at all
     std::vector<double> grass_reach_;  // their growth added up, row by row, for sowing
+    std::vector<std::uint8_t> watered_;  // hot land within WATERED_REACH steps of the sea
+    std::vector<int> watered_rows_;      // how many such squares each row has
+    int watered_reach_ = -1;             // the reach they were found for,
+    std::size_t watered_sea_ = 0;        // and the sea's size then: none, until a world's sea is laid or loaded
+    void find_watered();
     struct Witnessed {  // what a herd-mate saw this turn, to learn from at its end
         Bitzkey* observer;
         Senses senses;

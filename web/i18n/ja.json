@@ -1680,5 +1680,7 @@
 "ate a seed": "種を食べた",
 "fed its young": "子に餌を与えた",
 "planted a seed": "種を植えた",
-"taught": "教えた"
+"taught": "教えた",
+"Watered land": "潤った土地",
+"steps from water within which hot land grows grass and can be tilled; 0: none": "暑い土地が草を育て耕せるようになる水からの歩数。0：なし"
 }

@@ -846,9 +846,47 @@ std::string_view Simulation::exposure(const Bitzkey& agent, double here) {
     return here > agent.climate.temperature ? "froze" : "overheated";
 }
 
+void Simulation::find_watered() {
+    // Hot land within WATERED_REACH steps of the sea, by steps across the squares (the map wraps east to west).
+    const std::size_t area = static_cast<std::size_t>(width_) * height_;
+    watered_.assign(area, 0);
+    watered_rows_.assign(static_cast<std::size_t>(height_), 0);
+    watered_reach_ = WATERED_REACH;
+    watered_sea_ = sea_.size();
+    if (sea_.size() != area || WATERED_REACH <= 0) return;
+    std::vector<int> steps(area, -1);
+    std::vector<std::size_t> frontier;
+    for (std::size_t cell = 0; cell < area; ++cell) {
+        if (sea_[cell]) {
+            steps[cell] = 0;
+            frontier.push_back(cell);
+        }
+    }
+    for (std::size_t next = 0; next < frontier.size(); ++next) {
+        const std::size_t cell = frontier[next];
+        if (steps[cell] >= WATERED_REACH) continue;
+        const int x = static_cast<int>(cell % width_), y = static_cast<int>(cell / width_);
+        for (const auto [dx, dy] : {std::pair{1, 0}, std::pair{-1, 0}, std::pair{0, 1}, std::pair{0, -1}}) {
+            if (y + dy < 0 || y + dy >= height_) continue;
+            const std::size_t near = static_cast<std::size_t>(y + dy) * width_ + py_mod(x + dx, width_);
+            if (steps[near] >= 0) continue;
+            steps[near] = steps[cell] + 1;
+            frontier.push_back(near);
+        }
+    }
+    for (std::size_t cell = 0; cell < area; ++cell) {
+        const int y = static_cast<int>(cell / width_);
+        if (steps[cell] > 0 && zone_temperature(y, height_) == Hot) {
+            watered_[cell] = 1;
+            ++watered_rows_[static_cast<std::size_t>(y)];
+        }
+    }
+}
+
 void Simulation::update_climate() {
     // How well grass grows in each row: fully where it is medium, less the further it has turned from
-    // medium, and not at all a step away.
+    // medium, and not at all a step away; but always fully on hot land near water.
+    if (watered_reach_ != WATERED_REACH || watered_sea_ != sea_.size()) find_watered();  // a new reach, or a sea laid or loaded since
     climate_.resize(static_cast<std::size_t>(height_));
     growth_.resize(static_cast<std::size_t>(height_));
     grass_rows_.clear();
@@ -859,9 +897,11 @@ void Simulation::update_climate() {
         const double growth = std::max(0.0, 1 - std::abs(temperature - static_cast<int>(Medium)));
         climate_[static_cast<std::size_t>(y)] = temperature;
         growth_[static_cast<std::size_t>(y)] = growth;
-        if (growth > 0) {
+        const double watered = static_cast<double>(watered_in_row(y)) / width_;
+        const double row = growth + (1 - growth) * watered;  // the row's growth over all its squares
+        if (row > 0) {
             grass_rows_.push_back(y);
-            reach += growth;
+            reach += row;
             grass_reach_.push_back(reach);
         }
     }
@@ -1351,7 +1391,7 @@ void Simulation::wither_grass() {
         if (shortfall <= 0) continue;
         for (int x = 0; x < width_; ++x) {
             int& tufts = grass_[static_cast<std::size_t>(y) * width_ + x];
-            if (tufts > 0 && shortfall > dieback_threshold(x, y) && (x + y * width_ + turn_) % GRASS_DIEBACK == 0) tufts -= 1;
+            if (tufts > 0 && !watered(x, y) && shortfall > dieback_threshold(x, y) && (x + y * width_ + turn_) % GRASS_DIEBACK == 0) tufts -= 1;
         }
     }
 }
@@ -1423,10 +1463,21 @@ void Simulation::sow(int tufts) {
         }
     }
     for (int tuft = 0; tuft < tufts; ++tuft) {
-        const int x = static_cast<int>(rng().randrange(width_));
-        const auto reached = std::upper_bound(grass_reach_.begin(), grass_reach_.end(), rng().random() * grass_reach_.back());
+        int x = static_cast<int>(rng().randrange(width_));
+        const double aim = rng().random() * grass_reach_.back();
+        const auto reached = std::upper_bound(grass_reach_.begin(), grass_reach_.end(), aim);
         const std::size_t row = std::min(static_cast<std::size_t>(reached - grass_reach_.begin()), grass_rows_.size() - 1);
         const int y = grass_rows_[row];
+        if (growth(y) < 1 && watered_in_row(y)) {
+            // A row part watered: each square by how well it grows, found from where the draw fell in the row, so
+            // the sea draws nothing more from the world's stream.
+            double left = (aim - (row ? grass_reach_[row - 1] : 0.0)) * width_;
+            for (int across = 0; across < width_; ++across) {
+                if (growth_at(across, y) <= 0) continue;
+                x = across;
+                if ((left -= growth_at(across, y)) < 0) break;
+            }
+        }
         const std::size_t at = static_cast<std::size_t>(y) * width_ + x;
         grass_[at] += (!fertile.empty() && fertile[at]) ? CORPSE_FERTILITY : 1;
     }
@@ -3732,7 +3783,7 @@ void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
 void Simulation::dig(Bitzkey& agent) {
     wear_weapon(agent);
     agent.last_action = "dug";
-    if (zone_temperature(agent.y, height_) == Medium) {  // only temperate land can be worked
+    if (zone_temperature(agent.y, height_) == Medium || watered(agent.x, agent.y)) {  // only temperate land, or hot land near water, can be worked
         arable_[static_cast<std::size_t>(agent.y) * width_ + agent.x] = 1;
         note_first("tilled", agent.species, agent.identifier);
     }
@@ -4608,7 +4659,7 @@ double Simulation::food_supply(const Bitzkey& agent) const {
         int tufts = 0;
         for (const Offset& offset : nearby_offsets(FORAGE_RADIUS)) {
             if (!in_bounds(agent.x + offset.dx, agent.y + offset.dy) || !can_enter(agent, Cell{agent.x + offset.dx, agent.y + offset.dy})) continue;
-            cells += growth(agent.y + offset.dy);
+            cells += growth_at(agent.x + offset.dx, agent.y + offset.dy);
             tufts += grass_at(agent.x + offset.dx, agent.y + offset.dy);
         }
         const double growing = grass_rows_.empty() ? 0.0 : width_ * grass_reach_.back();

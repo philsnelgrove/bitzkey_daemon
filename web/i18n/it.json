@@ -1680,5 +1680,7 @@
 "ate a seed": "ha mangiato un seme",
 "fed its young": "ha nutrito i piccoli",
 "planted a seed": "ha piantato un seme",
-"taught": "ha insegnato"
+"taught": "ha insegnato",
+"Watered land": "Terra irrigata",
+"steps from water within which hot land grows grass and can be tilled; 0: none": "passi dall'acqua entro cui la terra calda fa crescere l'erba e può essere coltivata; 0: nessuna"
 }

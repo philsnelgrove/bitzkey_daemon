@@ -2661,6 +2661,44 @@ TEST_CASE("a deed colours the view of the doer's whole faction, and a stranger i
     REQUIRE(loaded->find_agent(agent.identifier)->factions.size() == 1);
 }
 
+TEST_CASE("hot land near water grows grass as temperate land does, and can be tilled") {
+    Simulation::Settings settings{80, 80, 0, 5};
+    settings.ocean = 30;
+    Simulation simulation(settings);
+    const auto near_water = [&](int x, int y) {
+        for (int dy = -WATERED_REACH; dy <= WATERED_REACH; ++dy) {
+            for (int dx = std::abs(dy) - WATERED_REACH; dx <= WATERED_REACH - std::abs(dy); ++dx) {
+                if (simulation.sea(py_mod(x + dx, 80), y + dy)) return true;
+            }
+        }
+        return false;
+    };
+    Cell shore{-1, -1};
+    for (int y = 0; y < 80; ++y) {
+        int count = 0;
+        for (int x = 0; x < 80; ++x) {
+            const bool expected = zone_temperature(y, 80) == Hot && !simulation.sea(x, y) && near_water(x, y);
+            CHECK(simulation.watered(x, y) == expected);
+            count += expected;
+            if (expected) shore = {x, y};
+        }
+        CHECK(simulation.watered_in_row(y) == count);
+    }
+    REQUIRE(shore.x >= 0);
+    CHECK(simulation.growth_at(shore.x, shore.y) == 1.0);
+    CHECK(std::find(simulation.grass_rows().begin(), simulation.grass_rows().end(), shore.y) != simulation.grass_rows().end());
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), shore.x, shore.y);
+    farmer.weapon = Club;
+    simulation.dig(farmer);
+    CHECK(simulation.arable_at(shore.x, shore.y));
+
+    const int reach = WATERED_REACH;
+    WATERED_REACH = 0;
+    simulation.take_turn();
+    CHECK_FALSE(simulation.watered(shore.x, shore.y));  // none, by the rule
+    WATERED_REACH = reach;
+}
+
 TEST_CASE("fruit leaves a seed, a tool works temperate land, and a seed is planted there or eaten") {
     Simulation simulation(40, 40, 0, 1);
     int temperate = -1, hot = -1;

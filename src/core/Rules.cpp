@@ -34,6 +34,7 @@ std::vector<Rule> make_rules() {
     std::vector<Rule> rules = {
         {"GRASS_REGROWTH", "World", "Grass regrowth", "share of the starting grass that grows back each turn", 0.0, 0.1, 0.001, false, &GRASS_REGROWTH},
         {"CORPSE_FERTILITY", "World", "Corpse fertility", "grass grows this many times as fast on and around a corpse", 1, 10, 1, true, &CORPSE_FERTILITY},
+        {"WATERED_REACH", "World", "Watered land", "steps from water within which hot land grows grass and can be tilled; 0: none", 0, 20, 1, true, &WATERED_REACH},
         {"CORPSE_TURNS", "World", "Corpse turns", "turns a corpse lasts while its meat rots away", 1, 1500, 5, true, &CORPSE_TURNS},
         {"CORPSE_PLANT", "World", "Corpse plant", "chance an animal's body that rots away entirely leaves the seed of a new plant", 0.0, 1.0, 0.05, false, &CORPSE_PLANT},
         {"CELL_SPACE", "World", "Square space", "spaces in a square; a Bitzkey takes 1 + its size, and none is born, moves or spawns into a square without room", 1, 80, 1, true, &CELL_SPACE},

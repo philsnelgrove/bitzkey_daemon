@@ -555,7 +555,7 @@ Json Probe::climate(Simulation& world) const {
             sea += world.sea(x, y);
         }
         rows.push_back({{"y", y}, {"temperature", world.temperature(y)}, {"zone", zone_temperature(y, world.height())},
-                        {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}});
+                        {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}, {"watered", world.watered_in_row(y)}});
     }
     return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"rows", rows}};
 }
