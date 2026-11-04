@@ -342,6 +342,9 @@ constexpr int MAX_ACQUAINTANCES = 16;
 inline int ACQUAINTANCES = 8;
 inline double REGARD_LEARNING = 0.3;
 inline double WITNESS_SHARE = 0.25;
+// A deed of skill seen counts for more toward how skilled the doer is held than toward liking it: SKILL_WITNESS of
+// its weight on skill (and on danger, which it lowers), however little Witness share gives regard.
+inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
 enum DeedKind { PlainDeed, HarmDeed, SkillDeed };

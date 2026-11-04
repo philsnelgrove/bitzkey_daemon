@@ -112,7 +112,8 @@ void Pool::load() {
             if (!member->host.empty()) members_.push_back(std::move(member));
         }
     } catch (const std::exception& error) {
-        std::fprintf(stderr, "bitzkey_daemon: the list of workers in %s is damaged: %s\n", file_.string().c_str(), error.what());
+        const std::u8string name = file_.u8string();  // UTF-8, whatever the code page can spell
+        std::fprintf(stderr, "bitzkey_daemon: the list of workers in %s is damaged: %s\n", reinterpret_cast<const char*>(name.c_str()), error.what());
     }
 }
 

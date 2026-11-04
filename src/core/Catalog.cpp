@@ -27,7 +27,10 @@ std::string now_text() {
     return buffer;
 }
 
-std::string name_of(const std::filesystem::path& path) { return path.filename().string(); }
+std::string name_of(const std::filesystem::path& path) {  // in UTF-8, whatever the code page can spell
+    const std::u8string name = path.filename().u8string();
+    return std::string(reinterpret_cast<const char*>(name.data()), name.size());
+}
 
 }  // namespace
 

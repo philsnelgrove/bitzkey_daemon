@@ -1194,6 +1194,11 @@ TEST_CASE("a history folder an earlier version left behind is cleared away once 
     CHECK_FALSE(std::filesystem::exists(old));
     CHECK(std::filesystem::exists(recent));
     std::filesystem::remove_all(recent);
+    // Another program's file, named in letters no one code page spells (Cyrillic, Greek, Chinese, an emoji), is passed over.
+    const std::filesystem::path foreign = std::filesystem::temp_directory_path() / std::filesystem::path(u8"bitzkey-test-Шя-Ωλ-中文-\U0001F600");
+    std::filesystem::create_directories(foreign);
+    CHECK_NOTHROW(remove_stale_histories());
+    std::filesystem::remove_all(foreign);
 }
 
 TEST_CASE("deploying puts five of each around a cell, with their brains and minds, and lets a rewound future go") {
@@ -2604,6 +2609,14 @@ TEST_CASE("a deed seen counts for a share, a blow only against one's own kind, a
     simulation.light_fire(doer);
     CHECK(doer.reward == doctest::Approx(reward + FIRE_JOY));
     CHECK(watcher.known[0].regard == doctest::Approx(regard_before + REGARD_LEARNING * WITNESS_SHARE * (FIRE_DEED - regard_before)));
+    Bitzkey& crafter = simulation.add_agent(doer.dna, 14, 10);
+    simulation.index_cells();
+    simulation.deed_seen(crafter, CRAFT_DEED, nullptr, SkillDeed);
+    simulation.deed_seen(crafter, CRAFT_DEED, nullptr, SkillDeed);
+    const auto seen = std::find_if(watcher.known.begin(), watcher.known.end(), [&](const Acquaintance& one) { return one.identifier == crafter.identifier; });
+    REQUIRE(seen != watcher.known.end());
+    CHECK(seen->skill >= SKILL_HELD);  // two crafts seen are enough to be held skilled
+    CHECK(seen->regard < REGARD_STRONG);  // though no friend for it
 }
 
 TEST_CASE("an enemy is no pleasure to see but a pleasure to strike, and a friend the reverse") {
@@ -2654,7 +2667,7 @@ TEST_CASE("one held skilled comforts and is copied, a teacher anchors its studen
     simulation.index_cells();
     const double watching = WATCH_LEARNING;
     WATCH_LEARNING = 1.0;
-    agent.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.3});
+    agent.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.0});
     stranger.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.9});
     simulation.deed_seen(doer, CRAFT_DEED, nullptr, SkillDeed, 1);
     CHECK((agent.crafts & 2) == 0);  // not yet held skilled

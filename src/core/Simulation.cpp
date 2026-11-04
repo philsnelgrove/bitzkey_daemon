@@ -781,7 +781,9 @@ void remove_stale_histories() {
     std::error_code error;
     const auto cutoff = std::filesystem::file_time_type::clock::now() - std::chrono::hours(STALE_HISTORY_HOURS);
     for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::temp_directory_path(error), error)) {
-        const std::string name = entry.path().filename().string();
+        // UTF-8, not the code page: another program's file may have a name the code page can't spell, which would throw.
+        const std::u8string wide = entry.path().filename().u8string();
+        const std::string_view name(reinterpret_cast<const char*>(wide.data()), wide.size());
         if (!name.starts_with(HISTORY_PREFIX) || !entry.is_directory(error)) continue;
         if (entry.last_write_time(error) < cutoff && !error) std::filesystem::remove_all(entry.path(), error);
     }
@@ -2859,6 +2861,7 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
         if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
         const bool wronged = deed >= 0 || !target || other->species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
         note_deed(*other, doer, deed, WITNESS_SHARE, kind, wronged);
+        if (kind == SkillDeed && SKILL_WITNESS > WITNESS_SHARE) note_deed(*other, doer, 0.0, SKILL_WITNESS - WITNESS_SHARE, kind, false);  // the rest, on skill alone
         if (craft >= 0 && !(other->crafts >> craft & 1) && same_kind(*other, doer) && skill_held(*other, doer) >= SKILL_HELD &&
             rng().random() < WATCH_LEARNING) {  // a craft watched done by one it holds skilled, learnt from the watching
             other->crafts |= 1 << craft;
