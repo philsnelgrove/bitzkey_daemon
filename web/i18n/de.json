@@ -1696,5 +1696,22 @@
 "Follow reach": "Reichweite des Folgens",
 "steps within which a friend or one it holds skilled eases its dread": "Schritte, innerhalb derer ein Freund oder Geschickter seine Furcht lindert",
 "Skill witness": "Zeuge des Könnens",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "wie viel vom Gewicht einer Tat ein gesehenes Handwerk, eine Lehre oder ein Feuer darauf hat, für wie geschickt der Täter gehalten wird; nicht weniger als der Zeugenanteil"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "wie viel vom Gewicht einer Tat ein gesehenes Handwerk, eine Lehre oder ein Feuer darauf hat, für wie geschickt der Täter gehalten wird; nicht weniger als der Zeugenanteil",
+"BUILD_ROAD": "Straße bauen",
+"laid road": "legte Straße",
+"finished a road": "vollendete eine Straße",
+"joined shelters by road": "verband Unterstände per Straße",
+"ROAD": "STRASSE",
+"Road fatigue": "Straßenmühe",
+"stamina each turn of laying road costs, beyond the action's own": "Ausdauer, die jede Runde Straßenbau über die Handlung hinaus kostet",
+"Road thrill": "Straßenbau-Reiz",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "der Reiz jeder Runde Arbeit an einer Straße, mit jeder Runde größer und doppelt beim Vollenden, mal Neugier",
+"Road link joy": "Freude der Verbindung",
+"gratification of finishing a road that joins two shelters no road joined before": "Genugtuung, eine Straße zu vollenden, die zwei Unterstände verbindet, die keine Straße zuvor verband",
+"Road ease": "Straßenleichtigkeit",
+"share of a step's stamina a step from a road square costs": "Anteil der Ausdauer eines Schritts, den ein Schritt von einem Straßenfeld kostet",
+"Road joy": "Straßenfreude",
+"pleasure of going by road, growing to the full of it after a day of road travel": "Freude am Reisen auf der Straße, voll nach einem Tag Straßenreise",
+"Road longing": "Straßensehnsucht",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "wie viel mehr Straßenbau den reizt, der auf Straßen gereist ist, voll nach einem Tag davon, unabhängig von Neugier"
 }

@@ -516,6 +516,19 @@ inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNIT
 // fire, or an infant's parent close by, is felt as relief, by as much unease as it spares (PROTECTION_JOY).
 inline double SHELTER_COMFORT = 0.3;
 inline double SHELTER_LONGING = 1.0;
+// Roads: one with a stone axe lays a section of road on its square in ROAD_TURNS turns of hard work (ROAD_FATIGUE
+// each, more than a blow), clearing it of grass, plants and worked land. Each turn of it thrills as building does
+// (ROAD_THRILL, growing to twice it for the finished section), and a section that joins two shelters by road, more
+// (ROAD_LINK_JOY). Going from a road square costs ROAD_EASE of a step's stamina; each such step is remembered, to a
+// full memory after a day of them, and is a pleasure that grows with it (ROAD_JOY), as does the longing to lay more
+// (ROAD_LONGING).
+inline constexpr int ROAD_TURNS = 3;
+inline double ROAD_FATIGUE = 60;
+inline double ROAD_THRILL = 1.0;
+inline double ROAD_LINK_JOY = 3.0;
+inline double ROAD_EASE = 0.5;
+inline double ROAD_JOY = 0.3;
+inline double ROAD_LONGING = 1.0;
 inline double PROTECTION_JOY = 1.0;
 // Leadership. One it holds skilled close by is a comfort (SKILL_COMFORT, more if curious), and a craft seen done by one
 // it holds skilled may be learnt from the watching (WATCH_LEARNING). A student within ELDER_REACH steps of the elder
@@ -722,6 +735,7 @@ struct Bitzkey {
     int carried_stone = 0, carried_bone = 0, carried_wood = 0;  // and the materials
     double boredom = 0.0;  // see BOREDOM_RISE
     double shelter_known = 0.0;  // its memory of resting in a shelter, 0 to 1 after a day of it (see SHELTER_LONGING)
+    double road_known = 0.0;  // its memory of going by road, 0 to 1 after a day of it (see ROAD_LONGING)
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
@@ -1401,6 +1415,12 @@ public:
     bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && shelter_at(animal.x, animal.y); }
     int site_at(int x, int y) const { return in_bounds(x, y) ? sites_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // units in an unfinished shelter
     void construct(Bitzkey& agent);  // a unit of what it carries, stone first, into the shelter on its square
+    bool road_at(int x, int y) const { return in_bounds(x, y) && roads_[static_cast<std::size_t>(y) * width_ + x]; }
+    int road_work_at(int x, int y) const { return in_bounds(x, y) ? road_work_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // turns laid on an unfinished road
+    void build_road(Bitzkey& agent);  // a turn's work on the road on its square
+    // The shelters beside the road joined to the one at x, y (squares beside it, diagonals too), each road square
+    // reached marked in seen.
+    std::vector<std::size_t> road_shelters(int x, int y, std::vector<char>& seen) const;
     void dig(Bitzkey& agent);  // an axe or club finds a stone in the ground, carried or left here
     static double damage(const Bitzkey& attacker, const Bitzkey& defender, bool defending = false);
     // The worth of a blow's gear: what the striker's weapon added is a joy to it, and what the struck one's armour took off a joy to that, each by its share of the defender's health.
@@ -1654,6 +1674,7 @@ private:
     std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
+    std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
     std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;

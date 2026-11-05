@@ -457,6 +457,8 @@ Simulation::Simulation(Settings settings)
     site_stone_.assign(area, 0);
     site_turns_.assign(area, 0);
     shelters_.assign(area, 0);
+    roads_.assign(area, 0);
+    road_work_.assign(area, 0);
     arable_.assign(area, 0);
     fire_lighters_.assign(area, -1);
     grass_.assign(area, 0);
@@ -2457,6 +2459,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
+    available[BuildRoad] = agent.weapon == StoneAxe && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[LightFire] = (agent.weapon == Club || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && agent.carried_meat + agent.carried_fruit > 0;
@@ -2543,6 +2546,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseArableHere] = arable_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseSeedCarried] = agent.carried_seed > 0 ? 1.0 : 0.0;
     senses[SenseBoredom] = agent.boredom;
+    senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
     senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
     senses[SenseWielding] = gear_force(agent) > 1;
     senses[SenseArmoured] = agent.armour != NoArmour;
@@ -3029,9 +3033,21 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         return;
     }
     // Tired by what it did: each square it went (flying, the more so), each blow struck, and keeping aloft over the sea.
-    const double cells = static_cast<double>(agent.trail.size() - passed);
+    // A step from a road square costs ROAD_EASE of one, and is remembered and enjoyed the more, the more it is known.
+    double cells = 0.0;
+    int by_road = 0;
+    for (std::size_t step = passed; step < agent.trail.size(); ++step) {
+        const bool road = road_at(agent.trail[step].first, agent.trail[step].second);
+        cells += road ? ROAD_EASE : 1.0;
+        by_road += road;
+    }
+    if (by_road) {
+        agent.road_known = std::min(1.0, agent.road_known + static_cast<double>(by_road) / DAY_LENGTH);
+        agent.reward += ROAD_JOY * agent.road_known;
+    }
     double cost = ACTION_FATIGUE + cells * STEP_FATIGUE * (agent.terrain == Terrain::Avian ? FLIGHT_FATIGUE : 1.0);
     if (did == "attacked" || did == "pounced" || did == "defended") cost += STRIKE_FATIGUE;
+    if (did == "laid road" || did == "finished a road" || did == "joined shelters by road") cost += ROAD_FATIGUE;
     if (agent.aloft_at_sea()) cost += HOVER_FATIGUE;
     agent.stamina = std::max(0.0, agent.stamina - fatigue(agent, cost));
     if (agent.aloft_at_sea() && agent.exhausted()) {
@@ -3225,6 +3241,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Construct:
             construct(agent);
+            break;
+        case BuildRoad:
+            build_road(agent);
             break;
         case LightFire:
             light_fire(agent);
@@ -3795,6 +3814,79 @@ void Simulation::construct(Bitzkey& agent) {
     } else {
         agent.reward += inspiration * sites_[cell] / SHELTER_UNITS;
     }
+}
+
+void Simulation::build_road(Bitzkey& agent) {
+    const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
+    wear_weapon(agent);
+    agent.last_action = "laid road";
+    // As building a shelter: each turn thrills more than the last, the curious and those who know roads most.
+    const double inspiration = ROAD_THRILL * (agent.feeling(Curiosity) + ROAD_LONGING * agent.road_known);
+    if (++road_work_[cell] < ROAD_TURNS) {
+        agent.reward += inspiration * road_work_[cell] / ROAD_TURNS;
+        return;
+    }
+    // Finished, clear of grass, worked land and plants. Did it join shelters no road joined before? So it did if
+    // the shelters beside the whole road now outnumber those beside any one road it joined, or beside it alone.
+    std::vector<char> seen(roads_.size(), 0);
+    std::size_t before = 0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            const int x = py_mod(agent.x + dx, width_), y = agent.y + dy;
+            if (road_at(x, y) && !seen[static_cast<std::size_t>(y) * width_ + x]) before = std::max(before, road_shelters(x, y, seen).size());
+        }
+    }
+    road_work_[cell] = 0;
+    roads_[cell] = 1;
+    grass_[cell] = 0;
+    arable_[cell] = 0;
+    const std::vector<Bitzkey*> here = cell_at(agent.x, agent.y);
+    for (Bitzkey* plant : here) {
+        if (plant->species != Species::Plant || !plant->alive()) continue;
+        plant->health = 0;
+        die(*plant, "cleared for a road", &agent, "laying road");
+    }
+    std::fill(seen.begin(), seen.end(), 0);
+    const std::size_t joined = road_shelters(agent.x, agent.y, seen).size();
+    std::size_t alone = 0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) alone += shelter_at(py_mod(agent.x + dx, width_), agent.y + dy);
+    }
+    note_first("road_finished", agent.species, agent.identifier);
+    agent.reward += 2 * inspiration;
+    agent.last_action = "finished a road";
+    if (joined >= 2 && joined > std::max(before, alone)) {
+        agent.reward += ROAD_LINK_JOY * (0.5 + agent.feeling(Curiosity));
+        note_first("shelters_joined", agent.species, agent.identifier);
+        agent.last_action = "joined shelters by road";
+    }
+}
+
+std::vector<std::size_t> Simulation::road_shelters(int x, int y, std::vector<char>& seen) const {
+    std::vector<std::size_t> shelters, open{static_cast<std::size_t>(y) * width_ + x};
+    std::vector<char> counted(shelters_.size(), 0);
+    seen[open.back()] = 1;
+    while (!open.empty()) {
+        const std::size_t cell = open.back();
+        open.pop_back();
+        const int cx = static_cast<int>(cell % width_), cy = static_cast<int>(cell / width_);
+        for (int dy = -1; dy <= 1; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                const int nx = py_mod(cx + dx, width_), ny = cy + dy;
+                if (!in_bounds(nx, ny)) continue;
+                const std::size_t next = static_cast<std::size_t>(ny) * width_ + nx;
+                if (shelters_[next] && !counted[next]) {
+                    counted[next] = 1;
+                    shelters.push_back(next);
+                }
+                if (roads_[next] && !seen[next]) {
+                    seen[next] = 1;
+                    open.push_back(next);
+                }
+            }
+        }
+    }
+    return shelters;
 }
 
 void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {

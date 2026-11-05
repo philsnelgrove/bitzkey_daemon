@@ -1696,5 +1696,22 @@
 "Follow reach": "追随范围",
 "steps within which a friend or one it holds skilled eases its dread": "朋友或有本领者能缓解其恐惧的步数",
 "Skill witness": "技艺见证",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "看到手艺、传授或生火时，该行为的分量有多少计入对行为者本领的看法；不少于见证比例"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "看到手艺、传授或生火时，该行为的分量有多少计入对行为者本领的看法；不少于见证比例",
+"BUILD_ROAD": "修路",
+"laid road": "铺了路",
+"finished a road": "修完一段路",
+"joined shelters by road": "用路连起了住所",
+"ROAD": "道路",
+"Road fatigue": "修路疲劳",
+"stamina each turn of laying road costs, beyond the action's own": "每回合铺路在行动本身之外消耗的体力",
+"Road thrill": "修路兴奋",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "修路每回合工作的兴奋，逐回合增长，完成时加倍，乘以好奇心",
+"Road link joy": "连通之乐",
+"gratification of finishing a road that joins two shelters no road joined before": "修完一段路、连起两处此前无路相连的住所时的满足",
+"Road ease": "道路省力",
+"share of a step's stamina a step from a road square costs": "从道路格迈出一步所耗体力占一步的比例",
+"Road joy": "道路之乐",
+"pleasure of going by road, growing to the full of it after a day of road travel": "走在路上的愉悦，走路一天后达到满值",
+"Road longing": "对路的向往",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "走过路的个体铺路时额外增加的兴奋，一天后达到满值，与好奇心无关"
 }

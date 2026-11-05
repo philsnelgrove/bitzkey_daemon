@@ -1696,5 +1696,22 @@
 "Follow reach": "Zasięg podążania",
 "steps within which a friend or one it holds skilled eases its dread": "kroki, w których przyjaciel lub zręczny łagodzi jego lęk",
 "Skill witness": "Świadek umiejętności",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "jaka część wagi czynu, gdy widzi się rzemiosło, lekcję lub ogień, wpływa na to, za jak zręcznego uważa się sprawcę; nie mniej niż udział świadka"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "jaka część wagi czynu, gdy widzi się rzemiosło, lekcję lub ogień, wpływa na to, za jak zręcznego uważa się sprawcę; nie mniej niż udział świadka",
+"BUILD_ROAD": "Budować drogę",
+"laid road": "kładł drogę",
+"finished a road": "ukończył drogę",
+"joined shelters by road": "połączył schronienia drogą",
+"ROAD": "DROGA",
+"Road fatigue": "Zmęczenie drogą",
+"stamina each turn of laying road costs, beyond the action's own": "wytrzymałość, jaką kosztuje każda tura kładzenia drogi, ponad samą czynność",
+"Road thrill": "Dreszcz budowy drogi",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "dreszcz każdej tury pracy przy drodze, rosnący z każdą turą i podwójny przy ukończeniu, razy ciekawość",
+"Road link joy": "Radość połączenia",
+"gratification of finishing a road that joins two shelters no road joined before": "satysfakcja z ukończenia drogi łączącej dwa schronienia, których żadna droga wcześniej nie łączyła",
+"Road ease": "Lekkość drogi",
+"share of a step's stamina a step from a road square costs": "część wytrzymałości kroku, jaką kosztuje krok z pola drogi",
+"Road joy": "Radość drogi",
+"pleasure of going by road, growing to the full of it after a day of road travel": "przyjemność wędrowania drogą, pełna po dniu podróży drogami",
+"Road longing": "Tęsknota za drogą",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "o ile bardziej kładzenie drogi cieszy tego, kto podróżował drogami, w pełni po dniu, bez względu na ciekawość"
 }

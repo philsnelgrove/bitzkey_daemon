@@ -219,8 +219,8 @@ TEST_CASE("an exported brain loads back, matching senses and actions by name") {
     CHECK(old.layers[0].weights[5] == doctest::Approx(brain.layers[0].weights[5]).epsilon(1e-5));
 }
 
-TEST_CASE("there are 182 senses, and a narrower saved brain loads as saved, valuing alike") {
-    CHECK(INPUT_SIZE == 182);
+TEST_CASE("there are 183 senses, and a narrower saved brain loads as saved, valuing alike") {
+    CHECK(INPUT_SIZE == 183);
     std::mt19937 engine(5);
     std::uniform_real_distribution<double> uniform(-0.5, 0.5);
     constexpr int narrow = 12;
@@ -299,9 +299,9 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
     const std::vector<double> found = {child.layers[0].row(3)[11], child.layers[0].row(44)[89], child.layers[1].biases[20],
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
-    CHECK(found == std::vector<double>{-0.07996788135245048, 0.006844998198369229, 0.1126230694214355, -0.15334509931503282,
-                                       -0.00014984940014900944, -0.001104110249682783});  // the output layer held in hundredths
-    CHECK(rng.random() == 0.09353611303891773);  // one draw of the world's for the child
+    CHECK(found == std::vector<double>{-0.054043806578331244, 0.1715152432072232, 0.07364472994800224, 0.09204684916780055,
+                                       -0.00044254937119009513, -0.0012328930661285548});  // the output layer held in hundredths
+    CHECK(rng.random() == 0.28802458907507733);  // one draw of the world's for the child
 }
 
 TEST_CASE("a brain that read its senses uncentred, made to read them centred, values everything just as before") {

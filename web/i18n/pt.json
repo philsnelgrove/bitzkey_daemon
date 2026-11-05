@@ -1696,5 +1696,22 @@
 "Follow reach": "Alcance do seguir",
 "steps within which a friend or one it holds skilled eases its dread": "passos dentro dos quais um amigo ou um hábil alivia o seu medo",
 "Skill witness": "Testemunha da perícia",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "quanto do peso de um feito tem um ofício, uma lição ou um fogo visto fazer em quão hábil se tem o autor; não menos que a parte da testemunha"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "quanto do peso de um feito tem um ofício, uma lição ou um fogo visto fazer em quão hábil se tem o autor; não menos que a parte da testemunha",
+"BUILD_ROAD": "Construir estrada",
+"laid road": "assentou estrada",
+"finished a road": "terminou uma estrada",
+"joined shelters by road": "uniu abrigos por estrada",
+"ROAD": "ESTRADA",
+"Road fatigue": "Fadiga da estrada",
+"stamina each turn of laying road costs, beyond the action's own": "fôlego que custa cada turno de assentar estrada, além do da ação",
+"Road thrill": "Emoção da estrada",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "a emoção de cada turno de trabalho numa estrada, maior a cada turno e dobrada ao terminá-la, vezes a curiosidade",
+"Road link joy": "Alegria da ligação",
+"gratification of finishing a road that joins two shelters no road joined before": "gratificação de terminar uma estrada que une dois abrigos que nenhuma estrada unia antes",
+"Road ease": "Facilidade da estrada",
+"share of a step's stamina a step from a road square costs": "parte do fôlego de um passo que custa um passo a partir de uma casa de estrada",
+"Road joy": "Alegria da estrada",
+"pleasure of going by road, growing to the full of it after a day of road travel": "prazer de ir por estrada, pleno após um dia de viagem por estradas",
+"Road longing": "Anseio por estrada",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "quanto mais assentar estrada emociona quem viajou por estradas, em pleno após um dia disso, seja qual for a curiosidade"
 }

@@ -1696,5 +1696,22 @@
 "Follow reach": "Досяжність слідування",
 "steps within which a friend or one it holds skilled eases its dread": "кроки, в межах яких друг або вправний полегшує його страх",
 "Skill witness": "Свідок уміння",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "яка частка ваги вчинку, коли бачиш ремесло, урок чи вогонь, впливає на те, наскільки вправним вважають виконавця; не менше за частку свідка"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "яка частка ваги вчинку, коли бачиш ремесло, урок чи вогонь, впливає на те, наскільки вправним вважають виконавця; не менше за частку свідка",
+"BUILD_ROAD": "Будувати дорогу",
+"laid road": "клав дорогу",
+"finished a road": "завершив дорогу",
+"joined shelters by road": "з'єднав укриття дорогою",
+"ROAD": "ДОРОГА",
+"Road fatigue": "Втома від дороги",
+"stamina each turn of laying road costs, beyond the action's own": "витривалість, якої коштує кожен хід прокладання дороги понад саму дію",
+"Road thrill": "Захват від дороги",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "захват від кожного ходу праці над дорогою, зростає з кожним ходом і подвоюється при завершенні, помножений на цікавість",
+"Road link joy": "Радість з'єднання",
+"gratification of finishing a road that joins two shelters no road joined before": "вдоволення від завершення дороги, що з'єднує два укриття, яких жодна дорога раніше не з'єднувала",
+"Road ease": "Легкість дороги",
+"share of a step's stamina a step from a road square costs": "частка витривалості кроку, якої коштує крок з клітинки дороги",
+"Road joy": "Радість дороги",
+"pleasure of going by road, growing to the full of it after a day of road travel": "приємність ходити дорогою, повна після дня мандрів дорогами",
+"Road longing": "Туга за дорогою",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "наскільки більше тішить прокладання дороги того, хто мандрував дорогами, повністю після дня цього, хоч яка цікавість"
 }

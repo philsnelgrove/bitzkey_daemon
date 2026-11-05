@@ -3032,6 +3032,65 @@ TEST_CASE("a shelter keeps the weather off, is a comfort to rest in, and one who
     CHECK(simulation.pile_at(9, 3, WoodPile) == 1);
 }
 
+TEST_CASE("a road takes three turns with a stone axe, clears its square, joins shelters, and is easy going") {
+    Simulation simulation = world();
+    Bitzkey& builder = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 3, 5);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {}), 5, 5);
+    simulation.index_cells();
+    const auto go = [&](Bitzkey& animal, int x, int y) {
+        animal.x = x;
+        animal.y = y;
+        simulation.index_cells();
+    };
+    builder.weapon = StoneAxe;
+    builder.carried_stone = 2 * SHELTER_UNITS;
+    for (int unit = 0; unit < SHELTER_UNITS; ++unit) simulation.construct(builder);
+    go(builder, 7, 5);
+    for (int unit = 0; unit < SHELTER_UNITS; ++unit) simulation.construct(builder);
+    REQUIRE(simulation.shelter_at(3, 5));
+    REQUIRE(simulation.shelter_at(7, 5));
+    builder.mind[Curiosity] = 7.0;
+    const double inspiration = ROAD_THRILL * builder.feeling(Curiosity);
+    const auto lay = [&](int x) {  // a whole section at x, 5; the reward of its last turn
+        go(builder, x, 5);
+        for (int turn = 1; turn < ROAD_TURNS; ++turn) {
+            builder.reward = 0;
+            simulation.build_road(builder);
+            CHECK(builder.reward == doctest::Approx(inspiration * turn / ROAD_TURNS));
+            CHECK_FALSE(simulation.road_at(x, 5));
+        }
+        builder.reward = 0;
+        simulation.build_road(builder);
+        CHECK(simulation.road_at(x, 5));
+        return builder.reward;
+    };
+    simulation.grass_cell(5, 5) = 3;
+    CHECK(lay(4) == doctest::Approx(2 * inspiration));  // beside one shelter only
+    CHECK(lay(5) == doctest::Approx(2 * inspiration));
+    CHECK(simulation.grass_at(5, 5) == 0);  // cleared
+    CHECK_FALSE(plant.alive());
+    CHECK(lay(6) == doctest::Approx(2 * inspiration + ROAD_LINK_JOY * (0.5 + builder.feeling(Curiosity))));  // the two joined
+    CHECK(builder.last_action == "joined shelters by road");
+
+    Bitzkey& walker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 4, 5);
+    Bitzkey& rambler = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 4, 8);
+    simulation.index_cells();
+    Simulation::Sensed on = simulation.sense(walker), off = simulation.sense(rambler);
+    simulation.act(walker, WalkEast, on.situation);
+    simulation.act(rambler, WalkEast, off.situation);
+    CHECK(walker.x == 5);
+    CHECK(FULL_STAMINA - walker.stamina < FULL_STAMINA - rambler.stamina);  // half a step's cost by road
+    CHECK(walker.road_known == doctest::Approx(1.0 / DAY_LENGTH));  // remembered
+    CHECK(rambler.road_known == 0);
+    walker.road_known = 1.0;  // one who knows roads longs to lay them, whatever its curiosity
+    walker.weapon = StoneAxe;
+    walker.mind[Curiosity] = 0.0;
+    go(walker, 9, 9);
+    walker.reward = 0;
+    simulation.build_road(walker);
+    CHECK(walker.reward == doctest::Approx(ROAD_THRILL * (walker.feeling(Curiosity) + ROAD_LONGING) / ROAD_TURNS));
+}
+
 TEST_CASE("a craft is discovered, then mastered by trying, the tenth try sure, and a failure thrills the curious") {
     Simulation simulation = world();
     Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"intellect", 7}}), 5, 5);

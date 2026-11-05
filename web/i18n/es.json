@@ -1696,5 +1696,22 @@
 "Follow reach": "Alcance del seguir",
 "steps within which a friend or one it holds skilled eases its dread": "pasos dentro de los cuales un amigo o un diestro alivia su temor",
 "Skill witness": "Testigo de destreza",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "cuánto del peso de un hecho tiene un oficio, una lección o un fuego visto hacer en lo diestro que se tiene al autor; no menos que la parte del testigo"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "cuánto del peso de un hecho tiene un oficio, una lección o un fuego visto hacer en lo diestro que se tiene al autor; no menos que la parte del testigo",
+"BUILD_ROAD": "Construir camino",
+"laid road": "trazó camino",
+"finished a road": "terminó un camino",
+"joined shelters by road": "unió refugios por camino",
+"ROAD": "CAMINO",
+"Road fatigue": "Fatiga del camino",
+"stamina each turn of laying road costs, beyond the action's own": "aguante que cuesta cada turno de trazar camino, además del de la acción",
+"Road thrill": "Emoción del camino",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "la emoción de cada turno de trabajo en un camino, mayor con cada turno y doble al terminarlo, por la curiosidad",
+"Road link joy": "Gozo de unión",
+"gratification of finishing a road that joins two shelters no road joined before": "gratificación de terminar un camino que une dos refugios que ningún camino unía antes",
+"Road ease": "Facilidad del camino",
+"share of a step's stamina a step from a road square costs": "parte del aguante de un paso que cuesta un paso desde una casilla de camino",
+"Road joy": "Gozo del camino",
+"pleasure of going by road, growing to the full of it after a day of road travel": "placer de ir por camino, completo tras un día de viaje por caminos",
+"Road longing": "Anhelo del camino",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "cuánto más emociona trazar camino a quien ha viajado por caminos, del todo tras un día de ello, sea cual sea su curiosidad"
 }

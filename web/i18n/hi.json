@@ -1696,5 +1696,22 @@
 "Follow reach": "पीछे चलने की पहुँच",
 "steps within which a friend or one it holds skilled eases its dread": "वे कदम जिनके भीतर कोई मित्र या कुशल उसका डर कम करता है",
 "Skill witness": "कौशल का साक्षी",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "देखे गए शिल्प, पाठ या आग का कर्म के भार में से कितना हिस्सा कर्ता को कितना कुशल माना जाए उस पर पड़ता है; साक्षी हिस्से से कम नहीं"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "देखे गए शिल्प, पाठ या आग का कर्म के भार में से कितना हिस्सा कर्ता को कितना कुशल माना जाए उस पर पड़ता है; साक्षी हिस्से से कम नहीं",
+"BUILD_ROAD": "सड़क बनाना",
+"laid road": "सड़क बिछाई",
+"finished a road": "एक सड़क पूरी की",
+"joined shelters by road": "सड़क से आश्रय जोड़े",
+"ROAD": "सड़क",
+"Road fatigue": "सड़क की थकान",
+"stamina each turn of laying road costs, beyond the action's own": "सड़क बिछाने की हर बारी में क्रिया के अलावा लगने वाला दम",
+"Road thrill": "सड़क का रोमांच",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "सड़क पर हर बारी के काम का रोमांच, हर बारी बढ़ता और पूरा करने पर दुगना, जिज्ञासा से गुणा",
+"Road link joy": "जोड़ने का आनंद",
+"gratification of finishing a road that joins two shelters no road joined before": "ऐसी सड़क पूरी करने की तृप्ति जो दो आश्रयों को जोड़े जिन्हें पहले कोई सड़क नहीं जोड़ती थी",
+"Road ease": "सड़क की सुगमता",
+"share of a step's stamina a step from a road square costs": "सड़क वाले खाने से उठे कदम पर एक कदम के दम का हिस्सा",
+"Road joy": "सड़क का आनंद",
+"pleasure of going by road, growing to the full of it after a day of road travel": "सड़क से चलने का सुख, सड़कों पर एक दिन की यात्रा के बाद पूरा",
+"Road longing": "सड़क की लालसा",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "सड़कों पर चल चुके को सड़क बिछाना कितना अधिक रोमांचित करता है, एक दिन के बाद पूरा, जिज्ञासा चाहे जो हो"
 }

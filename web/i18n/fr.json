@@ -1696,5 +1696,22 @@
 "Follow reach": "Portée du suivi",
 "steps within which a friend or one it holds skilled eases its dread": "pas dans lesquels un ami ou un habile apaise sa crainte",
 "Skill witness": "Témoin de l'habileté",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "part du poids d'un acte qu'un artisanat, une leçon ou un feu vu faire a sur l'habileté prêtée à son auteur ; pas moins que la part du témoin"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "part du poids d'un acte qu'un artisanat, une leçon ou un feu vu faire a sur l'habileté prêtée à son auteur ; pas moins que la part du témoin",
+"BUILD_ROAD": "Construire une route",
+"laid road": "a posé de la route",
+"finished a road": "a achevé une route",
+"joined shelters by road": "a relié des abris par la route",
+"ROAD": "ROUTE",
+"Road fatigue": "Fatigue de la route",
+"stamina each turn of laying road costs, beyond the action's own": "endurance que coûte chaque tour de pose de route, en plus de celle de l'action",
+"Road thrill": "Frisson de la route",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "le frisson de chaque tour de travail sur une route, croissant à chaque tour et doublé à l'achèvement, fois la curiosité",
+"Road link joy": "Joie du lien",
+"gratification of finishing a road that joins two shelters no road joined before": "satisfaction d'achever une route qui relie deux abris qu'aucune route ne reliait",
+"Road ease": "Aisance de la route",
+"share of a step's stamina a step from a road square costs": "part de l'endurance d'un pas que coûte un pas depuis une case de route",
+"Road joy": "Joie de la route",
+"pleasure of going by road, growing to the full of it after a day of road travel": "plaisir d'aller par la route, entier après un jour de voyage par route",
+"Road longing": "Désir de route",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "combien poser de la route exalte davantage qui a voyagé par la route, pleinement après un jour, quelle que soit sa curiosité"
 }

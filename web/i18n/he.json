@@ -1696,5 +1696,22 @@
 "Follow reach": "טווח המעקב",
 "steps within which a friend or one it holds skilled eases its dread": "צעדים שבתוכם חבר או מיומן מקלים על אימתו",
 "Skill witness": "עד למיומנות",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "כמה ממשקל המעשה יש למלאכה, שיעור או אש שנראו נעשים על מידת המיומנות המיוחסת לעושה; לא פחות מחלק העד"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "כמה ממשקל המעשה יש למלאכה, שיעור או אש שנראו נעשים על מידת המיומנות המיוחסת לעושה; לא פחות מחלק העד",
+"BUILD_ROAD": "לבנות דרך",
+"laid road": "סלל דרך",
+"finished a road": "השלים דרך",
+"joined shelters by road": "חיבר מחסות בדרך",
+"ROAD": "דרך",
+"Road fatigue": "עייפות הדרך",
+"stamina each turn of laying road costs, beyond the action's own": "סיבולת שכל תור של סלילת דרך עולה, מעבר לזו של הפעולה",
+"Road thrill": "ריגוש הדרך",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "הריגוש של כל תור עבודה על דרך, גדל עם כל תור ומוכפל בהשלמתה, כפול סקרנות",
+"Road link joy": "שמחת החיבור",
+"gratification of finishing a road that joins two shelters no road joined before": "סיפוק מהשלמת דרך המחברת שתי מחסות ששום דרך לא חיברה קודם",
+"Road ease": "קלות הדרך",
+"share of a step's stamina a step from a road square costs": "חלק מסיבולת צעד שצעד ממשבצת דרך עולה",
+"Road joy": "שמחת הדרך",
+"pleasure of going by road, growing to the full of it after a day of road travel": "הנאה מהליכה בדרך, מלאה אחרי יום של מסע בדרכים",
+"Road longing": "געגוע לדרך",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "כמה יותר סלילת דרך מרגשת את מי שנסע בדרכים, במלואה אחרי יום של זה, ללא קשר לסקרנותו"
 }

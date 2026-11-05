@@ -217,6 +217,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["crafts"] = crafts;
     result["boredom"] = agent->boredom;
     result["shelter_known"] = agent->shelter_known;
+    result["road_known"] = agent->road_known;
     result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
@@ -547,15 +548,35 @@ Json Probe::settings(Simulation& world) const {
 }
 
 Json Probe::climate(Simulation& world) const {
+    // Each row's animals: how many, how many in a shelter and resting there, how many out of their home temperature
+    // (colder or hotter), and the mean steps from home they feel.
+    struct Dwellers { int animals = 0, sheltered = 0, resting_inside = 0, colder = 0, hotter = 0; double steps = 0.0; };
+    std::vector<Dwellers> dwellers(static_cast<std::size_t>(world.height()));
+    for (const auto& agent : world.agents()) {
+        if (!agent->alive() || agent->species == Species::Plant || agent->y < 0 || agent->y >= world.height()) continue;
+        Dwellers& row = dwellers[static_cast<std::size_t>(agent->y)];
+        const double here = world.temperature(agent->y);
+        ++row.animals;
+        row.sheltered += world.shelter_at(agent->x, agent->y);
+        row.resting_inside += world.safe_inside(*agent);
+        row.colder += here > agent->climate.temperature;
+        row.hotter += here < agent->climate.temperature;
+        row.steps += agent->climate_steps(here);
+    }
     Json rows = Json::array();
     for (int y = 0; y < world.height(); ++y) {
-        int grass = 0, sea = 0;
+        int grass = 0, sea = 0, shelters = 0;
         for (int x = 0; x < world.width(); ++x) {
             grass += world.grass_at(x, y);
             sea += world.sea(x, y);
+            shelters += world.shelter_at(x, y);
         }
+        const Dwellers& row = dwellers[static_cast<std::size_t>(y)];
         rows.push_back({{"y", y}, {"temperature", world.temperature(y)}, {"zone", zone_temperature(y, world.height())},
-                        {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}, {"watered", world.watered_in_row(y)}});
+                        {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}, {"watered", world.watered_in_row(y)},
+                        {"shelters", shelters}, {"animals", row.animals}, {"sheltered", row.sheltered}, {"resting_inside", row.resting_inside},
+                        {"colder_than_home", row.colder}, {"hotter_than_home", row.hotter},
+                        {"mean_steps_from_home", row.animals ? Json(row.steps / row.animals) : Json(nullptr)}});
     }
     return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"rows", rows}};
 }
@@ -804,16 +825,18 @@ Json Probe::skills(Simulation& world) const {
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
                                                       {"wielding", weapons}, {"wearing", armours}};
     }
-    int fires = 0, shelters = 0, sites = 0, arable = 0;
+    int fires = 0, shelters = 0, sites = 0, arable = 0, roads = 0, road_works = 0;
     for (int y = 0; y < world.height(); ++y) {
         for (int x = 0; x < world.width(); ++x) {
+            roads += world.road_at(x, y);
+            road_works += world.road_work_at(x, y) > 0;
             fires += world.fire_at(x, y) > world.turn();
             shelters += world.shelter_at(x, y);
             sites += world.site_at(x, y) > 0;
             arable += world.arable_at(x, y);
         }
     }
-    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"arable", arable}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}}}};
+    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"arable", arable}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}, {"roads", roads}, {"roads_begun", road_works}}}};
 }
 
 Json Probe::regard(Simulation& world) const {

@@ -1696,5 +1696,22 @@
 "Follow reach": "ついて行く範囲",
 "steps within which a friend or one it holds skilled eases its dread": "友や腕利きが恐れを和らげる歩数",
 "Skill witness": "技の目撃",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "見た工作・教え・火起こしが、行った者をどれほど腕利きと見なすかに与える行いの重みの割合。目撃の割合を下回らない"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "見た工作・教え・火起こしが、行った者をどれほど腕利きと見なすかに与える行いの重みの割合。目撃の割合を下回らない",
+"BUILD_ROAD": "道を造る",
+"laid road": "道を敷いた",
+"finished a road": "道を完成させた",
+"joined shelters by road": "道で住処をつないだ",
+"ROAD": "道",
+"Road fatigue": "道造りの疲れ",
+"stamina each turn of laying road costs, beyond the action's own": "道を敷く各ターンに、行動そのものに加えてかかるスタミナ",
+"Road thrill": "道造りの高揚",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "道の各ターンの作業の高揚。ターンごとに増し、完成で倍、好奇心を掛ける",
+"Road link joy": "つなぐ喜び",
+"gratification of finishing a road that joins two shelters no road joined before": "これまでどの道もつないでいなかった二つの住処をつなぐ道を完成させた満足",
+"Road ease": "道の楽さ",
+"share of a step's stamina a step from a road square costs": "道のマスから踏み出す一歩にかかる、一歩分のスタミナの割合",
+"Road joy": "道の喜び",
+"pleasure of going by road, growing to the full of it after a day of road travel": "道を行く喜び。道の旅を一日すると満ちる",
+"Road longing": "道への憧れ",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "道を旅した者にとって道を敷くことがどれほど高揚を増すか。一日で満ち、好奇心に関わらない"
 }

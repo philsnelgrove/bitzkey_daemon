@@ -1696,5 +1696,22 @@
 "Follow reach": "Portata del seguire",
 "steps within which a friend or one it holds skilled eases its dread": "passi entro cui un amico o un abile allevia il suo timore",
 "Skill witness": "Testimone dell'abilità",
-"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "quanto del peso di un atto ha un mestiere, una lezione o un fuoco visto fare su quanto abile è ritenuto chi lo fa; non meno della quota del testimone"
+"how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share": "quanto del peso di un atto ha un mestiere, una lezione o un fuoco visto fare su quanto abile è ritenuto chi lo fa; non meno della quota del testimone",
+"BUILD_ROAD": "Costruire strada",
+"laid road": "ha posato strada",
+"finished a road": "ha finito una strada",
+"joined shelters by road": "ha unito ripari con una strada",
+"ROAD": "STRADA",
+"Road fatigue": "Fatica della strada",
+"stamina each turn of laying road costs, beyond the action's own": "resistenza che costa ogni turno di posa della strada, oltre a quella dell'azione",
+"Road thrill": "Brivido della strada",
+"the thrill of each turn's work on a road, growing with every turn and doubled for finishing it, times curiosity": "il brivido di ogni turno di lavoro su una strada, crescente a ogni turno e doppio al termine, per la curiosità",
+"Road link joy": "Gioia del collegamento",
+"gratification of finishing a road that joins two shelters no road joined before": "gratificazione nel finire una strada che unisce due ripari che nessuna strada univa",
+"Road ease": "Agio della strada",
+"share of a step's stamina a step from a road square costs": "quota della resistenza di un passo che costa un passo da una casella di strada",
+"Road joy": "Gioia della strada",
+"pleasure of going by road, growing to the full of it after a day of road travel": "piacere di andare per strada, pieno dopo un giorno di viaggio su strade",
+"Road longing": "Desiderio di strada",
+"how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity": "quanto più posare strada entusiasma chi ha viaggiato su strada, in pieno dopo un giorno, qualunque sia la curiosità"
 }
