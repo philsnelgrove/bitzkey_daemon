@@ -523,6 +523,7 @@ inline double SHELTER_LONGING = 1.0;
 // full memory after a day of them, and is a pleasure that grows with it (ROAD_JOY), as does the longing to lay more
 // (ROAD_LONGING).
 inline constexpr int ROAD_TURNS = 3;
+inline constexpr int ROAD_STONES = 2;  // carried stones a section needs to be worked on, laid into it when it is finished
 inline double ROAD_FATIGUE = 60;
 inline double ROAD_THRILL = 1.0;
 inline double ROAD_LINK_JOY = 3.0;

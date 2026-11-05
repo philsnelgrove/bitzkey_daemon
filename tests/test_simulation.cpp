@@ -3060,10 +3060,13 @@ TEST_CASE("a road takes three turns with a stone axe, clears its square, joins s
             CHECK_FALSE(simulation.road_at(x, 5));
         }
         builder.reward = 0;
+        const int stone = builder.carried_stone;
         simulation.build_road(builder);
         CHECK(simulation.road_at(x, 5));
+        CHECK(builder.carried_stone == stone - ROAD_STONES);  // laid into it
         return builder.reward;
     };
+    builder.carried_stone = 3 * ROAD_STONES;
     simulation.grass_cell(5, 5) = 3;
     CHECK(lay(4) == doctest::Approx(2 * inspiration));  // beside one shelter only
     CHECK(lay(5) == doctest::Approx(2 * inspiration));

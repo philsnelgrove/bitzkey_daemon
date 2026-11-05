@@ -2459,7 +2459,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
-    available[BuildRoad] = agent.weapon == StoneAxe && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
+    available[BuildRoad] = agent.weapon == StoneAxe && agent.carried_stone >= ROAD_STONES && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[LightFire] = (agent.weapon == Club || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && agent.carried_meat + agent.carried_fruit > 0;
@@ -3838,6 +3838,7 @@ void Simulation::build_road(Bitzkey& agent) {
     }
     road_work_[cell] = 0;
     roads_[cell] = 1;
+    agent.carried_stone -= ROAD_STONES;
     grass_[cell] = 0;
     arable_[cell] = 0;
     const std::vector<Bitzkey*> here = cell_at(agent.x, agent.y);
