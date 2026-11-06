@@ -2788,6 +2788,180 @@ TEST_CASE("fruit leaves a seed, a tool works temperate land, and a seed is plant
     CHECK(farmer.hunger < 50);
 }
 
+TEST_CASE("possessions are demanded, fought over, stolen and given; foes, victory and cowardice move regard") {
+    Simulation simulation = world();
+    Bitzkey& taker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& owner = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    Bitzkey& onlooker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 6);
+    simulation.index_cells();
+    for (Bitzkey* one : {&taker, &owner, &onlooker}) {
+        for (int trait : {Aggression, Dominance, Empathy, Sociability}) one->mind[trait] = 0.0;
+    }
+    CHECK(Simulation::foe_level(onlooker) == doctest::Approx(0.5 * FOE_LEVEL));
+    onlooker.known.push_back(Acquaintance{owner.identifier, -0.9, 0});
+    CHECK(simulation.is_foe(onlooker, owner));
+    onlooker.known.back().regard = 0.0;
+
+    owner.hide = static_cast<int>(Species::Predator);
+    owner.weapon = StoneAxe;
+    CHECK(Simulation::better_possession(taker, owner) == HidePossession);  // the hide is most better
+    simulation.demand(taker, owner, HidePossession);  // asked, a meek owner yields
+    CHECK(taker.hide == static_cast<int>(Species::Predator));
+    CHECK(owner.hide == 0);
+    CHECK(simulation.fights().empty());
+
+    owner.mind[Aggression] = 7.0;  // a fierce owner fights
+    simulation.demand(taker, owner, WeaponPossession);
+    REQUIRE(simulation.fights().size() == 1);
+    CHECK(simulation.regard_for(onlooker, taker) == -1.0);  // a foe while it fights to take
+    taker.mind[Aggression] = 7.0;
+    Simulation::Sensed sensed = simulation.sense(taker);
+    simulation.act(taker, Rest, sensed.situation);  // in a fight, it fights
+    CHECK(taker.last_action == "fought");
+    CHECK(owner.health < owner.max_health);
+    owner.health = owner.max_health / 2;  // beaten
+    simulation.settle_fights();
+    CHECK(simulation.fights().empty());
+    CHECK(taker.weapon == StoneAxe);
+    CHECK(owner.weapon == NoWeapon);
+    CHECK(simulation.regard_for(onlooker, taker) > -1.0);  // the fight over
+
+    owner.health = owner.max_health;
+    owner.armour = WoodArmour;
+    const double before = simulation.regard_for(onlooker, taker);
+    simulation.steal(taker, owner, ArmourPossession);  // a theft seen
+    CHECK(taker.armour == WoodArmour);
+    const auto held = [&](const Bitzkey& by) {  // as remembered, the fight aside
+        for (const Acquaintance& one : by.known) {
+            if (one.identifier == taker.identifier) return one.regard;
+        }
+        return 0.0;
+    };
+    CHECK(held(onlooker) < before);
+    CHECK(held(owner) < held(onlooker));  // twice the wrong to its victim
+    REQUIRE(simulation.fights().size() == 1);  // and it fights to get it back
+    taker.last_action = "fled";  // the thief runs
+    simulation.settle_fights();
+    CHECK(owner.armour == WoodArmour);  // and gives it up
+
+    const auto seen = std::find_if(onlooker.known.begin(), onlooker.known.end(), [&](const Acquaintance& one) { return one.identifier == taker.identifier; });
+    REQUIRE(seen != onlooker.known.end());
+    seen->regard = REGARD_STRONG;  // a friend
+    simulation.deed_seen(taker, 0.0, nullptr, CowardDeed);  // a friend's cowardice
+    CHECK(seen->regard < REGARD_STRONG);
+
+    onlooker.mind[Empathy] = 7.0;  // a kind one gives a friend what it lacks
+    owner.known.push_back(Acquaintance{onlooker.identifier, 0.0, 0});
+    onlooker.known.push_back(Acquaintance{owner.identifier, REGARD_STRONG, 0});
+    onlooker.hide = static_cast<int>(Species::Grazer);
+    simulation.give(onlooker, owner, HidePossession);
+    CHECK(owner.hide == static_cast<int>(Species::Grazer));
+    CHECK(onlooker.hide == 0);
+    CHECK(simulation.regard_for(owner, onlooker) > 0);
+}
+
+TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fleeing in it is a lie, and the envious want it") {
+    Simulation simulation = world();
+    Bitzkey& skinner = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+    Bitzkey& seer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    Bitzkey& body = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}, {"armour", 6}}), 5, 6);
+    simulation.index_cells();
+    simulation.die(body, "killed");
+    skinner.weapon = StoneAxe;
+    const double bare = Simulation::gear_toughness(skinner);
+    simulation.skin(skinner, body);
+    CHECK(skinner.hide == static_cast<int>(Species::Predator));
+    CHECK(skinner.hide_armour == doctest::Approx(HIDE_ARMOUR_SHARE * body.physique(Armour)));
+    CHECK(body.skinned);
+    CHECK(Simulation::gear_toughness(skinner) == doctest::Approx(bare + (1 - SIZE_IN_MIGHT) * skinner.hide_armour));
+    const double home = skinner.climate.temperature;
+    CHECK(skinner.climate_steps(home + 1) == 0);  // a step colder, kept out
+    CHECK(skinner.climate_steps(home + 2) == doctest::Approx(1.0));
+    CHECK(skinner.climate_steps(home - 1) == doctest::Approx(1.0));  // but not heat
+    simulation.skin(seer, body);
+    CHECK(seer.hide == 0);  // already skinned
+    CHECK(seer.last_action == "sought a body");
+
+    REQUIRE(seer.known.size() == 1);  // it saw the skinning, a craft
+    const double skilled = seer.known[0].regard;
+    for (int turn = 0; turn < 5; ++turn) simulation.deed_seen(skinner, PRESTIGE_GARB, nullptr, GarbDeed);
+    const double won = seer.known[0].regard - skilled;
+    CHECK(won > 0);
+    CHECK(seer.known[0].garb == doctest::Approx(won));
+    simulation.index_cells();
+    CHECK(skinner.regarded == doctest::Approx(skilled + won));  // as it is held, by the one who knows it
+    simulation.deed_seen(skinner, 0.0, nullptr, LieDeed);  // seen fleeing a fight in it
+    CHECK(seer.known[0].regard == doctest::Approx(skilled - LIE_DISREGARD * won));
+    CHECK(seer.known[0].liar);
+    simulation.deed_seen(skinner, PRESTIGE_GARB, nullptr, GarbDeed);
+    CHECK(seer.known[0].regard == doctest::Approx(skilled - LIE_DISREGARD * won));  // a liar's garb wins nothing
+
+    seer.mind[Dominance] = 7.0;
+    seer.mind[Moodiness] = 0.0;
+    CHECK(Simulation::envy_of(seer) == doctest::Approx(1.0));
+    Simulation::Sensed sensed = simulation.sense(seer);
+    CHECK(sensed.situation.envy == doctest::Approx(Simulation::possessions(skinner)));  // a hide and an axe it lacks
+    Simulation::Situation calm = sensed.situation;
+    calm.envy = 0.0;
+    CHECK(simulation.comfort(seer, calm) - simulation.comfort(seer, sensed.situation) == doctest::Approx(ENVY_UNEASE * sensed.situation.envy));
+    seer.mind[Dominance] = 0.0;
+    CHECK(Simulation::envy_of(seer) == 0);
+}
+
+TEST_CASE("bone crushed with a stone, club or stone axe gives a scavenger marrow, or fertilizes worked land") {
+    Simulation simulation(10, 40, 0, 1);
+    int temperate = -1;
+    for (int y = 0; y < 40; ++y) {
+        if (zone_temperature(y, 40) == Medium) temperate = y;
+    }
+    REQUIRE(temperate >= 0);
+    Bitzkey& scavenger = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"carrion", 7}}), 2, temperate);
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"carrion", 0}}), 6, temperate);
+    simulation.index_cells();
+    REQUIRE(scavenger.scavenger() > 0);
+    REQUIRE(farmer.scavenger() == 0);
+    scavenger.carried_bone = 1;
+    CHECK_FALSE(simulation.can_crush(scavenger));  // nothing to crush it with
+    scavenger.carried_stone = 1;
+    CHECK(simulation.can_crush(scavenger));
+    scavenger.hunger = 90;
+    simulation.eat_marrow(scavenger);
+    CHECK(scavenger.carried_bone == 0);
+    CHECK(scavenger.carried_stone == 1);  // the stone kept
+    CHECK(scavenger.hunger < 90);
+    CHECK(scavenger.last_action == "ate marrow");
+    simulation.add_to_pile(2, temperate, BonePile, 1);  // or a bone from the pile it stands on
+    CHECK(simulation.can_crush(scavenger));
+    simulation.eat_marrow(scavenger);
+    CHECK(simulation.pile_at(2, temperate, BonePile) == 0);
+
+    farmer.weapon = Club;
+    simulation.dig(farmer);
+    REQUIRE(simulation.arable_at(6, temperate));
+    farmer.carried_bone = 1;
+    farmer.reward = 0;
+    simulation.fertilize(farmer);
+    CHECK(simulation.fertilized_at(6, temperate));
+    CHECK(farmer.carried_bone == 0);
+    CHECK(farmer.reward == doctest::Approx(FERTILIZING_JOY * (0.5 + farmer.feeling(Curiosity))));
+    farmer.carried_seed = 1;
+    simulation.plant_seed(farmer);  // fed with bone
+    simulation.dig(scavenger);
+    scavenger.carried_seed = 1;
+    simulation.plant_seed(scavenger);  // not
+    const auto sown = [&](int x) {
+        return std::count_if(simulation.seeds().begin(), simulation.seeds().end(), [&](const auto& seed) { return seed.x == x && seed.y == temperate; });
+    };
+    REQUIRE(sown(6) == 1);
+    REQUIRE(sown(2) == 1);
+    scavenger.health = farmer.health = 0;  // out of the way
+    simulation.index_cells();
+    for (int turn = 0; turn <= PLANT_GESTATION / 2; ++turn) simulation.take_turn();
+    CHECK(sown(6) == 0);  // sprouted in half the time
+    CHECK_FALSE(simulation.fertilized_at(6, temperate));  // the bone spent on it
+    CHECK(sown(2) == 1);
+}
+
 TEST_CASE("bone rots like wood") {
     Simulation simulation(10, 10, 0, 1);
     simulation.add_to_pile(5, 5, BonePile, 2);

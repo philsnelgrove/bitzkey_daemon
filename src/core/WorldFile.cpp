@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -258,7 +258,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     }
     record["places"] = std::move(places);
     json known = json::array();  // each [identifier, regard, last]
-    for (const Acquaintance& one : agent.known) known.push_back({one.identifier, one.regard, one.last, one.danger, one.skill});
+    for (const Acquaintance& one : agent.known) known.push_back({one.identifier, one.regard, one.last, one.danger, one.skill, one.garb, one.liar});
     record["known"] = std::move(known);
     json factions = json::array();  // each [body word, regard, last]
     for (const Faction& one : agent.factions) factions.push_back({one.ring, one.regard, one.last, one.danger, one.skill});
@@ -331,6 +331,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->boredom = record.value("boredom", 0.0);  // none in an older world
     agent->shelter_known = record.value("shelter_known", 0.0);
     agent->road_known = record.value("road_known", 0.0);  // none in an older world
+    agent->hide = record.value("hide", 0);
+    agent->hide_armour = record.value("hide_armour", 0.0);
+    agent->skinned = record.value("skinned", false);
     if (const auto expected = record.find("expected"); expected != record.end() && !expected->is_null()) {  // nor this
         agent->expects = true;
         agent->expected = expected->get<Foresight>();
@@ -417,7 +420,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     }
     for (const json& entry : record.value("known", json::array())) {  // none, in a world saved before
         agent->known.push_back(Acquaintance{entry.at(0).get<int>(), entry.at(1).get<double>(), entry.at(2).get<int>(), entry.size() > 3 ? entry.at(3).get<double>() : 0.0,
-                                            entry.size() > 4 ? entry.at(4).get<double>() : 0.0});
+                                            entry.size() > 4 ? entry.at(4).get<double>() : 0.0, entry.size() > 5 ? entry.at(5).get<double>() : 0.0,
+                                            entry.size() > 6 && entry.at(6).get<bool>()});
     }
     agent->last_forced = record.value("last_forced", false);  // chosen, in a world saved before it was kept
     agent->last_panicked = record.value("last_panicked", false);
@@ -467,6 +471,12 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     json arable = json::array();  // each worked square
     for (std::size_t cell = 0; cell < simulation.arable_.size(); ++cell) {
         if (simulation.arable_[cell]) arable.push_back(cell);
+    }
+    json fights = json::array();  // each [taker, owner, possession, taken]
+    for (const Simulation::Fight& fight : simulation.fights_) fights.push_back({fight.thief, fight.victim, fight.possession, fight.taken});
+    json fertilized = json::array();  // each worked square fed bone
+    for (std::size_t cell = 0; cell < simulation.fertilized_.size(); ++cell) {
+        if (simulation.fertilized_[cell]) fertilized.push_back(cell);
     }
     json roads = json::array();  // each square of road or begun on: the square, turns laid on it unfinished, whether it is road
     for (std::size_t cell = 0; cell < simulation.roads_.size(); ++cell) {
@@ -583,7 +593,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -764,6 +774,10 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.any_fires_ = true;
         }
         for (const json& cell : record.value("arable", json::array())) world.arable_[cell.get<std::size_t>()] = 1;  // none in an older world
+        for (const json& fight : record.value("fights", json::array())) {  // none in an older world
+            world.fights_.push_back({fight.at(0).get<int>(), fight.at(1).get<int>(), fight.at(2).get<int>(), fight.at(3).get<bool>()});
+        }
+        for (const json& cell : record.value("fertilized", json::array())) world.fertilized_[cell.get<std::size_t>()] = 1;  // none in an older world
         for (const json& road : record.value("roads", json::array())) {  // none in an older world
             const std::size_t cell = road.at(0).get<std::size_t>();
             world.road_work_[cell] = road.at(1).get<int>();

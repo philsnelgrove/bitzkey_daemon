@@ -347,7 +347,7 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed };
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed };  // garb worn in sight, and fleeing in it
 // Factions: up to Factions body colours (none at 0), each remembered by the first of it met. Every deed noted of an
 // animal also moves the regard for its colour, by Faction share as much, and one it doesn't know is taken at its
 // colour's worth, anything within Faction width on the body ring. The weakest is forgotten for a new one.
@@ -554,6 +554,35 @@ inline int ARMOUR_LEAST = 2;  // stone never spoils
 // Agriculture: raw fruit eaten leaves a seed, which feeds SEED_FOOD of a fruit's portion or may be planted in worked
 // land. Digging with any tool works the land, only in the medium zone; it stays worked.
 inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
+// Bone crushed with a stone carried, a club or a stone axe, a bone it carries or one from a pile on its square: a
+// scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
+// sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
+inline double FERTILIZING_JOY = 1.0;
+// Clothing: with a bone or stone axe, one skins a fresh body, getting the better of its own hide and any it wore, if
+// better than what it wears now; a pleasure (SKINNING_JOY, times curiosity, the more for the finer hide). A hide keeps
+// out HIDE_WARMTH steps of cold and adds HIDE_ARMOUR_SHARE of the armour of the body it came from to the wearer's own.
+// An omnivore's hide is a warrior's garb (WARRIOR_GARB), a predator's a mark of prestige (PRESTIGE_GARB): each turn,
+// all who see it move their regard toward that, at GARB_REGARD of a deed's weight. A wearer seen fleeing a fight is
+// a liar to them: the regard its garb won is lost, and LIE_DISREGARD times as much again. A moody or dominant animal
+// (either above ENVY_LEVEL) envies better possessions it sees, hide, tools and armour: uneasy (ENVY_UNEASE) by how
+// much better, glad (ENVY_JOY) of anything better it gains, and drawn to the best-provided mate.
+inline double SKINNING_JOY = 1.0, HIDE_WARMTH = 1.0, HIDE_ARMOUR_SHARE = 0.5;
+inline double WARRIOR_GARB = 0.5, PRESTIGE_GARB = 1.0, GARB_REGARD = 0.05, LIE_DISREGARD = 1.0;
+inline double ENVY_LEVEL = 0.6, ENVY_UNEASE = 0.5, ENVY_JOY = 1.0;
+// Foes, victory, cowardice, gifts and theft. A foe is one regarded at or below minus FOE_LEVEL times (0.5 + half its
+// empathy and sociability together), so the kind and sociable are slower to call any a foe; a foe counts as a rival.
+// A victory seen (a kill, or a fight over a possession won) moves regard for the winner by VICTORY_REGARD: up for a
+// friend, down for a foe, and up by FOE_DEFEAT_REGARD more if the loser is a foe. Fleeing a fight, or one of its own
+// kind's blows, is cowardice: COWARD_DISREGARD from those who hold it a friend or foe. The kind or sociable (either
+// above GIVE_LEVEL) may give a friend beside them a possession it lacks (GIVE_JOY); the aggressive or dominant (above
+// TAKE_LEVEL) may demand one, or steal it. Asked, the owner fights at a chance of its own aggression or dominance, else
+// yields it. A theft seen costs the thief THEFT_DISREGARD (twice that with its victim), but wins it as much regard
+// from any who hold the victim a foe, and the victim may fight to get it back. A fight lasts until one flees or falls
+// to half its health: the loser gives up the possession. While it lasts, those who see it hold the taker a foe, or a
+// friend if they hold its victim a foe.
+inline double FOE_LEVEL = 0.5, VICTORY_REGARD = 0.3, FOE_DEFEAT_REGARD = 0.3, COWARD_DISREGARD = 0.3;
+inline double GIVE_LEVEL = 0.7, GIVE_JOY = 0.5, TAKE_LEVEL = 0.7, THEFT_DISREGARD = 0.5;
+enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -708,6 +737,8 @@ struct Acquaintance {
     int last = 0;
     bool operator==(const Acquaintance&) const = default;
     double danger = 0.0, skill = 0.0;  // its reputation with this one
+    double garb = 0.0;  // the regard its garb has won from this one
+    bool liar = false;  // seen fleeing a fight in a warrior's or prestige garb, so its garb wins nothing more
 };
 
 struct Bitzkey {
@@ -737,6 +768,10 @@ struct Bitzkey {
     double boredom = 0.0;  // see BOREDOM_RISE
     double shelter_known = 0.0;  // its memory of resting in a shelter, 0 to 1 after a day of it (see SHELTER_LONGING)
     double road_known = 0.0;  // its memory of going by road, 0 to 1 after a day of it (see ROAD_LONGING)
+    int hide = 0;  // the hide it wears, by the species it came from: 0 none, else Grazer, Omnivore or Predator; a body keeps it
+    double hide_armour = 0.0;  // the armour the hide adds
+    bool skinned = false;  // a body whose hide has been taken
+    double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
@@ -930,7 +965,9 @@ struct Bitzkey {
     void heal(double amount) { health = std::min(max_health, health + max_health * amount * metabolism); }
     Brain& own_brain();  // the brain, made this animal's own before it changes
     // How many steps a temperature is from home.
-    double climate_steps(double here) const { return std::abs(here - climate.temperature); }  // part steps while the weather turns
+    double climate_steps(double here) const {  // a hide keeps out HIDE_WARMTH steps of cold
+        return hide && here > climate.temperature ? std::max(0.0, here - climate.temperature - HIDE_WARMTH) : std::abs(here - climate.temperature);
+    }  // part steps while the weather turns
     // The share of exposure's penalties it suffers here: HARDINESS for an animal tolerant of heat
     // where it is hotter than home, or of cold where it is colder; FRAILTY for one tolerant of the
     // other; otherwise all of them. Plants tolerate nothing.
@@ -1195,6 +1232,12 @@ public:
         int inside = 0;  // 2 resting in a shelter, 1 standing in one
         double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
         int young_near = 0;  // its own young, still infants, within its sight
+        double envy = 0.0;  // how much better the best possessions it sees are than its own
+        Bitzkey* claim_from = nullptr;  // one beside it with a possession better than its own, to demand or steal
+        int claim = -1;  // which possession
+        Bitzkey* gift_to = nullptr;  // a friend beside it whose possession is worse than its own
+        int gift = -1;
+        double foe_closeness = 0.0;
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1419,6 +1462,40 @@ public:
     bool road_at(int x, int y) const { return in_bounds(x, y) && roads_[static_cast<std::size_t>(y) * width_ + x]; }
     int road_work_at(int x, int y) const { return in_bounds(x, y) ? road_work_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // turns laid on an unfinished road
     void build_road(Bitzkey& agent);  // a turn's work on the road on its square
+    bool fertilized_at(int x, int y) const { return in_bounds(x, y) && fertilized_[static_cast<std::size_t>(y) * width_ + x]; }
+    bool can_crush(const Bitzkey& agent) const {  // a bone to hand and something to crush it with
+        return (agent.weapon == Club || agent.weapon == StoneAxe || agent.carried_stone > 0) && (agent.carried_bone > 0 || pile_at(agent.x, agent.y, BonePile) > 0);
+    }
+    void crush_bone(Bitzkey& agent);  // spends the bone it carries, or else one from the pile on its square
+    void eat_marrow(Bitzkey& agent);
+    void fertilize(Bitzkey& agent);
+    void skin(Bitzkey& agent, Bitzkey& corpse);
+    // A fight over a possession: the one taking, the one it is taken from, which, and whether it is already taken.
+    struct Fight {
+        int thief, victim, possession;
+        bool taken;
+        bool operator==(const Fight&) const = default;
+    };
+    const std::vector<Fight>& fights() const { return fights_; }
+    const Fight* fight_of(int identifier) const;  // the fight it is in, if any
+    bool is_friend(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) >= REGARD_STRONG; }
+    bool is_foe(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) <= -foe_level(agent); }
+    static double foe_level(const Bitzkey& agent) { return FOE_LEVEL * (0.5 + 0.5 * (agent.feeling(Empathy) + agent.feeling(Sociability))); }
+    static int value_of(const Bitzkey& agent, int possession);  // how good its possession of that kind is, 0 none
+    static int better_possession(const Bitzkey& taker, const Bitzkey& owner);  // the kind owner has most better, or -1
+    void hand_over(Bitzkey& from, Bitzkey& to, int possession);  // what `to` had of it falls where it stands
+    void demand(Bitzkey& agent, Bitzkey& owner, int possession);
+    void steal(Bitzkey& agent, Bitzkey& owner, int possession);
+    void give(Bitzkey& agent, Bitzkey& friend_, int possession);
+    void begin_fight(const Fight& fight);
+    void brawl(Bitzkey& agent, Bitzkey& opponent);  // a turn of the fight: closer, or a blow
+    void settle_fights();  // after the turn: new fights begun, and those won, fled or ended, settled  // takes the better of a fresh body's hide and the one it wore
+    static int hide_from(const Bitzkey& corpse) { return std::max(static_cast<int>(corpse.species), corpse.hide); }
+    static double garb_of(int hide) { return hide == static_cast<int>(Species::Predator) ? PRESTIGE_GARB : hide == static_cast<int>(Species::Omnivore) ? WARRIOR_GARB : 0.0; }
+    static double possessions(const Bitzkey& agent);  // its possessions, for envy: its hide, tool and armour
+    static double envy_of(const Bitzkey& agent);  // how envious it is: 0 at Envy level or below, 1 at the most
+    // What one sees of another's garb: its regard won (or, fleeing, lost as a liar's)
+    void garb_seen(Bitzkey& seer, const Bitzkey& wearer, double garb, bool lie);
     // The shelters beside the road joined to the one at x, y (squares beside it, diagonals too), each road square
     // reached marked in seen.
     std::vector<std::size_t> road_shelters(int x, int y, std::vector<char>& seen) const;
@@ -1651,7 +1728,8 @@ private:
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
         std::vector<Seed> sown;  // seeds planted
-        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind, int>> deeds_seen;  // (doer, worth, done to, what kind, the craft or -1)
+        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind, int>> deeds_seen;
+        std::vector<Fight> fights_begun;  // (doer, worth, done to, what kind, the craft or -1)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)
         std::vector<Conception> conceptions;
@@ -1676,6 +1754,9 @@ private:
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
+    std::vector<int> fertilized_;  // worked land fed crushed bone, until a seed sprouts there
+    std::vector<Fight> fights_;  // changed only between turns, so all read the same while they act
+    double raw_regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // as known, no fight in it
     std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;

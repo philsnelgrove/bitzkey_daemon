@@ -218,6 +218,8 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["boredom"] = agent->boredom;
     result["shelter_known"] = agent->shelter_known;
     result["road_known"] = agent->road_known;
+    result["hide"] = agent->hide ? std::string(SPECIES[static_cast<std::size_t>(agent->hide)]) : std::string("none");
+    result["regarded"] = agent->regarded;
     result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
@@ -842,18 +844,19 @@ Json Probe::skills(Simulation& world) const {
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
                                                       {"wielding", weapons}, {"wearing", armours}};
     }
-    int fires = 0, shelters = 0, sites = 0, arable = 0, roads = 0, road_works = 0;
+    int fires = 0, shelters = 0, sites = 0, arable = 0, roads = 0, road_works = 0, fertilized = 0;
     for (int y = 0; y < world.height(); ++y) {
         for (int x = 0; x < world.width(); ++x) {
             roads += world.road_at(x, y);
             road_works += world.road_work_at(x, y) > 0;
+            fertilized += world.fertilized_at(x, y);
             fires += world.fire_at(x, y) > world.turn();
             shelters += world.shelter_at(x, y);
             sites += world.site_at(x, y) > 0;
             arable += world.arable_at(x, y);
         }
     }
-    return {{"turn", world.turn()}, {"skills", result}, {"works", {{"arable", arable}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}, {"roads", roads}, {"roads_begun", road_works}}}};
+    return {{"turn", world.turn()}, {"skills", result}, {"fights", world.fights().size()}, {"works", {{"arable", arable}, {"fertilized", fertilized}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}, {"roads", roads}, {"roads_begun", road_works}}}};
 }
 
 Json Probe::regard(Simulation& world) const {
