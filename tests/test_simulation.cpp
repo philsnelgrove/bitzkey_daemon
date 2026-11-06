@@ -2914,14 +2914,20 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
 
     seer.mind[Dominance] = 7.0;
     seer.mind[Moodiness] = 0.0;
-    CHECK(Simulation::envy_of(seer) == doctest::Approx(1.0));
+    skinner.mind[Dominance] = skinner.mind[Moodiness] = 0.0;
+    simulation.index_cells();  // envy goes by rank within its kind: the moodier or more dominant of the two
+    CHECK(simulation.envy_of(seer) == doctest::Approx(1.0));
+    CHECK(simulation.envy_of(skinner) == 0);
     Simulation::Sensed sensed = simulation.sense(seer);
     CHECK(sensed.situation.envy == doctest::Approx(Simulation::possessions(skinner)));  // a hide and an axe it lacks
     Simulation::Situation calm = sensed.situation;
     calm.envy = 0.0;
     CHECK(simulation.comfort(seer, calm) - simulation.comfort(seer, sensed.situation) == doctest::Approx(ENVY_UNEASE * sensed.situation.envy));
     seer.mind[Dominance] = 0.0;
-    CHECK(Simulation::envy_of(seer) == 0);
+    skinner.mind[Dominance] = 7.0;
+    simulation.index_cells();
+    CHECK(simulation.envy_of(seer) == 0);
+    CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
 }
 
 TEST_CASE("bone crushed with a stone, club or stone axe gives a scavenger marrow, or fertilizes worked land") {

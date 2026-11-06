@@ -1768,5 +1768,8 @@
 "Take level": "Umbral de quitar",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "agresividad o dominancia por encima de la cual se puede exigir o robar una posesión; 1 para nunca",
 "Theft disregard": "Desprecio por robo",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "cuánto cuesta al ladrón en estima un robo visto, el doble con su víctima; estima en cambio para quienes tienen a la víctima por enemigo"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "cuánto cuesta al ladrón en estima un robo visto, el doble con su víctima; estima en cambio para quienes tienen a la víctima por enemigo",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "parte de su especie, ordenada por mal humor o dominancia, que no envidia a nadie: 0,75 deja envidiosa a la cuarta parte superior; 1 para ninguna",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "parte de su especie, ordenada por empatía o sociabilidad, que nunca regala una posesión a un amigo: 0,75 deja regalando a la cuarta parte superior; 1 para ninguna",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "parte de su especie, ordenada por agresividad o dominancia, que nunca exige ni roba una posesión: 0,75 deja tomando a la cuarta parte superior; 1 para ninguna"
 }

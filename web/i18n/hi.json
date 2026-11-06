@@ -1768,5 +1768,8 @@
 "Take level": "लेने का स्तर",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "आक्रामकता या प्रभुत्व जिसके ऊपर कोई संपत्ति माँग या चुरा सकता है; 1 तो कभी नहीं",
 "Theft disregard": "चोरी की उपेक्षा",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "देखी गई चोरी चोर का कितना सम्मान घटाती है, पीड़ित के साथ दुगना; पर जो पीड़ित को शत्रु मानते हैं उनसे सम्मान"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "देखी गई चोरी चोर का कितना सम्मान घटाती है, पीड़ित के साथ दुगना; पर जो पीड़ित को शत्रु मानते हैं उनसे सम्मान",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "अपनी जाति का हिस्सा, मनमौजीपन या प्रभुत्व के क्रम में, जो किसी से ईर्ष्या नहीं करता: 0.75 पर ऊपर का चौथाई ईर्ष्यालु; 1 तो कोई नहीं",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "अपनी जाति का हिस्सा, सहानुभूति या मिलनसारिता के क्रम में, जो मित्र को कभी संपत्ति नहीं देता: 0.75 पर ऊपर का चौथाई देता है; 1 तो कोई नहीं",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "अपनी जाति का हिस्सा, आक्रामकता या प्रभुत्व के क्रम में, जो कभी संपत्ति नहीं माँगता या चुराता: 0.75 पर ऊपर का चौथाई लेता है; 1 तो कोई नहीं"
 }

@@ -1768,5 +1768,8 @@
 "Take level": "Próg brania",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "agresja lub dominacja, powyżej której można żądać lub kraść dobytek; 1 dla nigdy",
 "Theft disregard": "Pogarda dla kradzieży",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "ile poważania kosztuje złodzieja widziana kradzież, podwójnie u ofiary; poważanie natomiast u tych, którzy mają ofiarę za wroga"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "ile poważania kosztuje złodzieja widziana kradzież, podwójnie u ofiary; poważanie natomiast u tych, którzy mają ofiarę za wroga",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "część własnego gatunku, uszeregowana według humorzastości lub dominacji, która nikomu nie zazdrości: 0,75 zostawia zazdrosną górną ćwiartkę; 1 dla nikogo",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "część własnego gatunku, uszeregowana według empatii lub towarzyskości, która nigdy nie daje przyjacielowi dobytku: 0,75 zostawia dającą górną ćwiartkę; 1 dla nikogo",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "część własnego gatunku, uszeregowana według agresji lub dominacji, która nigdy nie żąda ani nie kradnie dobytku: 0,75 zostawia biorącą górną ćwiartkę; 1 dla nikogo"
 }

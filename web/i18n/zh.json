@@ -1768,5 +1768,8 @@
 "Take level": "夺取阈值",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "攻击性或支配性超过此值者可能索要或偷窃财物；1表示从不",
 "Theft disregard": "对偷窃的轻视",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "被看到的偷窃使窃贼失去的敬重，受害者处加倍；而视受害者为敌者反而增加敬重"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "被看到的偷窃使窃贼失去的敬重，受害者处加倍；而视受害者为敌者反而增加敬重",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "本物种中按情绪化或支配性排序后不嫉妒任何人的比例：0.75 即最高的四分之一会嫉妒；1 表示无人嫉妒",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "本物种中按共情或社交性排序后从不把财物赠给朋友的比例：0.75 即最高的四分之一会赠予；1 表示无人赠予",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "本物种中按攻击性或支配性排序后从不索要或偷窃财物的比例：0.75 即最高的四分之一会夺取；1 表示无人夺取"
 }

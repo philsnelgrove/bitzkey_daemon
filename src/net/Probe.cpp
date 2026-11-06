@@ -847,7 +847,7 @@ Json Probe::skills(Simulation& world) const {
             const auto hide = static_cast<std::size_t>(std::clamp(agent->hide, 0, 3));
             ++hides[hide];
             regarded[hide] += agent->regarded;
-            envious += Simulation::envy_of(*agent) > 0;
+            envious += world.envy_of(*agent) > 0;
             fighting += world.fight_of(agent->identifier) != nullptr;
             thieves += agent->thefts > 0;
             thefts += static_cast<std::size_t>(agent->thefts);

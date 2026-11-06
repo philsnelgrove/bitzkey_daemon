@@ -1171,6 +1171,27 @@ void Simulation::index_cells() {
             one->regarded = found == held.end() ? 0.0 : found->second.first / found->second.second;
         }
     }
+    {  // each species' cuts for envy, taking and giving, at those levels of its living, ranked
+        std::array<std::array<std::vector<double>, 3>, 4> drives;
+        for (const auto& one : agents_) {
+            if (!one->alive() || one->species == Species::Plant) continue;
+            auto& these = drives[static_cast<std::size_t>(one->species)];
+            these[0].push_back(envy_drive(*one));
+            these[1].push_back(take_drive(*one));
+            these[2].push_back(give_drive(*one));
+        }
+        const auto cut = [](std::vector<double>& values, double level) {
+            if (values.empty()) return 2.0;
+            const auto at = values.begin() + static_cast<std::ptrdiff_t>(std::clamp(level, 0.0, 1.0) * static_cast<double>(values.size() - 1));
+            std::nth_element(values.begin(), at, values.end());
+            return *at;
+        };
+        for (std::size_t kind = 0; kind < drives.size(); ++kind) {
+            envy_cut_[kind] = cut(drives[kind][0], ENVY_LEVEL);
+            take_cut_[kind] = cut(drives[kind][1], TAKE_LEVEL);
+            give_cut_[kind] = cut(drives[kind][2], GIVE_LEVEL);
+        }
+    }
     identifiers_.clear();
     for (const auto& agent : agents_) identifiers_.push_back(agent->identifier);
     for (auto& cell : cells_) cell.clear();
@@ -2483,7 +2504,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[Skin] = (agent.weapon == BoneAxe || agent.weapon == StoneAxe) && s.dressable && s.dressable->species != Species::Plant &&
-                      !s.dressable->skinned && fresh(*s.dressable) && hide_from(*s.dressable) > agent.hide;
+                      !s.dressable->skinned && hide_from(*s.dressable) > agent.hide;
     available[EatMarrow] = can_crush(agent) && agent.scavenger() > 0 && MEAT_PORTION * agent.digestion > 0;
     available[Fertilize] = can_crush(agent) && arable_at(agent.x, agent.y) && !fertilized_at(agent.x, agent.y);
     available[BuildRoad] = agent.weapon == StoneAxe && agent.carried_stone >= ROAD_STONES && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
@@ -2515,8 +2536,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             if (steps < nearest && is_foe(agent, *other)) nearest = steps;
         }
         if (nearest <= sight) s.foe_closeness = 1.0 - static_cast<double>(nearest - 1) / std::max(1, sight);
-        const bool taker = std::max(agent.feeling(Aggression), agent.feeling(Dominance)) > TAKE_LEVEL && !fight_of(agent.identifier);
-        const bool giver = std::max(agent.feeling(Empathy), agent.feeling(Sociability)) > GIVE_LEVEL;
+        const auto kind = static_cast<std::size_t>(agent.species);
+        const bool taker = TAKE_LEVEL < 1 && take_drive(agent) > take_cut_[kind] && !fight_of(agent.identifier);
+        const bool giver = GIVE_LEVEL < 1 && give_drive(agent) > give_cut_[kind];
         if (taker || giver) {
             for (Bitzkey* other : neighbors) {
                 if (other == &agent || !other->alive() || other->species == Species::Plant || other->infant()) continue;
@@ -3135,15 +3157,15 @@ double Simulation::possessions(const Bitzkey& agent) {
     return agent.hide / 3.0 + (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) + (agent.armour ? 0.5 : 0.0);
 }
 
-double Simulation::envy_of(const Bitzkey& agent) {
+double Simulation::envy_of(const Bitzkey& agent) const {
     if (agent.species == Species::Plant || ENVY_LEVEL >= 1) return 0.0;
-    const double drive = std::max(agent.feeling(Moodiness), agent.feeling(Dominance));
-    return drive > ENVY_LEVEL ? (drive - ENVY_LEVEL) / (1 - ENVY_LEVEL) : 0.0;
+    const double drive = envy_drive(agent), cut = envy_cut_[static_cast<std::size_t>(agent.species)];
+    return drive > cut ? (drive - cut) / std::max(1e-9, 1 - cut) : 0.0;
 }
 
 void Simulation::skin(Bitzkey& agent, Bitzkey& corpse) {
     move_toward(agent, corpse.x, corpse.y);
-    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || corpse.skinned || !fresh(corpse)) {
+    if (distance(corpse.x, corpse.y, agent.x, agent.y) > 1 || corpse.skinned || corpse.alive()) {
         agent.last_action = "sought a body";
         return;
     }

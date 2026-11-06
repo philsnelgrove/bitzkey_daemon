@@ -1768,5 +1768,8 @@
 "Take level": "Nehmschwelle",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "Aggression oder Dominanz, ab der man einen Besitz fordern oder stehlen kann; 1 für nie",
 "Theft disregard": "Missachtung des Diebstahls",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "wie viel ein gesehener Diebstahl den Dieb an Ansehen kostet, beim Opfer doppelt; Ansehen dagegen bei denen, die das Opfer für einen Feind halten"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "wie viel ein gesehener Diebstahl den Dieb an Ansehen kostet, beim Opfer doppelt; Ansehen dagegen bei denen, die das Opfer für einen Feind halten",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "Anteil der eigenen Art, nach Launenhaftigkeit oder Dominanz geordnet, der niemanden beneidet: 0,75 lässt das oberste Viertel neidisch sein; 1 für keinen",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "Anteil der eigenen Art, nach Empathie oder Geselligkeit geordnet, der einem Freund nie einen Besitz schenkt: 0,75 lässt das oberste Viertel schenken; 1 für keinen",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "Anteil der eigenen Art, nach Aggression oder Dominanz geordnet, der nie einen Besitz fordert oder stiehlt: 0,75 lässt das oberste Viertel nehmen; 1 für keinen"
 }

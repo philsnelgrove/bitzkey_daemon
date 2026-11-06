@@ -558,30 +558,31 @@ inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
 // scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
 // sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
 inline double FERTILIZING_JOY = 1.0;
-// Clothing: with a bone or stone axe, one skins a fresh body, getting the better of its own hide and any it wore, if
+// Clothing: with a bone or stone axe, one skins a body not yet skinned, getting the better of its own hide and any it wore, if
 // better than what it wears now; a pleasure (SKINNING_JOY, times curiosity, the more for the finer hide). A hide keeps
 // out HIDE_WARMTH steps of cold and adds HIDE_ARMOUR_SHARE of the armour of the body it came from to the wearer's own.
 // An omnivore's hide is a warrior's garb (WARRIOR_GARB), a predator's a mark of prestige (PRESTIGE_GARB): each turn,
 // all who see it move their regard toward that, at GARB_REGARD of a deed's weight. A wearer seen fleeing a fight is
-// a liar to them: the regard its garb won is lost, and LIE_DISREGARD times as much again. A moody or dominant animal
-// (either above ENVY_LEVEL) envies better possessions it sees, hide, tools and armour: uneasy (ENVY_UNEASE) by how
-// much better, glad (ENVY_JOY) of anything better it gains, and drawn to the best-provided mate.
+// a liar to them: the regard its garb won is lost, and LIE_DISREGARD times as much again. The moodiest or most
+// dominant of its kind (above ENVY_LEVEL of them, ranked each turn) envy better possessions they see, hide, tools and
+// armour: uneasy (ENVY_UNEASE) by how much better, glad (ENVY_JOY) of anything better they gain, and drawn to the
+// best-provided mate.
 inline double SKINNING_JOY = 1.0, HIDE_WARMTH = 1.0, HIDE_ARMOUR_SHARE = 0.5;
 inline double WARRIOR_GARB = 0.5, PRESTIGE_GARB = 1.0, GARB_REGARD = 0.05, LIE_DISREGARD = 1.0;
-inline double ENVY_LEVEL = 0.6, ENVY_UNEASE = 0.5, ENVY_JOY = 1.0;
+inline double ENVY_LEVEL = 0.75, ENVY_UNEASE = 0.5, ENVY_JOY = 1.0;
 // Foes, victory, cowardice, gifts and theft. A foe is one regarded at or below minus FOE_LEVEL times (0.5 + half its
 // empathy and sociability together), so the kind and sociable are slower to call any a foe; a foe counts as a rival.
 // A victory seen (a kill, or a fight over a possession won) moves regard for the winner by VICTORY_REGARD: up for a
 // friend, down for a foe, and up by FOE_DEFEAT_REGARD more if the loser is a foe. Fleeing a fight, or one of its own
-// kind's blows, is cowardice: COWARD_DISREGARD from those who hold it a friend or foe. The kind or sociable (either
-// above GIVE_LEVEL) may give a friend beside them a possession it lacks (GIVE_JOY); the aggressive or dominant (above
-// TAKE_LEVEL) may demand one, or steal it. Asked, the owner fights at a chance of its own aggression or dominance, else
+// kind's blows, is cowardice: COWARD_DISREGARD from those who hold it a friend or foe. The kindest or most sociable of
+// their kind (above GIVE_LEVEL of them) may give a friend beside them a possession it lacks (GIVE_JOY); the most
+// aggressive or dominant (above TAKE_LEVEL of them) may demand one, or steal it. Asked, the owner fights at a chance of its own aggression or dominance, else
 // yields it. A theft seen costs the thief THEFT_DISREGARD (twice that with its victim), but wins it as much regard
 // from any who hold the victim a foe, and the victim may fight to get it back. A fight lasts until one flees or falls
 // to half its health: the loser gives up the possession. While it lasts, those who see it hold the taker a foe, or a
 // friend if they hold its victim a foe.
 inline double FOE_LEVEL = 0.5, VICTORY_REGARD = 0.3, FOE_DEFEAT_REGARD = 0.3, COWARD_DISREGARD = 0.3;
-inline double GIVE_LEVEL = 0.7, GIVE_JOY = 0.5, TAKE_LEVEL = 0.7, THEFT_DISREGARD = 0.5;
+inline double GIVE_LEVEL = 0.75, GIVE_JOY = 0.5, TAKE_LEVEL = 0.75, THEFT_DISREGARD = 0.5;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
@@ -1494,7 +1495,11 @@ public:
     static int hide_from(const Bitzkey& corpse) { return std::max(static_cast<int>(corpse.species), corpse.hide); }
     static double garb_of(int hide) { return hide == static_cast<int>(Species::Predator) ? PRESTIGE_GARB : hide == static_cast<int>(Species::Omnivore) ? WARRIOR_GARB : 0.0; }
     static double possessions(const Bitzkey& agent);  // its possessions, for envy: its hide, tool and armour
-    static double envy_of(const Bitzkey& agent);  // how envious it is: 0 at Envy level or below, 1 at the most
+    double envy_of(const Bitzkey& agent) const;  // how envious it is: 0 at or below its kind's envy cut, 1 at the most
+    // The drives that envy, taking and giving go by, each its larger of two feelings.
+    static double envy_drive(const Bitzkey& agent) { return std::max(agent.feeling(Moodiness), agent.feeling(Dominance)); }
+    static double take_drive(const Bitzkey& agent) { return std::max(agent.feeling(Aggression), agent.feeling(Dominance)); }
+    static double give_drive(const Bitzkey& agent) { return std::max(agent.feeling(Empathy), agent.feeling(Sociability)); }
     // What one sees of another's garb: its regard won (or, fleeing, lost as a liar's)
     void garb_seen(Bitzkey& seer, const Bitzkey& wearer, double garb, bool lie);
     // The shelters beside the road joined to the one at x, y (squares beside it, diagonals too), each road square
@@ -1757,6 +1762,9 @@ private:
     std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
     std::vector<int> fertilized_;  // worked land fed crushed bone, until a seed sprouts there
     std::vector<Fight> fights_;  // changed only between turns, so all read the same while they act
+    // Each species' cut for envy, taking and giving: the drive at Envy, Take and Give level of its living, ranked each
+    // turn; above it, one envies, may take or may give. None above 2, before the first ranking.
+    std::array<double, 4> envy_cut_{2, 2, 2, 2}, take_cut_{2, 2, 2, 2}, give_cut_{2, 2, 2, 2};
     double raw_regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // as known, no fight in it
     std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
     std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it

@@ -1768,5 +1768,8 @@
 "Take level": "Limiar de tomar",
 "aggression or dominance above which one may demand or steal a possession; 1 for never": "agressividade ou dominância acima da qual se pode exigir ou roubar uma posse; 1 para nunca",
 "Theft disregard": "Desprezo pelo roubo",
-"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "quanto custa ao ladrão em estima um roubo visto, o dobro com a vítima; estima em vez disso com quem tem a vítima por inimiga"
+"how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "quanto custa ao ladrão em estima um roubo visto, o dobro com a vítima; estima em vez disso com quem tem a vítima por inimiga",
+"share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "parte da própria espécie, ordenada por mau humor ou dominância, que não inveja ninguém: 0,75 deixa invejoso o quarto superior; 1 para nenhum",
+"share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "parte da própria espécie, ordenada por empatia ou sociabilidade, que nunca dá uma posse a um amigo: 0,75 deixa o quarto superior dando; 1 para nenhum",
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "parte da própria espécie, ordenada por agressividade ou dominância, que nunca exige nem rouba uma posse: 0,75 deixa o quarto superior tomando; 1 para nenhum"
 }
