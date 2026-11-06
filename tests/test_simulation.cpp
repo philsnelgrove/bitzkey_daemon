@@ -2860,6 +2860,22 @@ TEST_CASE("possessions are demanded, fought over, stolen and given; foes, victor
     CHECK(simulation.regard_for(owner, onlooker) > 0);
 }
 
+TEST_CASE("fights are settled after every turn, however it is acted, one fight at a time for each") {
+    Simulation simulation = world();
+    Bitzkey& taker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& owner = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 7, 5);
+    simulation.index_cells();
+    simulation.begin_fight({taker.identifier, owner.identifier, WeaponPossession, false});
+    simulation.begin_fight({taker.identifier, other.identifier, WeaponPossession, false});  // a second, for the same one
+    simulation.begin_fight({other.identifier, owner.identifier, HidePossession, false});
+    simulation.settle_fights();
+    CHECK(simulation.fights().size() == 1);  // the rest dropped
+    owner.health = owner.max_health / 2;
+    simulation.take_turn();
+    CHECK(simulation.fights().empty());  // won, and settled with the turn
+}
+
 TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fleeing in it is a lie, and the envious want it") {
     Simulation simulation = world();
     Bitzkey& skinner = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);

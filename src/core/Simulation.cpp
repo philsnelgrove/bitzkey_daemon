@@ -2148,6 +2148,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         timings.taken[static_cast<std::size_t>(choices[index])] += 1;
         timings.act += took;
     }
+    settle_fights();  // after every turn, however it was acted
     conceive();  // before any parent learns again, which would copy the brain the young are made from
     const double conceiving = lap(clock);
     timings.actions[Breed] += conceiving;
@@ -2231,7 +2232,6 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [doer, deed, target, kind, craft] : tile.deeds_seen) deed_seen(*doer, deed, target, kind, craft);
     }
     for (ActingTile& tile : tiles) fights_.insert(fights_.end(), tile.fights_begun.begin(), tile.fights_begun.end());
-    settle_fights();
     for (ActingTile& tile : tiles) {
         for (const auto& [parent, young] : tile.feeding) feed_young(*parent, young);
     }
@@ -3105,7 +3105,12 @@ void Simulation::settle_fights() {
         Bitzkey* thief = find_agent(fight.thief);
         Bitzkey* victim = find_agent(fight.victim);
         if (!thief || !victim || !thief->alive() || !victim->alive()) continue;  // a death ends it, the killer's victory seen then
-        if (std::find(going.begin(), going.end(), fight) != going.end()) continue;
+        const auto busy = [&](int identifier) {  // one fight at a time: any other it is in is dropped
+            return std::any_of(going.begin(), going.end(), [&](const Fight& kept) {
+                return kept.thief == identifier || kept.victim == identifier;
+            });
+        };
+        if (busy(fight.thief) || busy(fight.victim)) continue;
         const auto beaten = [](const Bitzkey& one) { return one.health <= one.max_health / 2 || one.last_action == "fled" || one.last_action == "panicked"; };
         Bitzkey* loser = beaten(*victim) ? victim : beaten(*thief) ? thief : nullptr;
         if (!loser) {
