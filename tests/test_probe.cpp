@@ -317,6 +317,17 @@ TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lesso
     CHECK((omnivores["crafts"]["make_club"]["known"] == 1 && omnivores["crafts"]["make_club"]["tried"] == 1));
     CHECK((omnivores["crafts"]["make_club"]["discovered"] == 1 && omnivores["crafts"]["make_club"]["by_parent"] == 0 && omnivores["crafts"]["make_club"]["mastered"] == 0));
     CHECK(probe.skills(world)["works"]["fires"] == 0);
+    maker.hide = static_cast<int>(Species::Predator);  // possessions: a prestige hide, a theft, a liar known
+    maker.thefts = 2;
+    plain.known.push_back(Acquaintance{maker.identifier, -0.5, 0});
+    plain.known.back().liar = true;
+    plain.mind[Dominance] = 7.0;
+    world.index_cells();
+    const Json owned = probe.skills(world)["skills"]["omnivore"]["possessions"];
+    CHECK((owned["hides"]["predator"] == 1 && owned["hides"]["none"] == 1));
+    CHECK(owned["regarded_by_hide"]["predator"].get<double>() == doctest::Approx(-0.5));
+    CHECK((owned["thieves"] == 1 && owned["thefts"] == 2 && owned["held_liars"] == 1));
+    CHECK(owned["envious"].get<int>() >= 1);
     world.note_first("cooked", Species::Omnivore, maker.identifier);
     const Json diary = probe.diary(world);
     REQUIRE(diary["entries"].size() == 1);

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <array>
+#include <unordered_set>
 #include <cmath>
 #include <numbers>
 #include <numeric>
@@ -807,7 +808,18 @@ Json Probe::brain(Simulation& world, int identifier, bool weights) const {
 
 Json Probe::skills(Simulation& world) const {
     Json result = Json::object();
+    std::unordered_set<int> liars;  // held a liar by any living one who knows it
+    for (const Bitzkey* agent : world.living()) {
+        for (const Acquaintance& known : agent->known) {
+            if (known.liar) liars.insert(known.identifier);
+        }
+    }
     for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        // Possessions and what they stir: hides worn, how well each kind of wearer is regarded, the envious, fighters,
+        // thieves and the thefts they've done, and those held liars.
+        std::array<std::size_t, 4> hides{};
+        std::array<double, 4> regarded{};
+        std::size_t envious = 0, fighting = 0, thieves = 0, thefts = 0, held_liars = 0;
         std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0;
         std::array<std::size_t, CRAFT_COUNT> known{}, tried{}, mastered{};
         std::array<std::array<std::size_t, 5>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
@@ -832,7 +844,23 @@ Json Probe::skills(Simulation& world) const {
             }
             ++wielding[static_cast<std::size_t>(agent->weapon)];
             ++wearing[static_cast<std::size_t>(agent->armour)];
+            const auto hide = static_cast<std::size_t>(std::clamp(agent->hide, 0, 3));
+            ++hides[hide];
+            regarded[hide] += agent->regarded;
+            envious += Simulation::envy_of(*agent) > 0;
+            fighting += world.fight_of(agent->identifier) != nullptr;
+            thieves += agent->thefts > 0;
+            thefts += static_cast<std::size_t>(agent->thefts);
+            held_liars += liars.contains(agent->identifier);
         }
+        Json worn = Json::object(), esteem = Json::object();
+        for (std::size_t hide = 0; hide < hides.size(); ++hide) {
+            const std::string name = hide ? std::string(SPECIES[hide]) : std::string("none");
+            worn[name] = hides[hide];
+            esteem[name] = hides[hide] ? Json(regarded[hide] / static_cast<double>(hides[hide])) : Json(nullptr);
+        }
+        const Json possessions = {{"hides", worn}, {"regarded_by_hide", esteem}, {"envious", envious}, {"in_a_fight", fighting},
+                                  {"thieves", thieves}, {"thefts", thefts}, {"held_liars", held_liars}};
         Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
         for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
             crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}, {"mastered", mastered[craft]}, {"unrecorded", sources[craft][0]},
@@ -842,7 +870,7 @@ Json Probe::skills(Simulation& world) const {
         for (std::size_t armour = 0; armour < ARMOUR_NAMES.size(); ++armour) armours[ARMOUR_NAMES[armour]] = wearing[armour];
         result[std::string(species_name(species))] = {{"living", living}, {"infants_taught", infants_taught}, {"taught_by_elder", elders_taught},
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
-                                                      {"wielding", weapons}, {"wearing", armours}};
+                                                      {"wielding", weapons}, {"wearing", armours}, {"possessions", possessions}};
     }
     int fires = 0, shelters = 0, sites = 0, arable = 0, roads = 0, road_works = 0, fertilized = 0;
     for (int y = 0; y < world.height(); ++y) {

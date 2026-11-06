@@ -3068,6 +3068,7 @@ void Simulation::steal(Bitzkey& agent, Bitzkey& owner, int possession) {
     agent.last_action = "stole";
     if (value_of(owner, possession) <= value_of(agent, possession)) return;
     hand_over(owner, agent, possession);
+    ++agent.thefts;
     deed_seen(agent, 0.0, &owner, TheftDeed);
     note_deed(owner, agent, -1.0, 2 * THEFT_DISREGARD, PlainDeed, true);  // twice the wrong, to its victim
     note_first("stole", agent.species, agent.identifier);

@@ -772,6 +772,7 @@ struct Bitzkey {
     double hide_armour = 0.0;  // the armour the hide adds
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
+    int thefts = 0;  // possessions it has stolen
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
