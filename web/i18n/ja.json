@@ -1782,5 +1782,13 @@
 "pleasure of cooking a portion, times a half and its taste for cooked food": "一食を調理する喜び。0.5と加熱食への好みの和を掛ける",
 "Smell reach": "嗅覚の届く距離",
 "how many times as far as it sees an animal smells cooked food and a fire cooked on": "見える距離の何倍まで、加熱食と調理に使われた火の匂いを嗅ぎ取るか",
-"found no bone": "骨が見つからなかった"
+"found no bone": "骨が見つからなかった",
+"Hunter's restraint": "狩人の自制",
+"unease of a kill where few others of its prey are left in its sight: in full with none, none with four or more": "視界に残る獲物が少ない場所で仕留めたときの不安。残りがなければ最大、4匹以上なら無し",
+"Last-bite unease": "最後の一口の不安",
+"unease of eating grass or a plant and leaving none of either in its sight": "草や植物を食べて、視界にどちらも残さなかったときの不安",
+"Sower's pride": "種まく者の誇り",
+"gladness of seeing a seed it sowed sprout, within its sight": "自分のまいた種が視界の中で芽吹くのを見る喜び",
+"Famine lesson": "飢饉の教訓",
+"how much of a sudden death's lesson a herd-mate's starving teaches those who see it; 0 for none": "群れの仲間の餓死が、見ていた者に急死の教訓をどれだけ教えるか。0なら教えない"
 }

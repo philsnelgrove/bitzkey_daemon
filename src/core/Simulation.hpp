@@ -221,6 +221,15 @@ inline double PARENT_GRIEF = 2.0;
 // A hunter that kills a mother carrying young feels remorse, by half again and up to one and a half times as much
 // with its empathy: a lesson, not a law.
 inline double PREGNANT_REMORSE = 1.0;
+// Lessons of restraint, felt, not laws. A hunter that kills where few others of its prey are left in its sight is
+// uneasy (HUNTER_RESTRAINT, in full with none left, none with PREY_PLENTY or more). One that eats grass or a plant and
+// leaves none of either in its sight is uneasy (LAST_BITE). One whose sown seed sprouts within its sight is proud
+// (SOWER_PRIDE). A herd-mate's starving teaches those who see it FAMINE_LESSON of what a sudden death does.
+inline constexpr int PREY_PLENTY = 4;
+inline double HUNTER_RESTRAINT = 1.0, LAST_BITE = 0.5, SOWER_PRIDE = 1.0, FAMINE_LESSON = 1.0;
+// A sense of plenty: the food within FORAGE_RADIUS (prey for a hunter; plants and grassy squares for a grazer, and
+// both for an omnivore) against its memory of it there, which follows the food over about a day: 0.5 as remembered,
+// toward 1 for more and 0 for less.
 // Society: an animal sees what happens to its herd-mates (its pack, for a predator) within its sight. A
 // herd-mate's kill is a success, its death (but of old age) a failure; the witness learns from it as
 // if it had made the herd-mate's last choice itself, and feels it, by its empathy times its intellect.
@@ -783,6 +792,8 @@ struct Bitzkey {
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
+    double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
+    double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
     double cooked_known = 0.0;  // its taste for cooked food, a fifth for each cooked portion eaten, to 1 (see COOKED_JOY)
     double meat_lean = 0.0;  // a grazer's lean toward meat from marrow eaten, 0 to 1; at 1 it turns omnivore
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
@@ -1165,6 +1176,7 @@ public:
         int x, y;
         Dna dna;
         int generation, sown;
+        int sower = -1;  // the animal that sowed it, if one did
         bool operator==(const Seed&) const = default;
     };
     std::vector<Seed>& seeds() { return seeds_; }
@@ -1465,7 +1477,10 @@ public:
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
     void taste(Bitzkey& agent, bool cooked);  // the delight of a cooked portion, or the letdown of a raw one once it knows better
-    double cooking_smell(const Bitzkey& agent, int sight) const;  // closeness of the nearest cooking smelt, 0 none
+    double cooking_smell(const Bitzkey& agent, int sight) const;
+    double food_about(const Bitzkey& agent) const;  // its food within FORAGE_RADIUS, for its sense of plenty
+    bool food_in_sight(const Bitzkey& agent) const;  // any grass or living plant within its sight
+    void last_bite(Bitzkey& agent);  // uneasy if what it ate left no grass or plant in its sight  // closeness of the nearest cooking smelt, 0 none
     bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there
     bool arable_at(int x, int y) const { return in_bounds(x, y) && arable_[static_cast<std::size_t>(y) * width_ + x]; }
     void keep_seed(Bitzkey& agent);

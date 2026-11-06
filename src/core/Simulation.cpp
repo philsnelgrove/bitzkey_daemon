@@ -1485,6 +1485,13 @@ void Simulation::germinate() {
         const Seed seed = seeds_[index];
         if (fates[index] == Sprouts && room_for_seedling({seed.x, seed.y})) {
             sprout(seed.dna, {seed.x, seed.y}, seed.generation);
+            if (seed.sower >= 0 && SOWER_PRIDE > 0) {  // its sower, seeing it come up, is proud of it
+                Bitzkey* sower = find_agent(seed.sower);
+                if (sower && sower->alive() && distance(sower->x, sower->y, seed.x, seed.y) <= sower->sight) {
+                    sower->reward += SOWER_PRIDE;
+                    note_first("sower_pride", sower->species, sower->identifier);
+                }
+            }
             fertilized_[static_cast<std::size_t>(seed.y) * width_ + seed.x] = 0;  // the bone spent on it
         }
         else if (fates[index] != Dies) seeds_[kept++] = seed;
@@ -2290,6 +2297,10 @@ void Simulation::learn_witnessed() {
 }
 
 void Simulation::survey(Bitzkey& agent) {
+    if (agent.species != Species::Plant) {
+        agent.plenty = food_about(agent);
+        agent.plenty_known = agent.plenty_known < 0 ? agent.plenty : agent.plenty_known + (agent.plenty - agent.plenty_known) / DAY_LENGTH;
+    }
     if (agent.species == Species::Predator || agent.species == Species::Omnivore) {
         std::tie(agent.rivalry, agent.own_rivalry) = territory(agent);
         std::tie(agent.hunts_grazers, agent.hunts_omnivores) = prey_switching(agent);
@@ -2643,6 +2654,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseFighting] = fight_of(agent.identifier) ? 1.0 : 0.0;
     senses[SenseFoeCloseness] = s.foe_closeness;
     senses[SenseCookingSmell] = s.cooking_smell;
+    senses[SenseFoodPlenty] = agent.plenty + agent.plenty_known > 0 ? agent.plenty / (agent.plenty + std::max(0.0, agent.plenty_known)) : 0.5;
     senses[SenseFertilizedHere] = fertilized_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
     senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
@@ -3283,9 +3295,19 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
         Bitzkey* hunter = find_agent(killer->identifier);
         if (hunter && hunter->alive() && hunter->brain) hunter->reward -= PREGNANT_REMORSE * (0.5 + hunter->feeling(Empathy));
     }
+    if (killer && HUNTER_RESTRAINT > 0 && agent.species != Species::Plant && is_prey(*killer, agent)) {
+        // A hunter that kills where few others of its prey are left in its sight is uneasy for it.
+        Bitzkey* hunter = find_agent(killer->identifier);
+        if (hunter && hunter->alive() && hunter->brain) {
+            int left = 0;
+            for (const Bitzkey* other : around(*hunter, hunter->sight)) left += other != &agent && other->alive() && is_prey(*hunter, *other);
+            hunter->reward -= HUNTER_RESTRAINT * std::max(0.0, 1.0 - static_cast<double>(left) / PREY_PLENTY);
+        }
+    }
     // Its herd sees a sudden death fail; a slow one (old age, starving or the cold or heat) is not its last choice's
     // doing. Its own brain learns nothing from it, as it goes with it.
     if (agent.brain && agent.has_last_senses && !slow_death(cause)) witness(agent, -DEATH_PENALTY);
+    else if (agent.brain && agent.has_last_senses && cause == "starved" && FAMINE_LESSON > 0) witness(agent, -DEATH_PENALTY * FAMINE_LESSON);  // a famine's lesson
     std::vector<std::shared_ptr<Brain>>& dead_brains = tile ? tile->dead_brains : dead_brains_;
     if (agent.brain) dead_brains.push_back(std::move(agent.brain));
     agent.memories.clear();
@@ -3396,6 +3418,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             agent.nourish(GRASS_MEAL * agent.grazing);
             if (agent.last_action == "foraged") experience(agent, ForagedMeal);
             agent.last_action = "ate";
+            last_bite(agent);
             break;
         case Forage:
             move_toward(agent, s.grass->x, s.grass->y);
@@ -3668,6 +3691,7 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);  // a plant can't flee, but an armed one strikes back
     }
+    last_bite(agent);
 }
 
 void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
@@ -3685,6 +3709,7 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     } else if (plant.physique(Weapons) > 0) {
         defend(plant, agent);
     }
+    last_bite(agent);
 }
 
 void hope_for_untried(const Bitzkey& agent, Values& valued, std::span<const int> options) {
@@ -4075,6 +4100,34 @@ void Simulation::taste(Bitzkey& agent, bool cooked) {
     if (agent.cooked_known >= 1.0) note_first("loved_cooked", agent.species, agent.identifier);
 }
 
+double Simulation::food_about(const Bitzkey& agent) const {
+    const bool hunts = agent.species == Species::Predator || agent.species == Species::Omnivore;
+    const bool grazes = agent.species != Species::Predator;
+    double food = 0.0;
+    for (const Bitzkey* other : around(agent, FORAGE_RADIUS)) {
+        food += (hunts && is_prey(agent, *other)) || (grazes && other->species == Species::Plant);
+    }
+    if (grazes) {
+        for (int dx = -FORAGE_RADIUS; dx <= FORAGE_RADIUS; ++dx) {
+            const int reach = FORAGE_RADIUS - std::abs(dx);
+            for (int dy = -reach; dy <= reach; ++dy) food += grass_at(agent.x + dx, agent.y + dy) > 0;
+        }
+    }
+    return food;
+}
+
+bool Simulation::food_in_sight(const Bitzkey& agent) const {
+    if (nearest_grass(agent, agent.sight) || grass_at(agent.x, agent.y) > 0) return true;
+    for (const Bitzkey* other : around(agent, agent.sight)) {
+        if (other->species == Species::Plant && other->alive()) return true;
+    }
+    return false;
+}
+
+void Simulation::last_bite(Bitzkey& agent) {
+    if (LAST_BITE > 0 && !food_in_sight(agent)) agent.reward -= LAST_BITE;
+}
+
 double Simulation::cooking_smell(const Bitzkey& agent, int sight) const {
     if (!any_piles_ && !any_fires_) return 0.0;
     const int reach = std::min(MAX_SIGHT, std::max(sight, static_cast<int>(py_round(sight * SMELL_REACH))));
@@ -4306,7 +4359,7 @@ void Simulation::plant_seed(Bitzkey& agent) {
     Dna dna = make_dna(rng(), static_cast<int>(Species::Plant));
     dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(zone_temperature(agent.y, height_)) << TEMPERATURE_SHIFT;
     dna = with_terrain(dna, Terrain::Terrestrial);
-    (acting_ ? acting_->sown : seeds_).push_back({agent.x, agent.y, dna, 0, turn_});
+    (acting_ ? acting_->sown : seeds_).push_back({agent.x, agent.y, dna, 0, turn_, agent.identifier});
     agent.reward += PLANTING_JOY * (0.5 + agent.feeling(Curiosity));
     agent.last_action = "planted a seed";
     deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);

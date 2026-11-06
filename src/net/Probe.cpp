@@ -223,6 +223,8 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["regarded"] = agent->regarded;
     result["meat_lean"] = agent->meat_lean;
     result["cooked_known"] = agent->cooked_known;
+    result["plenty"] = agent->plenty;
+    result["plenty_known"] = agent->plenty_known;
     result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},

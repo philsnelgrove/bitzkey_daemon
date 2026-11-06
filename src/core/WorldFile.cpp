@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -332,6 +332,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->shelter_known = record.value("shelter_known", 0.0);
     agent->road_known = record.value("road_known", 0.0);  // none in an older world
     agent->cooked_known = record.value("cooked_known", 0.0);
+    agent->plenty = record.value("plenty", 0.0);
+    agent->plenty_known = record.value("plenty_known", -1.0);
     agent->hide = record.value("hide", 0);
     agent->hide_armour = record.value("hide_armour", 0.0);
     agent->skinned = record.value("skinned", false);
@@ -521,7 +523,8 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         sea.push_back(run);
     }
     json seeds = json::array();
-    for (const Simulation::Seed& seed : simulation.seeds_) seeds.push_back({seed.x, seed.y, genome_text(seed.dna), seed.generation, seed.sown});
+    for (const Simulation::Seed& seed : simulation.seeds_) seeds.push_back(seed.sower >= 0 ? json{seed.x, seed.y, genome_text(seed.dna), seed.generation, seed.sown, seed.sower}
+                                                                                       : json{seed.x, seed.y, genome_text(seed.dna), seed.generation, seed.sown});
     // The death tally: its tables by cause, whom and doing, by species, and the killers it keeps.
     const auto counts_of = [](const std::map<std::string, DeathTally::Counts, std::less<>>& rows) {
         json table = json::object();
@@ -804,7 +807,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         world.seeds_.clear();
         for (const json& seed : record.at("seeds")) {
             world.seeds_.push_back({seed.at(0).get<int>(), seed.at(1).get<int>(), genome_from(seed.at(2)),
-                                    seed.at(3).get<int>(), seed.at(4).get<int>()});
+                                    seed.at(3).get<int>(), seed.at(4).get<int>(), seed.size() > 5 ? seed.at(5).get<int>() : -1});
         }
         world.insights_ = Insights();
         for (const json& entry : record.at("insights")) {

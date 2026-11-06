@@ -1168,7 +1168,7 @@ TEST_CASE("starving is recorded and its body handled however it comes") {
     CHECK((grazer.last_action == "starved" && grazer.died_turn == 1 && simulation.deaths() == deaths + 1));
     CHECK(grazer.meat == 0);  // a starved body leaves nothing to eat
     CHECK(grazer.brain == nullptr);
-    CHECK(herd_mate.seen_failure == 0);  // a slow death: no choice of its own to see fail
+    CHECK(herd_mate.seen_failure > 0);  // a slow death, but a famine: its herd learns from it (Famine lesson)
 
     const double seed_cost = SEED_COST;
     SEED_COST = 100;
@@ -1549,8 +1549,8 @@ TEST_CASE("learning weights make success memorable, not failure") {
     CHECK(lesson_weight(Rest, 0.3) == 1.0);
 }
 
-TEST_CASE("a slow death is not blamed on the last choice, nor seen by the herd") {
-    for (const auto& [cause, blamed] : std::vector<std::pair<std::string, bool>>{{"starved", false}, {"froze", false}, {"old age", false}, {"exhausted", true}}) {
+TEST_CASE("a slow death is not blamed on the last choice, nor seen by the herd, but for a famine's lesson") {
+    for (const auto& [cause, blamed] : std::vector<std::pair<std::string, bool>>{{"starved", true}, {"froze", false}, {"old age", false}, {"exhausted", true}}) {
         Simulation simulation = world();
         const Dna dna = encode_dna(Species::Grazer, {{"intellect", 7}, {"empathy", 7}, {"sight", 7}});  // seen wherever it went
         Bitzkey& dying = simulation.add_agent(dna, 5, 5);
@@ -2121,6 +2121,8 @@ TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother ca
     CHECK((first.cooldown == static_cast<int>(60 * BREED_COOLDOWN) && second.cooldown == first.cooldown));  // the least fertile rest longest
     CHECK(!first.can_breed());
 
+    const double restraint = HUNTER_RESTRAINT;
+    HUNTER_RESTRAINT = 0;  // remorse alone here; restraint has its own test
     Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator), 6, 5);
     hunter.reward = 0;
     REQUIRE(!first.womb.empty());
@@ -2129,6 +2131,7 @@ TEST_CASE("grazers rest after breeding, and a hunter regrets killing a mother ca
     hunter.reward = 0;
     simulation.die(second, "killed", &hunter, "hunting");  // the father carried none
     CHECK(hunter.reward == 0.0);
+    HUNTER_RESTRAINT = restraint;
 }
 
 TEST_CASE("a large body costs: it is hungrier, starves faster, matures later, and can't hide from a hunter") {
@@ -2928,6 +2931,40 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
     simulation.index_cells();
     CHECK(simulation.envy_of(seer) == 0);
     CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
+}
+
+TEST_CASE("lessons of restraint: a kill where prey are few, the last bite in sight, a sown seed come up, a famine seen, and a sense of plenty") {
+    Simulation simulation(30, 40, 0, 1);
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 0}}), 10, 20);
+    Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer), 11, 20);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Grazer), 12, 20);
+    simulation.index_cells();
+    hunter.reward = 0;
+    simulation.die(victim, "killed", &hunter, "hunting");  // one other left of four
+    CHECK(hunter.reward == doctest::Approx(-HUNTER_RESTRAINT * 0.75));
+    hunter.reward = 0;
+    simulation.die(other, "killed", &hunter, "hunting");  // none left
+    CHECK(hunter.reward == doctest::Approx(-HUNTER_RESTRAINT));
+
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
+    simulation.index_cells();
+    grazer.reward = 0;
+    simulation.last_bite(grazer);
+    CHECK(grazer.reward == doctest::Approx(simulation.food_in_sight(grazer) ? 0.0 : -LAST_BITE));
+
+    simulation.survey(grazer);
+    CHECK(grazer.plenty_known == doctest::Approx(grazer.plenty));  // its first reading is its memory
+    CHECK(simulation.sense(grazer).senses[SenseFoodPlenty] == doctest::Approx(grazer.plenty > 0 ? 0.5 : 0.5));
+    grazer.plenty_known = 2 * grazer.plenty + 2;  // it remembers more than it finds
+    const double before = grazer.plenty_known;
+    const Simulation::Sensed sensed = simulation.sense(grazer);
+    CHECK(sensed.senses[SenseFoodPlenty] < 0.5);
+    CHECK(grazer.plenty_known < before);  // the memory follows the food
+
+    grazer.carried_seed = 1;
+    simulation.plant_seed(grazer);
+    REQUIRE(simulation.seeds().size() == 1);
+    CHECK(simulation.seeds()[0].sower == grazer.identifier);
 }
 
 TEST_CASE("cooked food is a growing delight, raw a letdown once it is known, cooking a pleasure, and cooking smelt afar") {
