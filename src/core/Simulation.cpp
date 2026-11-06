@@ -1002,6 +1002,7 @@ void Simulation::take_turn() {
                 continue;
             }
             agent->health = std::min(agent->max_health, agent->health + agent->max_health * PLANT_REGROWTH);
+            if (agent->fruit >= 0 && dawn(agent->x) && ++agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;  // a fruit a morning, until full
             agent->last_action = "photosynthesized";
             seed_plant(*agent);
             continue;
@@ -1591,6 +1592,15 @@ int Simulation::night_start() const {
 
 bool Simulation::night(int x) const {
     return py_mod(x - night_start(), width_) < width_ / 2;
+}
+
+bool Simulation::dawn(int x) const {
+    const int before = py_mod(-((turn_ - 1) % DAY_LENGTH) * width_ / DAY_LENGTH, width_);  // where the night began a turn ago
+    return turn_ > 0 && py_mod(x - before, width_) < width_ / 2 && !night(x);
+}
+
+int Simulation::fruit_capacity(const Bitzkey& plant) {
+    return std::max(1, static_cast<int>(plant.max_health / std::max(1.0, PLANT_BITE)));
 }
 
 bool Simulation::resting_time(const Bitzkey& agent) const {
@@ -2258,7 +2268,7 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
     for (ActingTile& tile : tiles) {
-        for (const auto& [doer, deed, target, kind, craft] : tile.deeds_seen) deed_seen(*doer, deed, target, kind, craft);
+        for (const auto& [doer, deed, target, kind, craft, culture] : tile.deeds_seen) deed_seen(*doer, deed, target, kind, craft, culture);
     }
     for (ActingTile& tile : tiles) fights_.insert(fights_.end(), tile.fights_begun.begin(), tile.fights_begun.end());
     for (ActingTile& tile : tiles) {
@@ -2654,6 +2664,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseFighting] = fight_of(agent.identifier) ? 1.0 : 0.0;
     senses[SenseFoeCloseness] = s.foe_closeness;
     senses[SenseCookingSmell] = s.cooking_smell;
+    {  // its pack beside the one it would strike: prey, its opponent in a fight, or a rival it would take from
+        const Bitzkey* target = s.prey ? s.prey : s.quarry;
+        if (!target) {
+            if (const Fight* fight = fight_of(agent.identifier)) {
+                const Bitzkey* other = find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief);
+                if (other && other->alive()) target = other;
+            }
+        }
+        if (!target) target = s.claim_from;
+        if (target) s.prey_flanked = std::min(2, pack_beside(agent, *target)) / 2.0;
+    }
+    senses[SensePreyFlanked] = s.prey_flanked;
     senses[SenseFoodPlenty] = agent.plenty + agent.plenty_known > 0 ? agent.plenty / (agent.plenty + std::max(0.0, agent.plenty_known)) : 0.5;
     senses[SenseFertilizedHere] = fertilized_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
@@ -2999,15 +3021,31 @@ void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
     }
 }
 
-void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target, DeedKind kind, int craft) {
-    if (WITNESS_SHARE <= 0) return;
+bool Simulation::family(const Bitzkey& one, const Bitzkey& other) {
+    const auto parent = [](const Bitzkey& child, const Bitzkey& of) { return child.mother == of.identifier || child.father == of.identifier; };
+    return parent(one, other) || parent(other, one) || (one.mother >= 0 && one.mother == other.mother) || (one.father >= 0 && one.father == other.father);
+}
+
+void Simulation::culture_seen(Bitzkey& seer, const Bitzkey& doer, Culture culture) {
+    if (CULTURE_REGARD <= 0 || seer.species != doer.species) return;
+    const Culture esteemed = seer.species == Species::Predator ? VictoryCulture : seer.species == Species::Omnivore ? CraftCulture
+                           : seer.species == Species::Grazer ? SowingCulture : NoCulture;
+    if (culture != esteemed) return;
+    const bool close = family(seer, doer) || (seer.species == Species::Predator && herd_mate(seer, doer));
+    note_deed(seer, doer, 1.0, CULTURE_REGARD * (close ? 2.0 : 1.0), PlainDeed, true);
+}
+
+void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target, DeedKind kind, int craft, Culture culture) {
+    if (WITNESS_SHARE <= 0 && CULTURE_REGARD <= 0) return;
     if (acting_) {  // its witnesses may lie in other tiles
-        acting_->deeds_seen.emplace_back(&doer, deed, target, kind, craft);
+        acting_->deeds_seen.emplace_back(&doer, deed, target, kind, craft, culture);
         return;
     }
     for (Bitzkey* other : around(doer, doer.sight)) {
         if (other == &doer || other == target || !other->alive() || !other->brain) continue;
         if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
+        if (culture != NoCulture || kind == VictoryDeed) culture_seen(*other, doer, kind == VictoryDeed ? VictoryCulture : culture);
+        if (kind == CultureDeed) continue;
         if (kind == GarbDeed || kind == LieDeed) {
             garb_seen(*other, doer, deed, kind == LieDeed);
             continue;
@@ -3704,19 +3742,15 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
 
 void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     move_toward(agent, plant.x, plant.y);
-    if (!plant.alive() || distance(plant.x, plant.y, agent.x, agent.y) > 1 || plant.cooldown) {
+    if (!plant.alive() || distance(plant.x, plant.y, agent.x, agent.y) > 1 || fruit_left(plant) <= 0) {
         agent.last_action = "sought plants";
         return;
     }
     agent.nourish((PLANT_MEAL + PLANT_MEAL_FOR_SIZE * plant.physique(Size)) * agent.browsing * plant_yield(plant));
-    plant.health -= PLANT_BITE;
-    plant.cooldown = PLANT_RECOVERY;
+    plant.fruit = fruit_left(plant) - 1;  // a fruit picked, the plant unhurt
     agent.last_action = "browsed";
-    if (!plant.alive()) {
-        die(plant, "eaten", &agent, "browsing");
-    } else if (plant.physique(Weapons) > 0) {
-        defend(plant, agent);  // a plant can't flee, but an armed one strikes back
-    }
+    deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);  // fruit picked without uprooting
+    if (plant.physique(Weapons) > 0) defend(plant, agent);  // a plant can't flee, but an armed one strikes back
     last_bite(agent);
 }
 
@@ -4024,18 +4058,22 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
     }
     if (!s.tears) move_toward(agent, plant->x, plant->y);
     // As browsing or uprooting wound a plant, its fruit carried off rather than eaten.
-    if (!plant->alive() || far(plant->x, plant->y) > 1 || (!s.tears && plant->cooldown)) {
+    if (!plant->alive() || far(plant->x, plant->y) > 1 || (!s.tears && fruit_left(*plant) <= 0)) {
         agent.last_action = "sought plants";
         return;
     }
-    plant->health -= s.tears ? UPROOT_BITE : PLANT_BITE;
-    plant->cooldown = PLANT_RECOVERY;
+    if (s.tears) {
+        plant->health -= UPROOT_BITE;
+        plant->cooldown = PLANT_RECOVERY;
+    } else {
+        plant->fruit = fruit_left(*plant) - 1;  // a fruit picked, the plant unhurt
+        deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);
+    }
     ++agent.carried_fruit;
     ++carrying[s.tears ? FruitTorn : FruitFromPlant];
     agent.last_action = "took fruit";
     if (!plant->alive()) {
-        if (s.tears) die(*plant, "uprooted", &agent, "uprooting");
-        else die(*plant, "eaten", &agent, "browsing");
+        die(*plant, "uprooted", &agent, "uprooting");
     } else if (plant->physique(Weapons) > 0) {
         defend(*plant, agent);
     }
@@ -4124,6 +4162,12 @@ void Simulation::taste(Bitzkey& agent, bool cooked) {
     agent.cooked_known = std::min(1.0, agent.cooked_known + COOKED_TASTE);
     agent.reward += COOKED_JOY * (0.5 + agent.cooked_known);
     if (agent.cooked_known >= 1.0) note_first("loved_cooked", agent.species, agent.identifier);
+}
+
+int Simulation::pack_beside(const Bitzkey& agent, const Bitzkey& prey) const {
+    int mates = 0;
+    for (const Bitzkey* other : around(prey, 1)) mates += other != &agent && herd_mate(agent, *other);
+    return mates;
 }
 
 double Simulation::food_about(const Bitzkey& agent) const {
@@ -4248,6 +4292,7 @@ bool Simulation::fire_friendly(const Bitzkey& agent, Cell fire) const {
 }
 
 void Simulation::construct(Bitzkey& agent) {
+    deed_seen(agent, 0.0, nullptr, CultureDeed, -1, CraftCulture);
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     if (agent.carried_stone) site_stone_[cell] += 1;
     --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
@@ -4272,6 +4317,7 @@ void Simulation::construct(Bitzkey& agent) {
 void Simulation::build_road(Bitzkey& agent) {
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     wear_weapon(agent);
+    deed_seen(agent, 0.0, nullptr, CultureDeed, -1, CraftCulture);
     agent.last_action = "laid road";
     // As building a shelter: each turn thrills more than the last, the curious and those who know roads most.
     const double inspiration = ROAD_THRILL * (agent.feeling(Curiosity) + ROAD_LONGING * agent.road_known);
@@ -4388,7 +4434,7 @@ void Simulation::plant_seed(Bitzkey& agent) {
     (acting_ ? acting_->sown : seeds_).push_back({agent.x, agent.y, dna, 0, turn_, agent.identifier});
     agent.reward += PLANTING_JOY * (0.5 + agent.feeling(Curiosity));
     agent.last_action = "planted a seed";
-    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, -1, SowingCulture);
     note_first("planted", agent.species, agent.identifier);
 }
 
@@ -4517,7 +4563,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
     agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
     agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
-    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, action - MakeBoneAxe);
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, action - MakeBoneAxe, CraftCulture);
 }
 
 void Simulation::take_gear(Bitzkey& agent, Situation& s) {
@@ -4571,6 +4617,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     for (const Bitzkey* other : around(victim, 1)) {
         if (other != &agent && herd_mate(agent, *other)) {
             blow *= 1 + PACK_BONUS * agent.herd_instinct();  // hunting as a pack
+            agent.reward += JOINED_HUNT_JOY * (0.5 + agent.herd_instinct());  // and glad of it
             break;
         }
     }
@@ -5064,7 +5111,7 @@ Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int pr
                 continue;
             } else if (!seen.hunter && is_prey(*other, agent)) {
                 seen.hunter = other;
-            } else if (browses && !seen.flora && other->species == Species::Plant && !other->cooldown && agent.can_be(other->wet)) {
+            } else if (browses && !seen.flora && other->species == Species::Plant && fruit_left(*other) > 0 && agent.can_be(other->wet)) {
                 seen.flora = other;
             } else if (courts && !seen.suitor && other->can_breed() && compatible(agent, *other)) {
                 seen.suitor = other;

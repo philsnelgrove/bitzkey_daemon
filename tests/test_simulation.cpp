@@ -1086,7 +1086,7 @@ TEST_CASE("a starving grazer with food scarce may uproot a plant beside it") {
     grazer.hunger = 50;
     CHECK_FALSE(offered(simulation.sense(grazer), Uproot));  // not starving
     grazer.hunger = 85;
-    plant.cooldown = 5;  // still recovering from a bite: it can't be browsed, but it can be uprooted
+    plant.fruit = 0;  // picked bare: it can't be browsed, but it can be uprooted
     Simulation::Sensed sensed = simulation.sense(grazer);
     CHECK((offered(sensed, Uproot) && !offered(sensed, Browse)));
     const double meal = UPROOT_MEALS * FRESH_KILL_MEALS * KILL_MEAL / grazer.stomach;  // half a feast on a body of its size
@@ -1205,8 +1205,12 @@ TEST_CASE("deploying puts five of each around a cell, with their brains and mind
     Simulation simulation(Simulation::Settings{30, 30, 40, 3});
     for (int turn = 0; turn < 5; ++turn) simulation.advance();
     const Bitzkey& animal = **std::find_if(simulation.agents().begin(), simulation.agents().end(),
-                                           [](const auto& agent) { return agent->alive() && agent->brain; });
+                                           [](const auto& agent) { return agent->alive() && agent->brain && agent->terrain == Terrain::Terrestrial; });
     const Imported bitzkey = import_bitzkeys(dumps(bitzkey_record(animal))).front();
+    for (const auto& agent : simulation.agents()) {  // room about the cell, however crowded with plants
+        if (agent->alive() && std::abs(agent->x - 10) + std::abs(agent->y - 1) <= 8) simulation.die(*agent, "eaten");
+    }
+    simulation.index_cells();
     const int turn = simulation.turn();
     const std::size_t before = simulation.agents().size();
     const std::vector<Bitzkey*> deployed = simulation.deploy({bitzkey, bitzkey}, 10, 1);  // near the top: kept on the map
@@ -2287,7 +2291,8 @@ TEST_CASE("meat is taken from a fresh kill and fruit from a plant, as portions o
     auto again = simulation.sense(hunter);
     simulation.act(hunter, TakeFruit, again.situation);
     CHECK(hunter.carried_fruit == 1);
-    CHECK(plant.health < health);
+    CHECK(plant.health == health);  // a fruit picked, the plant unhurt
+    CHECK(Simulation::fruit_left(plant) == Simulation::fruit_capacity(plant) - 1);
     ACTIVE_SHARE = active;
 }
 
@@ -2931,6 +2936,84 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
     simulation.index_cells();
     CHECK(simulation.envy_of(seer) == 0);
     CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
+}
+
+TEST_CASE("a plant's fruit is picked unhurt while it has any, and grows back one a morning until full") {
+    Simulation simulation(30, 40, 0, 1);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {{"size", 7}}), 10, 20);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 11, 20);
+    simulation.index_cells();
+    const int full = Simulation::fruit_capacity(plant);
+    CHECK(full == static_cast<int>(plant.max_health / PLANT_BITE));
+    const double health = plant.health;
+    for (int bite = 0; bite < full; ++bite) {
+        grazer.hunger = 90;
+        simulation.browse(grazer, plant);
+        CHECK(grazer.last_action == "browsed");
+    }
+    CHECK(plant.health == health);  // unhurt
+    CHECK(Simulation::fruit_left(plant) == 0);
+    simulation.browse(grazer, plant);
+    CHECK(grazer.last_action == "sought plants");  // none left to pick
+    int mornings = 0;
+    for (int turn = 0; turn < 2 * DAY_LENGTH; ++turn) {
+        simulation.advance();
+        if (!plant.alive()) break;
+        mornings = Simulation::fruit_left(plant);
+    }
+    if (plant.alive() && plant.last_action == "photosynthesized") CHECK(mornings >= 1);
+    CHECK(Simulation::fruit_left(plant) <= 2);  // one a morning
+}
+
+TEST_CASE("each species esteems its own culture seen among its kind, twice from family or a predator's pack") {
+    Simulation simulation(30, 40, 0, 1);
+    Bitzkey& sower = simulation.add_agent(encode_dna(Species::Grazer), 10, 20);
+    Bitzkey& seer = simulation.add_agent(encode_dna(Species::Grazer), 11, 20);
+    Bitzkey& sibling = simulation.add_agent(encode_dna(Species::Grazer), 12, 20);
+    sower.mother = sibling.mother = 999;
+    simulation.index_cells();
+    simulation.culture_seen(seer, sower, SowingCulture);
+    CHECK(simulation.regard_for(seer, sower) == doctest::Approx(CULTURE_REGARD));  // a first deed sets it
+    simulation.culture_seen(seer, sower, CraftCulture);  // not a grazer's
+    CHECK(simulation.regard_for(seer, sower) == doctest::Approx(CULTURE_REGARD));
+    simulation.culture_seen(sibling, sower, SowingCulture);
+    CHECK(simulation.regard_for(sibling, sower) == doctest::Approx(2 * CULTURE_REGARD));  // family, twice
+    CHECK(Simulation::family(sower, sibling));
+    CHECK(!Simulation::family(sower, seer));
+}
+
+TEST_CASE("a hunter senses its pack beside its prey, and striking alongside one gladdens it") {
+    Simulation simulation(30, 40, 0, 1);
+    const Dna hunter_dna = encode_dna(Species::Predator, {{"empathy", 7}, {"patience", 7}});
+    Bitzkey& hunter = simulation.add_agent(hunter_dna, 10, 20);
+    Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 11, 20);
+    simulation.index_cells();
+    REQUIRE(simulation.sense(hunter).situation.prey == &prey);
+    CHECK(simulation.sense(hunter).senses[SensePreyFlanked] == 0);
+    hunter.reward = 0;
+    simulation.attack(hunter, prey, "hunting");
+    const double alone = hunter.reward;
+    Bitzkey& mate = simulation.add_agent(hunter_dna, 12, 20);  // the pack-mate on the far side
+    simulation.index_cells();
+    REQUIRE(simulation.herd_mate(hunter, mate));
+    CHECK(simulation.sense(hunter).senses[SensePreyFlanked] == doctest::Approx(0.5));
+    prey.health = prey.max_health;
+    hunter.reward = 0;
+    simulation.attack(hunter, prey, "hunting");
+    CHECK(hunter.reward - alone == doctest::Approx(JOINED_HUNT_JOY * (0.5 + hunter.herd_instinct())).epsilon(0.05));
+
+    Bitzkey& rival = simulation.add_agent(encode_dna(Species::Predator, {{"size", 7}}), 15, 25);  // a rival, in a fight with it
+    Bitzkey& flanker = simulation.add_agent(hunter_dna, 16, 25);
+    hunter.x = 14;
+    hunter.y = 25;
+    simulation.die(prey, "killed");  // no prey left: only the rival
+    simulation.index_cells();
+    simulation.begin_fight({hunter.identifier, rival.identifier, WeaponPossession, false});
+    const Simulation::Sensed sensed = simulation.sense(hunter);
+    REQUIRE(sensed.situation.prey == nullptr);
+    REQUIRE(sensed.situation.quarry == nullptr);
+    REQUIRE(simulation.herd_mate(hunter, flanker));
+    CHECK(sensed.senses[SensePreyFlanked] == doctest::Approx(0.5));  // its pack beside its opponent
 }
 
 TEST_CASE("a child is held at half how its parents are held, regard and reputation, until judged by its own deeds") {

@@ -359,7 +359,13 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed };  // garb worn in sight, and fleeing in it
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed };  // CultureDeed: seen for its culture alone
+// Cultures: what each species esteems, seen done by one of its own kind, over and above the deed's own worth, by
+// CULTURE_REGARD, twice it from family (parent, child or sibling) and, for a predator, from its pack. Predators esteem
+// victories; omnivores, crafting and building (shelters and roads); grazers, sowing and fruit picked from a plant
+// without uprooting it.
+enum Culture { NoCulture, VictoryCulture, CraftCulture, SowingCulture };
+inline double CULTURE_REGARD = 0.3;  // garb worn in sight, and fleeing in it
 // Factions: up to Factions body colours (none at 0), each remembered by the first of it met. Every deed noted of an
 // animal also moves the regard for its colour, by Faction share as much, and one it doesn't know is taken at its
 // colour's worth, anything within Faction width on the body ring. The weakest is forgotten for a new one.
@@ -444,6 +450,10 @@ inline bool solitary(Species species) {
 inline double HERD_SAFETY = 0.6;
 inline double HERD_DEFEND_JOY = 0.5;
 inline double PACK_BONUS = 0.5;
+// Pack tactics: an animal senses how many of its pack are already beside the one it would strike, prey it would strike
+// or is after, else its opponent in a fight, else a rival it would take from (prey flanked), and any blow struck
+// alongside one is a pleasure (JOINED_HUNT_JOY, times a half and its herd instinct), as it is harder (PACK_BONUS).
+inline double JOINED_HUNT_JOY = 0.5;
 // Predators whose ring colours differ by no more than this are one kind: they hunt together, and breed
 // together as readily as other animals do with this much less difference.
 inline double KIND_DIFFERENCE = 0.25;
@@ -610,7 +620,10 @@ inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattere
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
 inline double PLANT_BITE = 15;
 inline double PLANT_REGROWTH = 0.02;
-inline int PLANT_RECOVERY = 24;  // a day
+inline int PLANT_RECOVERY = 24;  // a day, after it is uprooted from
+// Fruit: a plant holds a fruit for each PLANT_BITE of its health pool (at least one). Picking or browsing one leaves the
+// plant unhurt; it may be picked while it has any, and from the morning after it is no longer full it grows one back
+// each morning, until full.
 // A desperate grazer, starving with food scarce about it, may uproot a plant beside it: it eats this
 // many times a bite's meal, and tears this much of the plant's health away, recovering or not.
 inline int UPROOT_HUNGER = 80;  // starving: hunger at least this
@@ -778,6 +791,7 @@ struct Bitzkey {
     double stamina = FULL_STAMINA;  // spent by acting, restored by resting (see ACTIVE_SHARE)
     int age = 0;
     int cooldown = 0;
+    int fruit = -1;  // a plant's fruit left to pick; below 0 while it is full (see fruit_left)
     std::string_view last_action = "new";
     std::shared_ptr<Brain> brain;  // shared with history snapshots; copied before it learns
     int generation = 0;
@@ -1122,6 +1136,9 @@ public:
     // The sea: whether a square lies under it (none off the map, nor in a world without sea).
     // Whether a column lies in the night now: half the map, moving west a whole turn round each day.
     bool night(int x) const;
+    bool dawn(int x) const;  // whether night ended at this column this turn
+    static int fruit_capacity(const Bitzkey& plant);
+    static int fruit_left(const Bitzkey& plant) { return plant.fruit < 0 ? fruit_capacity(plant) : plant.fruit; }
     int night_start() const;  // the westernmost column of the night, which runs east half the map's width from it
     // Whether an animal sleeps where it stands: in the middle of its night (the dark for the diurnal, the light for the
     // nocturnal), the 1 - ACTIVE_SHARE of the day there, awake at its dusk and dawn.
@@ -1266,7 +1283,8 @@ public:
         Bitzkey* gift_to = nullptr;  // a friend beside it whose possession is worse than its own
         int gift = -1;
         double foe_closeness = 0.0;
-        double cooking_smell = 0.0;  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
+        double cooking_smell = 0.0;
+        double prey_flanked = 0.0;  // its pack beside its prey, opponent or rival: a half each, to 1  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1288,7 +1306,9 @@ public:
     void share_hearths(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& plans);  // those at a fire together bond
     void bond_in_defence(Bitzkey& defender, const Bitzkey& assailant);  // and those who stood together against an attacker
     // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
-    void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed, int craft = -1);
+    void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed, int craft = -1, Culture culture = NoCulture);
+    static bool family(const Bitzkey& one, const Bitzkey& other);  // parent, child or sibling
+    void culture_seen(Bitzkey& seer, const Bitzkey& doer, Culture culture);  // the esteem its kind's culture gives the deed
     double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither
     double skill_held(const Bitzkey& agent, const Bitzkey& other) const;  // how skilled it holds it, or else its colour
     void note_faction(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded);
@@ -1481,7 +1501,8 @@ public:
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
     void taste(Bitzkey& agent, bool cooked);  // the delight of a cooked portion, or the letdown of a raw one once it knows better
     double cooking_smell(const Bitzkey& agent, int sight) const;
-    double food_about(const Bitzkey& agent) const;  // its food within FORAGE_RADIUS, for its sense of plenty
+    double food_about(const Bitzkey& agent) const;
+    int pack_beside(const Bitzkey& agent, const Bitzkey& prey) const;  // its pack-mates beside the prey, but itself  // its food within FORAGE_RADIUS, for its sense of plenty
     bool food_in_sight(const Bitzkey& agent) const;  // any grass or living plant within its sight
     void last_bite(Bitzkey& agent);  // uneasy if what it ate left no grass or plant in its sight  // closeness of the nearest cooking smelt, 0 none
     bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there
@@ -1766,7 +1787,7 @@ private:
         std::vector<std::pair<const Bitzkey*, double>> witnessed;  // (actor, outcome) for its herd to see
         std::vector<std::pair<Bitzkey*, const Bitzkey*>> alerts;   // (alerting, what about)
         std::vector<Seed> sown;  // seeds planted
-        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind, int>> deeds_seen;
+        std::vector<std::tuple<const Bitzkey*, double, const Bitzkey*, DeedKind, int, Culture>> deeds_seen;
         std::vector<Fight> fights_begun;  // (doer, worth, done to, what kind, the craft or -1)
         std::vector<std::pair<Bitzkey*, std::vector<Bitzkey*>>> feeding;  // (parent, its young) fed
         std::vector<std::pair<Bitzkey*, Bitzkey*>> teaching;  // (elder, student)

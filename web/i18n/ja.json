@@ -1792,5 +1792,11 @@
 "Famine lesson": "飢饉の教訓",
 "how much of a sudden death's lesson a herd-mate's starving teaches those who see it; 0 for none": "群れの仲間の餓死が、見ていた者に急死の教訓をどれだけ教えるか。0なら教えない",
 "Inherited regard": "受け継がれた敬意",
-"share of how one holds a child's parents, regard and reputation, it holds the child at until it judges it by its own deeds": "子の親への敬意と評判のうち、子自身の行いで判断するまで、その子に向ける割合"
+"share of how one holds a child's parents, regard and reputation, it holds the child at until it judges it by its own deeds": "子の親への敬意と評判のうち、子自身の行いで判断するまで、その子に向ける割合",
+"Joined hunt joy": "共同狩りの喜び",
+"pleasure of striking prey that a pack-mate is also alongside, times a half and its herd instinct": "群れの仲間も隣にいる獲物を打つ喜び。0.5と群れの本能の和を掛ける",
+"Culture regard": "文化による敬意",
+"esteem for a deed its kind values, seen done by one of its kind (twice from family, or a predator's pack): victories for predators, crafting and building for omnivores, sowing and fruit picked without uprooting for grazers": "同種の者がその種の重んじる行いをするのを見たときの敬意（家族や捕食者の群れからは2倍）：捕食者は勝利、雑食は工作と建設、草食は種まきと根こそぎにしない果実摘み",
+"health that makes a fruit: a plant holds one fruit for each, at least one, and picking one leaves it unhurt": "果実1つ分の体力：植物はその分ごとに1つ（最低1つ）の果実を持ち、摘んでも傷つかない",
+"turns after it is uprooted from before a plant can be torn into again": "根こそぎにされた後、植物が再び引き裂かれるまでのターン数"
 }
