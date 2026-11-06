@@ -2930,6 +2930,50 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
     CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
 }
 
+TEST_CASE("cooked food is a growing delight, raw a letdown once it is known, cooking a pleasure, and cooking smelt afar") {
+    Simulation simulation(30, 40, 0, 1);
+    Bitzkey& eater = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"sight", 0}}), 5, 20);
+    simulation.index_cells();
+    eater.hunger = 90;
+    eater.reward = 0;
+    simulation.taste(eater, false);  // raw, knowing nothing better
+    CHECK(eater.reward == 0);
+    eater.cooked_meat = 1;
+    simulation.eat_carried(eater);  // a cooked portion eaten tastes
+    CHECK(eater.cooked_known == doctest::Approx(COOKED_TASTE));
+    eater.reward = 0;
+    simulation.taste(eater, true);
+    CHECK(eater.reward == doctest::Approx(COOKED_JOY * (0.5 + 2 * COOKED_TASTE)));  // growing with the taste
+    eater.reward = 0;
+    simulation.taste(eater, false);
+    CHECK(eater.reward == doctest::Approx(-RAW_DISTASTE * 2 * COOKED_TASTE));  // raw, now a letdown
+
+    simulation.add_to_pile(6, 20, true);  // raw meat and cooked meat beside it: the cooked first
+    simulation.add_to_pile(6, 20, CookedMeatPile);
+    simulation.index_cells();
+    Simulation::Situation s = simulation.sense(eater).situation;
+    REQUIRE(s.eat_meat);
+    simulation.eat_pile(eater, s);
+    CHECK(simulation.pile_at(6, 20, CookedMeatPile) == 0);
+    CHECK(simulation.pile_at(6, 20, MeatPile) == 1);
+    CHECK(simulation.sense(eater).situation.cooking_smell == 0);
+
+    const int sight = eater.sight;
+    simulation.add_to_pile(5 + sight + 2, 20, CookedMeatPile);  // beyond sight, within smell
+    simulation.index_cells();
+    s = simulation.sense(eater).situation;
+    CHECK(s.cooking_smell > 0);
+    CHECK(s.cooking_smell < 1);
+    REQUIRE(s.eat_meat);
+    CHECK(s.eat_meat->x == 6);  // the raw in sight before cooked only smelt
+
+    eater.carried_meat = 1;
+    eater.reward = 0;
+    simulation.cook(eater, Cell{5, 21});
+    CHECK(eater.reward == doctest::Approx(COOK_JOY * (0.5 + 3 * COOKED_TASTE)));  // three cooked portions tasted
+    CHECK(eater.cooked_meat == 1);
+}
+
 TEST_CASE("a grazer eating marrow edges toward meat until it gives in and turns omnivore, in its genes too") {
     Simulation simulation(10, 40, 0, 1);
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}, {"carrion", 7}}), 2, 20);
@@ -2978,6 +3022,11 @@ TEST_CASE("bone crushed with a stone, club or stone axe gives a scavenger marrow
     simulation.add_to_pile(2, temperate, BonePile, 1);  // or a bone from the pile it stands on
     CHECK(simulation.can_crush(scavenger));
     simulation.eat_marrow(scavenger);
+    CHECK(simulation.pile_at(2, temperate, BonePile) == 0);
+    const double fed = scavenger.hunger;
+    simulation.eat_marrow(scavenger);  // as when another took the last bone first this turn
+    CHECK(scavenger.last_action == "found no bone");
+    CHECK(scavenger.hunger == fed);
     CHECK(simulation.pile_at(2, temperate, BonePile) == 0);
 
     farmer.weapon = Club;

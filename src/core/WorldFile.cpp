@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -331,6 +331,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->boredom = record.value("boredom", 0.0);  // none in an older world
     agent->shelter_known = record.value("shelter_known", 0.0);
     agent->road_known = record.value("road_known", 0.0);  // none in an older world
+    agent->cooked_known = record.value("cooked_known", 0.0);
     agent->hide = record.value("hide", 0);
     agent->hide_armour = record.value("hide_armour", 0.0);
     agent->skinned = record.value("skinned", false);
@@ -492,7 +493,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     }
     for (std::size_t cell = 0; cell < simulation.fires_.size(); ++cell) {
         if (simulation.fires_[cell] > simulation.turn_) {
-            fires.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.fires_[cell], simulation.fire_lighters_[cell]});
+            fires.push_back({static_cast<int>(cell % simulation.width_), static_cast<int>(cell / simulation.width_), simulation.fires_[cell], simulation.fire_lighters_[cell], simulation.cooked_on_[cell]});
         }
     }
     for (int y = 0; y < simulation.height_; ++y) {
@@ -773,6 +774,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             const std::size_t cell = static_cast<std::size_t>(fire.at(1).get<int>()) * world.width_ + fire.at(0).get<int>();
             world.fires_[cell] = fire.at(2).get<int>();
             world.fire_lighters_[cell] = fire.at(3).get<int>();
+            if (fire.size() > 4) world.cooked_on_[cell] = fire.at(4).get<int>();  // none in an older world
             world.any_fires_ = true;
         }
         for (const json& cell : record.value("arable", json::array())) world.arable_[cell.get<std::size_t>()] = 1;  // none in an older world

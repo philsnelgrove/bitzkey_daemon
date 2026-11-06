@@ -1773,5 +1773,14 @@
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "חלק ממינו, מדורג לפי אמפתיה או חברותיות, שלעולם אינו נותן רכוש לחבר: 0.75 משאיר את הרבע העליון נותן; 1 לאף אחד",
 "share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "חלק ממינו, מדורג לפי תוקפנות או שליטה, שלעולם אינו דורש או גונב רכוש: 0.75 משאיר את הרבע העליון לוקח; 1 לאף אחד",
 "Marrow lean": "נטייה ממח עצם",
-"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "כמה כל ארוחת מח עצם מקרבת אוכל עשב לבשר; במלואה, הוא וצאצאיו אוכלי כל; 0 לעולם לא"
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "כמה כל ארוחת מח עצם מקרבת אוכל עשב לבשר; במלואה, הוא וצאצאיו אוכלי כל; 0 לעולם לא",
+"Cooked delight": "עונג מבושל",
+"pleasure of eating a cooked portion, times a half and its taste for cooked food": "הנאה מאכילת מנה מבושלת, כפול חצי ועוד טעמו למבושל",
+"Raw distaste": "סלידה מנא",
+"letdown of eating a raw portion once it knows the taste of cooked, times that taste": "אכזבה מאכילת מנה נאה לאחר שהכיר את טעם המבושל, כפול טעם זה",
+"Cooking joy": "שמחת הבישול",
+"pleasure of cooking a portion, times a half and its taste for cooked food": "הנאה מבישול מנה, כפול חצי ועוד טעמו למבושל",
+"Smell reach": "טווח ריח",
+"how many times as far as it sees an animal smells cooked food and a fire cooked on": "פי כמה ממרחק ראייתו בעל חיים מריח מזון מבושל ואש שבושל עליה",
+"found no bone": "לא מצא עצם"
 }

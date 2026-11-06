@@ -1773,5 +1773,14 @@
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "część własnego gatunku, uszeregowana według empatii lub towarzyskości, która nigdy nie daje przyjacielowi dobytku: 0,75 zostawia dającą górną ćwiartkę; 1 dla nikogo",
 "share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "część własnego gatunku, uszeregowana według agresji lub dominacji, która nigdy nie żąda ani nie kradnie dobytku: 0,75 zostawia biorącą górną ćwiartkę; 1 dla nikogo",
 "Marrow lean": "Skłonność ze szpiku",
-"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "jak bardzo każdy posiłek ze szpiku przesuwa roślinożercę ku mięsu; po zapełnieniu on i jego młode są wszystkożerne; 0 nigdy"
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "jak bardzo każdy posiłek ze szpiku przesuwa roślinożercę ku mięsu; po zapełnieniu on i jego młode są wszystkożerne; 0 nigdy",
+"Cooked delight": "Rozkosz gotowanego",
+"pleasure of eating a cooked portion, times a half and its taste for cooked food": "przyjemność zjedzenia gotowanej porcji, razy pół plus jego smak do gotowanego",
+"Raw distaste": "Niechęć do surowego",
+"letdown of eating a raw portion once it knows the taste of cooked, times that taste": "zawód po zjedzeniu surowej porcji, gdy zna już smak gotowanego, razy ten smak",
+"Cooking joy": "Radość gotowania",
+"pleasure of cooking a portion, times a half and its taste for cooked food": "przyjemność ugotowania porcji, razy pół plus jego smak do gotowanego",
+"Smell reach": "Zasięg węchu",
+"how many times as far as it sees an animal smells cooked food and a fire cooked on": "ile razy dalej niż widzi zwierzę czuje gotowane jedzenie i ogień, na którym gotowano",
+"found no bone": "nie znalazł kości"
 }

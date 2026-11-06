@@ -1773,5 +1773,14 @@
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "part de son espèce, classée par empathie ou sociabilité, qui ne donne jamais un bien à un ami : 0,75 laisse le quart supérieur donner ; 1 pour aucun",
 "share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "part de son espèce, classée par agressivité ou dominance, qui n'exige ni ne vole jamais un bien : 0,75 laisse le quart supérieur prendre ; 1 pour aucun",
 "Marrow lean": "Penchant pour la moelle",
-"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "combien chaque repas de moelle rapproche un brouteur de la viande ; au plein, lui et ses petits sont omnivores ; 0 pour jamais"
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "combien chaque repas de moelle rapproche un brouteur de la viande ; au plein, lui et ses petits sont omnivores ; 0 pour jamais",
+"Cooked delight": "Délice du cuit",
+"pleasure of eating a cooked portion, times a half and its taste for cooked food": "plaisir de manger une portion cuite, fois une demie plus son goût pour le cuit",
+"Raw distaste": "Dégoût du cru",
+"letdown of eating a raw portion once it knows the taste of cooked, times that taste": "déception de manger une portion crue une fois qu'il connaît le goût du cuit, fois ce goût",
+"Cooking joy": "Joie de cuisiner",
+"pleasure of cooking a portion, times a half and its taste for cooked food": "plaisir de cuire une portion, fois une demie plus son goût pour le cuit",
+"Smell reach": "Portée de l'odorat",
+"how many times as far as it sees an animal smells cooked food and a fire cooked on": "combien de fois sa vue un animal sent la nourriture cuite et un feu où l'on a cuit",
+"found no bone": "n'a trouvé aucun os"
 }

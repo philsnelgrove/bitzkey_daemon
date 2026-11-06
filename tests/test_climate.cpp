@@ -685,6 +685,7 @@ TEST_CASE("animals sense the time of year as two clock hands a quarter apart") {
         }
         grazer.hunger = 0;  // kept fed and young the year round: it must outlive the test that holds it
         grazer.age = 0;
+        grazer.health = grazer.max_health;  // and whole, whatever its brain walks it into
         if (turn < 360) simulation.take_turn();
         REQUIRE(grazer.alive());
     }

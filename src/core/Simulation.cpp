@@ -462,6 +462,7 @@ Simulation::Simulation(Settings settings)
     road_work_.assign(area, 0);
     arable_.assign(area, 0);
     fire_lighters_.assign(area, -1);
+    cooked_on_.assign(area, -DAY_LENGTH - 1);
     grass_.assign(area, 0);
     update_climate();
     const int initial_grass = static_cast<int>(py_round(static_cast<double>(width_ * height_) * settings.grass_density / 100));
@@ -2345,8 +2346,12 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (any_piles_) {
         s.meat_pile = nearest_pile(agent, sight, MeatPile);
         s.fruit_pile = nearest_pile(agent, sight, FruitPile);
-        s.eat_meat = s.meat_pile ? s.meat_pile : nearest_pile(agent, sight, CookedMeatPile);
-        s.eat_fruit = s.fruit_pile ? s.fruit_pile : nearest_pile(agent, sight, CookedFruitPile);
+        // cooked food in sight first, then raw, then cooked food smelt beyond sight
+        const int reach = std::min(MAX_SIGHT, std::max(sight, static_cast<int>(py_round(sight * SMELL_REACH))));
+        const auto cooked_meat = nearest_pile(agent, reach, CookedMeatPile), cooked_fruit = nearest_pile(agent, reach, CookedFruitPile);
+        const auto seen = [&](const std::optional<Cell>& cell) { return cell && distance(cell->x, cell->y, agent.x, agent.y) <= sight; };
+        s.eat_meat = seen(cooked_meat) ? cooked_meat : s.meat_pile ? s.meat_pile : cooked_meat;
+        s.eat_fruit = seen(cooked_fruit) ? cooked_fruit : s.fruit_pile ? s.fruit_pile : cooked_fruit;
         s.stone_pile = nearest_pile(agent, sight, StonePile);
         s.bone_pile = nearest_pile(agent, sight, BonePile);
         s.wood_pile = nearest_pile(agent, sight, WoodPile);
@@ -2536,6 +2541,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             if (steps < nearest && is_foe(agent, *other)) nearest = steps;
         }
         if (nearest <= sight) s.foe_closeness = 1.0 - static_cast<double>(nearest - 1) / std::max(1, sight);
+        s.cooking_smell = cooking_smell(agent, sight);
         const auto kind = static_cast<std::size_t>(agent.species);
         const bool taker = TAKE_LEVEL < 1 && take_drive(agent) > take_cut_[kind] && !fight_of(agent.identifier);
         const bool giver = GIVE_LEVEL < 1 && give_drive(agent) > give_cut_[kind];
@@ -2636,6 +2642,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseEnvy] = std::min(1.0, s.envy);
     senses[SenseFighting] = fight_of(agent.identifier) ? 1.0 : 0.0;
     senses[SenseFoeCloseness] = s.foe_closeness;
+    senses[SenseCookingSmell] = s.cooking_smell;
     senses[SenseFertilizedHere] = fertilized_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
     senses[SenseShelterHere] = shelter_at(agent.x, agent.y) ? 1.0 : static_cast<double>(site_at(agent.x, agent.y)) / SHELTER_UNITS;
@@ -4027,7 +4034,8 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
     const bool eats_meat = meat >= fruit;
     const Cell pile = eats_meat ? *s.eat_meat : *s.eat_fruit;
     const PileKind raw = eats_meat ? MeatPile : FruitPile;
-    const PileKind kind = pile_at(pile.x, pile.y, raw) > 0 ? raw : eats_meat ? CookedMeatPile : CookedFruitPile;
+    const PileKind cooked = eats_meat ? CookedMeatPile : CookedFruitPile;
+    const PileKind kind = pile_at(pile.x, pile.y, cooked) > 0 ? cooked : raw;  // the cooked first
     move_toward(agent, pile.x, pile.y);
     if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, kind) <= 0) {
         agent.last_action = "sought a pile";
@@ -4037,6 +4045,7 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
     ++carrying[PileEaten];
     if (kind == FruitPile) keep_seed(agent);
     agent.nourish((eats_meat ? meat : fruit) * (kind == raw ? 1.0 : COOKED_FOOD), eats_meat);
+    taste(agent, kind != raw);
     agent.last_action = "ate from a pile";
 }
 
@@ -4045,6 +4054,7 @@ void Simulation::eat_carried(Bitzkey& agent) {
     const double fruit = agent.carried_fruit + agent.cooked_fruit ? FRUIT_PORTION * agent.browsing * (agent.cooked_fruit ? COOKED_FOOD : 1.0) : 0.0;
     const bool eats_meat = meat >= fruit;
     int& cooked = eats_meat ? agent.cooked_meat : agent.cooked_fruit;  // the cooked first
+    taste(agent, cooked > 0);
     if (cooked) --cooked;
     else {
         --(eats_meat ? agent.carried_meat : agent.carried_fruit);
@@ -4053,6 +4063,33 @@ void Simulation::eat_carried(Bitzkey& agent) {
     ++carrying[CarriedEaten];
     agent.nourish(eats_meat ? meat : fruit, eats_meat);
     agent.last_action = "ate what it carried";
+}
+
+void Simulation::taste(Bitzkey& agent, bool cooked) {
+    if (!cooked) {
+        agent.reward -= RAW_DISTASTE * agent.cooked_known;
+        return;
+    }
+    agent.cooked_known = std::min(1.0, agent.cooked_known + COOKED_TASTE);
+    agent.reward += COOKED_JOY * (0.5 + agent.cooked_known);
+    if (agent.cooked_known >= 1.0) note_first("loved_cooked", agent.species, agent.identifier);
+}
+
+double Simulation::cooking_smell(const Bitzkey& agent, int sight) const {
+    if (!any_piles_ && !any_fires_) return 0.0;
+    const int reach = std::min(MAX_SIGHT, std::max(sight, static_cast<int>(py_round(sight * SMELL_REACH))));
+    const auto smells = [&](int x, int y) {
+        if (!in_bounds(x, y)) return false;
+        const std::size_t cell = static_cast<std::size_t>(y) * width_ + x;
+        return pile_at(x, y, CookedMeatPile) > 0 || pile_at(x, y, CookedFruitPile) > 0 || (fires_[cell] > turn_ && cooked_on_[cell] + DAY_LENGTH > turn_);
+    };
+    if (smells(agent.x, agent.y)) return 1.0;
+    const Side side = tie_side(agent);
+    for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(reach)]) {
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
+        if (smells(x, y)) return closeness(agent, Cell{x, y}, reach);
+    }
+    return 0.0;
 }
 
 void Simulation::eat_portion(Bitzkey& corpse) {
@@ -4276,13 +4313,18 @@ void Simulation::plant_seed(Bitzkey& agent) {
     note_first("planted", agent.species, agent.identifier);
 }
 
-void Simulation::crush_bone(Bitzkey& agent) {
+bool Simulation::crush_bone(Bitzkey& agent) {
     if (agent.carried_bone > 0) --agent.carried_bone;
-    else add_to_pile(agent.x, agent.y, BonePile, -1);
+    else if (pile_at(agent.x, agent.y, BonePile) > 0) add_to_pile(agent.x, agent.y, BonePile, -1);
+    else {  // another took the last first
+        agent.last_action = "found no bone";
+        return false;
+    }
+    return true;
 }
 
 void Simulation::eat_marrow(Bitzkey& agent) {
-    crush_bone(agent);
+    if (!crush_bone(agent)) return;
     agent.nourish(MEAT_PORTION * agent.digestion, true);
     agent.last_action = "ate marrow";
     note_first("ate_marrow", agent.species, agent.identifier);
@@ -4299,7 +4341,7 @@ void Simulation::eat_marrow(Bitzkey& agent) {
 }
 
 void Simulation::fertilize(Bitzkey& agent) {
-    crush_bone(agent);
+    if (!crush_bone(agent)) return;
     fertilized_[static_cast<std::size_t>(agent.y) * width_ + agent.x] = 1;
     agent.reward += FERTILIZING_JOY * (0.5 + agent.feeling(Curiosity));
     agent.last_action = "fertilized the land";
@@ -4330,10 +4372,12 @@ void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
     deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);  // keeping a fire is thought well of, as lighting one is
 }
 
-void Simulation::cook(Bitzkey& agent, Cell) {
+void Simulation::cook(Bitzkey& agent, Cell fire) {
     const bool meat = agent.carried_meat > 0;
     --(meat ? agent.carried_meat : agent.carried_fruit);
     ++(meat ? agent.cooked_meat : agent.cooked_fruit);
+    cooked_on_[static_cast<std::size_t>(fire.y) * width_ + fire.x] = turn_;
+    agent.reward += COOK_JOY * (0.5 + agent.cooked_known);
     agent.last_action = "cooked";
     note_first("cooked", agent.species, agent.identifier);
 }

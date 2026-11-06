@@ -494,6 +494,13 @@ inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a cl
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double FIRE_COMFORT = 0.3;  // the comfort of seeing a fire that is its own or its herd's, as an unfamiliar one frightens
 inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
+// The taste for cooked food: each cooked portion eaten adds a fifth to its taste for it (cooked_known, 0 to 1), and is a
+// delight (COOKED_JOY, times a half and the taste). Once it knows that taste, a raw portion, from a pile or carried, is
+// a letdown (RAW_DISTASTE times the taste), and cooking a pleasure (COOK_JOY, times a half and the taste). Cooked food,
+// and a fire cooked on within the day, are smelt SMELL_REACH times as far as it sees; cooked food smelt is food sought,
+// and in sight it is taken before raw.
+inline constexpr double COOKED_TASTE = 0.2;
+inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 0.5, SMELL_REACH = 2.0;
 inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls in, leaving its stone and wood in piles
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
 inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
@@ -776,6 +783,7 @@ struct Bitzkey {
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
+    double cooked_known = 0.0;  // its taste for cooked food, a fifth for each cooked portion eaten, to 1 (see COOKED_JOY)
     double meat_lean = 0.0;  // a grazer's lean toward meat from marrow eaten, 0 to 1; at 1 it turns omnivore
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
@@ -1243,6 +1251,7 @@ public:
         Bitzkey* gift_to = nullptr;  // a friend beside it whose possession is worse than its own
         int gift = -1;
         double foe_closeness = 0.0;
+        double cooking_smell = 0.0;  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1455,6 +1464,8 @@ public:
     void light_fire(Bitzkey& agent);  // struck from two stones it carries, which it keeps, or of its club, spent
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
+    void taste(Bitzkey& agent, bool cooked);  // the delight of a cooked portion, or the letdown of a raw one once it knows better
+    double cooking_smell(const Bitzkey& agent, int sight) const;  // closeness of the nearest cooking smelt, 0 none
     bool take_cooked(Bitzkey& agent, Cell pile, bool meat);  // a cooked portion, if that is what lies there
     bool arable_at(int x, int y) const { return in_bounds(x, y) && arable_[static_cast<std::size_t>(y) * width_ + x]; }
     void keep_seed(Bitzkey& agent);
@@ -1471,7 +1482,7 @@ public:
     bool can_crush(const Bitzkey& agent) const {  // a bone to hand and something to crush it with
         return (agent.weapon == Club || agent.weapon == StoneAxe || agent.carried_stone > 0) && (agent.carried_bone > 0 || pile_at(agent.x, agent.y, BonePile) > 0);
     }
-    void crush_bone(Bitzkey& agent);  // spends the bone it carries, or else one from the pile on its square
+    bool crush_bone(Bitzkey& agent);  // spends the bone it carries, or else one from the pile on its square; false if none is left
     void eat_marrow(Bitzkey& agent);
     void fertilize(Bitzkey& agent);
     void skin(Bitzkey& agent, Bitzkey& corpse);
@@ -1770,7 +1781,7 @@ private:
     std::array<double, 4> envy_cut_{2, 2, 2, 2}, take_cut_{2, 2, 2, 2}, give_cut_{2, 2, 2, 2};
     double raw_regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // as known, no fight in it
     std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
-    std::vector<int> fires_, fire_lighters_;  // each square's last fire: when it goes out, and who lit it
+    std::vector<int> fires_, fire_lighters_, cooked_on_;  // cooked_on_: the turn each square's fire was last cooked on  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;
     std::vector<Milestone> diary_;
     int diary_since_ = 0;

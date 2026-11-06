@@ -1773,5 +1773,14 @@
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "共感か社交性で並べた同種のうち、友に持ち物を決して与えない割合。0.75なら上位4分の1が与える。1なら誰も与えない",
 "share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "攻撃性か支配性で並べた同種のうち、持ち物を決して要求も盗みもしない割合。0.75なら上位4分の1が奪う。1なら誰も奪わない",
 "Marrow lean": "骨髄への傾き",
-"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "骨髄を一度食べるごとに草食動物が肉食へ傾く度合い。満ちると、その個体と子は雑食になる。0なら決して"
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "骨髄を一度食べるごとに草食動物が肉食へ傾く度合い。満ちると、その個体と子は雑食になる。0なら決して",
+"Cooked delight": "加熱食の喜び",
+"pleasure of eating a cooked portion, times a half and its taste for cooked food": "加熱した一食を食べる喜び。0.5と加熱食への好みの和を掛ける",
+"Raw distaste": "生食への落胆",
+"letdown of eating a raw portion once it knows the taste of cooked, times that taste": "加熱食の味を知った後に生の一食を食べる落胆。その好みを掛ける",
+"Cooking joy": "調理の喜び",
+"pleasure of cooking a portion, times a half and its taste for cooked food": "一食を調理する喜び。0.5と加熱食への好みの和を掛ける",
+"Smell reach": "嗅覚の届く距離",
+"how many times as far as it sees an animal smells cooked food and a fire cooked on": "見える距離の何倍まで、加熱食と調理に使われた火の匂いを嗅ぎ取るか",
+"found no bone": "骨が見つからなかった"
 }
