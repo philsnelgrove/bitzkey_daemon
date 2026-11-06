@@ -549,8 +549,10 @@ Json Probe::settings(Simulation& world) const {
 
 Json Probe::climate(Simulation& world) const {
     // Each row's animals: how many, how many in a shelter and resting there, how many out of their home temperature
-    // (colder or hotter), and the mean steps from home they feel.
-    struct Dwellers { int animals = 0, sheltered = 0, resting_inside = 0, colder = 0, hotter = 0; double steps = 0.0; };
+    // (colder or hotter), and the mean steps from home they feel; how many stand on a road and have gone by road, and
+    // their mean road memory. Road memory by species too: how many have gone by road, and how many to the full.
+    struct Dwellers { int animals = 0, sheltered = 0, resting_inside = 0, colder = 0, hotter = 0, on_road = 0, road_known = 0; double steps = 0.0, road_memory = 0.0; };
+    std::map<std::string, std::array<int, 3>> road_love;  // animals, gone by road, full memory
     std::vector<Dwellers> dwellers(static_cast<std::size_t>(world.height()));
     for (const auto& agent : world.agents()) {
         if (!agent->alive() || agent->species == Species::Plant || agent->y < 0 || agent->y >= world.height()) continue;
@@ -562,23 +564,38 @@ Json Probe::climate(Simulation& world) const {
         row.colder += here > agent->climate.temperature;
         row.hotter += here < agent->climate.temperature;
         row.steps += agent->climate_steps(here);
+        row.on_road += world.road_at(agent->x, agent->y);
+        auto& love = road_love[std::string(species_name(agent->species))];
+        ++love[0];
+        if (agent->road_known > 0) {
+            ++row.road_known;
+            row.road_memory += agent->road_known;
+            ++love[1];
+            love[2] += agent->road_known >= 1.0;
+        }
     }
     Json rows = Json::array();
     for (int y = 0; y < world.height(); ++y) {
-        int grass = 0, sea = 0, shelters = 0;
+        int grass = 0, sea = 0, shelters = 0, roads = 0, roads_begun = 0;
         for (int x = 0; x < world.width(); ++x) {
             grass += world.grass_at(x, y);
             sea += world.sea(x, y);
             shelters += world.shelter_at(x, y);
+            roads += world.road_at(x, y);
+            roads_begun += world.road_work_at(x, y) > 0;
         }
         const Dwellers& row = dwellers[static_cast<std::size_t>(y)];
         rows.push_back({{"y", y}, {"temperature", world.temperature(y)}, {"zone", zone_temperature(y, world.height())},
                         {"growth", world.growth(y)}, {"grass", grass}, {"sea", sea}, {"watered", world.watered_in_row(y)},
                         {"shelters", shelters}, {"animals", row.animals}, {"sheltered", row.sheltered}, {"resting_inside", row.resting_inside},
                         {"colder_than_home", row.colder}, {"hotter_than_home", row.hotter},
-                        {"mean_steps_from_home", row.animals ? Json(row.steps / row.animals) : Json(nullptr)}});
+                        {"mean_steps_from_home", row.animals ? Json(row.steps / row.animals) : Json(nullptr)},
+                        {"roads", roads}, {"roads_begun", roads_begun}, {"on_road", row.on_road}, {"gone_by_road", row.road_known},
+                        {"mean_road_memory", row.road_known ? Json(row.road_memory / row.road_known) : Json(nullptr)}});
     }
-    return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"rows", rows}};
+    Json love = Json::object();
+    for (const auto& [species, counts] : road_love) love[species] = {{"animals", counts[0]}, {"gone_by_road", counts[1]}, {"full_road_memory", counts[2]}};
+    return {{"turn", world.turn()}, {"season", std::string(SEASONS[static_cast<std::size_t>(season(world.turn()))])}, {"road_love", love}, {"rows", rows}};
 }
 
 Json Probe::grass(Simulation& world, bool map) const {
