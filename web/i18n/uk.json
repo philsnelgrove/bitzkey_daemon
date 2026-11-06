@@ -1771,5 +1771,7 @@
 "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "скільки поваги коштує злодієві побачена крадіжка, удвічі в жертви; натомість повага від тих, хто вважає жертву ворогом",
 "share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "частка свого виду, впорядкована за мінливістю настрою чи домінантністю, що нікому не заздрить: 0,75 лишає заздрісною верхню чверть; 1 — нікого",
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "частка свого виду, впорядкована за емпатією чи товариськістю, що ніколи не дарує другові майна: 0,75 лишає верхню чверть дарувати; 1 — нікого",
-"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "частка свого виду, впорядкована за агресивністю чи домінантністю, що ніколи не вимагає й не краде майна: 0,75 лишає верхню чверть відбирати; 1 — нікого"
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "частка свого виду, впорядкована за агресивністю чи домінантністю, що ніколи не вимагає й не краде майна: 0,75 лишає верхню чверть відбирати; 1 — нікого",
+"Marrow lean": "Схильність від кісткового мозку",
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "наскільки кожна трапеза кістковим мозком схиляє травоїдного до м'яса; коли сповна, він і його малеча всеїдні; 0 — ніколи"
 }

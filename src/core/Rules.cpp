@@ -299,6 +299,7 @@ std::vector<Rule> make_rules() {
         {"ROAD_JOY", "Food", "Road joy", "pleasure of going by road, growing to the full of it after a day of road travel", 0.0, 2.0, 0.05, false, &ROAD_JOY},
         {"ROAD_LONGING", "Food", "Road longing", "how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity", 0.0, 5.0, 0.1, false, &ROAD_LONGING},
         {"FERTILIZING_JOY", "Food", "Fertilizing joy", "pleasure of feeding crushed bone to worked land, times curiosity", 0.0, 5.0, 0.1, false, &FERTILIZING_JOY},
+        {"MARROW_LEAN", "Food", "Marrow lean", "how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never", 0.0, 1.0, 0.01, false, &MARROW_LEAN},
         {"SKINNING_JOY", "Food", "Skinning joy", "pleasure of wearing a new, finer hide, times curiosity, the more for a finer one", 0.0, 5.0, 0.1, false, &SKINNING_JOY},
         {"HIDE_WARMTH", "Food", "Hide warmth", "steps of cold a worn hide keeps out", 0.0, 3.0, 0.25, false, &HIDE_WARMTH},
         {"HIDE_ARMOUR_SHARE", "Food", "Hide armour share", "share of the armour of the body a hide came from that it adds to its wearer's", 0.0, 1.0, 0.05, false, &HIDE_ARMOUR_SHARE},

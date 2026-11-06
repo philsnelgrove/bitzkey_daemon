@@ -221,6 +221,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["road_known"] = agent->road_known;
     result["hide"] = agent->hide ? std::string(SPECIES[static_cast<std::size_t>(agent->hide)]) : std::string("none");
     result["regarded"] = agent->regarded;
+    result["meat_lean"] = agent->meat_lean;
     result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
@@ -819,7 +820,7 @@ Json Probe::skills(Simulation& world) const {
         // thieves and the thefts they've done, and those held liars.
         std::array<std::size_t, 4> hides{};
         std::array<double, 4> regarded{};
-        std::size_t envious = 0, fighting = 0, thieves = 0, thefts = 0, held_liars = 0;
+        std::size_t envious = 0, fighting = 0, thieves = 0, thefts = 0, held_liars = 0, leaning = 0;
         std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0;
         std::array<std::size_t, CRAFT_COUNT> known{}, tried{}, mastered{};
         std::array<std::array<std::size_t, 5>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
@@ -852,6 +853,7 @@ Json Probe::skills(Simulation& world) const {
             thieves += agent->thefts > 0;
             thefts += static_cast<std::size_t>(agent->thefts);
             held_liars += liars.contains(agent->identifier);
+            leaning += agent->meat_lean > 0;
         }
         Json worn = Json::object(), esteem = Json::object();
         for (std::size_t hide = 0; hide < hides.size(); ++hide) {
@@ -860,7 +862,7 @@ Json Probe::skills(Simulation& world) const {
             esteem[name] = hides[hide] ? Json(regarded[hide] / static_cast<double>(hides[hide])) : Json(nullptr);
         }
         const Json possessions = {{"hides", worn}, {"regarded_by_hide", esteem}, {"envious", envious}, {"in_a_fight", fighting},
-                                  {"thieves", thieves}, {"thefts", thefts}, {"held_liars", held_liars}};
+                                  {"thieves", thieves}, {"thefts", thefts}, {"held_liars", held_liars}, {"leaning_to_meat", leaning}};
         Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
         for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
             crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}, {"mastered", mastered[craft]}, {"unrecorded", sources[craft][0]},

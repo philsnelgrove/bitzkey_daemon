@@ -1771,5 +1771,7 @@
 "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "combien un vol vu coûte d'estime au voleur, le double auprès de sa victime ; de l'estime au contraire auprès de ceux qui tiennent la victime pour ennemie",
 "share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "part de son espèce, classée par humeur changeante ou dominance, qui n'envie personne : 0,75 laisse le quart supérieur envieux ; 1 pour aucun",
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "part de son espèce, classée par empathie ou sociabilité, qui ne donne jamais un bien à un ami : 0,75 laisse le quart supérieur donner ; 1 pour aucun",
-"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "part de son espèce, classée par agressivité ou dominance, qui n'exige ni ne vole jamais un bien : 0,75 laisse le quart supérieur prendre ; 1 pour aucun"
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "part de son espèce, classée par agressivité ou dominance, qui n'exige ni ne vole jamais un bien : 0,75 laisse le quart supérieur prendre ; 1 pour aucun",
+"Marrow lean": "Penchant pour la moelle",
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "combien chaque repas de moelle rapproche un brouteur de la viande ; au plein, lui et ses petits sont omnivores ; 0 pour jamais"
 }

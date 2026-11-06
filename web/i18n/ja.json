@@ -1771,5 +1771,7 @@
 "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "見られた盗みが盗人の評価を下げる量。被害者からは2倍。被害者を敵とみなす者からは逆に評価が上がる",
 "share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "気分屋さか支配性で並べた同種のうち、誰も妬まない割合。0.75なら上位4分の1が妬む。1なら誰も妬まない",
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "共感か社交性で並べた同種のうち、友に持ち物を決して与えない割合。0.75なら上位4分の1が与える。1なら誰も与えない",
-"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "攻撃性か支配性で並べた同種のうち、持ち物を決して要求も盗みもしない割合。0.75なら上位4分の1が奪う。1なら誰も奪わない"
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "攻撃性か支配性で並べた同種のうち、持ち物を決して要求も盗みもしない割合。0.75なら上位4分の1が奪う。1なら誰も奪わない",
+"Marrow lean": "骨髄への傾き",
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "骨髄を一度食べるごとに草食動物が肉食へ傾く度合い。満ちると、その個体と子は雑食になる。0なら決して"
 }

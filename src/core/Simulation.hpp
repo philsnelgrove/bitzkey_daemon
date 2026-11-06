@@ -557,7 +557,9 @@ inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
 // Bone crushed with a stone carried, a club or a stone axe, a bone it carries or one from a pile on its square: a
 // scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
 // sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
-inline double FERTILIZING_JOY = 1.0;
+// Each marrow meal edges a grazer MARROW_LEAN toward meat; at the full of it, it gives in: an omnivore, in its genes
+// too, so its young are born omnivores.
+inline double FERTILIZING_JOY = 1.0, MARROW_LEAN = 0.05;
 // Clothing: with a bone or stone axe, one skins a body not yet skinned, getting the better of its own hide and any it wore, if
 // better than what it wears now; a pleasure (SKINNING_JOY, times curiosity, the more for the finer hide). A hide keeps
 // out HIDE_WARMTH steps of cold and adds HIDE_ARMOUR_SHARE of the armour of the body it came from to the wearer's own.
@@ -774,6 +776,7 @@ struct Bitzkey {
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
+    double meat_lean = 0.0;  // a grazer's lean toward meat from marrow eaten, 0 to 1; at 1 it turns omnivore
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1

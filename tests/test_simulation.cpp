@@ -2930,6 +2930,29 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
     CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
 }
 
+TEST_CASE("a grazer eating marrow edges toward meat until it gives in and turns omnivore, in its genes too") {
+    Simulation simulation(10, 40, 0, 1);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}, {"carrion", 7}}), 2, 20);
+    simulation.index_cells();
+    REQUIRE(grazer.species == Species::Grazer);
+    grazer.carried_stone = 1;
+    const int meals = static_cast<int>(std::lround(1.0 / MARROW_LEAN));
+    for (int meal = 1; meal < meals; ++meal) {
+        grazer.carried_bone = 1;
+        simulation.eat_marrow(grazer);
+    }
+    CHECK(grazer.species == Species::Grazer);
+    CHECK(grazer.meat_lean == doctest::Approx((meals - 1) * MARROW_LEAN));
+    grazer.carried_bone = 1;
+    simulation.eat_marrow(grazer);
+    CHECK(grazer.species == Species::Omnivore);
+    CHECK(static_cast<Species>(decode_body(grazer.dna)[SpeciesTrait]) == Species::Omnivore);  // its young will be too
+    CHECK(grazer.meat_lean == 0);
+    grazer.carried_bone = 1;
+    simulation.eat_marrow(grazer);
+    CHECK(grazer.meat_lean == 0);  // only grazers lean
+}
+
 TEST_CASE("bone crushed with a stone, club or stone axe gives a scavenger marrow, or fertilizes worked land") {
     Simulation simulation(10, 40, 0, 1);
     int temperate = -1;

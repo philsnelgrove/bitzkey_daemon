@@ -4286,6 +4286,16 @@ void Simulation::eat_marrow(Bitzkey& agent) {
     agent.nourish(MEAT_PORTION * agent.digestion, true);
     agent.last_action = "ate marrow";
     note_first("ate_marrow", agent.species, agent.identifier);
+    if (agent.species != Species::Grazer || MARROW_LEAN <= 0) return;
+    agent.meat_lean = std::min(1.0, agent.meat_lean + MARROW_LEAN);
+    if (agent.meat_lean < 1.0 - 1e-9) return;
+    constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
+    agent.dna.bits = (agent.dna.bits & ~(std::uint64_t{0x3} << shift)) | (static_cast<std::uint64_t>(Species::Omnivore) << shift);
+    agent.body[SpeciesTrait] = static_cast<int>(Species::Omnivore);
+    agent.species = Species::Omnivore;
+    agent.meat_lean = 0.0;
+    agent.derive();
+    note_first("gave_in_to_meat", Species::Grazer, agent.identifier);
 }
 
 void Simulation::fertilize(Bitzkey& agent) {

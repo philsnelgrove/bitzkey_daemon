@@ -1771,5 +1771,7 @@
 "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "quanto costa in stima al ladro un furto visto, il doppio presso la vittima; stima invece presso chi ritiene la vittima un nemico",
 "share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "quota della propria specie, ordinata per lunaticità o dominanza, che non invidia nessuno: 0,75 lascia invidioso il quarto superiore; 1 per nessuno",
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "quota della propria specie, ordinata per empatia o socievolezza, che non dona mai un bene a un amico: 0,75 lascia donare il quarto superiore; 1 per nessuno",
-"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "quota della propria specie, ordinata per aggressività o dominanza, che non pretende né ruba mai un bene: 0,75 lascia prendere il quarto superiore; 1 per nessuno"
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "quota della propria specie, ordinata per aggressività o dominanza, che non pretende né ruba mai un bene: 0,75 lascia prendere il quarto superiore; 1 per nessuno",
+"Marrow lean": "Inclinazione al midollo",
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "quanto ogni pasto di midollo avvicina un erbivoro alla carne; al massimo, lui e i suoi piccoli sono onnivori; 0 per mai"
 }

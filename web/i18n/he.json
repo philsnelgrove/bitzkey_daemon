@@ -1771,5 +1771,7 @@
 "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe": "כמה עולה גניבה שנראתה בהערכת הגנב, כפליים אצל קורבנו; הערכה דווקא אצל מי שרואים בקורבן אויב",
 "share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none": "חלק ממינו, מדורג לפי מצב רוח או שליטה, שאינו מקנא באיש: 0.75 משאיר את הרבע העליון מקנא; 1 לאף אחד",
 "share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none": "חלק ממינו, מדורג לפי אמפתיה או חברותיות, שלעולם אינו נותן רכוש לחבר: 0.75 משאיר את הרבע העליון נותן; 1 לאף אחד",
-"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "חלק ממינו, מדורג לפי תוקפנות או שליטה, שלעולם אינו דורש או גונב רכוש: 0.75 משאיר את הרבע העליון לוקח; 1 לאף אחד"
+"share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none": "חלק ממינו, מדורג לפי תוקפנות או שליטה, שלעולם אינו דורש או גונב רכוש: 0.75 משאיר את הרבע העליון לוקח; 1 לאף אחד",
+"Marrow lean": "נטייה ממח עצם",
+"how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never": "כמה כל ארוחת מח עצם מקרבת אוכל עשב לבשר; במלואה, הוא וצאצאיו אוכלי כל; 0 לעולם לא"
 }
