@@ -241,6 +241,7 @@ std::vector<Rule> make_rules() {
         {"WITNESS_SHARE", "Mind", "Witness share", "how much of a deed's weight it has on regard when only seen done, not done to the animal", 0.0, 1.0, 0.05, false, &WITNESS_SHARE},
         {"SKILL_WITNESS", "Mind", "Skill witness", "how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share", 0.0, 1.0, 0.05, false, &SKILL_WITNESS},
         {"REGARD_LEARNING", "Mind", "Regard learning", "how far each deed moves an animal's regard for the doer toward the deed's worth", 0.0, 1.0, 0.05, false, &REGARD_LEARNING},
+        {"INHERITED_REGARD", "Mind", "Inherited regard", "share of how one holds a child's parents, regard and reputation, it holds the child at until it judges it by its own deeds", 0.0, 1.0, 0.05, false, &INHERITED_REGARD},
         {"SHARED_BOND", "Mind", "Shared bond", "how much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none", 0.0, 1.0, 0.05, false, &SHARED_BOND},
         {"SKILL_COMFORT", "Mind", "Skill comfort", "ease near one it holds skilled, more if curious; 0 for none", 0.0, 2.0, 0.05, false, &SKILL_COMFORT},
         {"WATCH_LEARNING", "Mind", "Watch learning", "chance that a craft seen done by one of its kind it holds skilled is learnt from the watching; 0 for none", 0.0, 1.0, 0.01, false, &WATCH_LEARNING},

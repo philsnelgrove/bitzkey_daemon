@@ -350,6 +350,9 @@ constexpr double MAP_NEARNESS = 0.01;
 constexpr int MAX_ACQUAINTANCES = 16;
 inline int ACQUAINTANCES = 8;
 inline double REGARD_LEARNING = 0.3;
+// A child is held, by one that has not yet judged it by its own deeds, at INHERITED_REGARD of how that one holds its
+// parents (those of the two it knows, averaged): their regard, and their reputation for danger and skill.
+inline double INHERITED_REGARD = 0.5;
 inline double WITNESS_SHARE = 0.25;
 // A deed of skill seen counts for more toward how skilled the doer is held than toward liking it: SKILL_WITNESS of
 // its weight on skill (and on danger, which it lowers), however little Witness share gives regard.
@@ -1794,7 +1797,9 @@ private:
     // Each species' cut for envy, taking and giving: the drive at Envy, Take and Give level of its living, ranked each
     // turn; above it, one envies, may take or may give. None above 2, before the first ranking.
     std::array<double, 4> envy_cut_{2, 2, 2, 2}, take_cut_{2, 2, 2, 2}, give_cut_{2, 2, 2, 2};
-    double raw_regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // as known, no fight in it
+    double raw_regard_for(const Bitzkey& agent, const Bitzkey& other) const;
+    // How it holds another through its parents, at INHERITED_REGARD of how it holds them; none if it knows neither.
+    std::optional<Acquaintance> inherited(const Bitzkey& agent, const Bitzkey& other) const;  // as known, no fight in it
     std::vector<int> site_stone_;  // how many of a site's units are stone, the rest wood: what it falls back to
     std::vector<int> fires_, fire_lighters_, cooked_on_;  // cooked_on_: the turn each square's fire was last cooked on  // each square's last fire: when it goes out, and who lit it
     bool any_fires_ = false;

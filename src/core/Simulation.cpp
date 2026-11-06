@@ -2896,10 +2896,15 @@ void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed, do
     if (ACQUAINTANCES <= 0 || &agent == &other) return;
     auto found = std::find_if(known.begin(), known.end(), [&](const Acquaintance& one) { return one.identifier == other.identifier; });
     if (found == known.end()) {
+        const auto held = inherited(agent, other);  // a child first met as its parents' child
         if (static_cast<int>(known.size()) >= ACQUAINTANCES) known.erase(std::min_element(known.begin(), known.end(), least));
-        known.push_back(Acquaintance{other.identifier, regarded ? deed * weight : 0.0, turn_});
-        note_reputation(known.back(), kind, weight);
-        return;
+        if (!held) {
+            known.push_back(Acquaintance{other.identifier, regarded ? deed * weight : 0.0, turn_});
+            note_reputation(known.back(), kind, weight);
+            return;
+        }
+        known.push_back(*held);
+        found = known.end() - 1;
     }
     if (regarded) found->regard += REGARD_LEARNING * weight * (deed - found->regard);
     note_reputation(*found, kind, REGARD_LEARNING * weight);
@@ -2920,8 +2925,28 @@ double Simulation::raw_regard_for(const Bitzkey& agent, const Bitzkey& other) co
     for (const Acquaintance& known : agent.known) {
         if (known.identifier == other.identifier) return known.regard;
     }
+    if (const auto held = inherited(agent, other)) return held->regard;
     const Faction* faction = faction_of(agent, other);
     return faction ? faction->regard : 0.0;
+}
+
+std::optional<Acquaintance> Simulation::inherited(const Bitzkey& agent, const Bitzkey& other) const {
+    if (INHERITED_REGARD <= 0 || (other.mother < 0 && other.father < 0)) return std::nullopt;
+    Acquaintance held{other.identifier, 0.0, turn_};
+    int parents = 0;
+    for (const Acquaintance& known : agent.known) {
+        if (known.identifier != other.mother && known.identifier != other.father) continue;
+        held.regard += known.regard;
+        held.danger += known.danger;
+        held.skill += known.skill;
+        ++parents;
+    }
+    if (parents == 0) return std::nullopt;
+    const double share = INHERITED_REGARD / parents;
+    held.regard *= share;
+    held.danger *= share;
+    held.skill *= share;
+    return held;
 }
 
 const Faction* Simulation::faction_of(const Bitzkey& agent, const Bitzkey& other) {
@@ -3205,6 +3230,7 @@ double Simulation::skill_held(const Bitzkey& agent, const Bitzkey& other) const 
     for (const Acquaintance& known : agent.known) {
         if (known.identifier == other.identifier) return known.skill;
     }
+    if (const auto held = inherited(agent, other)) return held->skill;
     const Faction* faction = faction_of(agent, other);
     return faction ? faction->skill : 0.0;
 }

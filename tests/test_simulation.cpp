@@ -2933,6 +2933,26 @@ TEST_CASE("a hide skinned from a fresh body warms, armours and draws regard; fle
     CHECK(simulation.envy_of(skinner) == doctest::Approx(1.0));
 }
 
+TEST_CASE("a child is held at half how its parents are held, regard and reputation, until judged by its own deeds") {
+    Simulation simulation(30, 40, 0, 1);
+    const Dna dna = encode_dna(Species::Grazer);
+    Bitzkey& seer = simulation.add_agent(dna, 5, 20);
+    Bitzkey& mother = simulation.add_agent(dna, 6, 20);
+    Bitzkey& father = simulation.add_agent(dna, 7, 20);
+    Bitzkey& child = simulation.add_agent(dna, 8, 20);
+    Bitzkey& stranger = simulation.add_agent(dna, 9, 20);
+    child.mother = mother.identifier;
+    child.father = father.identifier;
+    simulation.index_cells();
+    seer.known = {Acquaintance{mother.identifier, 0.8, 0, 0.2, 0.6}, Acquaintance{father.identifier, 0.4, 0, 0.0, 0.2}};
+    CHECK(simulation.regard_for(seer, child) == doctest::Approx(INHERITED_REGARD * 0.6));  // half the mean of the two
+    CHECK(simulation.skill_held(seer, child) == doctest::Approx(INHERITED_REGARD * 0.4));
+    CHECK(simulation.regard_for(seer, stranger) == 0);
+    simulation.note_deed(seer, child, 1.0, 1.0, PlainDeed);  // its own deed, from where its parents left it
+    const double start = INHERITED_REGARD * 0.6;
+    CHECK(simulation.regard_for(seer, child) == doctest::Approx(start + REGARD_LEARNING * (1.0 - start)));
+}
+
 TEST_CASE("lessons of restraint: a kill where prey are few, the last bite in sight, a sown seed come up, a famine seen, and a sense of plenty") {
     Simulation simulation(30, 40, 0, 1);
     Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"sight", 0}}), 10, 20);
