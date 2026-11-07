@@ -281,15 +281,26 @@ function parseFrame(view) {
                      gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true), cooked: view.getUint16(offset + 18, true) & 32767, arable: view.getUint16(offset + 18, true) >> 15 };
   }
   // The lands, from a daemon new enough to send them: each claimed square's claimants' colours, and whether contested
-  const lands = { patch: 0, columns: 0, squares: [] };
+  // with the colour groups (members, species) and each Bitzkey's group
+  const lands = { patch: 0, columns: 0, squares: [], groups: new Map() };
   if (offset + 8 <= view.byteLength) {
     lands.patch = view.getUint16(offset, true);
     lands.columns = view.getUint16(offset + 2, true);
     const count = view.getUint32(offset + 4, true);
     offset += 8;
-    for (let index = 0; index < count && offset + 12 <= view.byteLength; ++index, offset += 12) {
-      lands.squares.push({ patch: view.getUint32(offset, true), first: [0, 1, 2].map((at) => view.getUint8(offset + 4 + at)),
-                           second: [0, 1, 2].map((at) => view.getUint8(offset + 7 + at)), contested: view.getUint8(offset + 10) === 1 });
+    for (let index = 0; index < count; ++index, offset += 20) {
+      lands.squares.push({ patch: view.getUint32(offset, true), realms: [view.getInt32(offset + 4, true), view.getInt32(offset + 8, true)],
+                           first: [0, 1, 2].map((at) => view.getUint8(offset + 12 + at)),
+                           second: [0, 1, 2].map((at) => view.getUint8(offset + 15 + at)), contested: view.getUint8(offset + 18) === 1 });
+    }
+    const groups = view.getUint32(offset, true);
+    offset += 4;
+    for (let index = 0; index < groups; ++index, offset += 12) {
+      lands.groups.set(view.getInt32(offset, true), { members: view.getUint32(offset + 4, true), species: view.getUint8(offset + 8) });
+    }
+    for (const agent of agents) {
+      agent.realm = view.getInt32(offset, true);
+      offset += 4;
     }
   }
   return { width, height, turn, temperatures, grass, agents, living, piles, lands };
@@ -489,6 +500,15 @@ function drawMap() {
       ctx.strokeStyle = `rgba(${first.join(',')},0.8)`;
       ctx.lineWidth = Math.max(1, cell / 8);
       ctx.strokeRect(left, top, wide, high);
+      if (contested) {  // WAR, in red, across it
+        ctx.save();
+        ctx.font = `bold ${Math.max(8, Math.min(72, Math.floor(wide / 16) * 4))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgb(220,36,36)';
+        ctx.fillText(tr('WAR'), left + wide / 2, top + high / 2, wide);
+        ctx.restore();
+      }
     }
   }
   {  // the piles: meat to the left of a square and fruit to the right, each with its count
@@ -740,11 +760,22 @@ function showSquare() {
   if (flags & 1) notes.push(`FIRE: ${flags >> 8} TURNS LEFT`);
   if (pile?.meat || pile?.fruit || pile?.cooked) notes.push(`MEAT ${pile.meat}  FRUIT ${pile.fruit}  COOKED ${pile.cooked}`);
   if (pile?.stone || pile?.bone || pile?.wood || pile?.gear) notes.push(`STONE ${pile.stone}  BONE ${pile.bone}  WOOD ${pile.wood}  GEAR ${pile.gear}`);
+  // The groups claiming its land, each a row with its colour, to pick the group by; and WAR, contested
+  const lands = app.frame.lands;
+  const claim = lands?.patch ? lands.squares.find(({ patch }) => patch === Math.floor(square[1] / lands.patch) * lands.columns + Math.floor(square[0] / lands.patch)) : null;
+  const claims = claim ? claim.realms.map((realm, at) => [realm, at === 0 ? claim.first : claim.second]).filter(([realm]) => realm >= 0 && lands.groups.has(realm)) : [];
+  const GROUPS = ['PLANTS', 'GRAZERS', 'OMNIVORES', 'PREDATORS'];
   const geometry = board();
   const used = here.reduce((total, agent) => total + 1 + agent.size, 0);
   squarePanel.replaceChildren(
     element('div', { class: 'square-title' }, `SQUARE (${square[0]}, ${square[1]})   ${used}/${app.state?.cell_space ?? 10} SPACES`),
     ...notes.map(note => element('div', { class: 'square-title' }, note)),
+    ...claims.map(([realm, colour]) => element('div', {
+      class: 'square-row',
+      onclick: () => { selectAll(app.frame.agents.filter(agent => agent.alive && agent.realm === realm).map(agent => agent.identifier)); showSquare(); },
+    }, element('span', { class: 'land-chip', style: `background: rgb(${colour.join(',')})` }),
+       `LAND OF ${GROUPS[lands.groups.get(realm).species]}: ${lands.groups.get(realm).members} STRONG`)),
+    ...(claims.length > 1 ? [element('div', { class: 'square-title square-war' }, 'WAR')] : []),
     ...here.map(agent => element('div', {
       class: agent.identifier === app.selectedId ? 'square-row chosen' : 'square-row',
       onclick: () => { select(agent.identifier); showSquare(); },

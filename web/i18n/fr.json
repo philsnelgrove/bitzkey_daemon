@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "joie d'une guerre nettement gagnée, et autant de malaise d'une guerre nettement perdue, à chaque tour",
 "War nerve": "Cran de guerre",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "à quel point une guerre nettement gagnée rend son camp moins enclin à paniquer, et le camp perdant davantage",
-"LANDS": "TERRES"
+"LANDS": "TERRES",
+"WAR": "GUERRE",
+"LAND OF {*}: {#} STRONG": "TERRE DES {*} : {#} MEMBRES"
 }

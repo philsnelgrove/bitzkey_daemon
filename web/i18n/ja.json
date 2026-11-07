@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "毎ターン、明らかに勝っている戦争の喜びと、明らかに負けている戦争の同じだけの不安",
 "War nerve": "戦争の胆力",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "明らかに勝っている戦争が味方をどれだけパニックしにくくし、負けている側をどれだけしやすくするか",
-"LANDS": "領地"
+"LANDS": "領地",
+"WAR": "戦争",
+"LAND OF {*}: {#} STRONG": "{*}の領地：{#}頭"
 }

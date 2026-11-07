@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "हर बारी, स्पष्ट रूप से जीते जा रहे युद्ध की खुशी, और स्पष्ट रूप से हारे जा रहे युद्ध की उतनी ही बेचैनी",
 "War nerve": "युद्ध का साहस",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "स्पष्ट रूप से जीता जा रहा युद्ध अपने पक्ष को घबराने की कितनी कम संभावना देता है, और हारने वाले को कितनी अधिक",
-"LANDS": "भूमि"
+"LANDS": "भूमि",
+"WAR": "युद्ध",
+"LAND OF {*}: {#} STRONG": "{*} की भूमि: {#} सदस्य"
 }

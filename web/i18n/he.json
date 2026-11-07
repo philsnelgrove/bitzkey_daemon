@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "שמחה על מלחמה שמנצחים בה בבירור, ואי־נוחות באותה מידה על מלחמה שמפסידים בה בבירור, בכל תור",
 "War nerve": "עצבי מלחמה",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "בכמה פחות נוטה להיבהל צד שמנצח בבירור במלחמה, ובכמה יותר הצד המפסיד",
-"LANDS": "טריטוריות"
+"LANDS": "טריטוריות",
+"WAR": "מלחמה",
+"LAND OF {*}: {#} STRONG": "טריטוריית {*}: {#} חברים"
 }

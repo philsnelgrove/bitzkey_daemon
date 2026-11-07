@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "每回合，明显获胜之战的喜悦，以及明显失利之战的同等不安",
 "War nerve": "战争胆量",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "明显获胜的战争使己方少惊慌多少，使落败一方多惊慌多少",
-"LANDS": "领地"
+"LANDS": "领地",
+"WAR": "战争",
+"LAND OF {*}: {#} STRONG": "{*}的领地：{#} 名成员"
 }

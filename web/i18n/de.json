@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "Freude über einen klar gewonnenen Krieg und ebenso viel Unbehagen über einen klar verlorenen, in jeder Runde",
 "War nerve": "Kriegsmut",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "wie viel weniger ein klar gewonnener Krieg seine Seite in Panik geraten lässt, und um wie viel mehr die verlierende",
-"LANDS": "LÄNDER"
+"LANDS": "LÄNDER",
+"WAR": "KRIEG",
+"LAND OF {*}: {#} STRONG": "LAND DER {*}: {#} STARK"
 }

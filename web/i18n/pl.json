@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "radość z wyraźnie wygrywanej wojny i tyle samo niepokoju z wyraźnie przegrywanej, co turę",
 "War nerve": "Nerwy wojenne",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "o ile mniej skłonną do paniki wyraźnie wygrywana wojna czyni swoją stronę, a o ile bardziej stronę przegrywającą",
-"LANDS": "ZIEMIE"
+"LANDS": "ZIEMIE",
+"WAR": "WOJNA",
+"LAND OF {*}: {#} STRONG": "ZIEMIA {*}: {#} CZŁONKÓW"
 }

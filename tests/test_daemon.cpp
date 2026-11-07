@@ -183,7 +183,7 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         }
         std::size_t claimed = 0;  // and the claimed land squares, after them
         for (int patch = 0; const LandClaims* land = simulation.square_claims(patch); ++patch) claimed += (*land)[0].realm >= 0;
-        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8 + 4 + piled * 20 + 8 + claimed * 12);
+        CHECK(data.size() == 24 + 4 * 30 + 30 * 30 + agents * 24 + trails * 8 + 4 + piled * 20 + 8 + claimed * 20 + 4 + simulation.realms().size() * 12 + agents * 4);
         const std::size_t first = 24 + 4 * 30 + 30 * 30;
         CHECK(read<std::uint32_t>(data, first) == static_cast<std::uint32_t>(simulation.agents()[0]->identifier));
         CHECK(read<std::uint32_t>(data, first + 20) == social_word(simulation.agents()[0]->dna));  // its social background, last

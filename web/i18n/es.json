@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "alegría por una guerra que se gana claramente, e igual inquietud por una que se pierde claramente, cada turno",
 "War nerve": "Temple de guerra",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "cuánto menos propenso al pánico deja una guerra claramente ganada a su bando, y cuánto más al bando perdedor",
-"LANDS": "TIERRAS"
+"LANDS": "TIERRAS",
+"WAR": "GUERRA",
+"LAND OF {*}: {#} STRONG": "TIERRA DE {*}: {#} MIEMBROS"
 }

@@ -315,8 +315,9 @@ std::string frame(const Simulation& simulation) {
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);
-    // The lands: a square's size in cells and squares to a row, then each claimed square, its claimants' colours (the
-    // second as the first while it has only one), and whether it is contested.
+    // The lands: a square's size in cells and squares to a row, then each claimed square, its claimants (the second -1
+    // while it has only one) and their colours (the second as the first then), and whether it is contested; then each
+    // colour group, its members and species; then each Bitzkey's group, in the order above, -1 for none.
     put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.land_patch()));
     put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.land_columns()));
     const std::size_t claimed_at = out.size();
@@ -331,6 +332,8 @@ std::string frame(const Simulation& simulation) {
         ++claimed;
         const bool contested = (*land)[1].realm >= 0;
         put<std::uint32_t>(out, static_cast<std::uint32_t>(patch));
+        put<std::int32_t>(out, (*land)[0].realm);
+        put<std::int32_t>(out, (*land)[1].realm);
         for (const Rgb rgb : {colour((*land)[0].realm), colour(contested ? (*land)[1].realm : (*land)[0].realm)}) {
             for (const int channel : {rgb.r, rgb.g, rgb.b}) put<std::uint8_t>(out, static_cast<std::uint8_t>(channel));
         }
@@ -338,6 +341,14 @@ std::string frame(const Simulation& simulation) {
         put<std::uint8_t>(out, 0);
     }
     std::memcpy(out.data() + claimed_at, &claimed, sizeof claimed);
+    put<std::uint32_t>(out, static_cast<std::uint32_t>(simulation.realms().size()));
+    for (const auto& [identifier, realm] : simulation.realms()) {
+        put<std::int32_t>(out, identifier);
+        put<std::uint32_t>(out, static_cast<std::uint32_t>(realm.members));
+        put<std::uint8_t>(out, static_cast<std::uint8_t>(realm.species));
+        for (int pad = 0; pad < 3; ++pad) put<std::uint8_t>(out, 0);
+    }
+    for (const auto& agent : agents) put<std::int32_t>(out, agent->realm);
     return out;
 }
 

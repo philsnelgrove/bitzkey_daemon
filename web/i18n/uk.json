@@ -1839,5 +1839,7 @@
 "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn": "радість від явно виграної війни і стільки ж неспокою від явно програної, щоходу",
 "War nerve": "Воєнна витримка",
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "наскільки менш схильною до паніки явно виграна війна робить свою сторону, і наскільки більше — сторону, що програє",
-"LANDS": "ЗЕМЛІ"
+"LANDS": "ЗЕМЛІ",
+"WAR": "ВІЙНА",
+"LAND OF {*}: {#} STRONG": "ЗЕМЛЯ {*}: {#} ЧЛЕНІВ"
 }
