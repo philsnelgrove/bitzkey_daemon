@@ -1216,8 +1216,9 @@ Json Probe::diary(Simulation& world) const {
 }
 
 Json Probe::lands(Simulation& world) const {
-    // Colour groups and their lands: per species, how many groups, how many hold land, the living in their own land and
-    // trespassing, and the marks of the victor borne; the groups holding land, largest first; and the wars.
+    // Colour groups and their lands: per species, how many groups, how many hold land, the living in their own land (and
+    // of those, on land another group contests), trespassing (on land only other groups claim), and the marks of the
+    // victor borne; the groups holding land, largest first; and the wars.
     const auto colour = [](std::uint32_t ring) {
         const Rgb rgb = color_from_word(ring);
         char text[8];
@@ -1226,7 +1227,7 @@ Json Probe::lands(Simulation& world) const {
     };
     Json species_rows = Json::object();
     for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
-        long long groups = 0, holding = 0, large = 0, squares = 0, living = 0, home = 0, trespassing = 0, warriors = 0, prestige = 0;
+        long long groups = 0, holding = 0, large = 0, squares = 0, living = 0, home = 0, contested = 0, trespassing = 0, warriors = 0, prestige = 0;
         for (const auto& [identifier, realm] : world.realms()) {
             if (realm.species != species) continue;
             groups += 1;
@@ -1237,14 +1238,16 @@ Json Probe::lands(Simulation& world) const {
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
             living += 1;
-            home += world.in_own_land(*agent);
-            trespassing += world.trespassing(*agent);
+            const bool own = world.in_own_land(*agent);
+            home += own;
+            contested += own && world.trespassing(*agent);  // its own land, claimed by another too
+            trespassing += !own && world.trespassing(*agent);
             warriors += agent->mark == WarriorMark;
             prestige += agent->mark == PrestigeMark;
         }
         species_rows[std::string(species_name(species))] = {
             {"groups", groups}, {"groups_large_enough", large}, {"groups_holding_land", holding}, {"squares_held", squares},
-            {"living", living}, {"in_own_land", home}, {"trespassing", trespassing},
+            {"living", living}, {"in_own_land", home}, {"on_contested_own_land", contested}, {"trespassing", trespassing},
             {"marks", {{"warrior", warriors}, {"prestige", prestige}}}};
     }
     std::vector<const Realm*> holders;
