@@ -297,6 +297,30 @@ TEST_CASE("the society route finds a family, a tribe of mutual friends and the o
     CHECK(factions["top_twenty_in_a_tribe_of_three_or_more"] == 4);
 }
 
+TEST_CASE("the society route shows whether colours keep their own ground and hold the other colour as foes") {
+    Simulation world(40, 40, 0, 1);
+    const Dna plain = encode_dna(Species::Omnivore), unlike = encode_dna(Species::Omnivore, {{"size", 7}, {"speed", 1}});
+    REQUIRE(ring_difference(plain, unlike) > FACTION_WIDTH);
+    Bitzkey& one = world.add_agent(plain, 5, 5);
+    Bitzkey& child = world.add_agent(plain, 6, 5);
+    child.mother = one.identifier;
+    world.add_agent(plain, 5, 7);  // a stranger of its colour
+    Bitzkey& rival = world.add_agent(unlike, 30, 30);
+    world.add_agent(unlike, 31, 30);
+    one.known.push_back(Acquaintance{rival.identifier, -0.9, 0});
+    one.known.push_back(Acquaintance{child.identifier, -0.9, 0});
+    world.index_cells();
+    const Json territory = direct(world).society(world)["species"]["omnivore"]["factions"]["territory"];
+    CHECK(territory["neighbours_of_their_colour"].get<double>() == doctest::Approx(1.0));  // each beside its own only
+    CHECK(territory["by_chance_of_their_colour"].get<double>() < 1.0);
+    CHECK(territory["neighbours_kin"].get<double>() == doctest::Approx(0.25));  // mother and child, of eight neighbourings
+    CHECK(territory["unrelated_neighbours_of_their_colour"].get<double>() == doctest::Approx(1.0));
+    CHECK(territory["foes"] == 2);
+    CHECK(territory["foes_of_their_colour"].get<double>() == doctest::Approx(0.5));
+    CHECK(territory["unrelated_foes"] == 1);
+    CHECK(territory["unrelated_foes_of_their_colour"].get<double>() == doctest::Approx(0.0));
+}
+
 TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lessons, and counts them by species") {
     Simulation world = empty_world();
     Bitzkey& maker = world.add_agent(encode_dna(Species::Omnivore), 5, 5);

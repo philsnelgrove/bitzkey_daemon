@@ -972,7 +972,8 @@ Json Probe::society(Simulation& world) const {
     // mean distance of unrelated animals of the species: a group that means anything stands nearer than that.
     //   families: those living descended from one living mother, and how near mother and child stay.
     //   tribes: those joined by friendship both ways, directly or through others.
-    //   factions: animals within Faction width of one colour, and whether they think better of their own than of others.
+    //   factions: animals within Faction width of one colour, and whether they think better of their own than of others,
+    //   keep near their own colour (territory) and hold as foes, or fight, those of their colour or of others.
     //   leaders: those the most hold as friends, or as skilled, and whether their followers stay near them.
     const auto steps = [](const Bitzkey& a, const Bitzkey& b) { return std::abs(a.x - b.x) + std::abs(a.y - b.y); };
     const auto mean = [](double sum, long long count) { return count > 0 ? Json(sum / count) : Json(nullptr); };
@@ -1084,6 +1085,50 @@ Json Probe::society(Simulation& world) const {
                 }
             }
         }
+        // Territory and enmity of colours: neighbours within TERRITORY steps against pairs drawn across the world, and foes
+        // and fights within a colour or across. Kin (parent, child or sibling) share a colour and stay near, so the unrelated
+        // are counted apart: colour that gathers strangers is chosen ground, not only family.
+        constexpr int TERRITORY = 5;
+        const auto alike = [](const Bitzkey& one, const Bitzkey& other) { return colour_difference(body_word(one.dna), body_word(other.dna)) <= FACTION_WIDTH; };
+        long long near_pairs = 0, near_alike = 0, near_kin = 0, unrelated_alike = 0, far_pairs = 0, far_alike = 0, foes = 0, foes_alike = 0, unrelated_foes = 0,
+                  unrelated_foes_alike = 0, fights_within = 0, fights_across = 0;
+        for (std::size_t at = 0; at < count; ++at) {
+            const Bitzkey& agent = *animals[at];
+            for (const Bitzkey* other : world.around(agent, TERRITORY)) {
+                if (!other->alive() || other->species != species) continue;
+                near_pairs += 1;
+                near_alike += alike(agent, *other);
+                if (Simulation::family(agent, *other)) near_kin += 1;
+                else unrelated_alike += alike(agent, *other);
+            }
+            for (const std::size_t step : {count / 2, count / 3, count / 5}) {
+                if (step == 0) continue;
+                far_pairs += 1;
+                far_alike += alike(agent, *animals[(at + step) % count]);
+            }
+            for (const Acquaintance& known : agent.known) {
+                if (known.regard > -REGARD_STRONG) continue;
+                const auto other = index.find(known.identifier);
+                if (other == index.end()) continue;
+                foes += 1;
+                foes_alike += alike(agent, *animals[other->second]);
+                if (Simulation::family(agent, *animals[other->second])) continue;
+                unrelated_foes += 1;
+                unrelated_foes_alike += alike(agent, *animals[other->second]);
+            }
+        }
+        for (const Simulation::Fight& fight : world.fights()) {
+            const auto thief = index.find(fight.thief), victim = index.find(fight.victim);
+            if (thief == index.end() || victim == index.end()) continue;
+            (alike(*animals[thief->second], *animals[victim->second]) ? fights_within : fights_across) += 1;
+        }
+        const auto part = [](long long some, long long of) { return of > 0 ? Json(static_cast<double>(some) / of) : Json(nullptr); };
+        const Json territory = {{"neighbours_of_their_colour", part(near_alike, near_pairs)}, {"by_chance_of_their_colour", part(far_alike, far_pairs)},
+                                {"neighbours_kin", part(near_kin, near_pairs)}, {"unrelated_neighbours_of_their_colour", part(unrelated_alike, near_pairs - near_kin)},
+                                {"foes", foes}, {"foes_of_their_colour", part(foes_alike, foes)},
+                                {"unrelated_foes", unrelated_foes}, {"unrelated_foes_of_their_colour", part(unrelated_foes_alike, unrelated_foes)},
+                                {"fights_within_a_colour", fights_within}, {"fights_across_colours", fights_across}};
+
         std::sort(colours.begin(), colours.end(), [](const Colour& a, const Colour& b) { return a.members > b.members; });
         Json largest_colours = Json::array();
         for (std::size_t at = 0; at < std::min<std::size_t>(colours.size(), 5); ++at) {
@@ -1147,7 +1192,7 @@ Json Probe::society(Simulation& world) const {
         }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
-            {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}}},
+            {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}, {"territory", territory}}},
             {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
                          {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}},
                          {"factions", {{"top_twenty_friends_of_their_colour", top_friends ? Json(static_cast<double>(top_friends_of_colour) / top_friends) : Json(nullptr)},
