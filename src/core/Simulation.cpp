@@ -918,6 +918,7 @@ void Simulation::take_turn() {
     ++turn_;
     update_climate();
     index_cells();
+    if (turn_ % std::max(1, LAND_TURNS) == 0) count_lands();
     for (const auto& agent : agents_) {  // a body some cost starved, its death not yet recorded: recorded now
         agent->trail.clear();             // last turn's way is forgotten
         if (!agent->died_turn && !agent->alive()) die(*agent, agent->hunger >= 100 ? "starved" : "killed");
@@ -972,7 +973,7 @@ void Simulation::take_turn() {
         const double burn = agent->burn * (hungrier ? 1 + (CLIMATE_HUNGER - 1) * share * std::min(1.0, steps) : 1.0);
         agent->hunger = std::min(100.0, agent->hunger + agent->digest(burn));  // meat lasts; hunger stops at full
         if (agent->cooldown) agent->cooldown -= 1;
-        if (agent->health < agent->max_health && agent->hunger < 65) agent->heal(0.005);
+        if (agent->health < agent->max_health && agent->hunger < 65) agent->heal(0.005 * (in_own_land(*agent) ? 1 + LAND_HEALING : 1.0));
         // A tenth of its health a step, part steps in part; a plant takes one step in its stride, and is
         // hurt more and more as the weather turns toward a second, to full harm two away.
         const double felt = plant ? std::max(0.0, std::min(steps, 2 * (steps - 1))) : steps;
@@ -1013,6 +1014,7 @@ void Simulation::take_turn() {
         agent->seen_failure *= std::pow(SOCIAL_MEMORY, 1 + RESILIENCE * (2 * agent->feeling(Resilience) - 1));  // got over sooner
         settle(*agent);
         nurse(*agent);
+        trespass(*agent);
         if (agent->hunger >= 80) experience(*agent, Starving);
         thinkers.push_back(agent);
     }
@@ -2333,10 +2335,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.nurseries = free_cells_near(agent);
     std::vector<Bitzkey*> prey, threats;
     for (Bitzkey* other : neighbors) {
-        if (is_prey(agent, *other)) prey.push_back(other);
+        if (preys_on(agent, *other)) prey.push_back(other);
     }
     for (Bitzkey* other : neighbors) {
-        if (is_prey(*other, agent)) threats.push_back(other);
+        if (preys_on(*other, agent)) threats.push_back(other);
     }
     double best = 0.0;
     for (Bitzkey* other : prey) {
@@ -2676,6 +2678,41 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         if (target) s.prey_flanked = std::min(2, pack_beside(agent, *target)) / 2.0;
     }
     senses[SensePreyFlanked] = s.prey_flanked;
+    {  // its land, its group's wars, trespassers in its land, and marks of the victor
+        const auto realm = realms_.find(agent.realm);
+        const bool holds = realm != realms_.end() && !realm->second.patches.empty();
+        const bool at_home = in_own_land(agent);
+        s.land = at_home ? 1.0 : holds ? -1.0 : 0.0;
+        s.war = war_standing(agent.realm);
+        senses[SenseOwnLand] = at_home ? 1.0 : 0.0;
+        senses[SenseForeignLand] = trespassing(agent) ? 1.0 : 0.0;
+        if (holds && !at_home) {  // which way the nearest square of its own land lies
+            int square = -1, nearest = 0;
+            for (const int patch : realm->second.patches) {
+                const int cx = patch % land_columns_ * land_patch_ + land_patch_ / 2, cy = patch / land_columns_ * land_patch_ + land_patch_ / 2;
+                const int steps = std::max(std::abs(cx - agent.x), std::abs(cy - agent.y));
+                if (square < 0 || steps < nearest) {
+                    square = patch;
+                    nearest = steps;
+                }
+            }
+            const int dx = square % land_columns_ * land_patch_ + land_patch_ / 2 - agent.x, dy = square / land_columns_ * land_patch_ + land_patch_ / 2 - agent.y;
+            senses[SenseOwnLandEast] = static_cast<double>(dx) / std::max(1, nearest);
+            senses[SenseOwnLandSouth] = static_cast<double>(dy) / std::max(1, nearest);
+        }
+        int trespasser = sight + 1, best_mark = NoMark;
+        for (const Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || other->species == Species::Plant) continue;
+            best_mark = std::max(best_mark, other->mark);
+            if (!holds || other->realm == agent.realm) continue;
+            const LandClaims* there = claims_at(other->x, other->y);
+            if (there && claims(*there, agent.realm)) trespasser = std::min(trespasser, distance(other->x, other->y, agent.x, agent.y));
+        }
+        if (trespasser <= sight) senses[SenseTrespasser] = 1.0 - static_cast<double>(trespasser - 1) / std::max(1, sight);
+        senses[SenseWarStanding] = s.war;
+        senses[SenseMarked] = agent.mark / 2.0;
+        senses[SenseMarkSeen] = best_mark / 2.0;
+    }
     senses[SenseFoodPlenty] = agent.plenty + agent.plenty_known > 0 ? agent.plenty / (agent.plenty + std::max(0.0, agent.plenty_known)) : 0.5;
     senses[SenseFertilizedHere] = fertilized_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
@@ -3050,6 +3087,10 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
             garb_seen(*other, doer, deed, kind == LieDeed);
             continue;
         }
+        if (kind == MarkDeed) {
+            mark_seen(*other, doer, deed);
+            continue;
+        }
         if (kind == VictoryDeed) {  // for a friend's, against a foe's, and the more over a foe
             if (is_friend(*other, doer)) note_deed(*other, doer, 1.0, VICTORY_REGARD, PlainDeed, true);
             else if (is_foe(*other, doer)) note_deed(*other, doer, -1.0, VICTORY_REGARD, PlainDeed, true);
@@ -3094,6 +3135,219 @@ void Simulation::garb_seen(Bitzkey& seer, const Bitzkey& wearer, double garb, bo
     note_deed(seer, wearer, garb, GARB_REGARD, PlainDeed, true);
     found = find();
     if (found != seer.known.end()) found->garb += found->regard - before;
+}
+
+void Simulation::mark_seen(Bitzkey& seer, const Bitzkey& bearer, double worth) {
+    if (!is_foe(seer, bearer)) {
+        note_deed(seer, bearer, worth, MARK_REGARD, PlainDeed, true);
+        return;
+    }
+    note_deed(seer, bearer, 0.0, MARK_REGARD * worth, HarmDeed, false);  // a foe's mark: the more dangerous, and dreaded
+    seer.reward -= MARK_DREAD * worth * (0.5 + seer.fearfulness());
+}
+
+void Simulation::earn_mark(Bitzkey& victor, const Bitzkey& defeated) {
+    if (victor.species == Species::Plant) return;
+    const int earned = defeated.species == Species::Predator ? PrestigeMark : defeated.species == Species::Omnivore ? WarriorMark : NoMark;
+    if (earned <= victor.mark) return;
+    victor.mark = earned;
+    note_first(earned == PrestigeMark ? "mark_of_prestige" : "mark_of_the_warrior", victor.species, victor.identifier);
+}
+
+const LandClaims* Simulation::claims_at(int x, int y) const {
+    if (lands_.empty() || !in_bounds(x, y)) return nullptr;
+    return &lands_[static_cast<std::size_t>(y / land_patch_ * land_columns_ + x / land_patch_)];
+}
+
+bool Simulation::in_own_land(const Bitzkey& agent) const {
+    const LandClaims* land = agent.realm >= 0 ? claims_at(agent.x, agent.y) : nullptr;
+    return land && claims(*land, agent.realm);
+}
+
+bool Simulation::trespassing(const Bitzkey& agent) const {
+    if (agent.species == Species::Plant) return false;
+    const LandClaims* land = claims_at(agent.x, agent.y);
+    if (!land) return false;
+    return std::any_of(land->begin(), land->end(), [&](const Claim& claim) { return claim.realm >= 0 && claim.realm != agent.realm; });
+}
+
+int Simulation::war_standing(int realm, int enemy) const {
+    if (realm < 0) return 0;
+    int standing = 0;
+    for (const War& war : wars_) {
+        if ((war.first != realm && war.second != realm) || (enemy >= 0 && war.first != enemy && war.second != enemy)) continue;
+        const int ours = war.first == realm ? war.first_kills : war.second_kills;
+        const int theirs = war.first == realm ? war.second_kills : war.first_kills;
+        if (ours + theirs < std::max(1, WAR_KILLS)) continue;
+        if (3 * ours >= 2 * (ours + theirs)) standing += 1;
+        else if (3 * ours <= ours + theirs) standing -= 1;
+    }
+    return std::clamp(standing, -1, 1);
+}
+
+bool Simulation::drives_out(const Bitzkey& hunter, const Bitzkey& other) const {
+    if ((hunter.species != Species::Omnivore && hunter.species != Species::Predator) || other.species == Species::Plant) return false;
+    if (hunter.realm < 0 || other.realm == hunter.realm || other.guarded || !within_reach(hunter, other)) return false;
+    const LandClaims* there = claims_at(other.x, other.y);
+    return there && claims(*there, hunter.realm) && in_own_land(hunter) && is_foe(hunter, other);
+}
+
+void Simulation::trespass(Bitzkey& agent) {
+    if (!trespassing(agent)) {
+        agent.trespass = 0;
+        return;
+    }
+    agent.trespass += 1;
+    if (TRESPASS_REGARD <= 0) return;
+    const LandClaims& land = *claims_at(agent.x, agent.y);
+    const double weight = std::min(1.0, TRESPASS_REGARD * std::pow(1 + TRESPASS_GROWTH, agent.trespass - 1));  // compounding
+    for (Bitzkey* other : around(agent, agent.sight)) {  // witnesses within both's sight, as of any deed
+        if (other == &agent || !other->alive() || !other->brain || other->realm == agent.realm || !claims(land, other->realm)) continue;
+        if (distance(other->x, other->y, agent.x, agent.y) > other->sight || !in_own_land(*other)) continue;
+        note_deed(*other, agent, -1.0, weight, PlainDeed, true);
+    }
+}
+
+void Simulation::tally_war(const Bitzkey& killer, const Bitzkey& victim) {
+    if (killer.realm < 0 || victim.realm < 0 || killer.realm == victim.realm) return;
+    for (War& war : wars_) {
+        if (war.first == killer.realm && war.second == victim.realm) war.first_kills += 1;
+        else if (war.second == killer.realm && war.first == victim.realm) war.second_kills += 1;
+    }
+}
+
+void Simulation::index_realm_patches() {
+    for (auto& [identifier, realm] : realms_) realm.patches.clear();
+    for (std::size_t patch = 0; patch < lands_.size(); ++patch) {
+        for (const Claim& claim : lands_[patch]) {
+            if (const auto found = realms_.find(claim.realm); claim.realm >= 0 && found != realms_.end()) found->second.patches.push_back(static_cast<int>(patch));
+        }
+    }
+}
+
+void Simulation::count_lands() {
+    if (LAND_SIZE <= 0 || LAND_PATCH <= 0) {  // no lands: none claimed, no groups, no wars
+        if (lands_.empty() && realms_.empty()) return;
+        lands_.clear();
+        realms_.clear();
+        wars_.clear();
+        for (const auto& agent : agents_) agent->realm = -1;
+        return;
+    }
+    if (land_patch_ != LAND_PATCH || lands_.empty()) {  // a new size of square: all claims begin again
+        land_patch_ = LAND_PATCH;
+        land_columns_ = (width_ + land_patch_ - 1) / land_patch_;
+        lands_.assign(static_cast<std::size_t>(land_columns_ * ((height_ + land_patch_ - 1) / land_patch_)), LandClaims{});
+        wars_.clear();
+    }
+    // Each animal to its colour group: the one it was in while its colour stays within reach of it, else the nearest
+    // of its species within reach, else a new one of its own colour.
+    std::map<int, std::array<long long, 4>> sums;  // each group's members' colours, byte by byte, to take the mean of
+    std::map<int, int> members;
+    for (const auto& held : agents_) {
+        Bitzkey& agent = *held;
+        if (agent.species == Species::Plant || !agent.alive()) continue;
+        const std::uint32_t ring = body_word(agent.dna);
+        const auto fits = [&](const Realm& realm) { return realm.species == agent.species && colour_difference(realm.ring, ring) <= FACTION_WIDTH; };
+        if (const auto found = realms_.find(agent.realm); found == realms_.end() || !fits(found->second)) {
+            agent.realm = -1;
+            double best = 2.0;
+            for (const auto& [identifier, realm] : realms_) {
+                const double apart = colour_difference(realm.ring, ring);
+                if (fits(realm) && apart < best) {
+                    best = apart;
+                    agent.realm = identifier;
+                }
+            }
+            if (agent.realm < 0) {
+                agent.realm = next_realm_++;
+                realms_[agent.realm] = Realm{agent.realm, agent.species, ring};
+            }
+        }
+        members[agent.realm] += 1;
+        auto& sum = sums[agent.realm];
+        for (int byte = 0; byte < 4; ++byte) sum[static_cast<std::size_t>(byte)] += (ring >> (24 - 8 * byte)) & 0xFF;
+    }
+    for (auto at = realms_.begin(); at != realms_.end();) {  // a group with none left is gone; the rest take their mean colour
+        const int count = members[at->first];
+        if (count == 0) {
+            at = realms_.erase(at);
+            continue;
+        }
+        std::uint32_t ring = 0;
+        for (int byte = 0; byte < 4; ++byte) ring |= static_cast<std::uint32_t>(sums[at->first][static_cast<std::size_t>(byte)] / count) << (24 - 8 * byte);
+        at->second.ring = ring;
+        at->second.members = count;
+        ++at;
+    }
+    // Who stands in each square, by group.
+    std::vector<std::map<int, int>> present(lands_.size());
+    for (const auto& held : agents_) {
+        const Bitzkey& agent = *held;
+        if (agent.realm < 0 || !agent.alive() || agent.species == Species::Plant || !in_bounds(agent.x, agent.y)) continue;
+        present[static_cast<std::size_t>(agent.y / land_patch_ * land_columns_ + agent.x / land_patch_)][agent.realm] += 1;
+    }
+    const auto large = [&](int realm) {
+        const auto found = realms_.find(realm);
+        return found != realms_.end() && found->second.members >= LAND_SIZE;
+    };
+    const double fading = 1.0 / std::max(1, LAND_MEMORY);
+    for (std::size_t patch = 0; patch < lands_.size(); ++patch) {
+        LandClaims& land = lands_[patch];
+        const std::map<int, int>& here = present[patch];
+        for (std::size_t slot = 0; slot < land.size(); ++slot) {  // held while any of it stand there, unless clearly losing the war for it
+            Claim& claim = land[slot];
+            if (claim.realm < 0) continue;
+            const Claim& other = land[1 - slot];
+            const auto there = here.find(claim.realm);
+            const bool losing = other.realm >= 0 && war_standing(claim.realm, other.realm) < 0;
+            if (there != here.end() && large(claim.realm) && !losing) claim.hold = 1.0;
+            else claim.hold -= fading;
+            if (claim.hold <= 1e-9 || !realms_.contains(claim.realm)) claim = Claim{};
+        }
+        if (land[0].realm < 0 && land[1].realm >= 0) std::swap(land[0], land[1]);
+        if (land[1].realm >= 0) continue;
+        // A new claim, by the group standing there in the most strength, enough of it and large enough.
+        int best = -1, most = std::max(1, LAND_HOLD) - 1;
+        for (const auto& [realm, count] : here) {
+            if (count > most && realm != land[0].realm && large(realm)) {
+                best = realm;
+                most = count;
+            }
+        }
+        if (best >= 0) {
+            land[land[0].realm < 0 ? 0 : 1] = Claim{best, 1.0};
+            if (land[0].realm != best) note_first("land_contested", realms_.at(best).species, -1);
+            else note_first("land_claimed", realms_.at(best).species, -1);
+        }
+    }
+    index_realm_patches();
+    // Wars: every pair of groups with a square both claim. One no longer contesting any is over.
+    std::set<std::pair<int, int>> fronts;
+    for (const LandClaims& land : lands_) {
+        if (land[0].realm >= 0 && land[1].realm >= 0) fronts.insert(std::minmax(land[0].realm, land[1].realm));
+    }
+    std::erase_if(wars_, [&](const War& war) { return !fronts.contains({war.first, war.second}); });
+    for (const auto& [first, second] : fronts) {
+        if (std::none_of(wars_.begin(), wars_.end(), [&](const War& war) { return war.first == first && war.second == second; })) {
+            wars_.push_back(War{first, second, 0, 0, turn_});
+            note_first("war", realms_.at(first).species, -1);
+        }
+    }
+    if (WAR_ENMITY <= 0 || wars_.empty()) return;
+    // Each member of a group at war thinks the worse of its enemy's colour.
+    std::map<int, const Bitzkey*> face;  // a living member of each group, standing for its colour
+    for (const auto& held : agents_) {
+        if (held->realm >= 0 && held->alive() && !face.contains(held->realm)) face[held->realm] = held.get();
+    }
+    for (const auto& held : agents_) {
+        Bitzkey& agent = *held;
+        if (agent.realm < 0 || !agent.alive() || !agent.brain) continue;
+        for (const War& war : wars_) {
+            const int enemy = war.first == agent.realm ? war.second : war.second == agent.realm ? war.first : -1;
+            if (enemy >= 0 && face.contains(enemy)) note_faction(agent, *face.at(enemy), -1.0, WAR_ENMITY, PlainDeed, true);
+        }
+    }
 }
 
 const Simulation::Fight* Simulation::fight_of(int identifier) const {
@@ -3230,6 +3484,7 @@ void Simulation::settle_fights() {
     fights_ = std::move(going);
     for (auto [winner, loser] : won) {
         deed_seen(*winner, 0.0, loser, VictoryDeed);
+        earn_mark(*winner, *loser);
         winner->last_action = "won a fight";
         note_first("won_a_fight", winner->species, winner->identifier);
     }
@@ -3284,8 +3539,9 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double herd_near = std::min(3, s.herd_near) / 3.0;
     const double company_around = std::min(3.0, s.kin + tolerance * s.others);
     const double company = COMPANY_JOY * agent.feeling(Sociability) * company_around / 3;
+    const double home_herd = s.land > 0 ? 1 + LAND_HERD : 1.0;  // its herd counts the more in its own land
     double dread = FEAR_DREAD * agent.fearfulness() * (1 - 0.5 * tolerance) * std::min(2, s.threats) / 2 *
-                         (1 - HERD_SAFETY * instinct * herd_near);
+                         std::max(0.0, 1 - HERD_SAFETY * instinct * herd_near * home_herd);
     const double unease = UNEASE * (1 - tolerance) * std::min(3, s.others) / 3;
     const double crowded = RIVAL_UNEASE * (1 - 0.5 * tolerance) * s.rivalry *
                            (1 + DOMINANCE_EASE * (1 - 2 * agent.feeling(Dominance)));  // the submissive feel it most
@@ -3314,7 +3570,9 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
         relief += PROTECTION_JOY * spared;
     }
     const double envious = ENVY_UNEASE * envy_of(agent) * s.envy;
-    return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious;
+    // At ease in its own land and uneasy away from it; glad of a war clearly being won, and troubled by one being lost.
+    const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war;
+    return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging;
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -3334,6 +3592,12 @@ void Simulation::record_death(Bitzkey& agent, std::string_view cause, int killer
         for (const int identifier : {agent.mother, agent.father}) {
             Bitzkey* parent = identifier >= 0 ? find_agent(identifier) : nullptr;
             if (parent && parent->alive() && parent->brain) parent->reward -= PARENT_GRIEF * (0.5 + parent->feeling(Empathy));
+        }
+    }
+    if (killer >= 0 && killer_species != Species::Plant && agent.species != Species::Plant) {  // a victory: its mark, and a war's tally
+        if (Bitzkey* victor = find_agent(killer)) {
+            earn_mark(*victor, agent);
+            tally_war(*victor, agent);
         }
     }
     deaths_ += 1;
@@ -3436,6 +3700,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (!agent.alive()) return;
     if (const double gained = possessions(agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
     if (garb_of(agent.hide) > 0) deed_seen(agent, garb_of(agent.hide), nullptr, GarbDeed);  // its garb, seen
+    if (agent.mark != NoMark && MARK_REGARD > 0) deed_seen(agent, mark_worth(agent.mark), nullptr, MarkDeed);  // and its mark
     if (did == "rested") {
         agent.stamina = std::min(FULL_STAMINA, agent.stamina + rest_recovery());
         return;
@@ -4616,11 +4881,12 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     wear_armour(victim);
     for (const Bitzkey* other : around(victim, 1)) {
         if (other != &agent && herd_mate(agent, *other)) {
-            blow *= 1 + PACK_BONUS * agent.herd_instinct();  // hunting as a pack
+            blow *= 1 + PACK_BONUS * agent.herd_instinct() * land_herd(agent);  // hunting as a pack, the more so in its own land
             agent.reward += JOINED_HUNT_JOY * (0.5 + agent.herd_instinct());  // and glad of it
             break;
         }
     }
+    blow *= land_guard(victim, agent);  // and harder to bring down in its own land
     victim.health -= blow;
     agent.nourish(5, true);
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;  // the harder the blow, the more it costs
@@ -4676,7 +4942,7 @@ void Simulation::exhausted(Bitzkey& agent) {
 }
 
 void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
-    const double blow = damage(agent, assailant, true);
+    const double blow = damage(agent, assailant, true) * land_guard(assailant, agent);  // less, at one in its own land
     gear_pays(agent, assailant, blow);
     wear_weapon(agent);
     wear_armour(assailant);
@@ -4748,10 +5014,12 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     }
     const double unhurt = PANIC[0], dying = PANIC[1];
     const double hurt = 1 - std::max(0.0, victim.health) / victim.max_health;
-    const double steadied = 1 - HERD_SAFETY * victim.herd_instinct() * std::min(3, herd_near) / 3;
-    const bool coward = victim.species == Species::Omnivore && COWARDLY_OMNIVORES != 0;  // an omnivore struck always breaks
+    const double steadied = std::max(0.0, 1 - HERD_SAFETY * victim.herd_instinct() * land_herd(victim) * std::min(3, herd_near) / 3);
+    // Its land and its wars steady it, or not: in its own land, even a born coward may stand.
+    const double nerved = nerve(victim, &striker);
+    const bool coward = victim.species == Species::Omnivore && COWARDLY_OMNIVORES != 0 && (nerved >= 1 || rng().random() < nerved);  // an omnivore struck always breaks
     const double chance = std::max(victim.fearfulness() * (unhurt + (dying - unhurt) * hurt) * steadied,
-                                   CARRION_COWARDICE * victim.scavenger());  // and a carrion-eater, the more so the more it is one
+                                   CARRION_COWARDICE * victim.scavenger()) * nerved;  // and a carrion-eater, the more so the more it is one
     if (coward || rng().random() < chance) {
         victim.panicked = true;
         experience(victim, Panicked);
@@ -4767,7 +5035,7 @@ bool Simulation::primal_fear(Bitzkey& agent, const Bitzkey* hunter) {
         const double lopsided = disparity(agent, *hunter);
         if (lopsided > 0) {
             const double chance =
-                PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0) * agent.unafraid();
+                PRIMAL_FEAR * lopsided * (agent.species == Species::Predator ? PRIMAL_FEAR_PREDATORS : 1.0) * agent.unafraid() * nerve(agent, hunter);
             if (rng().random() < chance) {
                 agent.primal_fear = true;
                 experience(agent, Panicked);
@@ -5105,11 +5373,11 @@ Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int pr
         if (!list) continue;
         for (Bitzkey* other : *list) {
             if (other == &agent || !other->alive()) continue;
-            if (!seen.quarry && is_prey(agent, *other)) {
+            if (!seen.quarry && preys_on(agent, *other)) {
                 seen.quarry = other;
             } else if (far) {
                 continue;
-            } else if (!seen.hunter && is_prey(*other, agent)) {
+            } else if (!seen.hunter && preys_on(*other, agent)) {
                 seen.hunter = other;
             } else if (browses && !seen.flora && other->species == Species::Plant && fruit_left(*other) > 0 && agent.can_be(other->wet)) {
                 seen.flora = other;

@@ -315,6 +315,29 @@ std::string frame(const Simulation& simulation) {
         }
     }
     std::memcpy(out.data() + counted, &piles, sizeof piles);
+    // The lands: a square's size in cells and squares to a row, then each claimed square, its claimants' colours (the
+    // second as the first while it has only one), and whether it is contested.
+    put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.land_patch()));
+    put<std::uint16_t>(out, static_cast<std::uint16_t>(simulation.land_columns()));
+    const std::size_t claimed_at = out.size();
+    put<std::uint32_t>(out, 0);
+    std::uint32_t claimed = 0;
+    const auto colour = [&](int realm) {
+        const auto found = simulation.realms().find(realm);
+        return found != simulation.realms().end() ? color_from_word(found->second.ring) : Rgb{128, 128, 128};
+    };
+    for (int patch = 0; const LandClaims* land = simulation.square_claims(patch); ++patch) {
+        if ((*land)[0].realm < 0) continue;
+        ++claimed;
+        const bool contested = (*land)[1].realm >= 0;
+        put<std::uint32_t>(out, static_cast<std::uint32_t>(patch));
+        for (const Rgb rgb : {colour((*land)[0].realm), colour(contested ? (*land)[1].realm : (*land)[0].realm)}) {
+            for (const int channel : {rgb.r, rgb.g, rgb.b}) put<std::uint8_t>(out, static_cast<std::uint8_t>(channel));
+        }
+        put<std::uint8_t>(out, contested ? 1 : 0);
+        put<std::uint8_t>(out, 0);
+    }
+    std::memcpy(out.data() + claimed_at, &claimed, sizeof claimed);
     return out;
 }
 

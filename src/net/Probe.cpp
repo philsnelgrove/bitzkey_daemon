@@ -177,6 +177,11 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["carried_fruit"] = agent->carried_fruit;
     result["capacity"] = agent->capacity();
     result["mother"] = agent->mother;
+    result["mark"] = agent->mark == PrestigeMark ? "prestige" : agent->mark == WarriorMark ? "warrior" : "none";
+    result["realm"] = agent->realm;
+    result["in_own_land"] = world.in_own_land(*agent);
+    result["trespassing_turns"] = agent->trespass;
+    result["war_standing"] = world.war_standing(agent->realm);
     result["father"] = agent->father;
     result["children"] = agent->children;
     result["max_health"] = agent->max_health;
@@ -1210,6 +1215,68 @@ Json Probe::diary(Simulation& world) const {
     return {{"turn", world.turn()}, {"since", world.diary_since()}, {"entries", entries}};
 }
 
+Json Probe::lands(Simulation& world) const {
+    // Colour groups and their lands: per species, how many groups, how many hold land, the living in their own land and
+    // trespassing, and the marks of the victor borne; the groups holding land, largest first; and the wars.
+    const auto colour = [](std::uint32_t ring) {
+        const Rgb rgb = color_from_word(ring);
+        char text[8];
+        std::snprintf(text, sizeof text, "#%02x%02x%02x", rgb.r, rgb.g, rgb.b);
+        return std::string(text);
+    };
+    Json species_rows = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        long long groups = 0, holding = 0, large = 0, squares = 0, living = 0, home = 0, trespassing = 0, warriors = 0, prestige = 0;
+        for (const auto& [identifier, realm] : world.realms()) {
+            if (realm.species != species) continue;
+            groups += 1;
+            large += realm.members >= LAND_SIZE;
+            holding += !realm.patches.empty();
+            squares += static_cast<long long>(realm.patches.size());
+        }
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            living += 1;
+            home += world.in_own_land(*agent);
+            trespassing += world.trespassing(*agent);
+            warriors += agent->mark == WarriorMark;
+            prestige += agent->mark == PrestigeMark;
+        }
+        species_rows[std::string(species_name(species))] = {
+            {"groups", groups}, {"groups_large_enough", large}, {"groups_holding_land", holding}, {"squares_held", squares},
+            {"living", living}, {"in_own_land", home}, {"trespassing", trespassing},
+            {"marks", {{"warrior", warriors}, {"prestige", prestige}}}};
+    }
+    std::vector<const Realm*> holders;
+    for (const auto& [identifier, realm] : world.realms()) {
+        if (!realm.patches.empty()) holders.push_back(&realm);
+    }
+    std::sort(holders.begin(), holders.end(), [](const Realm* a, const Realm* b) { return a->patches.size() > b->patches.size(); });
+    Json groups = Json::array();
+    for (const Realm* realm : holders) {
+        if (groups.size() >= 50) break;
+        long long contested = 0;
+        for (const int patch : realm->patches) {
+            const LandClaims* land = world.square_claims(patch);
+            contested += land && (*land)[0].realm >= 0 && (*land)[1].realm >= 0;
+        }
+        groups.push_back({{"id", realm->identifier}, {"species", std::string(species_name(realm->species))}, {"colour", colour(realm->ring)},
+                          {"members", realm->members}, {"squares", realm->patches.size()}, {"contested", contested},
+                          {"war_standing", world.war_standing(realm->identifier)}});
+    }
+    Json wars = Json::array();
+    for (const War& war : world.wars()) {
+        const auto first = world.realms().find(war.first), second = world.realms().find(war.second);
+        wars.push_back({{"first", war.first}, {"second", war.second},
+                        {"species", first != world.realms().end() ? std::string(species_name(first->second.species)) : ""},
+                        {"against", second != world.realms().end() ? std::string(species_name(second->second.species)) : ""},
+                        {"first_kills", war.first_kills}, {"second_kills", war.second_kills}, {"since", war.since},
+                        {"first_standing", world.war_standing(war.first, war.second)}});
+    }
+    return {{"turn", world.turn()}, {"square", world.land_patch()}, {"counted_every", LAND_TURNS}, {"size_to_claim", LAND_SIZE},
+            {"species", species_rows}, {"groups_holding_land", groups}, {"wars", wars}};
+}
+
 Json Probe::minds(Simulation& world) const {
     world.sync_brains();  // every brain as it now is
     Json result = Json::object();
@@ -1427,6 +1494,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/lands", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return lands(world); }));
     }));
     server.Get(prefix + "/society", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return society(world); }));

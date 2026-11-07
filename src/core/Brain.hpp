@@ -149,6 +149,19 @@ enum Sense : int {
     SenseCookingSmell,  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it, 0 none
     SenseFoodPlenty,
     SensePreyFlanked,  // its pack beside its prey, else its opponent in a fight, else a rival it would take from: a half each, to 1  // its food about it against its memory of it: 0.5 as remembered, toward 1 more, toward 0 less
+    // Lands (see Simulation's LAND_SIZE): 1 in its own group's land; 1 in a land another group claims; which way the
+    // nearest square of its own land lies, -1 to 1, west to east and north to south, 0 in it or with none; how close the
+    // nearest trespasser in its land is, 1 beside it falling to 0 at the edge of its sight; and its group's wars, 1
+    // clearly winning, -1 clearly losing.
+    SenseOwnLand,
+    SenseForeignLand,
+    SenseOwnLandEast,
+    SenseOwnLandSouth,
+    SenseTrespasser,
+    SenseWarStanding,
+    // Marks of the victor: its own, and the best it sees on another, 0 none, a half the warrior's, 1 prestige.
+    SenseMarked,
+    SenseMarkSeen,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -234,7 +247,8 @@ constexpr bool signed_sense(int sense) {
            (sense >= SenseMemory && sense < SenseMapFood) || sense == SenseMapFoodEast || sense == SenseMapFoodSouth ||
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
-           sense == SenseElderEast || sense == SenseElderSouth || sense >= SenseImagined;
+           sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
+           sense == SenseWarStanding || sense >= SenseImagined;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -256,7 +270,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
-    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "aggression", "libido", "curiosity",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

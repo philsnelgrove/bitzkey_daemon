@@ -359,7 +359,7 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed };  // CultureDeed: seen for its culture alone
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed };  // CultureDeed: seen for its culture alone
 // Cultures: what each species esteems, seen done by one of its own kind, over and above the deed's own worth, by
 // CULTURE_REGARD, twice it from family (parent, child or sibling) and, for a predator, from its pack. Predators esteem
 // victories; omnivores, crafting and building (shelters and roads); grazers, sowing and fruit picked from a plant
@@ -614,6 +614,32 @@ inline double ENVY_LEVEL = 0.75, ENVY_UNEASE = 0.5, ENVY_JOY = 1.0;
 // friend if they hold its victim a foe.
 inline double FOE_LEVEL = 0.5, VICTORY_REGARD = 0.3, FOE_DEFEAT_REGARD = 0.3, COWARD_DISREGARD = 0.3;
 inline double GIVE_LEVEL = 0.75, GIVE_JOY = 0.5, TAKE_LEVEL = 0.75, THEFT_DISREGARD = 0.5;
+// Marks of the victor: one that defeats an omnivore, killing it or winning a fight over a possession, bears the mark of
+// the warrior (WARRIOR_MARK), and one that defeats a predator the mark of prestige (PRESTIGE_MARK), the better; it keeps
+// the better it has earned for life, whatever it does after. Each turn, all who see it and don't hold it a foe move their
+// regard toward the mark's worth, at MARK_REGARD of a deed's weight; a foe who sees it holds it the more dangerous, as
+// much, and dreads it (MARK_DREAD, times the mark's worth and a half plus its fear).
+enum Mark : int { NoMark, WarriorMark, PrestigeMark };
+inline double WARRIOR_MARK = 0.5, PRESTIGE_MARK = 1.0, MARK_REGARD = 0.05, MARK_DREAD = 0.3;
+// Lands: the map in squares of LAND_PATCH cells a side. Each animal belongs to a colour group of its species, those
+// whose body colours lie within Faction width of the group's (the mean of its members'), counted every LAND_TURNS
+// turns. At each count a group of LAND_SIZE or more claims a square where LAND_HOLD or more of it stand, while it has
+// fewer than two claimants, and keeps it while any of it is there; with none there (or, contesting it, while clearly
+// losing the war) its claim fades over LAND_MEMORY counts and is given up. No lands at a Land size of 0.
+// In its own land an animal heals 1 + LAND_HEALING times as fast, takes LAND_DEFENCE less of a blow from an outsider,
+// and its herd counts 1 + LAND_HERD times as much (herd safety and the pack's blows); it is at ease there (LAND_COMFORT),
+// and uneasy as much away while its group holds land. An outsider in its land is a trespasser: each turn there, those
+// of the land who see it from their land think worse of it, at TRESPASS_REGARD of a deed's weight, growing by
+// TRESPASS_GROWTH of itself each turn it stays (to a whole deed); a trespasser held a foe is prey to a hunter of the land
+// standing in it. Defending its land, an animal rallies: LAND_RALLY of the chance it panics or breaks, and of its
+// primal fear, is overcome, a born coward's too.
+// A square claimed by two groups is contested: they are at war, and each count every member thinks worse of the other's
+// colour by WAR_ENMITY of a deed's weight. Once WAR_KILLS or more of each other have died in it, a group with two thirds
+// of the kills or more is clearly winning (glad, WAR_MORALE, and WAR_NERVE less likely to panic), with a third or less
+// clearly losing (as much the other way).
+inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
+inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
+              TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
@@ -776,6 +802,30 @@ struct Acquaintance {
     bool liar = false;  // seen fleeing a fight in a warrior's or prestige garb, so its garb wins nothing more
 };
 
+// A colour group (see LAND_SIZE): its species, colour (the mean of its members' body words), members as of the last
+// count, and the land squares it claims.
+struct Realm {
+    int identifier = 0;
+    Species species = Species::Grazer;
+    std::uint32_t ring = 0;
+    int members = 0;
+    std::vector<int> patches;  // kept from the lands, not saved
+};
+// A claim on a land square: the group's, and how firmly, 1 fresh, fading toward giving it up at 0.
+struct Claim {
+    int realm = -1;
+    double hold = 0.0;
+    bool operator==(const Claim&) const = default;
+};
+using LandClaims = std::array<Claim, 2>;  // two claimants: contested
+// Two groups at war, the lower identifier first, and how many of each the other has killed since it began.
+struct War {
+    int first = 0, second = 0;
+    int first_kills = 0, second_kills = 0;  // of the second by the first, and of the first by the second
+    int since = 0;
+    bool operator==(const War&) const = default;
+};
+
 struct Bitzkey {
     Bitzkey(int identifier, Dna dna, int x, int y);
     // Work out again what its genome makes of it under the rules as they now stand: its health pool,
@@ -809,6 +859,9 @@ struct Bitzkey {
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
+    int mark = NoMark;  // the best mark of the victor it has earned
+    int realm = -1;  // its colour group (see Realm), as of the last count; -1 for none yet
+    int trespass = 0;  // turns it has stood in another group's land without a break
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
     double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
     double cooked_known = 0.0;  // its taste for cooked food, a fifth for each cooked portion eaten, to 1 (see COOKED_JOY)
@@ -1285,6 +1338,8 @@ public:
         double foe_closeness = 0.0;
         double cooking_smell = 0.0;
         double prey_flanked = 0.0;  // its pack beside its prey, opponent or rival: a half each, to 1  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
+        double land = 0.0;  // 1 in its own land, -1 away from the land its group holds, 0 with none
+        double war = 0.0;  // its group's wars: 1 clearly winning, -1 clearly losing, 0 neither or at peace
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1533,6 +1588,37 @@ public:
     };
     const std::vector<Fight>& fights() const { return fights_; }
     const Fight* fight_of(int identifier) const;  // the fight it is in, if any
+    // Lands (see LAND_SIZE): the colour groups, the wars between them, and the claims on the square holding x, y
+    // (nullptr off the map or with no lands counted yet).
+    const std::map<int, Realm>& realms() const { return realms_; }
+    const std::vector<War>& wars() const { return wars_; }
+    int land_patch() const { return land_patch_; }
+    const LandClaims* claims_at(int x, int y) const;
+    const LandClaims* square_claims(int patch) const {
+        return patch >= 0 && static_cast<std::size_t>(patch) < lands_.size() ? &lands_[static_cast<std::size_t>(patch)] : nullptr;
+    }
+    int land_columns() const { return land_columns_; }  // land squares to a row
+    static bool claims(const LandClaims& land, int realm) { return realm >= 0 && (land[0].realm == realm || land[1].realm == realm); }
+    bool in_own_land(const Bitzkey& agent) const;
+    bool trespassing(const Bitzkey& agent) const;  // in a land with a claimant other than its own group
+    // How its group's war with `enemy` goes, or, with none named, all its wars together: 1 clearly winning, -1 clearly
+    // losing, 0 neither, too few killed to tell, or at peace.
+    int war_standing(int realm, int enemy = -1) const;
+    // Whether a hunter standing in its own land may strike a trespasser there that it holds a foe.
+    bool drives_out(const Bitzkey& hunter, const Bitzkey& other) const;
+    bool preys_on(const Bitzkey& hunter, const Bitzkey& other) const { return is_prey(hunter, other) || drives_out(hunter, other); }
+    // The share of a blow from an outsider that lands on one in its own land, and how much more its herd counts there.
+    double land_guard(const Bitzkey& struck, const Bitzkey& striker) const {
+        return striker.realm != struck.realm && in_own_land(struck) ? 1 - LAND_DEFENCE : 1.0;
+    }
+    double land_herd(const Bitzkey& agent) const { return in_own_land(agent) ? 1 + LAND_HERD : 1.0; }
+    // How much of its panic, or primal fear, is left it in a fight, by its land and its wars: LAND_RALLY of it overcome
+    // defending its own land from an outsider, and WAR_NERVE less, or more, clearly winning or losing.
+    double nerve(const Bitzkey& agent, const Bitzkey* foe) const {
+        const bool rallied = in_own_land(agent) && (!foe || foe->realm != agent.realm);
+        return (rallied ? 1 - LAND_RALLY : 1.0) * std::max(0.0, 1 - WAR_NERVE * war_standing(agent.realm));
+    }
+    static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }
     bool is_friend(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) >= REGARD_STRONG; }
     bool is_foe(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) <= -foe_level(agent); }
     static double foe_level(const Bitzkey& agent) { return FOE_LEVEL * (0.5 + 0.5 * (agent.feeling(Empathy) + agent.feeling(Sociability))); }
@@ -1555,6 +1641,13 @@ public:
     static double give_drive(const Bitzkey& agent) { return std::max(agent.feeling(Empathy), agent.feeling(Sociability)); }
     // What one sees of another's garb: its regard won (or, fleeing, lost as a liar's)
     void garb_seen(Bitzkey& seer, const Bitzkey& wearer, double garb, bool lie);
+    void mark_seen(Bitzkey& seer, const Bitzkey& bearer, double worth);  // regard toward its worth, or a foe's dread
+    void earn_mark(Bitzkey& victor, const Bitzkey& defeated);  // the mark a defeat of it earns, if better than its own
+    // Every LAND_TURNS turns: each animal's colour group, the claims on each land square, the wars, and their enmity.
+    void count_lands();
+    void index_realm_patches();  // each group's squares, from the claims
+    void trespass(Bitzkey& agent);  // a turn in another's land: thought the worse of by those of it who see it
+    void tally_war(const Bitzkey& killer, const Bitzkey& victim);  // a death in a war
     // The shelters beside the road joined to the one at x, y (squares beside it, diagonals too), each road square
     // reached marked in seen.
     std::vector<std::size_t> road_shelters(int x, int y, std::vector<char>& seen) const;
@@ -1814,6 +1907,11 @@ private:
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
     std::vector<int> fertilized_;  // worked land fed crushed bone, until a seed sprouts there
+    std::map<int, Realm> realms_;  // the colour groups, by identifier
+    std::vector<LandClaims> lands_;  // each land square's claims, row by row; empty with no lands
+    int land_patch_ = 0, land_columns_ = 0;  // the square's size in cells, and how many squares to a row
+    std::vector<War> wars_;
+    int next_realm_ = 0;
     std::vector<Fight> fights_;  // changed only between turns, so all read the same while they act
     // Each species' cut for envy, taking and giving: the drive at Envy, Take and Give level of its living, ranked each
     // turn; above it, one envies, may take or may give. None above 2, before the first ranking.

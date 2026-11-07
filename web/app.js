@@ -98,6 +98,7 @@ const GLOBE_TEXTURE = 1600;   // the map drawn onto it from a picture about this
 const STACK_SPACING = 0.7;    // a stack's Bitzkeys each this share of the one below's radius above it, its face showing
 let globe = false;
 let blind = false;            // neither map nor globe drawn, to spare the time
+let landsShown = true;        // each group's land shaded in its colour, contested land striped
 let lod = true;               // the level of detail hides the smaller Bitzkeys zoomed out; off, every size shows from any altitude
 const speciesShown = [true, true, true, true];  // each species drawn, or filtered out: plants, grazers, omnivores, predators
 const terrainShown = [true, true, true, true];  // each terrain drawn, or filtered out: terrestrial, aquatic, avian, amphibious
@@ -279,7 +280,19 @@ function parseFrame(view) {
                      stone: view.getUint16(offset + 8, true), bone: view.getUint16(offset + 10, true), wood: view.getUint16(offset + 12, true),
                      gear: view.getUint16(offset + 14, true), fire: view.getUint16(offset + 16, true), cooked: view.getUint16(offset + 18, true) & 32767, arable: view.getUint16(offset + 18, true) >> 15 };
   }
-  return { width, height, turn, temperatures, grass, agents, living, piles };
+  // The lands, from a daemon new enough to send them: each claimed square's claimants' colours, and whether contested
+  const lands = { patch: 0, columns: 0, squares: [] };
+  if (offset + 8 <= view.byteLength) {
+    lands.patch = view.getUint16(offset, true);
+    lands.columns = view.getUint16(offset + 2, true);
+    const count = view.getUint32(offset + 4, true);
+    offset += 8;
+    for (let index = 0; index < count && offset + 12 <= view.byteLength; ++index, offset += 12) {
+      lands.squares.push({ patch: view.getUint32(offset, true), first: [0, 1, 2].map((at) => view.getUint8(offset + 4 + at)),
+                           second: [0, 1, 2].map((at) => view.getUint8(offset + 7 + at)), contested: view.getUint8(offset + 10) === 1 });
+    }
+  }
+  return { width, height, turn, temperatures, grass, agents, living, piles, lands };
 }
 
 // Let go of any Bitzkey selected or picked that has died, so the sidebar returns to its neutral state.
@@ -449,6 +462,33 @@ function drawMap() {
         }
       }
       ctx.fill();
+    }
+  }
+  if (landsShown && frame.lands?.patch) {  // each group's land in its colour, faintly; contested land striped in both
+    const { patch, columns } = frame.lands;
+    for (const { patch: square, first, second, contested } of frame.lands.squares) {
+      const left = geometry.x + (square % columns) * patch * cell, top = geometry.y + Math.floor(square / columns) * patch * cell;
+      const wide = Math.min(patch, frame.width - (square % columns) * patch) * cell, high = Math.min(patch, frame.height - Math.floor(square / columns) * patch) * cell;
+      ctx.fillStyle = `rgba(${first.join(',')},0.27)`;
+      ctx.fillRect(left, top, wide, high);
+      if (contested) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(left, top, wide, high);
+        ctx.clip();
+        ctx.strokeStyle = `rgba(${second.join(',')},0.5)`;
+        ctx.lineWidth = Math.max(2, cell);
+        ctx.beginPath();
+        for (let along = -high; along < wide; along += 4 * cell) {
+          ctx.moveTo(left + along, top + high);
+          ctx.lineTo(left + along + high, top);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.strokeStyle = `rgba(${first.join(',')},0.8)`;
+      ctx.lineWidth = Math.max(1, cell / 8);
+      ctx.strokeRect(left, top, wide, high);
     }
   }
   {  // the piles: meat to the left of a square and fruit to the right, each with its count
@@ -799,7 +839,8 @@ const viewButtons = element('div', { class: 'view-buttons' },
   element('button', { class: 'view-map', onclick: () => { globe = blind = false; showViewButtons(); drawMap(); loadFrame(); } }, 'MAP'),
   element('button', { class: 'view-globe', onclick: () => { globe = true; blind = false; showViewButtons(); drawMap(); loadFrame(); } }, 'GLOBE'),
   element('button', { class: 'view-blind', onclick: () => { blind = true; selectAll(new Set()); showViewButtons(); drawMap(); } }, 'BLIND'),
-  element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'));
+  element('button', { class: 'view-lod', onclick: () => { lod = !lod; showViewButtons(); drawMap(); } }, 'LOD MANAGER'),
+  element('button', { class: 'view-lands', onclick: () => { landsShown = !landsShown; showViewButtons(); drawMap(); } }, 'LANDS'));
 // Beneath them, the filters: a row by species, a row by terrain
 const filterButtons = element('div', { class: 'filter-buttons' },
   filterRow(['PLANTS', 'GRAZERS', 'OMNIVORES', 'PREDATORS'], speciesShown),
@@ -810,6 +851,7 @@ function showViewButtons() {
   viewButtons.querySelector('.view-globe').classList.toggle('on', globe && !blind);
   viewButtons.querySelector('.view-blind').classList.toggle('on', blind);
   viewButtons.querySelector('.view-lod').classList.toggle('on', lod);
+  viewButtons.querySelector('.view-lands').classList.toggle('on', landsShown);
 }
 showViewButtons();
 

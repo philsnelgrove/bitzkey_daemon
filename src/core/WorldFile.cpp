@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -339,6 +339,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->hide_armour = record.value("hide_armour", 0.0);
     agent->skinned = record.value("skinned", false);
     agent->thefts = record.value("thefts", 0);
+    agent->mark = record.value("mark", 0);  // none, in an older world
+    agent->realm = record.value("realm", -1);
+    agent->trespass = record.value("trespass", 0);
     agent->meat_lean = record.value("meat_lean", 0.0);
     if (const auto expected = record.find("expected"); expected != record.end() && !expected->is_null()) {  // nor this
         agent->expects = true;
@@ -589,6 +592,16 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     }
     json diary = json::array();  // turn, event, species, craft, who
     for (const Simulation::Milestone& entry : simulation.diary_) diary.push_back({entry.turn, entry.event, entry.species, entry.craft, entry.who});
+    json realms = json::array();  // identifier, species, colour, members
+    for (const auto& [identifier, realm] : simulation.realms_) realms.push_back({identifier, static_cast<int>(realm.species), realm.ring, realm.members});
+    json claims = json::array();  // square, group, hold
+    for (std::size_t patch = 0; patch < simulation.lands_.size(); ++patch) {
+        for (const Claim& claim : simulation.lands_[patch]) {
+            if (claim.realm >= 0) claims.push_back({patch, claim.realm, claim.hold});
+        }
+    }
+    json wars = json::array();
+    for (const War& war : simulation.wars_) wars.push_back({war.first, war.second, war.first_kills, war.second_kills, war.since});
     const json record = {
         {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"value_scale", VALUE_SCALE}, {"actions", names(OUTPUTS)},
         {"temperament", names(TEMPERAMENT)},
@@ -601,6 +614,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
         {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"lands", {{"patch", simulation.land_patch_}, {"columns", simulation.land_columns_}, {"squares", simulation.lands_.size()}, {"next_realm", simulation.next_realm_}, {"realms", std::move(realms)}, {"claims", std::move(claims)}, {"wars", std::move(wars)}}},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -802,6 +816,28 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         world.diary_.clear();
         for (const json& entry : record.value("diary", json::array())) {
             world.diary_.push_back({entry.at(0).get<int>(), entry.at(1).get<std::string>(), entry.at(2).get<std::string>(), entry.at(3).get<std::string>(), entry.at(4).get<int>()});
+        }
+        world.realms_.clear();
+        world.lands_.clear();
+        world.wars_.clear();
+        if (record.contains("lands")) {  // none, in a world saved before lands: counted afresh
+            const json& lands = record.at("lands");
+            world.land_patch_ = lands.at("patch").get<int>();
+            world.land_columns_ = lands.at("columns").get<int>();
+            world.next_realm_ = lands.at("next_realm").get<int>();
+            world.lands_.assign(lands.at("squares").get<std::size_t>(), LandClaims{});
+            for (const json& realm : lands.at("realms")) {
+                const int identifier = realm.at(0).get<int>();
+                world.realms_[identifier] = Realm{identifier, static_cast<Species>(realm.at(1).get<int>()), realm.at(2).get<std::uint32_t>(), realm.at(3).get<int>()};
+            }
+            for (const json& claim : lands.at("claims")) {
+                LandClaims& land = world.lands_.at(claim.at(0).get<std::size_t>());
+                land[land[0].realm < 0 ? 0 : 1] = Claim{claim.at(1).get<int>(), claim.at(2).get<double>()};
+            }
+            for (const json& war : lands.at("wars")) {
+                world.wars_.push_back({war.at(0).get<int>(), war.at(1).get<int>(), war.at(2).get<int>(), war.at(3).get<int>(), war.at(4).get<int>()});
+            }
+            world.index_realm_patches();
         }
         world.stones_scattered_ = record.value("stones_scattered", false);
         world.scatter_stones();  // a world saved before stones has them now, the once

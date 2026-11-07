@@ -107,6 +107,7 @@ public:
     static constexpr double JAMMED = 0.99;
     Json skills(Simulation& world) const;
     Json diary(Simulation& world) const;
+    Json lands(Simulation& world) const;  // colour groups, their lands and wars, and the marks of the victor
     Json regard(Simulation& world) const;
     Json society(Simulation& world) const;
     Json minds(Simulation& world) const;

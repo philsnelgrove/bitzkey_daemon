@@ -3584,3 +3584,145 @@ TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may te
     CHECK_FALSE(simulation.willing_student(parent, child));
     FEEBLE_YOUTH = youth;
 }
+
+TEST_CASE("a defeat earns a mark of the victor, kept for life, esteemed by those who see it and dreaded by its foes") {
+    Simulation simulation = world();
+    Bitzkey& victor = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    Bitzkey& omnivore = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 7, 5);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 7);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 4, 5);
+    Bitzkey& foe = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 4);
+    simulation.index_cells();
+    CHECK(victor.mark == NoMark);
+    omnivore.health = 0;
+    simulation.die(omnivore, "killed", &victor);
+    CHECK(victor.mark == WarriorMark);  // the warrior's, for an omnivore
+    predator.health = 0;
+    simulation.die(predator, "killed", &victor);
+    CHECK(victor.mark == PrestigeMark);  // prestige, for a predator
+    grazer.health = 0;
+    simulation.die(grazer, "killed", &victor);
+    CHECK(victor.mark == PrestigeMark);  // kept: a lesser defeat takes nothing away
+    CHECK(Simulation::mark_worth(victor.mark) == PRESTIGE_MARK);
+
+    foe.known.push_back(Acquaintance{victor.identifier, -0.9, 0});
+    REQUIRE(simulation.is_foe(foe, victor));
+    simulation.deed_seen(victor, Simulation::mark_worth(victor.mark), nullptr, MarkDeed);
+    CHECK(simulation.regard_for(friend_, victor) > 0.0);  // esteemed
+    const auto held = [&](const Bitzkey& by) {
+        return *std::find_if(by.known.begin(), by.known.end(), [&](const Acquaintance& one) { return one.identifier == victor.identifier; });
+    };
+    CHECK(held(foe).regard == doctest::Approx(-0.9));  // a foe esteems it no more
+    CHECK(held(foe).danger > 0.0);  // but holds it the more dangerous
+    CHECK(foe.reward < 0.0);  // and dreads it
+    simulation.deed_seen(victor, 0.0, nullptr, CowardDeed);
+    CHECK(victor.mark == PrestigeMark);  // never lost
+}
+
+// Lands rules for a test: small groups claim, and the old values come back after.
+struct SmallLands {
+    int size = LAND_SIZE, hold = LAND_HOLD, patch = LAND_PATCH, kills = WAR_KILLS;
+    SmallLands() {
+        LAND_SIZE = 3;
+        LAND_HOLD = 2;
+        LAND_PATCH = 8;
+        WAR_KILLS = 2;
+    }
+    ~SmallLands() {
+        LAND_SIZE = size;
+        LAND_HOLD = hold;
+        LAND_PATCH = patch;
+        WAR_KILLS = kills;
+    }
+};
+
+TEST_CASE("a colour group large enough claims the land it stands in, defends it, and goes to war over contested land") {
+    SmallLands lands;
+    Simulation simulation = world(24);
+    const Dna red = encode_dna(Species::Omnivore, {{"size", 3}});
+    const Dna blue = flipped(red, std::uint64_t{0xFFFF0000} << 32);
+    REQUIRE(colour_difference(body_word(red), body_word(blue)) > FACTION_WIDTH);
+    std::vector<Bitzkey*> reds, blues;
+    for (const auto& [x, y] : {std::pair{2, 2}, std::pair{3, 2}, std::pair{2, 3}}) reds.push_back(&simulation.add_agent(red, x, y));
+    Bitzkey& outsider = simulation.add_agent(blue, 3, 3);
+    simulation.index_cells();
+    simulation.count_lands();
+    const int realm = reds[0]->realm;
+    CHECK(realm >= 0);
+    CHECK(reds[1]->realm == realm);
+    CHECK(outsider.realm != realm);  // another colour, another group
+    CHECK(simulation.realms().at(realm).members == 3);
+    REQUIRE(simulation.claims_at(2, 2) != nullptr);
+    CHECK(Simulation::claims(*simulation.claims_at(7, 7), realm));  // the whole square, to its edge
+    CHECK_FALSE(Simulation::claims(*simulation.claims_at(8, 8), realm));
+    CHECK(simulation.realms().at(realm).patches.size() == 1);
+    CHECK(simulation.in_own_land(*reds[0]));
+    CHECK(simulation.trespassing(outsider));
+
+    // In its land: harder to harm, steadier, its herd the more, and at ease
+    CHECK(simulation.land_guard(*reds[0], outsider) == doctest::Approx(1 - LAND_DEFENCE));
+    CHECK(simulation.land_guard(*reds[0], *reds[1]) == 1.0);  // its own group are no outsiders
+    CHECK(simulation.nerve(*reds[0], &outsider) == doctest::Approx(1 - LAND_RALLY));
+    CHECK(simulation.land_herd(*reds[0]) == doctest::Approx(1 + LAND_HERD));
+    CHECK(simulation.nerve(outsider, reds[0]) == 1.0);
+    Simulation::Sensed sensed = simulation.sense(*reds[0]);
+    CHECK(sensed.senses[SenseOwnLand] == 1.0);
+    CHECK(sensed.senses[SenseTrespasser] > 0.0);
+    CHECK(sensed.situation.land == 1.0);
+    Simulation::Sensed away = simulation.sense(outsider);
+    CHECK(away.senses[SenseForeignLand] == 1.0);
+
+    // A trespasser is thought the worse of each turn it stays, the more each turn
+    simulation.trespass(outsider);
+    const double first = simulation.regard_for(*reds[0], outsider);
+    CHECK(first < 0.0);
+    CHECK(outsider.trespass == 1);
+    for (int turn = 0; turn < 20; ++turn) simulation.trespass(outsider);
+    CHECK(simulation.regard_for(*reds[0], outsider) < first);
+    CHECK(simulation.is_foe(*reds[0], outsider));  // until it is a foe
+    CHECK(simulation.drives_out(*reds[0], outsider));  // to be struck down in the land
+    CHECK_FALSE(simulation.drives_out(*reds[0], *reds[1]));
+
+    // A second group standing there in strength contests it: war
+    for (const auto& [x, y] : {std::pair{4, 3}, std::pair{3, 4}}) blues.push_back(&simulation.add_agent(blue, x, y));
+    simulation.index_cells();
+    simulation.count_lands();
+    const int enemy = outsider.realm;
+    REQUIRE(simulation.realms().at(enemy).members == 3);
+    const LandClaims& contested = *simulation.claims_at(2, 2);
+    CHECK(Simulation::claims(contested, realm));
+    CHECK(Simulation::claims(contested, enemy));
+    REQUIRE(simulation.wars().size() == 1);
+    CHECK(simulation.war_standing(realm) == 0);  // too few deaths yet to tell
+    blues[0]->health = 0;
+    simulation.die(*blues[0], "killed", reds[0]);
+    blues[1]->health = 0;
+    simulation.die(*blues[1], "killed", reds[1]);
+    CHECK(simulation.war_standing(realm) == 1);  // clearly winning
+    CHECK(simulation.war_standing(enemy) == -1);  // clearly losing
+    CHECK(simulation.nerve(outsider, &outsider) > 1.0);  // and shaken by it, where it can't rally
+    CHECK(reds[0]->mark == WarriorMark);  // each a victor too
+    // The loser gives up its claim, fading over the counts, though one of it stands there still
+    for (int count = 0; count < LAND_MEMORY; ++count) simulation.count_lands();
+    CHECK_FALSE(Simulation::claims(*simulation.claims_at(2, 2), enemy));
+    CHECK(simulation.wars().empty());  // and the war is over
+    CHECK(Simulation::claims(*simulation.claims_at(2, 2), realm));
+}
+
+TEST_CASE("lands, groups and wars are saved with the world and loaded back") {
+    SmallLands lands;
+    Simulation simulation = world(24);
+    const Dna red = encode_dna(Species::Omnivore, {{"size", 3}});
+    for (const auto& [x, y] : {std::pair{2, 2}, std::pair{3, 2}, std::pair{2, 3}}) simulation.add_agent(red, x, y);
+    simulation.index_cells();
+    simulation.count_lands();
+    simulation.living().front()->mark = PrestigeMark;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    CHECK(loaded->realms().size() == simulation.realms().size());
+    CHECK(loaded->land_patch() == simulation.land_patch());
+    CHECK(loaded->wars() == simulation.wars());
+    CHECK(Simulation::claims(*loaded->claims_at(2, 2), loaded->living().front()->realm));
+    CHECK(loaded->realms().begin()->second.patches == simulation.realms().begin()->second.patches);
+    CHECK(loaded->living().front()->mark == PrestigeMark);
+}
