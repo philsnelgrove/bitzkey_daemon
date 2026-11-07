@@ -2713,6 +2713,30 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         senses[SenseMarked] = agent.mark / 2.0;
         senses[SenseMarkSeen] = best_mark / 2.0;
     }
+    {  // its standing: who about it hold it a friend; and its standout, the one of its group in sight it esteems most
+        int admirers = 0;
+        const Bitzkey* standout = nullptr;
+        double best = 0.0;
+        for (const Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || other->species != agent.species) continue;
+            if (distance(other->x, other->y, agent.x, agent.y) <= other->sight && regard_for(*other, agent) >= REGARD_STRONG) admirers += 1;
+            if (agent.realm >= 0 && other->realm != agent.realm) continue;
+            const double esteem = std::min(1.0, regard_for(agent, *other));
+            if (esteem > best) {
+                best = esteem;
+                standout = other;
+            }
+        }
+        s.admired = std::min(3, admirers) / 3.0;
+        if (standout) {
+            const double near = closeness(agent, Cell{standout->x, standout->y}, sight);
+            s.standout = best * near;
+            senses[SenseStandoutEsteem] = best;
+            senses[SenseStandoutCloseness] = near;
+            senses[SenseStandoutEast] = std::clamp(static_cast<double>(standout->x - agent.x) / std::max(1, sight), -1.0, 1.0);
+            senses[SenseStandoutSouth] = std::clamp(static_cast<double>(standout->y - agent.y) / std::max(1, sight), -1.0, 1.0);
+        }
+    }
     senses[SenseFoodPlenty] = agent.plenty + agent.plenty_known > 0 ? agent.plenty / (agent.plenty + std::max(0.0, agent.plenty_known)) : 0.5;
     senses[SenseFertilizedHere] = fertilized_at(agent.x, agent.y) ? 1.0 : 0.0;
     senses[SenseRoadHere] = road_at(agent.x, agent.y) ? 1.0 : static_cast<double>(road_work_at(agent.x, agent.y)) / ROAD_TURNS;
@@ -3571,7 +3595,10 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     }
     const double envious = ENVY_UNEASE * envy_of(agent) * s.envy;
     // At ease in its own land and uneasy away from it; glad of a war clearly being won, and troubled by one being lost.
-    const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war;
+    const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war +
+                             // Glad to be held a friend by those about it, and at ease near the one it esteems most
+                             STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
+                             FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout;
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging;
 }
 

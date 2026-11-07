@@ -1841,5 +1841,9 @@
 "how much less likely to panic a war clearly being won leaves its side, and more the losing side": "明らかに勝っている戦争が味方をどれだけパニックしにくくし、負けている側をどれだけしやすくするか",
 "LANDS": "領地",
 "WAR": "戦争",
-"LAND OF {*}: {#} STRONG": "{*}の領地：{#}頭"
+"LAND OF {*}: {#} STRONG": "{*}の領地：{#}頭",
+"Standing joy": "立場の喜び",
+"pleasure of being held a friend by those about it, in full with three or more, times a half and its dominance": "周りの者に友とみなされる喜び。3頭以上で最大。0.5に支配性を足したものを掛ける",
+"Follow comfort": "付き従う安らぎ",
+"ease near the member of its own colour group in sight it esteems most, times that esteem and closeness, and a half plus its trust and sociability together": "視界にいる自分の色の集団で最も評価する者のそばにいる安らぎ。その評価と近さ、そして0.5に信頼と社交性を合わせたものを掛ける"
 }

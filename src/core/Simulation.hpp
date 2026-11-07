@@ -637,6 +637,11 @@ inline double WARRIOR_MARK = 0.5, PRESTIGE_MARK = 1.0, MARK_REGARD = 0.05, MARK_
 // colour by WAR_ENMITY of a deed's weight. Once WAR_KILLS or more of each other have died in it, a group with two thirds
 // of the kills or more is clearly winning (glad, WAR_MORALE, and WAR_NERVE less likely to panic), with a third or less
 // clearly losing (as much the other way).
+// Standing: no one is made a leader. Each turn an animal is glad of how many about it hold it a friend (STANDING_JOY,
+// times a half and its dominance, in full with three or more), and at ease near its standout, the member of its own
+// colour group in sight it esteems most (FOLLOW_COMFORT, times that esteem and closeness, and a half plus its trust and
+// sociability together); it senses that standout, and its brain learns whether keeping near it pays.
+inline double STANDING_JOY = 0.2, FOLLOW_COMFORT = 0.2;
 inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
 inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
               TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25;
@@ -1340,6 +1345,8 @@ public:
         double prey_flanked = 0.0;  // its pack beside its prey, opponent or rival: a half each, to 1  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
         double land = 0.0;  // 1 in its own land, -1 away from the land its group holds, 0 with none
         double war = 0.0;  // its group's wars: 1 clearly winning, -1 clearly losing, 0 neither or at peace
+        double admired = 0.0;  // those in sight who hold it a friend, a third each, to 1
+        double standout = 0.0;  // its esteem for its standout, times how close it is
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };

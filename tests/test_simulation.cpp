@@ -3726,3 +3726,23 @@ TEST_CASE("lands, groups and wars are saved with the world and loaded back") {
     CHECK(loaded->realms().begin()->second.patches == simulation.realms().begin()->second.patches);
     CHECK(loaded->living().front()->mark == PrestigeMark);
 }
+
+TEST_CASE("an animal senses its standout, is at ease near it, and is glad to be held a friend") {
+    Simulation simulation = world();
+    Bitzkey& follower = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& esteemed = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 6);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 4, 5);
+    simulation.index_cells();
+    Simulation::Sensed alone = simulation.sense(follower);
+    CHECK(alone.senses[SenseStandoutEsteem] == 0.0);  // none esteemed above none
+    follower.known.push_back(Acquaintance{esteemed.identifier, 0.8, 0});
+    follower.known.push_back(Acquaintance{stranger.identifier, 0.2, 0});
+    esteemed.known.push_back(Acquaintance{follower.identifier, 0.9, 0});
+    Simulation::Sensed sensed = simulation.sense(follower);
+    CHECK(sensed.senses[SenseStandoutEsteem] == doctest::Approx(0.8));  // the one it esteems most
+    CHECK(sensed.senses[SenseStandoutCloseness] > 0.0);
+    CHECK(sensed.senses[SenseStandoutEast] > 0.0);
+    CHECK(sensed.senses[SenseStandoutSouth] > 0.0);
+    CHECK(sensed.situation.admired == doctest::Approx(1.0 / 3));  // one about it holds it a friend
+    CHECK(simulation.comfort(follower, sensed.situation) > simulation.comfort(follower, alone.situation));
+}
