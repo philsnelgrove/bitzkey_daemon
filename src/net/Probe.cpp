@@ -1024,7 +1024,7 @@ Json Probe::society(Simulation& world) const {
 
         std::iota(joined.begin(), joined.end(), std::size_t{0});
         struct Follow {
-            long long friends = 0, skilled = 0, dangerous = 0, hostile = 0;
+            long long friends = 0, skilled = 0, dangerous = 0, hostile = 0, friends_of_its_colour = 0;
             double friend_steps = 0;
         };
         std::vector<Follow> follows(count);
@@ -1041,6 +1041,7 @@ Json Probe::society(Simulation& world) const {
                 if (known.regard < REGARD_STRONG) continue;
                 follow.friends += 1;
                 follow.friend_steps += steps(*animals[at], *animals[other->second]);
+                follow.friends_of_its_colour += colour_difference(body_word(animals[at]->dna), body_word(animals[other->second]->dna)) <= FACTION_WIDTH;
                 const auto& theirs = animals[other->second]->known;
                 const bool mutual = std::any_of(theirs.begin(), theirs.end(), [&](const Acquaintance& one) {
                     return one.identifier == animals[at]->identifier && one.regard >= REGARD_STRONG;
@@ -1052,6 +1053,8 @@ Json Probe::society(Simulation& world) const {
             }
         }
         const Json tribes = groups(tribe_steps, tribe_ties);
+        std::unordered_map<std::size_t, long long> tribe_sizes;
+        for (std::size_t at = 0; at < count; ++at) tribe_sizes[root(at)] += 1;
 
         // Colours, each the first animal met of it, in turn: too many to compare all against all, so the largest are kept.
         struct Colour {
@@ -1111,7 +1114,17 @@ Json Probe::society(Simulation& world) const {
         const auto kin_in_top = [&](const Bitzkey& one) {
             return std::count_if(top_twenty.begin(), top_twenty.end(), [&](const Bitzkey* other) { return other != &one && Simulation::family(one, *other); });
         };
-        long long with_kin = 0, with_regarded_parent = 0;
+        // Factions about leaders: whether the top twenty's friends share their colour more than friends do at large, and lead tribes.
+        long long with_kin = 0, with_regarded_parent = 0, top_friends = 0, top_friends_of_colour = 0, all_friends = 0, all_friends_of_colour = 0, top_in_a_tribe = 0;
+        for (const Follow& follow : follows) {
+            all_friends += follow.friends;
+            all_friends_of_colour += follow.friends_of_its_colour;
+        }
+        for (std::size_t at = 0; at < top_twenty.size(); ++at) {
+            top_friends += follows[ranked[at]].friends;
+            top_friends_of_colour += follows[ranked[at]].friends_of_its_colour;
+            top_in_a_tribe += tribe_sizes[root(ranked[at])] >= 3;
+        }
         for (const Bitzkey* one : top_twenty) {
             with_kin += kin_in_top(*one) > 0;
             const Json held = parents_regarded(*one);
@@ -1129,13 +1142,17 @@ Json Probe::society(Simulation& world) const {
                                {"enemies", follow.hostile}, {"friends_mean_steps", mean(follow.friend_steps, follow.friends)},
                                {"age_share", static_cast<double>(leader.age) / std::max(1.0, static_cast<double>(leader.lifespan))}, {"elder", leader.age > AGEING * leader.lifespan},
                                {"regarded", leader.regarded}, {"mother", leader.mother}, {"father", leader.father},
-                               {"parents_regarded", parents_regarded(leader)}, {"kin_in_top_twenty", kin_in_top(leader)}});
+                               {"parents_regarded", parents_regarded(leader)}, {"kin_in_top_twenty", kin_in_top(leader)},
+                               {"friends_of_its_colour", follow.friends_of_its_colour}, {"its_tribe", tribe_sizes[root(ranked[at])]}});
         }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}}},
             {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
-                         {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}}}}};
+                         {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}},
+                         {"factions", {{"top_twenty_friends_of_their_colour", top_friends ? Json(static_cast<double>(top_friends_of_colour) / top_friends) : Json(nullptr)},
+                                       {"all_friends_of_their_colour", all_friends ? Json(static_cast<double>(all_friends_of_colour) / all_friends) : Json(nullptr)},
+                                       {"top_twenty_in_a_tribe_of_three_or_more", top_in_a_tribe}}}}}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

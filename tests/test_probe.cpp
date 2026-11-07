@@ -289,6 +289,12 @@ TEST_CASE("the society route finds a family, a tribe of mutual friends and the o
     CHECK(top["kin_in_top_twenty"] == 1);  // its child, followed too
     const Json lineage = omnivores["leaders"]["lineage"];
     CHECK(lineage["with_kin_in_top_twenty"].get<int>() >= 2);
+    CHECK(top["friends_of_its_colour"] == 3);  // all of one colour
+    CHECK(top["its_tribe"] == 4);
+    const Json factions = omnivores["leaders"]["factions"];
+    CHECK(factions["top_twenty_friends_of_their_colour"].get<double>() == doctest::Approx(1.0));
+    CHECK(factions["all_friends_of_their_colour"].get<double>() == doctest::Approx(1.0));
+    CHECK(factions["top_twenty_in_a_tribe_of_three_or_more"] == 4);
 }
 
 TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lessons, and counts them by species") {
