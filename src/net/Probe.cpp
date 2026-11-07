@@ -1095,6 +1095,28 @@ Json Probe::society(Simulation& world) const {
         std::sort(ranked.begin(), ranked.end(), [&](std::size_t a, std::size_t b) { return standing(a) != standing(b) ? standing(a) > standing(b) : animals[a]->identifier < animals[b]->identifier; });
         Json leaders = Json::array();
         long long followed_by_three = 0, followers = 0, top_followers = 0;
+        // Lineages: how a leader's living parents are regarded, and the top twenty's family ties to each other.
+        const auto parents_regarded = [&](const Bitzkey& one) {
+            Json held = Json::array();
+            for (const int parent : {one.mother, one.father}) {
+                const Bitzkey* found = parent >= 0 ? world.find_agent(parent) : nullptr;
+                if (found && found->alive()) held.push_back(found->regarded);
+            }
+            return held;
+        };
+        std::vector<const Bitzkey*> top_twenty;
+        for (std::size_t at = 0; at < std::min<std::size_t>(count, 20); ++at) {
+            if (standing(ranked[at]) > 0) top_twenty.push_back(animals[ranked[at]]);
+        }
+        const auto kin_in_top = [&](const Bitzkey& one) {
+            return std::count_if(top_twenty.begin(), top_twenty.end(), [&](const Bitzkey* other) { return other != &one && Simulation::family(one, *other); });
+        };
+        long long with_kin = 0, with_regarded_parent = 0;
+        for (const Bitzkey* one : top_twenty) {
+            with_kin += kin_in_top(*one) > 0;
+            const Json held = parents_regarded(*one);
+            with_regarded_parent += std::any_of(held.begin(), held.end(), [](const Json& value) { return value.get<double>() >= 0.5; });
+        }
         for (std::size_t at = 0; at < count; ++at) {
             const long long held = standing(ranked[at]);
             followers += held;
@@ -1105,12 +1127,15 @@ Json Probe::society(Simulation& world) const {
             const Bitzkey& leader = *animals[ranked[at]];
             leaders.push_back({{"id", leader.identifier}, {"friends", follow.friends}, {"held_skilled_by", follow.skilled}, {"held_dangerous_by", follow.dangerous},
                                {"enemies", follow.hostile}, {"friends_mean_steps", mean(follow.friend_steps, follow.friends)},
-                               {"age_share", static_cast<double>(leader.age) / std::max(1.0, static_cast<double>(leader.lifespan))}, {"elder", leader.age > AGEING * leader.lifespan}});
+                               {"age_share", static_cast<double>(leader.age) / std::max(1.0, static_cast<double>(leader.lifespan))}, {"elder", leader.age > AGEING * leader.lifespan},
+                               {"regarded", leader.regarded}, {"mother", leader.mother}, {"father", leader.father},
+                               {"parents_regarded", parents_regarded(leader)}, {"kin_in_top_twenty", kin_in_top(leader)}});
         }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}}},
-            {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders}}}};
+            {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
+                         {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}}}}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

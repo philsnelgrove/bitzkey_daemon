@@ -285,6 +285,10 @@ TEST_CASE("the society route finds a family, a tribe of mutual friends and the o
     CHECK(top["friends"] == 3);
     CHECK(top["held_skilled_by"] == 3);
     CHECK(omnivores["leaders"]["followed_by_three_or_more"] == 1);
+    CHECK(top["mother"] == -1);
+    CHECK(top["kin_in_top_twenty"] == 1);  // its child, followed too
+    const Json lineage = omnivores["leaders"]["lineage"];
+    CHECK(lineage["with_kin_in_top_twenty"].get<int>() >= 2);
 }
 
 TEST_CASE("the probe shows what an animal has learnt: its crafts, gear and lessons, and counts them by species") {
