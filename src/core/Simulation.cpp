@@ -4547,7 +4547,8 @@ double Simulation::damage(const Bitzkey& attacker, const Bitzkey& defender, bool
         const double thorns = THORN_SIZE_SHARE * attacker.physique(Size) + (1 - THORN_SIZE_SHARE) * attacker.physique(Weapons);
         return THORN_FORCE * thorns * (1 - 0.6 * defender.toughness) * (defender.infant() ? INFANT_THORNS : 1.0);
     }
-    const double force = STRIKE_FORCE * (2 + 9 * attacker.might);
+    const double weak = attacker.species == Species::Grazer && !defending ? GRAZER_FORCE : 1.0;  // no natural weapons to attack with
+    const double force = STRIKE_FORCE * (2 + 9 * attacker.might) * weak;
     const double weapons = armed(attacker) * (defending ? defence_share(attacker) : 1.0);
     return force * (1 + 0.75 * weapons) * (1 - 0.6 * gear_toughness(defender)) * gear_force(attacker);
 }
@@ -4923,7 +4924,8 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     }
     blow *= land_guard(victim, agent);  // and harder to bring down in its own land
     victim.health -= blow;
-    agent.nourish(5, true);
+    const bool eats = agent.species != Species::Grazer;  // a grazer strikes, but makes no meal of it
+    if (eats) agent.nourish(5, true);
     agent.hunger += STRIKE_EFFORT * blow / agent.stomach;  // the harder the blow, the more it costs
     agent.reward += joy + harm_felt(agent, regard_for(agent, victim));
     if (victim.species != Species::Plant) tally_attack(agent, victim);
@@ -4939,8 +4941,8 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
             experience(victim, WoundedAlone);
         }
     } else {
-        const double meal = KILL_MEAL + KILL_MEAL_FOR_SIZE * victim.physique(Size);
-        agent.nourish(meal, true);
+        const double meal = eats ? KILL_MEAL + KILL_MEAL_FOR_SIZE * victim.physique(Size) : 0.0;
+        if (eats) agent.nourish(meal, true);
         agent.reward += 2 * joy;
         witness(agent, meal / agent.stomach / 100);  // its pack sees it succeed: the fullness it gained
         if (rival_weight(agent, victim) > 0 || is_foe(agent, victim)) {  // one fewer rival for the feeding ground

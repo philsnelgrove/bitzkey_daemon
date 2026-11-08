@@ -489,6 +489,9 @@ inline double OMNIVORE_DEFENCE_WEAPONS = 0.75;  // the same for an omnivore; a p
 inline double PREDATOR_WEAPONS = 3.0;  // a predator's natural weapons count this many times over, striking and stinging;
                                         // an omnivore's three quarters of that and a grazer's half
 inline int GRAZER_DEFENCE_STRENGTH = 5;  // a grazer can strike back only with strength above this
+// A grazer may attack any animal within reach it holds a foe, at GRAZER_FORCE of the base force of a blow (before
+// weapons, gear and other bonuses), and gains no meal by it.
+inline double GRAZER_FORCE = 0.5;
 inline double FEAST_JOY = 1.5;   // a predator's pleasure in feasting on a fresh kill
 inline double SATED_JOY = 1.0;   // pleasure in hunger relieved by eating, hunting, feasting or scavenging, per its full range
 inline double ATTACK_JOY = 0.1;  // a predator's pleasure in a blow it lives through
@@ -1616,7 +1619,14 @@ public:
     int war_standing(int realm, int enemy = -1) const;
     // Whether a hunter standing in its own land may strike a trespasser there that it holds a foe.
     bool drives_out(const Bitzkey& hunter, const Bitzkey& other) const;
-    bool preys_on(const Bitzkey& hunter, const Bitzkey& other) const { return is_prey(hunter, other) || drives_out(hunter, other); }
+    bool preys_on(const Bitzkey& hunter, const Bitzkey& other) const {
+        return is_prey(hunter, other) || drives_out(hunter, other) || grazer_assails(hunter, other);
+    }
+    // A grazer has no prey, but may attack a foe within reach.
+    bool grazer_assails(const Bitzkey& grazer, const Bitzkey& other) const {
+        return grazer.species == Species::Grazer && other.species != Species::Plant && !other.guarded && within_reach(grazer, other) &&
+               is_foe(grazer, other);
+    }
     // The share of a blow from an outsider that lands on one in its own land, and how much more its herd counts there.
     double land_guard(const Bitzkey& struck, const Bitzkey& striker) const {
         return striker.realm != struck.realm && in_own_land(struck) ? 1 - LAND_DEFENCE : 1.0;

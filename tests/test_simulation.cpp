@@ -3742,6 +3742,31 @@ TEST_CASE("a beaten group may not take back the winner's land until the war's ki
     CHECK(Simulation::claims(*simulation.claims_at(2, 2), enemy));  // and the land may be fought for again
 }
 
+TEST_CASE("a grazer may attack a foe within reach, at half the base force, and makes no meal of it") {
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+    Bitzkey& foe = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+    Bitzkey& hunter = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 4, 5);
+    simulation.index_cells();
+    CHECK_FALSE(simulation.preys_on(grazer, foe));
+    grazer.known.push_back(Acquaintance{foe.identifier, -0.9, 0});
+    REQUIRE(simulation.is_foe(grazer, foe));
+    CHECK(simulation.preys_on(grazer, foe));  // a foe, it may strike
+    CHECK_FALSE(simulation.preys_on(grazer, stranger));  // not one it holds nothing against
+    CHECK(simulation.sense(grazer).situation.prey == &foe);
+    // Weak: half the base force of a hunter its like
+    Bitzkey twin = grazer;
+    twin.species = Species::Omnivore;
+    const double weapons = 1 + 0.75 * Simulation::armed(grazer), alike = 1 + 0.75 * Simulation::armed(twin);
+    CHECK(Simulation::damage(grazer, foe) / weapons == doctest::Approx(GRAZER_FORCE * Simulation::damage(twin, foe) / alike));
+    CHECK(Simulation::damage(grazer, hunter, true) > Simulation::damage(grazer, hunter));  // but not in defence
+    const double hunger = grazer.hunger, health = foe.health;
+    simulation.attack(grazer, foe);
+    CHECK(foe.health < health);
+    CHECK(grazer.hunger >= hunger);  // no meal of it
+}
+
 TEST_CASE("lands, groups and wars are saved with the world and loaded back") {
     SmallLands lands;
     Simulation simulation = world(24);

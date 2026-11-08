@@ -276,6 +276,7 @@ std::vector<Rule> make_rules() {
          &PREDATOR_WEAPONS},
         {"GRAZER_DEFENCE_STRENGTH", "Fighting", "Grazer defence strength", "a grazer can strike back only with strength above this", 0, 7,
          1, true, &GRAZER_DEFENCE_STRENGTH},
+        {"GRAZER_FORCE", "Fighting", "Grazer force", "the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with", 0.0, 1.0, 0.05, false, &GRAZER_FORCE},
         {"STRIKE_EFFORT", "Fighting", "Strike effort", "food burned for each point of damage a blow deals", 0.0, 2.0, 0.05, false, &STRIKE_EFFORT},
         {"THORN_FORCE", "Fighting", "Thorn force", "a plant's counterblow at full weapons and size", 0, 100, 1, true, &THORN_FORCE},
         {"THORN_SIZE_SHARE", "Fighting", "Thorn size share", "share of that from the plant's size; the rest its weapons", 0.0, 1.0, 0.05, false, &THORN_SIZE_SHARE},
