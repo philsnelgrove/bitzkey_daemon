@@ -1849,5 +1849,17 @@
 "War fade": "Zanikanie wojny",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "część zabitych w wojnie zapominana przy każdym liczeniu ziem, by decydowały niedawne śmierci, a dawna klęska z czasem była wybaczona",
 "Grazer force": "Siła roślinożercy",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "część podstawowej siły roślinożercy w zadawanym ciosie, nie w obronie, przed bronią, ekwipunkiem i innymi premiami: nie ma naturalnej broni do ataku"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "część podstawowej siły roślinożercy w zadawanym ciosie, nie w obronie, przed bronią, ekwipunkiem i innymi premiami: nie ma naturalnej broni do ataku",
+"OFFER": "Zaoferuj",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Oferuje coś swojego w zamian za coś, co ma inny; ten waży umowę i może ją przyjąć lub odrzucić.",
+"Trade misjudgement": "Błąd oceny w handlu",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "jak bardzo zwierzę może źle ocenić wartość dobra w umowie, w obie strony, razy jeden minus jego inteligencja",
+"Trade regard": "Szacunek z handlu",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "jaką część wagi czynu ma przyjęta oferta dla szacunku, uprzejmość w obie strony",
+"Trade joy": "Radość z handlu",
+"pleasure each side takes in a deal made, the offer accepted": "przyjemność, jaką każda strona czerpie z zawartej umowy, gdy oferta zostaje przyjęta",
+"offered": "zaoferował",
+"thought better of an offer": "rozmyślił się z ofertą",
+"was refused": "został odrzucony",
+"traded": "wymienił się"
 }

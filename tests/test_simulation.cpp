@@ -3803,3 +3803,43 @@ TEST_CASE("an animal senses its standout, is at ease near it, and is glad to be 
     CHECK(sensed.situation.admired == doctest::Approx(1.0 / 3));  // one about it holds it a friend
     CHECK(simulation.comfort(follower, sensed.situation) > simulation.comfort(follower, alone.situation));
 }
+
+TEST_CASE("an offer is weighed by both: a deal that seems a gain to each is made, one that doesn't refused") {
+    Simulation simulation = world();
+    Bitzkey& trader = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& owner = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    for (Bitzkey* one : {&trader, &owner}) {
+        for (int trait : {Aggression, Dominance, Empathy, Sociability}) one->mind[trait] = 0.0;
+        one->mind[Intellect] = 7.0;  // the sharpest misjudge nothing
+    }
+    trader.weapon = StoneAxe;     // worth 0.5 to the meek trader
+    owner.armour = WoodArmour;    // worth 1 to either
+    owner.mind[Aggression] = 7.0; // the axe worth 1.5 to the fierce owner
+    const Simulation::Sensed sensed = simulation.sense(trader);
+    CHECK(sensed.situation.trade_with == &owner);
+    CHECK(sensed.situation.wanted == ArmourPossession);
+    CHECK(sensed.situation.offered == WeaponPossession);
+    simulation.offer(trader, owner, ArmourPossession, WeaponPossession);
+    CHECK(trader.last_action == "traded");
+    CHECK((trader.armour == WoodArmour && trader.weapon == NoWeapon));
+    CHECK((owner.weapon == StoneAxe && owner.armour == NoArmour));
+    CHECK(simulation.regard_for(owner, trader) > 0.0);  // a kindness both ways
+    CHECK(simulation.regard_for(trader, owner) > 0.0);
+    CHECK((trader.reward >= TRADE_JOY && owner.reward >= TRADE_JOY));  // trade joy, to both
+
+    owner.mind[Aggression] = 0.0;  // the axe now worth 0.5 to the owner, less than the armour it would give up
+    owner.armour = WoodArmour;
+    owner.weapon = NoWeapon;
+    trader.weapon = StoneAxe;
+    trader.armour = NoArmour;
+    simulation.offer(trader, owner, ArmourPossession, WeaponPossession);
+    CHECK(trader.last_action == "was refused");
+    CHECK((trader.weapon == StoneAxe && owner.armour == WoodArmour));
+
+    owner.hunger = 100.0;  // food: a hungry owner takes a portion for its armour
+    trader.carried_meat = 1;
+    simulation.offer(trader, owner, ArmourPossession, MeatGood);
+    CHECK(trader.last_action == "traded");
+    CHECK((owner.carried_meat == 1 && trader.carried_meat == 0 && trader.armour == WoodArmour));
+}

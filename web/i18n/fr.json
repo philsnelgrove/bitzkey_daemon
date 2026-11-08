@@ -1849,5 +1849,17 @@
 "War fade": "Oubli de la guerre",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "part des morts d'une guerre oubliée à chaque décompte des terres, pour que les morts récentes la décident et qu'une vieille défaite soit pardonnée avec le temps",
 "Grazer force": "Force de l'herbivore",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "part de la force de base d'un herbivore dans un coup qu'il porte, hors défense, avant armes, équipement et autres bonus : il n'a pas d'armes naturelles pour attaquer"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "part de la force de base d'un herbivore dans un coup qu'il porte, hors défense, avant armes, équipement et autres bonus : il n'a pas d'armes naturelles pour attaquer",
+"OFFER": "Proposer",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Propose un bien à soi contre un bien qu'un autre possède ; l'autre pèse l'échange et peut accepter ou refuser.",
+"Trade misjudgement": "Erreur d'estimation dans l'échange",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "à quel point un animal peut mal estimer la valeur d'un bien dans un échange, dans un sens ou dans l'autre, fois un moins son intelligence",
+"Trade regard": "Estime par l'échange",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "quelle part du poids d'un acte une offre acceptée a sur l'estime, une gentillesse dans les deux sens",
+"Trade joy": "Joie de l'échange",
+"pleasure each side takes in a deal made, the offer accepted": "plaisir que chaque partie tire d'un échange conclu, l'offre acceptée",
+"offered": "a proposé",
+"thought better of an offer": "s'est ravisé sur une offre",
+"was refused": "a été refusé",
+"traded": "a échangé"
 }

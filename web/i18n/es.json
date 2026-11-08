@@ -1849,5 +1849,17 @@
 "War fade": "Olvido de la guerra",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "parte de las muertes de una guerra que se olvida en cada recuento de las tierras, para que decidan las muertes recientes y una vieja derrota se perdone con el tiempo",
 "Grazer force": "Fuerza del herbívoro",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "parte de la fuerza base de un herbívoro en un golpe que asesta, no en defensa, antes de armas, equipo y otras bonificaciones: no tiene armas naturales para atacar"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "parte de la fuerza base de un herbívoro en un golpe que asesta, no en defensa, antes de armas, equipo y otras bonificaciones: no tiene armas naturales para atacar",
+"OFFER": "Ofrecer",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Ofrece algo propio a cambio de algo que tiene otro; el otro sopesa el trato y puede aceptarlo o rechazarlo.",
+"Trade misjudgement": "Error de juicio en el trueque",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "cuánto puede un animal juzgar mal el valor de un bien en un trato, en ambos sentidos, por uno menos su inteligencia",
+"Trade regard": "Estima por trueque",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "cuánto del peso de una acción tiene una oferta aceptada sobre la estima, una amabilidad en ambos sentidos",
+"Trade joy": "Alegría del trueque",
+"pleasure each side takes in a deal made, the offer accepted": "placer que siente cada parte en un trato cerrado, con la oferta aceptada",
+"offered": "ofreció",
+"thought better of an offer": "se lo pensó mejor y retiró una oferta",
+"was refused": "fue rechazado",
+"traded": "intercambió"
 }

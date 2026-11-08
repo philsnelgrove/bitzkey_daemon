@@ -617,6 +617,15 @@ inline double ENVY_LEVEL = 0.75, ENVY_UNEASE = 0.5, ENVY_JOY = 1.0;
 // friend if they hold its victim a foe.
 inline double FOE_LEVEL = 0.5, VICTORY_REGARD = 0.3, FOE_DEFEAT_REGARD = 0.3, COWARD_DISREGARD = 0.3;
 inline double GIVE_LEVEL = 0.75, GIVE_JOY = 0.5, TAKE_LEVEL = 0.75, THEFT_DISREGARD = 0.5;
+// Offers: any animal may offer one beside it, not a foe, a good of its own for one of the other's: a hide, weapon or
+// armour, or a portion of carried meat or fruit. A good's worth to an animal is its quality, as worn as it is, times
+// its need: food the hungrier, by the hunger it would ease; a hide the colder than home, and the more for the
+// prestige of the body it came from; a weapon the more aggressive; armour alike to all. It offers what it would miss
+// least that the other would gain from, for what it would gain most from. Each judges the deal, misjudging each
+// good's worth by up to TRADE_MISJUDGE times one less its intelligence, either way: the one offering may think better
+// of it, and the other accepts only if it seems a gain. An accepted deal is a kindness both ways (TRADE_REGARD of a
+// deed's weight) and a joy to both (TRADE_JOY), whoever came off better; a refusal is nothing.
+inline double TRADE_MISJUDGE = 0.5, TRADE_REGARD = 0.5, TRADE_JOY = 0.5;
 // Marks of the victor: one that defeats an omnivore, killing it or winning a fight over a possession, bears the mark of
 // the warrior (WARRIOR_MARK), and one that defeats a predator the mark of prestige (PRESTIGE_MARK), the better; it keeps
 // the better it has earned for life, whatever it does after. Each turn, all who see it and don't hold it a foe move their
@@ -652,6 +661,7 @@ inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COM
               TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25,
               WAR_FADE = 0.1;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
+constexpr int MeatGood = 3, FruitGood = 4, GOODS = 5;  // what may be offered: the possessions, then food
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -1236,6 +1246,24 @@ public:
         return found == death_records_.end() ? nullptr : &found->second;
     }
     std::vector<Death> deaths_so_far() const;  // every death of the last RECENT_DEATH_TURNS turns
+    // A gift handed over, for the probe to look for trade: the last GIFT_LOG of them, oldest first, not saved.
+    struct Gift {
+        int turn, giver, receiver, possession, worth;  // worth: how good the gift was (value_of), to the giver
+        Species species;
+        bool kin;  // parent and child, or of a parent
+        int giver_realm, receiver_realm;
+    };
+    static constexpr std::size_t GIFT_LOG = 20000;
+    std::vector<Gift> gifts_so_far() const;
+    // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
+    struct Trade {
+        int turn, offerer, owner, wanted, offered;
+        Species species;
+        bool withdrawn, accepted;
+        double offerer_gain, owner_gain;  // what each would truly gain by the deal, worth for worth
+        double offerer_wits, owner_wits;  // their intelligence
+    };
+    std::vector<Trade> trades_so_far() const;
     const DeathTally& death_tally() const { return death_tally_; }  // every death since the world began, counted
     PyRandom& random() { return random_; }
     double grass_regrowth() const { return grass_regrowth_; }
@@ -1346,6 +1374,8 @@ public:
         int claim = -1;  // which possession
         Bitzkey* gift_to = nullptr;  // a friend beside it whose possession is worse than its own
         int gift = -1;
+        Bitzkey* trade_with = nullptr;  // one beside it, not a foe, it may offer a good for one of its own
+        int wanted = -1, offered = -1;  // the good it wants, and the one it would offer
         double foe_closeness = 0.0;
         double cooking_smell = 0.0;
         double prey_flanked = 0.0;  // its pack beside its prey, opponent or rival: a half each, to 1  // how close the nearest smell of cooking is, cooked food or a fire cooked on, 1 beside it
@@ -1648,6 +1678,11 @@ public:
     void demand(Bitzkey& agent, Bitzkey& owner, int possession);
     void steal(Bitzkey& agent, Bitzkey& owner, int possession);
     void give(Bitzkey& agent, Bitzkey& friend_, int possession);
+    void offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered);
+    double good_worth(const Bitzkey& judge, const Bitzkey& holder, int good) const;  // holder's good, to judge
+    double trade_gain(const Bitzkey& judge, const Bitzkey& from, int good) const;  // judge taking from's good
+    static bool holds(const Bitzkey& holder, int good);
+    void pass_good(Bitzkey& from, Bitzkey& to, int good);
     void begin_fight(const Fight& fight);
     void brawl(Bitzkey& agent, Bitzkey& opponent);  // a turn of the fight: closer, or a blow
     void settle_fights();  // after the turn: new fights begun, and those won, fled or ended, settled  // takes the better of a fresh body's hide and the one it wore
@@ -1817,6 +1852,9 @@ private:
     int lineage_first_ = 0;
     std::unordered_map<int, DeathRecord> death_records_;
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
+    std::deque<Gift> gifts_;
+    std::deque<Trade> trades_;
+    std::unique_ptr<std::mutex> gifts_writing_ = std::make_unique<std::mutex>();  // animals act side by side; held apart so a world still moves
     DeathTally death_tally_;
     int turn_ = 0;
     int deaths_ = 0;

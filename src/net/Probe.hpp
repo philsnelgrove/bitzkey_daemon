@@ -108,6 +108,7 @@ public:
     Json skills(Simulation& world) const;
     Json diary(Simulation& world) const;
     Json lands(Simulation& world) const;  // colour groups, their lands and wars, and the marks of the victor
+    Json gifts(Simulation& world) const;  // the gifts lately given, looked over for trade
     Json regard(Simulation& world) const;
     Json society(Simulation& world) const;
     Json minds(Simulation& world) const;

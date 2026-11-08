@@ -1215,6 +1215,136 @@ Json Probe::diary(Simulation& world) const {
     return {{"turn", world.turn()}, {"since", world.diary_since()}, {"entries", entries}};
 }
 
+// Trade would show as gifts returned: one that gives to another is given something back by it later, the more so than
+// chance, and the more so in another kind of possession (an exchange). Each species is read apart.
+Json Probe::gifts(Simulation& world) const {
+    static constexpr std::array<const char*, 3> KINDS = {"hide", "weapon", "armour"};
+    const std::vector<Simulation::Gift> all = world.gifts_so_far();
+    Json bySpecies = Json::object();
+    for (std::size_t index = 0; index < SPECIES.size(); ++index) {
+        std::vector<const Simulation::Gift*> list;
+        for (const auto& gift : all) {
+            if (static_cast<std::size_t>(gift.species) == index) list.push_back(&gift);
+        }
+        if (list.empty()) continue;
+        std::map<std::pair<int, int>, std::vector<const Simulation::Gift*>> byPair;  // (giver, receiver), in order
+        std::unordered_map<int, std::vector<const Simulation::Gift*>> byGiver, byReceiver;
+        for (const auto* gift : list) {
+            byPair[{gift->giver, gift->receiver}].push_back(gift);
+            byGiver[gift->giver].push_back(gift);
+            byReceiver[gift->receiver].push_back(gift);
+        }
+        long long kin = 0, sameColour = 0, returned = 0, exchanged = 0, receiverGaveLater = 0, passedOn = 0, giverGotLater = 0;
+        long long lagTotal = 0;
+        std::array<long long, 3> kinds{};
+        for (const auto* gift : list) {
+            kin += gift->kin;
+            sameColour += gift->giver_realm >= 0 && gift->giver_realm == gift->receiver_realm;
+            ++kinds[static_cast<std::size_t>(std::clamp(gift->possession, 0, 2))];
+            const auto back = byPair.find({gift->receiver, gift->giver});
+            const Simulation::Gift* firstBack = nullptr;
+            if (back != byPair.end()) {
+                for (const auto* other : back->second) {
+                    if (other->turn > gift->turn || (other->turn == gift->turn && other != gift)) { firstBack = other; break; }
+                }
+            }
+            if (firstBack) {
+                ++returned;
+                lagTotal += firstBack->turn - gift->turn;
+                exchanged += firstBack->possession != gift->possession;
+            }
+            const auto later = byGiver.find(gift->receiver);
+            if (later != byGiver.end()) {
+                bool any = false, onward = false;
+                for (const auto* other : later->second) {
+                    if (other->turn < gift->turn) continue;
+                    any = true;
+                    onward |= other->receiver != gift->giver;
+                }
+                receiverGaveLater += any;
+                passedOn += onward;
+            }
+            const auto got = byReceiver.find(gift->giver);
+            if (got != byReceiver.end()) {
+                giverGotLater += std::any_of(got->second.begin(), got->second.end(), [&](const auto* other) { return other->turn > gift->turn; });
+            }
+        }
+        long long pairsRepeated = 0, mutualPairs = 0;
+        for (const auto& [pair, gifts] : byPair) {
+            pairsRepeated += gifts.size() > 1;
+            mutualPairs += pair.first < pair.second && byPair.contains({pair.second, pair.first});
+        }
+        const double n = static_cast<double>(list.size());
+        Json possessions = Json::object();
+        for (std::size_t kind = 0; kind < KINDS.size(); ++kind) possessions[KINDS[kind]] = kinds[kind];
+        bySpecies[std::string(SPECIES[index])] = {
+            {"gifts", list.size()},
+            {"givers", byGiver.size()},
+            {"receivers", byReceiver.size()},
+            {"possessions", possessions},
+            {"to_kin", kin / n},
+            {"to_own_colour", sameColour / n},
+            {"pairs", byPair.size()},
+            {"pairs_giving_more_than_once", pairsRepeated},
+            {"pairs_giving_both_ways", mutualPairs},
+            {"returned", returned / n},
+            {"returned_in_another_kind", exchanged / n},
+            {"mean_turns_until_returned", returned ? static_cast<double>(lagTotal) / returned : 0.0},
+            {"receiver_gave_anything_later", receiverGaveLater / n},
+            {"receiver_passed_a_gift_on", passedOn / n},
+            {"giver_received_anything_later", giverGotLater / n}};
+    }
+    // Offers: how often accepted, and who comes off better, the sharper or the duller of the two.
+    static constexpr std::array<const char*, GOODS> GOOD_NAMES = {"hide", "weapon", "armour", "meat", "fruit"};
+    const std::vector<Simulation::Trade> trades = world.trades_so_far();
+    Json offers = Json::object();
+    for (std::size_t index = 0; index < SPECIES.size(); ++index) {
+        long long made = 0, withdrawn = 0, accepted = 0, fair = 0, sharperGained = 0, sharperCounted = 0;
+        double offererGain = 0.0, ownerGain = 0.0;
+        std::array<long long, GOODS> wanted{}, given{};
+        for (const auto& trade : trades) {
+            if (static_cast<std::size_t>(trade.species) != index) continue;
+            ++made;
+            withdrawn += trade.withdrawn;
+            if (!trade.accepted) continue;
+            ++accepted;
+            fair += trade.offerer_gain > 0 && trade.owner_gain > 0;
+            offererGain += trade.offerer_gain;
+            ownerGain += trade.owner_gain;
+            ++wanted[static_cast<std::size_t>(trade.wanted)];
+            ++given[static_cast<std::size_t>(trade.offered)];
+            if (trade.offerer_wits != trade.owner_wits) {
+                ++sharperCounted;
+                const bool offererSharper = trade.offerer_wits > trade.owner_wits;
+                sharperGained += (offererSharper ? trade.offerer_gain - trade.owner_gain : trade.owner_gain - trade.offerer_gain) > 0;
+            }
+        }
+        if (!made) continue;
+        Json taken = Json::object(), paid = Json::object();
+        for (std::size_t good = 0; good < GOODS; ++good) {
+            taken[GOOD_NAMES[good]] = wanted[good];
+            paid[GOOD_NAMES[good]] = given[good];
+        }
+        const double deals = std::max<long long>(1, accepted);
+        offers[std::string(SPECIES[index])] = {
+            {"offers", made},
+            {"withdrawn", withdrawn},
+            {"accepted", accepted},
+            {"accepted_share_of_those_put", made > withdrawn ? static_cast<double>(accepted) / (made - withdrawn) : 0.0},
+            {"both_truly_gained", fair / deals},
+            {"mean_gain_of_offerer", offererGain / deals},
+            {"mean_gain_of_owner", ownerGain / deals},
+            {"sharper_came_off_better", sharperCounted ? static_cast<double>(sharperGained) / sharperCounted : 0.0},
+            {"goods_wanted", taken},
+            {"goods_offered", paid}};
+    }
+    return {{"turn", world.turn()},
+            {"logged", all.size()},
+            {"offers", offers},
+            {"since", all.empty() ? world.turn() : all.front().turn},
+            {"species", bySpecies}};
+}
+
 Json Probe::lands(Simulation& world) const {
     // Colour groups and their lands: per species, how many groups, how many hold land, the living in their own land (and
     // of those, on land another group contests), trespassing (on land only other groups claim), and the marks of the
@@ -1497,6 +1627,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/gifts", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return gifts(world); }));
     }));
     server.Get(prefix + "/lands", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return lands(world); }));

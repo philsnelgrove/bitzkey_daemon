@@ -2588,6 +2588,33 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     available[Demand] = available[Steal] = s.claim_from != nullptr;
     available[Give] = s.gift_to != nullptr;
+    {  // an offer: the deal that gains it most, giving what it would miss least, to one that would gain by it
+        double best = 0.0;
+        for (Bitzkey* other : neighbors) {
+            if (other == &agent || !other->alive() || other->species == Species::Plant || other->infant() || is_foe(agent, *other)) continue;
+            for (int wanted = 0; wanted < GOODS; ++wanted) {
+                if (!holds(*other, wanted)) continue;
+                const double gain = trade_gain(agent, *other, wanted);
+                if (gain <= best) continue;
+                int offered = -1;
+                double least = 0.0;
+                for (int good = 0; good < GOODS; ++good) {
+                    if (good == wanted || !holds(agent, good) || trade_gain(*other, agent, good) <= 0) continue;
+                    const double loss = good_worth(agent, agent, good);
+                    if (offered < 0 || loss < least) {
+                        offered = good;
+                        least = loss;
+                    }
+                }
+                if (offered < 0 || gain <= least) continue;
+                best = gain;
+                s.trade_with = other;
+                s.wanted = wanted;
+                s.offered = offered;
+            }
+        }
+    }
+    available[Offer] = s.trade_with != nullptr;
     if (envy_of(agent) > 0) {  // the best possessions it sees, beside its own
         const double mine = possessions(agent);
         for (Bitzkey* other : around(agent, sight)) {
@@ -3467,11 +3494,99 @@ void Simulation::steal(Bitzkey& agent, Bitzkey& owner, int possession) {
 
 void Simulation::give(Bitzkey& agent, Bitzkey& friend_, int possession) {
     agent.last_action = "gave";
-    if (value_of(agent, possession) <= value_of(friend_, possession)) return;
+    const int worth = value_of(agent, possession);
+    if (worth <= value_of(friend_, possession)) return;
     hand_over(agent, friend_, possession);
+    {
+        const bool kin = agent.mother == friend_.identifier || agent.father == friend_.identifier ||
+                         friend_.mother == agent.identifier || friend_.father == agent.identifier ||
+                         (agent.mother >= 0 && (agent.mother == friend_.mother || agent.father == friend_.father));
+        const std::lock_guard lock(*gifts_writing_);
+        gifts_.push_back({turn_, agent.identifier, friend_.identifier, possession, worth, agent.species, kin, agent.realm, friend_.realm});
+        if (gifts_.size() > GIFT_LOG) gifts_.pop_front();
+    }
     note_deed(friend_, agent, 1.0, 1.0, PlainDeed, true);  // a gift, a kindness
     agent.reward += GIVE_JOY * (0.5 + std::max(agent.feeling(Empathy), agent.feeling(Sociability)));
     note_first("gave", agent.species, agent.identifier);
+}
+
+bool Simulation::holds(const Bitzkey& holder, int good) {
+    if (good == MeatGood) return holder.carried_meat + holder.cooked_meat > 0;
+    if (good == FruitGood) return holder.carried_fruit + holder.cooked_fruit > 0;
+    return value_of(holder, good) > 0;
+}
+
+double Simulation::good_worth(const Bitzkey& judge, const Bitzkey& holder, int good) const {
+    if (!holds(holder, good)) return 0.0;
+    if (good == MeatGood || good == FruitGood) {  // a portion, the cooked first, by the hunger it would ease the judge
+        const bool meat = good == MeatGood;
+        const bool cooked = meat ? holder.cooked_meat > 0 : holder.cooked_fruit > 0;
+        const double food = (meat ? MEAT_PORTION * judge.digestion : FRUIT_PORTION * judge.browsing) * (cooked ? COOKED_FOOD : 1.0);
+        return std::min(1.0, food / judge.stomach / 100) * (0.5 + judge.hunger / 100);
+    }
+    if (good == HidePossession) {  // warmth, the more the colder than home, and the prestige of the body it came from
+        const double cold = std::clamp(temperature_at(judge.y, height_, turn_) - judge.climate.temperature, 0.0, 1.0);
+        return 0.5 * (0.5 + cold) + 0.5 * garb_of(holder.hide);
+    }
+    if (good == WeaponPossession) {
+        const double quality = holder.weapon == StoneAxe ? 1.0 : 0.5 * (1.0 - static_cast<double>(holder.weapon_uses) / GEAR_USES);
+        return quality * (0.5 + judge.feeling(Aggression));
+    }
+    return 1.0 - static_cast<double>(holder.armour_uses) / GEAR_USES;
+}
+
+double Simulation::trade_gain(const Bitzkey& judge, const Bitzkey& from, int good) const {
+    if (!holds(from, good)) return 0.0;
+    if (good == MeatGood || good == FruitGood) return judge.load() < judge.capacity() ? good_worth(judge, from, good) : 0.0;
+    return good_worth(judge, from, good) - good_worth(judge, judge, good);  // what it has of it falls
+}
+
+void Simulation::pass_good(Bitzkey& from, Bitzkey& to, int good) {
+    if (good < MeatGood) {
+        hand_over(from, to, good);
+        return;
+    }
+    const bool meat = good == MeatGood;
+    int& cooked_from = meat ? from.cooked_meat : from.cooked_fruit;
+    int& raw_from = meat ? from.carried_meat : from.carried_fruit;
+    if (cooked_from > 0) {
+        --cooked_from;
+        ++(meat ? to.cooked_meat : to.cooked_fruit);
+    } else {
+        --raw_from;
+        ++(meat ? to.carried_meat : to.carried_fruit);
+    }
+}
+
+void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) {
+    agent.last_action = "offered";
+    if (!holds(owner, wanted) || !holds(agent, offered)) return;
+    const auto judged = [&](const Bitzkey& judge, double worth) {
+        return worth + TRADE_MISJUDGE * (1.0 - judge.intelligence()) * rng().uniform(-1.0, 1.0);
+    };
+    const double agent_gain = trade_gain(agent, owner, wanted) - good_worth(agent, agent, offered);
+    const double owner_gain = trade_gain(owner, agent, offered) - good_worth(owner, owner, wanted);
+    Trade trade{turn_, agent.identifier, owner.identifier, wanted, offered, agent.species, false, false, agent_gain, owner_gain,
+                agent.intelligence(), owner.intelligence()};
+    if (judged(agent, trade_gain(agent, owner, wanted)) <= judged(agent, good_worth(agent, agent, offered))) {
+        trade.withdrawn = true;
+        agent.last_action = "thought better of an offer";
+    } else if (judged(owner, trade_gain(owner, agent, offered)) <= judged(owner, good_worth(owner, owner, wanted))) {
+        agent.last_action = "was refused";
+    } else {
+        trade.accepted = true;
+        pass_good(agent, owner, offered);
+        pass_good(owner, agent, wanted);
+        note_deed(owner, agent, 1.0, TRADE_REGARD, PlainDeed, true);  // a kindness both ways
+        note_deed(agent, owner, 1.0, TRADE_REGARD, PlainDeed, true);
+        agent.reward += TRADE_JOY;  // trade joy: a deal made pleases both
+        owner.reward += TRADE_JOY;
+        agent.last_action = "traded";
+        note_first("traded", agent.species, agent.identifier);
+    }
+    const std::lock_guard lock(*gifts_writing_);
+    trades_.push_back(trade);
+    if (trades_.size() > GIFT_LOG) trades_.pop_front();
 }
 
 void Simulation::begin_fight(const Fight& fight) {
@@ -3608,6 +3723,16 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
                              STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout;
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging;
+}
+
+std::vector<Simulation::Gift> Simulation::gifts_so_far() const {
+    const std::lock_guard lock(*gifts_writing_);
+    return {gifts_.begin(), gifts_.end()};
+}
+
+std::vector<Simulation::Trade> Simulation::trades_so_far() const {
+    const std::lock_guard lock(*gifts_writing_);
+    return {trades_.begin(), trades_.end()};
 }
 
 std::vector<Death> Simulation::deaths_so_far() const {
@@ -3968,6 +4093,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Give:
             give(agent, *s.gift_to, s.gift);
+            break;
+        case Offer:
+            offer(agent, *s.trade_with, s.wanted, s.offered);
             break;
         case Fertilize:
             fertilize(agent);

@@ -1849,5 +1849,17 @@
 "War fade": "戦争の風化",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "土地を数えるたびに忘れられる戦争の死者の割合。最近の死が勝敗を決め、古い敗北はやがて許される",
 "Grazer force": "草食動物の力",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "草食動物が繰り出す一撃における基本の力の割合（防御時を除く、武器・装備・その他の補正の前）。攻撃に使う生まれつきの武器を持たない"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "草食動物が繰り出す一撃における基本の力の割合（防御時を除く、武器・装備・その他の補正の前）。攻撃に使う生まれつきの武器を持たない",
+"OFFER": "申し出る",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "自分の物を差し出して、相手の持つ物と交換を申し出る。相手は取引を見積もり、受けるか断る。",
+"Trade misjudgement": "取引の見誤り",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "取引で動物が品の価値をどれだけ見誤りうるか（どちらの向きにも）。1から知能を引いた値を掛ける",
+"Trade regard": "取引による評価",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "受け入れられた申し出が評価に与える、行いの重みの割合。双方への親切",
+"Trade joy": "取引の喜び",
+"pleasure each side takes in a deal made, the offer accepted": "申し出が受け入れられ取引が成立したとき、双方が感じる喜び",
+"offered": "申し出た",
+"thought better of an offer": "申し出を考え直した",
+"was refused": "断られた",
+"traded": "取引した"
 }

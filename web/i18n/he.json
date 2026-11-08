@@ -1849,5 +1849,17 @@
 "War fade": "דעיכת מלחמה",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "חלק מההרוגים במלחמה שנשכח בכל ספירת אדמות, כך שהמוות האחרון מכריע ותבוסה ישנה נסלחת עם הזמן",
 "Grazer force": "כוח אוכל עשב",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "חלק הכוח הבסיסי של אוכל עשב במכה שהוא מכה, לא בהגנה, לפני נשק, ציוד ובונוסים אחרים: אין לו נשק טבעי לתקוף בו"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "חלק הכוח הבסיסי של אוכל עשב במכה שהוא מכה, לא בהגנה, לפני נשק, ציוד ובונוסים אחרים: אין לו נשק טבעי לתקוף בו",
+"OFFER": "הצעה",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "מציע משהו משלו תמורת משהו שיש לאחר; האחר שוקל את העסקה ועשוי לקבל או לסרב.",
+"Trade misjudgement": "טעות הערכה במסחר",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "עד כמה בעל חיים עלול לטעות בהערכת שוויו של טובין בעסקה, לכל כיוון, כפול אחד פחות התבונה שלו",
+"Trade regard": "הערכה ממסחר",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "כמה ממשקלו של מעשה יש להצעה שהתקבלה על ההערכה, חסד לשני הכיוונים",
+"Trade joy": "שמחת מסחר",
+"pleasure each side takes in a deal made, the offer accepted": "ההנאה שכל צד חש בעסקה שנסגרה, כשההצעה התקבלה",
+"offered": "הציע",
+"thought better of an offer": "חזר בו מהצעה",
+"was refused": "נדחה",
+"traded": "סחר"
 }

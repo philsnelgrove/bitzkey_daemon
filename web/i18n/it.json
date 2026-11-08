@@ -1849,5 +1849,17 @@
 "War fade": "Oblio della guerra",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "quota delle uccisioni di una guerra dimenticata a ogni conteggio delle terre, così che decidano le morti recenti e una vecchia sconfitta sia col tempo perdonata",
 "Grazer force": "Forza dell'erbivoro",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "quota della forza di base di un erbivoro in un colpo che sferra, non in difesa, prima di armi, equipaggiamento e altri bonus: non ha armi naturali per attaccare"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "quota della forza di base di un erbivoro in un colpo che sferra, non in difesa, prima di armi, equipaggiamento e altri bonus: non ha armi naturali per attaccare",
+"OFFER": "Offrire",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Offre qualcosa di proprio in cambio di qualcosa che ha un altro; l'altro valuta lo scambio e può accettare o rifiutare.",
+"Trade misjudgement": "Errore di stima nello scambio",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "quanto un animale può stimare male il valore di un bene in uno scambio, in un senso o nell'altro, per uno meno la sua intelligenza",
+"Trade regard": "Stima per lo scambio",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "quanto del peso di un gesto ha un'offerta accettata sulla stima, una gentilezza in entrambi i sensi",
+"Trade joy": "Gioia dello scambio",
+"pleasure each side takes in a deal made, the offer accepted": "piacere che ciascuna parte prova per uno scambio concluso, con l'offerta accettata",
+"offered": "ha offerto",
+"thought better of an offer": "ci ha ripensato su un'offerta",
+"was refused": "è stato rifiutato",
+"traded": "ha scambiato"
 }

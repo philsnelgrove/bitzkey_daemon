@@ -1849,5 +1849,17 @@
 "War fade": "Esquecimento da guerra",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "parte das mortes de uma guerra esquecida a cada contagem das terras, para que as mortes recentes a decidam e uma velha derrota seja com o tempo perdoada",
 "Grazer force": "Força do herbívoro",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "parte da força base de um herbívoro num golpe que desfere, não em defesa, antes de armas, equipamento e outros bónus: não tem armas naturais para atacar"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "parte da força base de um herbívoro num golpe que desfere, não em defesa, antes de armas, equipamento e outros bónus: não tem armas naturais para atacar",
+"OFFER": "Oferecer",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Oferece algo seu em troca de algo que outro tem; o outro pesa o negócio e pode aceitar ou recusar.",
+"Trade misjudgement": "Erro de avaliação na troca",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "quanto um animal pode avaliar mal o valor de um bem numa troca, para mais ou para menos, vezes um menos a sua inteligência",
+"Trade regard": "Estima pela troca",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "quanto do peso de um ato uma oferta aceita tem na estima, uma gentileza nos dois sentidos",
+"Trade joy": "Alegria da troca",
+"pleasure each side takes in a deal made, the offer accepted": "prazer que cada lado sente num negócio fechado, com a oferta aceita",
+"offered": "ofereceu",
+"thought better of an offer": "repensou uma oferta",
+"was refused": "foi recusado",
+"traded": "trocou"
 }

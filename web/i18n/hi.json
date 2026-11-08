@@ -1849,5 +1849,17 @@
 "War fade": "युद्ध का भूलना",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "हर भूमि-गणना पर युद्ध की मौतों का भुलाया जाने वाला हिस्सा, ताकि हाल की मौतें फ़ैसला करें और पुरानी हार समय के साथ माफ़ हो जाए",
 "Grazer force": "चरने वाले का बल",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "चरने वाले के प्रहार में उसके मूल बल का हिस्सा, बचाव में नहीं, हथियारों, साज़ो-सामान और अन्य बढ़तों से पहले: उसके पास हमला करने के लिए प्राकृतिक हथियार नहीं हैं"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "चरने वाले के प्रहार में उसके मूल बल का हिस्सा, बचाव में नहीं, हथियारों, साज़ो-सामान और अन्य बढ़तों से पहले: उसके पास हमला करने के लिए प्राकृतिक हथियार नहीं हैं",
+"OFFER": "पेशकश",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "किसी दूसरे के पास की चीज़ के बदले अपनी कोई चीज़ पेश करता है; दूसरा सौदे को तौलकर उसे मान या ठुकरा सकता है।",
+"Trade misjudgement": "व्यापार में ग़लत आकलन",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "सौदे में कोई जीव किसी वस्तु के मूल्य का कितना ग़लत आकलन कर सकता है, किसी भी ओर, गुणा एक घटा उसकी बुद्धि",
+"Trade regard": "व्यापार से सम्मान",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "मानी गई पेशकश का सम्मान पर किसी कर्म के भार का कितना असर होता है, दोनों ओर एक दयालुता",
+"Trade joy": "व्यापार का आनंद",
+"pleasure each side takes in a deal made, the offer accepted": "पेशकश मान ली जाने पर, हुए सौदे से हर पक्ष को मिलने वाला आनंद",
+"offered": "पेशकश की",
+"thought better of an offer": "पेशकश पर फिर से सोचा",
+"was refused": "ठुकराया गया",
+"traded": "व्यापार किया"
 }

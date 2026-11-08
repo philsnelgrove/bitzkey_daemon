@@ -1849,5 +1849,17 @@
 "War fade": "Згасання війни",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "частка загиблих у війні, що забувається при кожному підрахунку земель, щоб вирішували недавні смерті, а давню поразку з часом було прощено",
 "Grazer force": "Сила травоїдного",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "частка базової сили травоїдного в ударі, який він завдає, не в обороні, до зброї, спорядження та інших бонусів: у нього немає природної зброї для нападу"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "частка базової сили травоїдного в ударі, який він завдає, не в обороні, до зброї, спорядження та інших бонусів: у нього немає природної зброї для нападу",
+"OFFER": "Запропонувати",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "Пропонує щось своє в обмін на те, що має інший; той зважує угоду й може погодитися або відмовитися.",
+"Trade misjudgement": "Хибна оцінка в обміні",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "наскільки тварина може хибно оцінити вартість речі в угоді, в будь-який бік, помножене на один мінус її інтелект",
+"Trade regard": "Повага від обміну",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "яку частку ваги вчинку має прийнята пропозиція для поваги, доброта в обидва боки",
+"Trade joy": "Радість обміну",
+"pleasure each side takes in a deal made, the offer accepted": "задоволення, яке кожна сторона має від укладеної угоди, коли пропозицію прийнято",
+"offered": "запропонував",
+"thought better of an offer": "передумав щодо пропозиції",
+"was refused": "отримав відмову",
+"traded": "обмінявся"
 }

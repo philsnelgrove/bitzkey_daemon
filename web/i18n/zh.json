@@ -1849,5 +1849,17 @@
 "War fade": "战争淡忘",
 "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven": "每次清点领地时被遗忘的战争死亡比例，使近期的死亡决定胜负，旧日的失败终会被原谅",
 "Grazer force": "食草动物力量",
-"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "食草动物出击时（非防御）基础力量所占的比例，在武器、装备和其他加成之前计算：它没有用于进攻的天生武器"
+"the share of a grazer's base force in a blow it strikes, not in defence, before weapons, gear and other bonuses: it has no natural weapons to attack with": "食草动物出击时（非防御）基础力量所占的比例，在武器、装备和其他加成之前计算：它没有用于进攻的天生武器",
+"OFFER": "提议",
+"Offer something of its own for something another has; the other weighs the deal and may accept or refuse.": "用自己的东西交换另一方拥有的东西；对方权衡这笔交易，可接受或拒绝。",
+"Trade misjudgement": "交易误判",
+"how far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence": "动物在交易中对物品价值可能误判的幅度（高估或低估），乘以一减其智力",
+"Trade regard": "交易好感",
+"how much of a deed's weight an accepted offer has on regard, a kindness both ways": "被接受的提议对好感的影响，占一次行为分量的比例，双方互为善举",
+"Trade joy": "交易之乐",
+"pleasure each side takes in a deal made, the offer accepted": "提议被接受、交易达成时双方各自感到的愉悦",
+"offered": "提出交换",
+"thought better of an offer": "对提议改变了主意",
+"was refused": "被拒绝",
+"traded": "完成交易"
 }
