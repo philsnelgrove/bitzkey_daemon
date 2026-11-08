@@ -636,7 +636,9 @@ inline double WARRIOR_MARK = 0.5, PRESTIGE_MARK = 1.0, MARK_REGARD = 0.05, MARK_
 // A square claimed by two groups is contested: they are at war, and each count every member thinks worse of the other's
 // colour by WAR_ENMITY of a deed's weight. Once WAR_KILLS or more of each other have died in it, a group with two thirds
 // of the kills or more is clearly winning (glad, WAR_MORALE, and WAR_NERVE less likely to panic), with a third or less
-// clearly losing (as much the other way).
+// clearly losing (as much the other way). A group clearly losing gives up the land it contests and may not claim the
+// winner's again while the war is remembered; each count every war's kills fade by WAR_FADE, so recent deaths decide
+// it, and a war over, with no land contested, is forgotten once its kills have faded away.
 // Standing: no one is made a leader. Each turn an animal is glad of how many about it hold it a friend (STANDING_JOY,
 // times a half and its dominance, in full with three or more), and at ease near its standout, the member of its own
 // colour group in sight it esteems most (FOLLOW_COMFORT, times that esteem and closeness, and a half plus its trust and
@@ -644,7 +646,8 @@ inline double WARRIOR_MARK = 0.5, PRESTIGE_MARK = 1.0, MARK_REGARD = 0.05, MARK_
 inline double STANDING_JOY = 0.2, FOLLOW_COMFORT = 0.2;
 inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
 inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
-              TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25;
+              TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25,
+              WAR_FADE = 0.1;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life

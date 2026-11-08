@@ -3334,7 +3334,7 @@ void Simulation::count_lands() {
         // A new claim, by the group standing there in the most strength, enough of it and large enough.
         int best = -1, most = std::max(1, LAND_HOLD) - 1;
         for (const auto& [realm, count] : here) {
-            if (count > most && realm != land[0].realm && large(realm)) {
+            if (count > most && realm != land[0].realm && large(realm) && (land[0].realm < 0 || war_standing(realm, land[0].realm) >= 0)) {  // not the beaten
                 best = realm;
                 most = count;
             }
@@ -3346,12 +3346,20 @@ void Simulation::count_lands() {
         }
     }
     index_realm_patches();
-    // Wars: every pair of groups with a square both claim. One no longer contesting any is over.
+    // Wars: every pair of groups with a square both claim. Their kills fade; one no longer contested is forgotten once
+    // they have faded, or either group is gone.
     std::set<std::pair<int, int>> fronts;
     for (const LandClaims& land : lands_) {
         if (land[0].realm >= 0 && land[1].realm >= 0) fronts.insert(std::minmax(land[0].realm, land[1].realm));
     }
-    std::erase_if(wars_, [&](const War& war) { return !fronts.contains({war.first, war.second}); });
+    for (War& war : wars_) {
+        war.first_kills = static_cast<int>(war.first_kills * (1 - WAR_FADE));
+        war.second_kills = static_cast<int>(war.second_kills * (1 - WAR_FADE));
+    }
+    std::erase_if(wars_, [&](const War& war) {
+        if (!realms_.contains(war.first) || !realms_.contains(war.second)) return true;
+        return !fronts.contains({war.first, war.second}) && war.first_kills + war.second_kills == 0;
+    });
     for (const auto& [first, second] : fronts) {
         if (std::none_of(wars_.begin(), wars_.end(), [&](const War& war) { return war.first == first && war.second == second; })) {
             wars_.push_back(War{first, second, 0, 0, turn_});

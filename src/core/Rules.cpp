@@ -345,6 +345,7 @@ std::vector<Rule> make_rules() {
         {"WAR_KILLS", "Fighting", "War kills", "deaths at each other's hands before a war counts as clearly won (two thirds of them or more) or lost (a third or less)", 1, 100, 1, true, &WAR_KILLS},
         {"WAR_MORALE", "Mind", "War morale", "gladness of a war clearly being won, and unease as much of one clearly being lost, each turn", 0.0, 2.0, 0.05, false, &WAR_MORALE},
         {"WAR_NERVE", "Fighting", "War nerve", "how much less likely to panic a war clearly being won leaves its side, and more the losing side", 0.0, 1.0, 0.05, false, &WAR_NERVE},
+        {"WAR_FADE", "Fighting", "War fade", "share of a war's kills forgotten at each count of the lands, so recent deaths decide it and an old defeat is in time forgiven", 0.0, 1.0, 0.01, false, &WAR_FADE},
         {"STANDING_JOY", "Mind", "Standing joy", "pleasure of being held a friend by those about it, in full with three or more, times a half and its dominance", 0.0, 2.0, 0.05, false, &STANDING_JOY},
         {"FOLLOW_COMFORT", "Mind", "Follow comfort", "ease near the member of its own colour group in sight it esteems most, times that esteem and closeness, and a half plus its trust and sociability together", 0.0, 2.0, 0.05, false, &FOLLOW_COMFORT},
         {"PROTECTION_JOY", "Food", "Protection joy", "relief at the weather kept off it by a shelter, a fire, or a parent close by, by as much unease as it spares", 0.0, 5.0, 0.1, false, &PROTECTION_JOY},

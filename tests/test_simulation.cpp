@@ -3623,6 +3623,7 @@ TEST_CASE("a defeat earns a mark of the victor, kept for life, esteemed by those
 // Lands rules for a test: small groups claim, and the old values come back after.
 struct SmallLands {
     int size = LAND_SIZE, hold = LAND_HOLD, patch = LAND_PATCH, kills = WAR_KILLS;
+    double fade = WAR_FADE;
     SmallLands() {
         LAND_SIZE = 3;
         LAND_HOLD = 2;
@@ -3634,6 +3635,7 @@ struct SmallLands {
         LAND_HOLD = hold;
         LAND_PATCH = patch;
         WAR_KILLS = kills;
+        WAR_FADE = fade;
     }
 };
 
@@ -3708,6 +3710,36 @@ TEST_CASE("a colour group large enough claims the land it stands in, defends it,
     CHECK_FALSE(Simulation::claims(*simulation.claims_at(2, 2), enemy));
     CHECK(simulation.wars().empty());  // and the war is over
     CHECK(Simulation::claims(*simulation.claims_at(2, 2), realm));
+}
+
+TEST_CASE("a beaten group may not take back the winner's land until the war's kills have faded, and then it is over") {
+    SmallLands lands;
+    WAR_FADE = 0.0;
+    Simulation simulation = world(24);
+    const Dna red = encode_dna(Species::Omnivore, {{"size", 3}});
+    const Dna blue = flipped(red, std::uint64_t{0xFFFF0000} << 32);
+    std::vector<Bitzkey*> reds, blues;
+    for (const auto& [x, y] : {std::pair{2, 2}, std::pair{3, 2}, std::pair{2, 3}}) reds.push_back(&simulation.add_agent(red, x, y));
+    for (const auto& [x, y] : {std::pair{4, 3}, std::pair{3, 4}, std::pair{4, 4}, std::pair{5, 4}, std::pair{4, 5}}) blues.push_back(&simulation.add_agent(blue, x, y));
+    simulation.index_cells();
+    simulation.count_lands();
+    simulation.count_lands();  // the one claims, then the other contests it
+    const int realm = reds[0]->realm, enemy = blues[0]->realm;
+    REQUIRE(simulation.wars().size() == 1);
+    for (int fallen = 0; fallen < 2; ++fallen) {
+        blues[static_cast<std::size_t>(fallen)]->health = 0;
+        simulation.die(*blues[static_cast<std::size_t>(fallen)], "killed", reds[0]);
+    }
+    REQUIRE(simulation.war_standing(enemy) == -1);
+    for (int count = 0; count < 2 * LAND_MEMORY; ++count) simulation.count_lands();
+    CHECK(Simulation::claims(*simulation.claims_at(2, 2), realm));
+    CHECK_FALSE(Simulation::claims(*simulation.claims_at(2, 2), enemy));  // still there in strength, but beaten
+    CHECK(simulation.wars().size() == 1);  // and the war remembered
+    WAR_FADE = 1.0;
+    simulation.count_lands();
+    CHECK(simulation.wars().empty());  // its kills forgotten, the war is over
+    simulation.count_lands();
+    CHECK(Simulation::claims(*simulation.claims_at(2, 2), enemy));  // and the land may be fought for again
 }
 
 TEST_CASE("lands, groups and wars are saved with the world and loaded back") {
