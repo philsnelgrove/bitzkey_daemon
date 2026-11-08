@@ -268,7 +268,7 @@ TEST_CASE("an exhausted animal can only rest, and a flyer can't rest at sea, whe
 
 TEST_CASE("every biome starts with groups at home in it, on top of the population, in any world with Bitzkeys") {
     for (const double ocean : {DEFAULT_OCEAN, 0.0}) {
-        Simulation::Settings settings{60, 60, 30, 7};
+        Simulation::Settings settings{60, 60, 30, 8};
         settings.ocean = ocean;
         const Simulation simulation(settings);
         const auto biomes = simulation.biomes();
