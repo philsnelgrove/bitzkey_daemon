@@ -656,6 +656,16 @@ inline double WARRIOR_MARK = 0.5, PRESTIGE_MARK = 1.0, MARK_REGARD = 0.05, MARK_
 // colour group in sight it esteems most (FOLLOW_COMFORT, times that esteem and closeness, and a half plus its trust and
 // sociability together); it senses that standout, and its brain learns whether keeping near it pays.
 inline double STANDING_JOY = 0.2, FOLLOW_COMFORT = 0.2;
+// Leaders: no one is made one, but one may be recognised. At each count of the lands (every LAND_TURNS turns), an
+// animal that LEADER_FOLLOWERS or more of its colour group hold as their standout is recognised as a leader; it stays
+// one until fewer than half as many do. Those whose standout it was at that count are its followers. A follower
+// yields to its leader's demand without a fight, and judges its offers the kinder by LEADER_DEFERENCE; in sight of its
+// leader it is LEADER_RALLY the less likely to panic or break, and it comes to its leader's defence when it is struck
+// close by. A leader takes joy in its followers in sight (LEADER_JOY, in full with LEADER_FOLLOWERS of them), is
+// courted first by any that may breed with it, and its partner takes LEADER_ALLURE more joy in breeding with it.
+// Each senses whether it leads, and whether its standout does. LEADER_FOLLOWERS 0 for no leaders.
+inline int LEADER_FOLLOWERS = 5;
+inline double LEADER_DEFERENCE = 0.5, LEADER_RALLY = 0.5, LEADER_JOY = 0.3, LEADER_ALLURE = 0.5;
 inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
 inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
               TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25,
@@ -882,6 +892,10 @@ struct Bitzkey {
     int thefts = 0;  // possessions it has stolen
     int mark = NoMark;  // the best mark of the victor it has earned
     int realm = -1;  // its colour group (see Realm), as of the last count; -1 for none yet
+    int standout = -1;  // the member of its colour group in sight it esteems most, as last sensed; -1 for none
+    int follows = -1;  // its standout as of the last count, if that one was then recognised a leader; -1 for none
+    int followers = 0;  // those whose standout it was at the last count
+    bool leader = false;  // recognised a leader at the last count
     int trespass = 0;  // turns it has stood in another group's land without a break
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
     double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
@@ -1383,6 +1397,7 @@ public:
         double war = 0.0;  // its group's wars: 1 clearly winning, -1 clearly losing, 0 neither or at peace
         double admired = 0.0;  // those in sight who hold it a friend, a third each, to 1
         double standout = 0.0;  // its esteem for its standout, times how close it is
+        double followed = 0.0;  // a leader's followers in sight, a LEADER_FOLLOWERS-th each, to 1
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1666,8 +1681,13 @@ public:
     // defending its own land from an outsider, and WAR_NERVE less, or more, clearly winning or losing.
     double nerve(const Bitzkey& agent, const Bitzkey* foe) const {
         const bool rallied = in_own_land(agent) && (!foe || foe->realm != agent.realm);
-        return (rallied ? 1 - LAND_RALLY : 1.0) * std::max(0.0, 1 - WAR_NERVE * war_standing(agent.realm));
+        return (rallied ? 1 - LAND_RALLY : 1.0) * std::max(0.0, 1 - WAR_NERVE * war_standing(agent.realm)) *
+               (leader_in_sight(agent) ? 1 - LEADER_RALLY : 1.0);  // and its leader in sight
     }
+    // Whether it follows that one, a leader, as of the last count; and whether its leader is in its sight.
+    static bool follows(const Bitzkey& follower, const Bitzkey& leader) { return leader.leader && follower.follows == leader.identifier; }
+    bool leader_in_sight(const Bitzkey& agent) const;
+    void recognise_leaders();
     static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }
     bool is_friend(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) >= REGARD_STRONG; }
     bool is_foe(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) <= -foe_level(agent); }
@@ -1853,6 +1873,7 @@ private:
     std::unordered_map<int, DeathRecord> death_records_;
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
     std::deque<Gift> gifts_;
+    int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;
     std::unique_ptr<std::mutex> gifts_writing_ = std::make_unique<std::mutex>();  // animals act side by side; held apart so a world still moves
     DeathTally death_tally_;

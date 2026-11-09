@@ -1861,5 +1861,15 @@
 "offered": "запропонував",
 "thought better of an offer": "передумав щодо пропозиції",
 "was refused": "отримав відмову",
-"traded": "обмінявся"
+"traded": "обмінявся",
+"Leader followers": "Послідовники ватажка",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "члени його кольорової групи, які мають вважати його своїм взірцем, щоб його визнали ватажком, доки таких не стане менше половини; 0 — без ватажків",
+"Leader deference": "Шана до ватажка",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "наскільки прихильніше послідовник оцінює пропозиції свого ватажка; він поступається вимогам ватажка без бою",
+"Leader rally": "Звитяга поруч із ватажком",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "частка ймовірності запанікувати чи зламатися, яку долає послідовник, що бачить свого ватажка",
+"Leader joy": "Радість ватажка",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "задоволення ватажка від послідовників у полі зору, повне за стількох, скільки Послідовників ватажка",
+"Leader allure": "Принада ватажка",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "наскільки більше радості дає партнерові розмноження з ватажком; кожен, хто може з ним розмножуватися, залицяється до нього першим"
 }

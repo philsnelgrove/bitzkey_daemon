@@ -1861,5 +1861,15 @@
 "offered": "a proposé",
 "thought better of an offer": "s'est ravisé sur une offre",
 "was refused": "a été refusé",
-"traded": "a échangé"
+"traded": "a échangé",
+"Leader followers": "Suivants d'un chef",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "membres de son groupe de couleur qui doivent le tenir pour leur modèle pour qu'il soit reconnu chef, jusqu'à ce que moins de la moitié le fassent ; 0 pour aucun chef",
+"Leader deference": "Déférence envers le chef",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "à quel point un suivant juge plus favorablement les offres de son chef ; il cède sans combattre aux exigences de son chef",
+"Leader rally": "Ralliement au chef",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "part du risque de paniquer ou de rompre qu'un suivant surmonte en vue de son chef",
+"Leader joy": "Joie du chef",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "plaisir qu'un chef prend à ses suivants en vue, entier avec autant que Suivants d'un chef",
+"Leader allure": "Attrait du chef",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "combien de joie en plus l'accouplement avec un chef donne à son partenaire ; un chef est courtisé en premier par ceux qui peuvent s'accoupler avec lui"
 }

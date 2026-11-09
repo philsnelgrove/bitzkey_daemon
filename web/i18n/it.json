@@ -1861,5 +1861,15 @@
 "offered": "ha offerto",
 "thought better of an offer": "ci ha ripensato su un'offerta",
 "was refused": "è stato rifiutato",
-"traded": "ha scambiato"
+"traded": "ha scambiato",
+"Leader followers": "Seguaci di un capo",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "membri del suo gruppo di colore che devono considerarlo il proprio modello perché sia riconosciuto capo, finché lo fanno meno della metà; 0 per nessun capo",
+"Leader deference": "Deferenza al capo",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "quanto più benevolmente un seguace giudica le offerte del suo capo; cede senza combattere alle richieste del suo capo",
+"Leader rally": "Coraggio accanto al capo",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "parte della probabilità di cadere nel panico o cedere che un seguace in vista del suo capo supera",
+"Leader joy": "Gioia del capo",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "piacere che un capo prova per i seguaci in vista, pieno con tanti quanti Seguaci di un capo",
+"Leader allure": "Fascino del capo",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "quanta gioia in più dà al partner riprodursi con un capo; un capo viene corteggiato per primo da chi può riprodursi con lui"
 }

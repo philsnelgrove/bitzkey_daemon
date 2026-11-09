@@ -1861,5 +1861,15 @@
 "offered": "bot an",
 "thought better of an offer": "überlegte es sich mit einem Angebot anders",
 "was refused": "wurde abgewiesen",
-"traded": "tauschte"
+"traded": "tauschte",
+"Leader followers": "Gefolgschaft eines Anführers",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "Mitglieder seiner Farbgruppe, die jemanden als ihr Vorbild halten müssen, damit er als Anführer anerkannt wird, bis es weniger als halb so viele sind; 0 für keine Anführer",
+"Leader deference": "Ehrerbietung",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "wie viel wohlwollender ein Gefolgsmann die Angebote seines Anführers beurteilt; den Forderungen seines Anführers gibt er ohne Kampf nach",
+"Leader rally": "Sammeln um den Anführer",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "Anteil der Gefahr, in Panik zu geraten oder zu brechen, den ein Gefolgsmann in Sicht seines Anführers überwindet",
+"Leader joy": "Freude des Anführers",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "Freude, die ein Anführer an seinen Gefolgsleuten in Sicht hat, voll bei so vielen wie die Gefolgschaft eines Anführers",
+"Leader allure": "Reiz des Anführers",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "wie viel mehr Freude die Paarung mit einem Anführer seinem Partner bringt; ein Anführer wird von allen, die sich mit ihm paaren können, zuerst umworben"
 }

@@ -3843,3 +3843,39 @@ TEST_CASE("an offer is weighed by both: a deal that seems a gain to each is made
     CHECK(trader.last_action == "traded");
     CHECK((owner.carried_meat == 1 && trader.carried_meat == 0 && trader.armour == WoodArmour));
 }
+
+TEST_CASE("a leader is recognised by those who hold it their standout, and its followers defer, rally and defend it") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Omnivore, {{"size", 3}});
+    Bitzkey& head = simulation.add_agent(dna, 10, 10);
+    std::vector<Bitzkey*> band;
+    for (int index = 0; index < LEADER_FOLLOWERS; ++index) band.push_back(&simulation.add_agent(dna, 11 + index % 3, 9 + index / 3));
+    simulation.index_cells();
+    for (Bitzkey* one : band) one->standout = head.identifier;
+    simulation.recognise_leaders();
+    CHECK(head.leader);
+    CHECK(head.followers == LEADER_FOLLOWERS);
+    for (const Bitzkey* one : band) CHECK(Simulation::follows(*one, head));
+    CHECK(simulation.leader_in_sight(*band[0]));
+    CHECK(simulation.nerve(*band[0], nullptr) == doctest::Approx(1 - LEADER_RALLY));
+
+    Bitzkey& owner = *band[0];
+    owner.mind[Aggression] = owner.mind[Dominance] = 7.0;  // fierce, it would fight anyone else
+    owner.weapon = StoneAxe;
+    simulation.demand(head, owner, WeaponPossession);
+    CHECK(head.last_action == "was yielded");
+    CHECK(head.weapon == StoneAxe);
+
+    for (int index = 0; index + 2 < LEADER_FOLLOWERS; ++index) band[static_cast<std::size_t>(index)]->standout = -1;
+    simulation.recognise_leaders();  // fewer than half as many: no longer
+    CHECK(head.followers == 2);
+    CHECK_FALSE(head.leader);
+    for (Bitzkey* one : band) one->standout = head.identifier;
+    simulation.recognise_leaders();
+    CHECK(head.leader);
+
+    Bitzkey& foe = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 10, 9);
+    simulation.index_cells();
+    simulation.struck(head, foe);  // its followers close by come to its defence
+    CHECK(band[0]->herd_assailant == std::optional<int>(foe.identifier));
+}

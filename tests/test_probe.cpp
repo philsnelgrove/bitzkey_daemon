@@ -55,7 +55,7 @@ TEST_CASE("the probe shows the world, its Bitzkeys in brief and in full, and the
     const Bitzkey& child = *world.agents()[3];
     const Json full = probe.animal(world, child.identifier);
     CHECK((full["mother"] == mother.identifier && full["father"] == father.identifier && full["species"] == "grazer"));
-    CHECK((full.contains("mind") && full["home"] == "medium"));
+    CHECK((full.contains("mind") && full["home"] == std::string(TEMPERATURES[static_cast<std::size_t>(child.climate.temperature)])));  // its own, mutated or not
     CHECK_THROWS_AS(probe.animal(world, 9999), std::out_of_range);
 
     const Json family = probe.family(world, mother.identifier);

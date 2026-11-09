@@ -918,7 +918,10 @@ void Simulation::take_turn() {
     ++turn_;
     update_climate();
     index_cells();
-    if (turn_ % std::max(1, LAND_TURNS) == 0) count_lands();
+    if (turn_ % std::max(1, LAND_TURNS) == 0) {
+        count_lands();
+        recognise_leaders();
+    }
     for (const auto& agent : agents_) {  // a body some cost starved, its death not yet recorded: recorded now
         agent->trail.clear();             // last turn's way is forgotten
         if (!agent->died_turn && !agent->alive()) die(*agent, agent->hunger >= 100 ? "starved" : "killed");
@@ -2415,6 +2418,14 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
+    if (s.suitor && !s.suitor->leader && leaders_ > 0 && agent.can_breed()) {  // a leader in sight is courted first
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other != &agent && other->leader && other->alive() && other->can_breed() && compatible(agent, *other)) {
+                s.suitor = other;
+                break;
+            }
+        }
+    }
     if (s.suitor) s.suitor_at = Cell{s.suitor->x, s.suitor->y};
     s.flora = seen.flora;
     for (Bitzkey* other : neighbors) {
@@ -2755,7 +2766,15 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         s.admired = std::min(3, admirers) / 3.0;
+        agent.standout = standout ? standout->identifier : -1;
+        senses[SenseLeader] = agent.leader ? 1.0 : 0.0;
+        if (agent.leader && LEADER_FOLLOWERS > 0) {
+            int followed = 0;
+            for (const Bitzkey* other : around(agent, sight)) followed += other != &agent && other->alive() && follows(*other, agent);
+            s.followed = std::min(1.0, static_cast<double>(followed) / LEADER_FOLLOWERS);
+        }
         if (standout) {
+            senses[SenseStandoutLeads] = standout->leader ? 1.0 : 0.0;
             const double near = closeness(agent, Cell{standout->x, standout->y}, sight);
             s.standout = best * near;
             senses[SenseStandoutEsteem] = best;
@@ -3276,6 +3295,35 @@ void Simulation::index_realm_patches() {
     }
 }
 
+bool Simulation::leader_in_sight(const Bitzkey& agent) const {
+    if (agent.follows < 0) return false;
+    const Bitzkey* leader = find_agent(agent.follows);
+    return leader && leader->alive() && leader->leader && distance(leader->x, leader->y, agent.x, agent.y) <= agent.sight;
+}
+
+void Simulation::recognise_leaders() {
+    // Each counted as the standout of so many, now: recognised at LEADER_FOLLOWERS, kept until under half as many.
+    std::unordered_map<int, int> held;
+    for (const auto& agent : agents_) {
+        if (agent->alive() && agent->standout >= 0) ++held[agent->standout];
+    }
+    leaders_ = 0;
+    for (const auto& agent : agents_) {
+        if (!agent->alive()) continue;
+        const auto found = held.find(agent->identifier);
+        agent->followers = found == held.end() ? 0 : found->second;
+        const bool was = agent->leader;
+        agent->leader = LEADER_FOLLOWERS > 0 && agent->species != Species::Plant && !agent->infant() &&
+                        agent->followers >= (was ? (LEADER_FOLLOWERS + 1) / 2 : LEADER_FOLLOWERS);
+        if (agent->leader && !was) note_first("recognised_a_leader", agent->species, agent->identifier);
+        leaders_ += agent->leader;
+    }
+    for (const auto& agent : agents_) {
+        const Bitzkey* standout = agent->standout >= 0 ? find_agent(agent->standout) : nullptr;
+        agent->follows = standout && standout->alive() && standout->leader ? standout->identifier : -1;
+    }
+}
+
 void Simulation::count_lands() {
     if (LAND_SIZE <= 0 || LAND_PATCH <= 0) {  // no lands: none claimed, no groups, no wars
         if (lands_.empty() && realms_.empty()) return;
@@ -3470,8 +3518,8 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
 void Simulation::demand(Bitzkey& agent, Bitzkey& owner, int possession) {
     agent.last_action = "demanded";
     if (value_of(owner, possession) <= value_of(agent, possession)) return;
-    // The owner fights for it at a chance of its aggression or dominance; else it yields it.
-    if (rng().random() < std::max(owner.feeling(Aggression), owner.feeling(Dominance))) {
+    // The owner fights for it at a chance of its aggression or dominance, unless it follows the one asking; else it yields it.
+    if (!follows(owner, agent) && rng().random() < std::max(owner.feeling(Aggression), owner.feeling(Dominance))) {
         begin_fight({agent.identifier, owner.identifier, possession, false});
         agent.last_action = "began a fight";
         note_first("fought_over", agent.species, agent.identifier);
@@ -3571,7 +3619,8 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
     if (judged(agent, trade_gain(agent, owner, wanted)) <= judged(agent, good_worth(agent, agent, offered))) {
         trade.withdrawn = true;
         agent.last_action = "thought better of an offer";
-    } else if (judged(owner, trade_gain(owner, agent, offered)) <= judged(owner, good_worth(owner, owner, wanted))) {
+    } else if (judged(owner, trade_gain(owner, agent, offered)) + (follows(owner, agent) ? LEADER_DEFERENCE : 0.0) <=
+               judged(owner, good_worth(owner, owner, wanted))) {
         agent.last_action = "was refused";
     } else {
         trade.accepted = true;
@@ -3721,7 +3770,8 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war +
                              // Glad to be held a friend by those about it, and at ease near the one it esteems most
                              STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
-                             FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout;
+                             FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +
+                             LEADER_JOY * s.followed;  // a leader glad of its followers about it
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging;
 }
 
@@ -5172,7 +5222,7 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     for (Bitzkey* other : around(victim, 2)) {
         if (other == &striker || !other->brain) continue;
         herd_near += herd_mate(victim, *other);
-        if (herd_mate(*other, victim)) {
+        if (herd_mate(*other, victim) || follows(*other, victim)) {  // its herd, and its followers
             other->alarm = striker.identifier;
             if (distance(other->x, other->y, striker.x, striker.y) <= 1) other->herd_assailant = striker.identifier;
         }
@@ -5295,7 +5345,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
                                                     (parent.terrain == Terrain::Amphibious ? AMPHIBIOUS_COOLDOWN : 1.0)));
         parent.children += litter;
         parent.stamina = std::max(0.0, parent.stamina - fatigue(parent, BREED_FATIGUE));
-        parent.reward += mating_joy(parent, BREED_JOY);
+        parent.reward += mating_joy(parent, BREED_JOY * (pair[1 - index]->leader ? 1 + LEADER_ALLURE : 1.0));
         if (!parent.alive()) {
             die(parent, "bred to death");
         } else {

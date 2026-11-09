@@ -1861,5 +1861,15 @@
 "offered": "申し出た",
 "thought better of an offer": "申し出を考え直した",
 "was refused": "断られた",
-"traded": "取引した"
+"traded": "取引した",
+"Leader followers": "リーダーの追随者",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "リーダーと認められるために、その個体を一番の手本とする必要がある同じ色の群れの仲間の数。半分未満になるまで保たれる。0ならリーダーなし",
+"Leader deference": "リーダーへの敬意",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "追随者がリーダーの申し出をどれだけ好意的に判断するか。リーダーの要求には戦わずに従う",
+"Leader rally": "リーダーのもとでの奮起",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "リーダーが見える追随者が克服する、恐慌や崩れの可能性の割合",
+"Leader joy": "リーダーの喜び",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "見える範囲の追随者からリーダーが得る喜び。リーダーの追随者の数だけいれば満たされる",
+"Leader allure": "リーダーの魅力",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "リーダーと繁殖することで相手が得る喜びの増し分。リーダーと繁殖できる者はまずリーダーに求愛する"
 }

@@ -1861,5 +1861,15 @@
 "offered": "ofereceu",
 "thought better of an offer": "repensou uma oferta",
 "was refused": "foi recusado",
-"traded": "trocou"
+"traded": "trocou",
+"Leader followers": "Seguidores de um líder",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "membros do seu grupo de cor que precisam tê-lo como referência para ser reconhecido líder, até que menos da metade o façam; 0 para nenhum líder",
+"Leader deference": "Deferência ao líder",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "quanto mais favoravelmente um seguidor julga as ofertas do seu líder; cede sem lutar às exigências do seu líder",
+"Leader rally": "Ânimo junto ao líder",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "parte da chance de entrar em pânico ou fugir que um seguidor à vista do seu líder supera",
+"Leader joy": "Alegria do líder",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "prazer que um líder sente pelos seguidores à vista, completo com tantos quanto Seguidores de um líder",
+"Leader allure": "Atração do líder",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "quanta alegria a mais procriar com um líder dá ao parceiro; quem pode procriar com um líder o corteja primeiro"
 }

@@ -1861,5 +1861,15 @@
 "offered": "पेशकश की",
 "thought better of an offer": "पेशकश पर फिर से सोचा",
 "was refused": "ठुकराया गया",
-"traded": "व्यापार किया"
+"traded": "व्यापार किया",
+"Leader followers": "नेता के अनुयायी",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "उसके रंग समूह के वे सदस्य जिन्हें उसे अपना आदर्श मानना होगा ताकि वह नेता माना जाए, जब तक आधे से कम न रह जाएँ; 0 पर कोई नेता नहीं",
+"Leader deference": "नेता के प्रति आदर",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "अनुयायी अपने नेता की पेशकश को कितना अधिक उदारता से आँकता है; वह अपने नेता की माँग पर बिना लड़े झुक जाता है",
+"Leader rally": "नेता के साथ हौसला",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "घबराने या टूटने की संभावना का वह हिस्सा जिस पर अपने नेता को देखता अनुयायी काबू पा लेता है",
+"Leader joy": "नेता का आनंद",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "नेता को दिखते अपने अनुयायियों से मिलने वाला आनंद, नेता के अनुयायी जितने होने पर पूरा",
+"Leader allure": "नेता का आकर्षण",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "नेता के साथ प्रजनन उसके साथी को कितना अधिक आनंद देता है; जो भी नेता के साथ प्रजनन कर सकता है वह पहले उसी को रिझाता है"
 }

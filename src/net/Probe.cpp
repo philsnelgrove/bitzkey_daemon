@@ -178,6 +178,10 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["capacity"] = agent->capacity();
     result["mother"] = agent->mother;
     result["mark"] = agent->mark == PrestigeMark ? "prestige" : agent->mark == WarriorMark ? "warrior" : "none";
+    result["leader"] = agent->leader;
+    result["followers"] = agent->followers;
+    result["follows"] = agent->follows;
+    result["standout"] = agent->standout;
     result["realm"] = agent->realm;
     result["in_own_land"] = world.in_own_land(*agent);
     result["trespassing_turns"] = agent->trespass;
@@ -1195,10 +1199,33 @@ Json Probe::society(Simulation& world) const {
                                {"parents_regarded", parents_regarded(leader)}, {"kin_in_top_twenty", kin_in_top(leader)},
                                {"friends_of_its_colour", follow.friends_of_its_colour}, {"its_tribe", tribe_sizes[root(ranked[at])]}});
         }
+        Json recognised = Json::array();  // the leaders recognised at the last count, the most followed first
+        long long following = 0;
+        std::vector<const Bitzkey*> heads;
+        for (const Bitzkey* one : animals) {
+            following += one->follows >= 0;
+            if (one->leader) heads.push_back(one);
+        }
+        std::sort(heads.begin(), heads.end(), [](const Bitzkey* a, const Bitzkey* b) { return a->followers > b->followers; });
+        for (const Bitzkey* head : heads) {
+            if (recognised.size() >= 20) break;
+            int nearby = 0;
+            double apartSum = 0.0;
+            for (const Bitzkey* one : animals) {
+                if (one->follows != head->identifier) continue;
+                ++nearby;
+                apartSum += steps(*one, *head);
+            }
+            recognised.push_back({{"id", head->identifier}, {"followers", head->followers}, {"followers_now", nearby},
+                                  {"followers_mean_steps", nearby ? Json(apartSum / nearby) : Json(nullptr)},
+                                  {"age_share", static_cast<double>(head->age) / std::max(1.0, static_cast<double>(head->lifespan))},
+                                  {"elder", head->age > AGEING * head->lifespan}, {"regarded", head->regarded}, {"realm", head->realm},
+                                  {"mark", head->mark == PrestigeMark ? "prestige" : head->mark == WarriorMark ? "warrior" : "none"}});
+        }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}, {"territory", territory}}},
-            {"leaders", {{"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
+            {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following}, {"recognised_leaders", recognised}, {"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
                          {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}},
                          {"factions", {{"top_twenty_friends_of_their_colour", top_friends ? Json(static_cast<double>(top_friends_of_colour) / top_friends) : Json(nullptr)},
                                        {"all_friends_of_their_colour", all_friends ? Json(static_cast<double>(all_friends_of_colour) / all_friends) : Json(nullptr)},

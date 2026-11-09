@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -340,6 +340,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->skinned = record.value("skinned", false);
     agent->thefts = record.value("thefts", 0);
     agent->mark = record.value("mark", 0);  // none, in an older world
+    agent->standout = record.value("standout", -1);  // nor these
+    agent->follows = record.value("follows", -1);
+    agent->followers = record.value("followers", 0);
+    agent->leader = record.value("leader", false);
     agent->realm = record.value("realm", -1);
     agent->trespass = record.value("trespass", 0);
     agent->meat_lean = record.value("meat_lean", 0.0);
@@ -946,6 +950,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         const bool before_terrain = record.value("genome_version", 3) < 4;
         for (const json& agent : record.at("agents")) {
             world.agents_.push_back(agent_from(agent, reader));
+            world.leaders_ += world.agents_.back()->leader && world.agents_.back()->alive();
             Bitzkey& made_agent = *world.agents_.back();
             if (before_terrain) {
                 made_agent.dna = convert_v3(made_agent.dna);

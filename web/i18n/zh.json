@@ -1861,5 +1861,15 @@
 "offered": "提出交换",
 "thought better of an offer": "对提议改变了主意",
 "was refused": "被拒绝",
-"traded": "完成交易"
+"traded": "完成交易",
+"Leader followers": "首领追随者数",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "须有多少同色群体成员将其视为最敬重者，它才被认作首领；直至不足一半时失去；0 表示没有首领",
+"Leader deference": "对首领的顺从",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "追随者对首领的提议评价宽厚多少；它对首领的索要不战而让",
+"Leader rally": "首领激励",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "看得见首领的追随者能克服的惊慌或溃逃几率的比例",
+"Leader joy": "首领之乐",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "首领从视野中的追随者获得的愉悦，人数达到首领追随者数时为满",
+"Leader allure": "首领魅力",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "与首领繁殖时伴侣多得的愉悦；凡能与首领繁殖者都先向它求偶"
 }

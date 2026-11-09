@@ -1861,5 +1861,15 @@
 "offered": "הציע",
 "thought better of an offer": "חזר בו מהצעה",
 "was refused": "נדחה",
-"traded": "סחר"
+"traded": "סחר",
+"Leader followers": "עוקבי מנהיג",
+"members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders": "חברי קבוצת הצבע שלו שצריכים להחזיק בו כמופת שלהם כדי שיוכר כמנהיג, עד שפחות ממחציתם עושים זאת; 0 ללא מנהיגים",
+"Leader deference": "כבוד למנהיג",
+"how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight": "עד כמה עוקב שופט באהדה רבה יותר את הצעות מנהיגו; הוא נכנע לדרישות מנהיגו בלי קרב",
+"Leader rally": "התלכדות סביב המנהיג",
+"share of the chance to panic or break that a follower in sight of its leader overcomes": "החלק מהסיכוי להיבהל או להישבר שעוקב בטווח ראייתו של מנהיגו מתגבר עליו",
+"Leader joy": "שמחת המנהיג",
+"pleasure a leader takes in its followers in sight, in full with as many as Leader followers": "ההנאה שמנהיג חש מעוקביו שבטווח ראייתו, במלואה עם כמספר עוקבי מנהיג",
+"Leader allure": "קסם המנהיג",
+"how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it": "כמה יותר שמחה מעניק הזדווגות עם מנהיג לבן זוגו; כל מי שיכול להזדווג עם מנהיג מחזר אחריו ראשון"
 }
