@@ -1878,5 +1878,9 @@
 "Land ambition": "Ambition territoriale",
 "pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group": "attrait à rester sur la terre d'un groupe qu'il n'aime pas, et malaise sur celle d'un groupe qu'il aime sauf s'il y est bienvenu, fois son estime pour ce groupe",
 "Welcome level": "Seuil d'accueil",
-"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "à quel point les membres d'un groupe doivent, en moyenne, estimer un groupe de couleur pour l'accueillir sur leur terre en invité qui n'empiète ni ne la conteste ; au-dessus de 1 pour aucun"
+"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "à quel point les membres d'un groupe doivent, en moyenne, estimer un groupe de couleur pour l'accueillir sur leur terre en invité qui n'empiète ni ne la conteste ; au-dessus de 1 pour aucun",
+"Call payoff": "Récompense de l'appel",
+"joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "joie d'un appelant pour chacun de son espèce qui a entendu son appel puis a échappé à un chasseur ou, affamé, a mangé ; fois un demi plus son empathie ou sa sociabilité",
+"Heeded regard": "Reconnaissance de l'appel",
+"how much better one helped so thinks of its caller, of a deed's weight": "à quel point celui ainsi aidé pense mieux de son appelant, du poids d'un acte"
 }

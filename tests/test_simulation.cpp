@@ -3941,3 +3941,33 @@ TEST_CASE("a guest is welcome in a friend's land and contests none of it; in a f
     simulation.count_lands();
     CHECK(Simulation::claims(*simulation.claims_at(2, 2), guest));  // unwelcome, they contest it
 }
+
+TEST_CASE("a call that helps pays its caller: joy for one of its kind that got away or, hungry, ate, and regard from it") {
+    Simulation simulation = world();
+    const Dna dna = encode_dna(Species::Grazer, {{"size", 1}});
+    Bitzkey& caller = simulation.add_agent(dna, 5, 5);
+    Bitzkey& listener = simulation.add_agent(dna, 6, 5);
+    simulation.index_cells();
+    simulation.advance();  // a turn begun
+    const int turn = simulation.turn();
+    listener.heard_from = caller.identifier;  // it heard the caller's second call last time, a hunter in sight
+    listener.heard_call = FirstCall + 1;
+    listener.heard_turn = turn - 1;
+    listener.heard_danger = true;
+    listener.struck_turn = -1;  // and was not struck since
+    const double joy = caller.reward;
+    std::map<int, int> paid;
+    simulation.pay_callers(listener, Simulation::Situation{}, paid);
+    CHECK(caller.reward > joy);
+    CHECK(simulation.regard_for(listener, caller) > 0.0);
+    CHECK(simulation.call_payoffs()[static_cast<std::size_t>(Species::Grazer)][1][0] == 1);
+    CHECK(listener.heard_from == -1);  // it heard nothing this time
+
+    listener.heard_from = caller.identifier;  // struck after hearing: no payoff
+    listener.heard_turn = turn - 1;
+    listener.heard_danger = true;
+    listener.struck_turn = turn;
+    const double before = caller.reward;
+    simulation.pay_callers(listener, Simulation::Situation{}, paid);
+    CHECK(caller.reward == before);
+}

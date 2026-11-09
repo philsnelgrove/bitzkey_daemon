@@ -1867,9 +1867,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     std::iota(indices.begin(), indices.end(), std::size_t{0});
     std::for_each(std::execution::par, indices.begin(), indices.end(),
                   [&](std::size_t index) { plans[index] = sense(*agents[index], true); });
+    std::map<int, int> paid;  // each caller's payoffs this turn
     for (std::size_t index = 0; index < agents.size(); ++index) {  // all sense the world as it stands
         Bitzkey* agent = agents[index];
         const Sensed& sensed = plans[index];
+        pay_callers(*agent, sensed.situation, paid);
         note_place(*agent, sensed.senses);
         if (travelled(agent->last_action)) {
             if (sensed.situation.threat) {
@@ -2875,6 +2877,19 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[heard_sense(other->call, HeardSouth)] = std::clamp(static_cast<double>(other->y - agent.y) / reach, -1.0, 1.0);
             senses[heard_sense(other->call, HeardKin)] = other->species == agent.species;
         }
+        double kin_loudest = 0.0;  // the loudest of its own kind, to credit should the call help
+        for (const Bitzkey* other : around(agent, furthest)) {
+            if (other == &agent || other->species != agent.species || other->call < FirstCall || other->call_turn != turn_ - 1) continue;
+            const int reach = call_reach(*other);
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away > reach) continue;
+            const double loudness = 1 - static_cast<double>(away) / (reach + 1);
+            if (loudness > kin_loudest) {
+                kin_loudest = loudness;
+                s.heard_from = other->identifier;
+                s.heard_call = other->call;
+            }
+        }
     }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
@@ -3345,6 +3360,27 @@ void Simulation::index_realm_patches() {
             if (const auto found = realms_.find(claim.realm); claim.realm >= 0 && found != realms_.end()) found->second.patches.push_back(static_cast<int>(patch));
         }
     }
+}
+
+void Simulation::pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid) {
+    // What came of the call it heard last time: an escape, or a meal when hungry.
+    if (listener.heard_from >= 0 && listener.heard_turn == turn_ - 1 && (CALL_PAYOFF > 0 || HEEDED_REGARD > 0)) {
+        const bool escaped = listener.heard_danger && listener.struck_turn < listener.heard_turn;
+        const bool fed = listener.heard_hunger >= 50 && listener.hunger < listener.heard_hunger;
+        Bitzkey* caller = escaped || fed ? find_agent(listener.heard_from) : nullptr;
+        if (caller && caller->alive() && paid[caller->identifier] < CALL_PAYOFFS_A_TURN) {
+            ++paid[caller->identifier];
+            caller->reward += CALL_PAYOFF * (0.5 + std::max(caller->feeling(Empathy), caller->feeling(Sociability)));
+            note_deed(listener, *caller, 1.0, HEEDED_REGARD, PlainDeed, true);
+            ++call_payoffs_[static_cast<std::size_t>(caller->species)][static_cast<std::size_t>(listener.heard_call - FirstCall)][escaped ? 0 : 1];
+            note_first("a_call_helped", caller->species, caller->identifier);
+        }
+    }
+    listener.heard_from = now.heard_from;  // and what it hears now, to judge next time
+    listener.heard_call = now.heard_call;
+    listener.heard_turn = turn_;
+    listener.heard_hunger = listener.hunger;
+    listener.heard_danger = now.hunter || now.threat;
 }
 
 bool Simulation::leader_in_sight(const Bitzkey& agent) const {
@@ -5271,6 +5307,7 @@ void Simulation::bond_in_defence(Bitzkey& defender, const Bitzkey& assailant) {
 
 void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
     victim.assailant = striker.identifier;
+    victim.struck_turn = turn_;
     note_deed(victim, striker, BLOW_DEED, 1.0, HarmDeed);
     deed_seen(striker, BLOW_DEED, &victim, HarmDeed);
     victim.danger_memory = Place{victim.x, victim.y, turn_};

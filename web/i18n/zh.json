@@ -1878,5 +1878,9 @@
 "Land ambition": "领地野心",
 "pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group": "留在所厌恶群体领地的吸引力，以及在所喜欢群体领地（若不受欢迎）的不安，乘以它对该群体的评价",
 "Welcome level": "欢迎门槛",
-"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "一个群体的成员平均须对某色群评价多高，才欢迎其作为既不擅闯也不争夺的客人进入自己的领地；高于 1 则不欢迎任何群体"
+"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "一个群体的成员平均须对某色群评价多高，才欢迎其作为既不擅闯也不争夺的客人进入自己的领地；高于 1 则不欢迎任何群体",
+"Call payoff": "呼叫回报",
+"joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "同类听到它的呼叫后逃离猎手或在饥饿时进食，呼叫者每遇一次所得的愉悦；乘以二分之一加其同理心或社交性",
+"Heeded regard": "呼叫之恩",
+"how much better one helped so thinks of its caller, of a deed's weight": "被如此帮助者对呼叫者的看法提高多少，占一次行为分量的比例"
 }

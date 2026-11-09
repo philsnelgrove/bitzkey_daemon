@@ -1878,5 +1878,9 @@
 "Land ambition": "縄張りへの野心",
 "pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group": "嫌う群れの土地に留まろうとする引き寄せと、好む群れの土地での（歓迎されていなければ）居心地の悪さ。その群れへの評価を掛ける",
 "Welcome level": "歓迎の基準",
-"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "群れの仲間がある色の群れを平均でどれだけ好意的に見れば、侵入も争いもしない客として自分たちの土地に迎えるか。1を超えると歓迎なし"
+"how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none": "群れの仲間がある色の群れを平均でどれだけ好意的に見れば、侵入も争いもしない客として自分たちの土地に迎えるか。1を超えると歓迎なし",
+"Call payoff": "呼び声の報い",
+"joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "呼び声を聞いた同種が、その後ハンターから逃れたり、空腹で食べたりするたびに呼び手が得る喜び。0.5に共感か社交性を足したものを掛ける",
+"Heeded regard": "呼び声への感謝",
+"how much better one helped so thinks of its caller, of a deed's weight": "そうして助けられた者が呼び手をどれだけ良く思うか。行いの重みに対する割合"
 }

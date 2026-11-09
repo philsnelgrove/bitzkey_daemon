@@ -329,6 +329,12 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 4;
 inline double CALL_COST = 0.2;
+// A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
+// next turn, it got away (a hunter was in sight and it was not struck) or, hungry (half or more), it ate, the caller
+// takes joy in it (CALL_PAYOFF, times a half and its empathy or sociability, the greater; for three helped a turn at
+// most), and the one helped thinks the better of it (HEEDED_REGARD of a deed's weight). Nothing says what a call means.
+inline double CALL_PAYOFF = 0.2, HEEDED_REGARD = 0.05;
+constexpr int CALL_PAYOFFS_A_TURN = 3;
 // Memory (Brain.hpp): how many choices back a lesson's error is carried to the memory gates that wrote what the brain
 // read, 0 for none (what it keeps is then only what it was born to), up to MAX_MEMORY_STEPS; and how fast they learn,
 // times the brain's learning rate.
@@ -937,6 +943,12 @@ struct Bitzkey {
     std::optional<Cell> kill_alert;     // where a pack-mate alerted it to a fresh kill since it last acted
     int call = Silent;                  // what it called alongside its last action (Brain.hpp's Call), heard the turn after
     int call_turn = -1;                 // the turn it called it
+    int heard_from = -1;                // the loudest caller of its kind it heard when it last chose, -1 none
+    int heard_call = -1;                // and its call
+    int heard_turn = -1;                // that turn
+    double heard_hunger = 0.0;          // its hunger then
+    bool heard_danger = false;          // and whether a hunter was in sight
+    int struck_turn = -1;               // the last turn it was struck
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
     // Its senses at the choices before its last, most recent first, back to the first its memory wasn't written at, and
@@ -1279,6 +1291,7 @@ public:
     };
     static constexpr std::size_t GIFT_LOG = 20000;
     std::vector<Gift> gifts_so_far() const;
+    const std::array<std::array<std::array<long long, 2>, CALL_COUNT>, 4>& call_payoffs() const { return call_payoffs_; }
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
     struct Trade {
         int turn, offerer, owner, wanted, offered;
@@ -1409,6 +1422,7 @@ public:
         double standout = 0.0;  // its esteem for its standout, times how close it is
         double followed = 0.0;  // a leader's followers in sight, a LEADER_FOLLOWERS-th each, to 1
         double ambition = 0.0;  // its dislike of the group whose land it stands in, uninvited: -1 a friend's, 1 a foe's
+        int heard_from = -1, heard_call = -1;  // the loudest caller of its kind it heard, and its call
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1702,6 +1716,7 @@ public:
     // Whether it follows that one, a leader, as of the last count; and whether its leader is in its sight.
     static bool follows(const Bitzkey& follower, const Bitzkey& leader) { return leader.leader && follower.follows == leader.identifier; }
     bool leader_in_sight(const Bitzkey& agent) const;
+    void pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid);  // see CALL_PAYOFF
     void recognise_leaders();
     static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }
     bool is_friend(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) >= REGARD_STRONG; }
@@ -1896,6 +1911,8 @@ private:
     std::unordered_map<int, DeathRecord> death_records_;
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
     std::deque<Gift> gifts_;
+    // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
+    std::array<std::array<std::array<long long, 2>, CALL_COUNT>, 4> call_payoffs_{};
     int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;
     std::unique_ptr<std::mutex> gifts_writing_ = std::make_unique<std::mutex>();  // animals act side by side; held apart so a world still moves

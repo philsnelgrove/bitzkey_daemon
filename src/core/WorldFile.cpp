@@ -239,7 +239,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"call_turn", agent.call_turn}, {"last_call", agent.last_call},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -412,6 +412,12 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     }
     agent->call = record.value("call", 0);  // silent, in a world saved before calls
     agent->call_turn = record.value("call_turn", -1);
+    agent->heard_from = record.value("heard_from", -1);  // none, in a world saved before calls paid
+    agent->heard_call = record.value("heard_call", -1);
+    agent->heard_turn = record.value("heard_turn", -1);
+    agent->heard_hunger = record.value("heard_hunger", 0.0);
+    agent->heard_danger = record.value("heard_danger", false);
+    agent->struck_turn = record.value("struck_turn", -1);
     agent->last_call = record.value("last_call", -1);
     if (record.contains("held")) {  // blank, in a world saved before memory
         for (int held = 0; held < MEMORY_NEURONS; ++held) agent->held[held] = record.at("held").at(held).get<double>();
