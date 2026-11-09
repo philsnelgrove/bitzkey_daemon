@@ -4031,26 +4031,37 @@ TEST_CASE("a tutor gives one of its kind beside it a lesson: a recipe it lacks, 
     Bitzkey& pupil = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
     simulation.index_cells();
     const int club = MakeClub - MakeBoneAxe;
-    CHECK(Simulation::lesson_for(tutor, pupil) == -1);  // nothing worth teaching
+    const auto lesson = [&](const Bitzkey& to) { return Simulation::lesson_for(tutor, to, simulation.turn()); };
+    CHECK(lesson(pupil) == -1);  // nothing worth teaching
     tutor.crafts = 1 << club;
     tutor.archery = 0.5;
-    CHECK(Simulation::lesson_for(tutor, pupil) == club);
+    CHECK(lesson(pupil) == CRAFT_COUNT);  // a club it hasn't mastered isn't worth teaching; archery is
+    tutor.craft_tries[static_cast<std::size_t>(club)] = CRAFT_TRIES;  // mastered
+    CHECK(lesson(pupil) == club);
     const double hunger = tutor.hunger, joy = tutor.reward;
+    const double practice = TUTOR_PRACTICE;
+    TUTOR_PRACTICE = 1.0;  // a lesson as good as a try, to count
     simulation.tutor(tutor, pupil, club);
     CHECK((pupil.crafts >> club & 1) != 0);  // the recipe, now known
     CHECK(pupil.craft_source[static_cast<std::size_t>(club)] == 5);
-    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 1);  // as if tried once
+    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 1);
     CHECK(tutor.hunger == doctest::Approx(hunger + CALL_COST));  // as dear as a call
     CHECK(tutor.reward > joy);
     CHECK(simulation.regard_for(pupil, tutor) > 0.0);
-    CHECK(Simulation::lesson_for(tutor, pupil) == CRAFT_COUNT);  // then archery, as it shoots the better
+    CHECK(lesson(pupil) == -1);  // a lesson a day at most
+    pupil.tutored_turn = simulation.turn() - DAY_LENGTH;
+    CHECK(lesson(pupil) == CRAFT_COUNT);  // a day on, archery, as it shoots the better
+    TUTOR_PRACTICE = 0.5;
     simulation.tutor(tutor, pupil, CRAFT_COUNT);
-    CHECK(pupil.archery == doctest::Approx(ARCHERY_LEARNING));  // as one shot teaches
+    CHECK(pupil.archery == doctest::Approx(0.5 * ARCHERY_LEARNING));  // half a shot's lesson
+    TUTOR_PRACTICE = 0.0;
     pupil.archery = 0.5;
-    CHECK(Simulation::lesson_for(tutor, pupil) == club);  // then a try nearer mastery
+    pupil.tutored_turn = -1;
+    CHECK(lesson(pupil) == club);  // then a try nearer mastery, which a worthless lesson never gives
     simulation.tutor(tutor, pupil, club);
-    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 2);
+    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 1);
+    TUTOR_PRACTICE = practice;
     Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
-    CHECK(Simulation::lesson_for(tutor, stranger) == -1);  // not of its kind
+    CHECK(lesson(stranger) == -1);  // not of its kind
 }
 

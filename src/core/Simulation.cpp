@@ -2675,7 +2675,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 if (!s.student) s.student = other;
             }
             if (!s.pupil && distance(other->x, other->y, agent.x, agent.y) <= 1 && !is_foe(agent, *other)) {
-                if (const int lesson = lesson_for(agent, *other); lesson >= 0) {
+                if (const int lesson = lesson_for(agent, *other, turn_); lesson >= 0) {
                     s.pupil = other;
                     s.lesson = lesson;
                 }
@@ -3428,14 +3428,16 @@ double Simulation::ambition(const Bitzkey& agent, double regard, bool welcome) {
     return welcome ? regard * 2 * soft : -regard;
 }
 
-int Simulation::lesson_for(const Bitzkey& tutor, const Bitzkey& pupil) {
+int Simulation::lesson_for(const Bitzkey& tutor, const Bitzkey& pupil, int turn) {
     if (pupil.species != tutor.species || !pupil.brain) return -1;
-    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {  // a recipe it lacks
-        if ((tutor.crafts >> craft & 1) && !(pupil.crafts >> craft & 1)) return craft;
+    if (pupil.tutored_turn >= 0 && turn - pupil.tutored_turn < DAY_LENGTH) return -1;  // a lesson a day at most
+    const auto mastered = [&](int craft) { return (tutor.crafts >> craft & 1) && tutor.craft_tries[static_cast<std::size_t>(craft)] >= CRAFT_TRIES; };
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {  // a recipe it lacks, of those the tutor has mastered
+        if (mastered(craft) && !(pupil.crafts >> craft & 1)) return craft;
     }
     if (tutor.archery > pupil.archery + ARCHERY_WORTH_TEACHING) return CRAFT_COUNT;  // a better shot
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {  // a recipe it has not mastered
-        if ((tutor.crafts >> craft & 1) && pupil.craft_tries[static_cast<std::size_t>(craft)] < CRAFT_TRIES) return craft;
+        if (mastered(craft) && pupil.craft_tries[static_cast<std::size_t>(craft)] < CRAFT_TRIES) return craft;
     }
     return -1;
 }
@@ -3446,8 +3448,9 @@ void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
         return;
     }
     tutor.hunger = std::min(100.0, tutor.hunger + CALL_COST);  // as dear as a call
+    pupil.tutored_turn = turn_;
     if (lesson == CRAFT_COUNT) {
-        pupil.archery += ARCHERY_LEARNING * (1 - pupil.archery);  // as one shot teaches
+        pupil.archery += TUTOR_PRACTICE * ARCHERY_LEARNING * (1 - pupil.archery);  // worth part of a shot
     } else {
         const auto craft = static_cast<std::size_t>(lesson);
         if (!(pupil.crafts >> lesson & 1)) {  // a recipe it lacked, now known
@@ -3456,7 +3459,7 @@ void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
             pupil.craft_chain[craft] = std::max(tutor.craft_chain[craft], tutor.craft_source[craft] >= 2 ? 1 : 0) + 1;
             note_first("tutored", pupil.species, pupil.identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + lesson)]);
         }
-        pupil.craft_tries[craft] = std::min(CRAFT_TRIES, pupil.craft_tries[craft] + 1);  // a try nearer mastery
+        if (rng().random() < TUTOR_PRACTICE) pupil.craft_tries[craft] = std::min(CRAFT_TRIES, pupil.craft_tries[craft] + 1);  // perhaps a try nearer mastery
     }
     tutor.last_action = "tutored";
     tutor.reward += TUTOR_JOY * (0.5 + tutor.feeling(Empathy)) + help_felt(tutor, regard_for(tutor, pupil));

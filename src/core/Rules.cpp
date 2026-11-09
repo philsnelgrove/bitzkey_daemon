@@ -245,6 +245,7 @@ std::vector<Rule> make_rules() {
         {"SHARED_BOND", "Mind", "Shared bond", "how much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none", 0.0, 1.0, 0.05, false, &SHARED_BOND},
         {"SKILL_COMFORT", "Mind", "Skill comfort", "ease near one it holds skilled, more if curious; 0 for none", 0.0, 2.0, 0.05, false, &SKILL_COMFORT},
         {"TUTOR_JOY", "Mind", "Tutor joy", "joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic", 0.0, 5.0, 0.05, false, &TUTOR_JOY},
+        {"TUTOR_PRACTICE", "Mind", "Tutored practice", "share of a try, or of a shot's lesson, that a lesson from a tutor is worth", 0.0, 1.0, 0.05, false, &TUTOR_PRACTICE},
         {"WATCH_LEARNING", "Mind", "Watch learning", "chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none", 0.0, 1.0, 0.01, false, &WATCH_LEARNING},
         {"ELDER_COMFORT", "Mind", "Elder comfort", "gladness at staying near the elder who taught it, more if trusting; 0 for none", 0.0, 2.0, 0.05, false, &ELDER_COMFORT},
         {"ELDER_REACH", "Mind", "Elder reach", "steps from the elder who taught it within which a student is glad of it", 0, 20, 1, true, &ELDER_REACH},

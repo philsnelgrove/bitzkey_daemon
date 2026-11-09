@@ -257,11 +257,12 @@ inline int STUDENT_INTELLECT = 4;  // the least inborn intellect an animal needs
 inline double STUDENT_AGE = 0.5;  // the oldest a student may be, as a share of its elder's age
 inline double STUDENT_TRUST = 0.25;  // how trusting an animal must be to be willing to be taught
 inline double TEACHING_JOY = 1.0;  // how glad an elder is of teaching a student; more if empathetic
-// Tutoring: anyone may give one of its kind beside it, not a foe, one lesson in a craft or skill it has worth teaching,
-// for the hunger of a call: a recipe the pupil lacks (now known, as if tried once), else archery if it shoots the better
-// (a shot's lesson), else a recipe the pupil has not mastered (a try nearer it). The tutor is glad of it (TUTOR_JOY,
+// Tutoring: anyone may give one of its kind beside it, not a foe and not tutored within a day, one lesson in a craft it
+// has mastered or a skill it has worth teaching, for the hunger of a call: a recipe the pupil lacks (now known), else
+// archery if it shoots the better, else a recipe the pupil has not mastered. A lesson is worth TUTOR_PRACTICE of real
+// practice: that chance of a try nearer mastery, that share of a shot's lesson. The tutor is glad of it (TUTOR_JOY,
 // more if empathetic) and the pupil thinks the better of it, by half a teaching.
-inline double TUTOR_JOY = 0.5;
+inline double TUTOR_JOY = 0.5, TUTOR_PRACTICE = 0.5;
 inline constexpr double ARCHERY_WORTH_TEACHING = 0.05;  // how much the better a shot a tutor must be to teach archery
 // Kinship: the most a herd-mate's or partner's social background may differ from its own, at full kinship and
 // no tolerance, is 1 less this; less kinship, or more tolerance, accepts more.
@@ -949,6 +950,7 @@ struct Bitzkey {
     std::array<int, CRAFT_COUNT> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
     int bow_uses = 0;      // shots left in the bow it carries; 0 for none
     double archery = 0.0;  // its skill at hitting with a bow, 0..1, from its shots
+    int tutored_turn = -1;  // the turn it last had a lesson from a tutor; -1 never
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
@@ -1745,7 +1747,7 @@ public:
     void pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid);  // see CALL_PAYOFF
     void shoot(Bitzkey& archer, Bitzkey& target, bool practice);  // see BOW_USES
     static double hit_chance(const Bitzkey& archer, int away);
-    static int lesson_for(const Bitzkey& tutor, const Bitzkey& pupil);  // what it has worth teaching it, -1 for nothing
+    static int lesson_for(const Bitzkey& tutor, const Bitzkey& pupil, int turn);  // what it has worth teaching it, -1 for nothing
     void tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson);  // see TUTOR_JOY
     static double ambition(const Bitzkey& agent, double regard, bool welcome);  // see LAND_AMBITION
     void recognise_leaders();
