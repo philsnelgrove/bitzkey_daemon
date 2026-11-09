@@ -5,7 +5,7 @@
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, drawCrown, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -258,7 +258,8 @@ function parseFrame(view) {
       size: view.getUint8(offset + 9),
       alive: (view.getUint8(offset + 10) & 1) === 1,
       wields: view.getUint8(offset + 10) >> 1 & 7,
-      wears: view.getUint8(offset + 10) >> 4,
+      wears: view.getUint8(offset + 10) >> 4 & 7,
+      leader: (view.getUint8(offset + 10) >> 7) === 1,
       opacity: view.getUint8(offset + 11) / 255,
       dot: colourOfWord(view.getUint32(offset + 12, true)),  // its colours, from its genome's words
       ring: colourOfWord(view.getUint32(offset + 16, true)),
@@ -594,6 +595,7 @@ function drawMap() {
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
     drawGear(ctx, agent.wields, agent.wears, px, py, radius);
+    if (agent.alive && agent.leader) drawCrown(ctx, px, py, radius);  // recognised a leader
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
       drawReticle(ctx, px, py, (radius + RING_WIDTH + 3) * reticlePulse());
     }

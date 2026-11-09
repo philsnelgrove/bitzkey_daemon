@@ -272,9 +272,9 @@ std::string frame(const Simulation& simulation) {
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->y));
         out.push_back(static_cast<char>(agent->species));
         out.push_back(static_cast<char>(agent->body[Size]));
-        // whether it lives, then what it wields (1 to 3, 4 a stone) and wears (1 or 2)
+        // whether it lives, then what it wields (1 to 3, 4 a stone) and wears (1 or 2), and whether it is a leader
         const int wields = agent->weapon ? agent->weapon : agent->carried_stone > 0 ? 4 : 0;
-        out.push_back(static_cast<char>((agent->alive() ? 1 : 0) | wields << 1 | agent->armour << 4));
+        out.push_back(static_cast<char>((agent->alive() ? 1 : 0) | wields << 1 | agent->armour << 4 | (agent->leader ? 1 : 0) << 7));
         out.push_back(static_cast<char>(static_cast<int>(py_round(255 * corpse_opacity(*agent, simulation.turn())))));
         put<std::uint32_t>(out, mind_word(agent->dna));
         put<std::uint32_t>(out, body_word(agent->dna));

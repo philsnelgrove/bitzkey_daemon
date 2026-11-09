@@ -628,7 +628,7 @@ inline double GIVE_LEVEL = 0.75, GIVE_JOY = 0.5, TAKE_LEVEL = 0.75, THEFT_DISREG
 // of the other instead, as much. A refusal is nothing. Choosing what to offer, an animal sees each kind of good
 // through a misjudgement of its own, the same each time (Simulation::trade_bias), as large as at the deal; and it
 // judges an offer from one it thinks ill of the worse, by TRADE_WARINESS times that ill regard.
-inline double TRADE_MISJUDGE = 0.5, TRADE_REGARD = 0.5, TRADE_JOY = 0.5, TRADE_WARINESS = 0.5;
+inline double TRADE_MISJUDGE = 0.2, TRADE_REGARD = 0.5, TRADE_JOY = 0.5, TRADE_WARINESS = 0.5;
 // Marks of the victor: one that defeats an omnivore, killing it or winning a fight over a possession, bears the mark of
 // the warrior (WARRIOR_MARK), and one that defeats a predator the mark of prestige (PRESTIGE_MARK), the better; it keeps
 // the better it has earned for life, whatever it does after. Each turn, all who see it and don't hold it a foe move their

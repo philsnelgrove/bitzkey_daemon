@@ -318,6 +318,19 @@ export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
 }
 
 // What a Bitzkey wears and wields: a small shield at its lower left, a small tool at its upper right.
+// A leader's mark: a small gold crown above it.
+export function drawCrown(ctx, x, y, radius) {
+  const half = Math.max(3, radius * 0.75), high = Math.max(3, radius * 0.75);
+  const foot = y - radius - RING_WIDTH - 1;  // its band just clear of the ring
+  ctx.fillStyle = 'rgb(236, 190, 60)';
+  ctx.beginPath();
+  ctx.moveTo(x - half, foot);
+  for (const [px, py] of [[x + half, foot], [x + half, foot - high], [x + half / 2, foot - high / 2], [x, foot - high],
+                         [x - half / 2, foot - high / 2], [x - half, foot - high]]) ctx.lineTo(px, py);
+  ctx.closePath();
+  ctx.fill();
+}
+
 export function drawGear(ctx, wields, wears, x, y, radius) {
   const size = Math.max(2, radius * 0.6);
   if (wears) {  // a shield: flat across the top, narrowing to a point below

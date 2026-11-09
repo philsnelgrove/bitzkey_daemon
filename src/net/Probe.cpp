@@ -1207,25 +1207,68 @@ Json Probe::society(Simulation& world) const {
             if (one->leader) heads.push_back(one);
         }
         std::sort(heads.begin(), heads.end(), [](const Bitzkey* a, const Bitzkey* b) { return a->followers > b->followers; });
+        // Chains of leaders: a leader may follow another. Followed up from each, until one follows no leader (the top) or
+        // the way comes round again (a loop); depth counts the leaders above it.
+        std::unordered_map<int, const Bitzkey*> headAt;
+        for (const Bitzkey* head : heads) headAt[head->identifier] = head;
+        long long followingALeader = 0, mutual = 0, inLoops = 0, deepest = 0;
+        std::map<long long, long long> byDepth;  // leaders at each depth below a top leader, 0 a top leader itself
         for (const Bitzkey* head : heads) {
-            if (recognised.size() >= 20) break;
-            int nearby = 0;
+            const auto above = headAt.find(head->follows);
+            if (above != headAt.end()) {
+                ++followingALeader;
+                mutual += above->second->follows == head->identifier && head->identifier < above->second->identifier;
+            }
+            std::unordered_set<int> seen{head->identifier};
+            long long depth = 0;
+            bool loop = false;
+            for (auto at = headAt.find(head->follows); at != headAt.end(); at = headAt.find(at->second->follows)) {
+                if (!seen.insert(at->first).second) {
+                    loop = true;
+                    break;
+                }
+                ++depth;
+            }
+            if (loop) ++inLoops;
+            else {
+                ++byDepth[depth];
+                deepest = std::max(deepest, depth);
+            }
+        }
+        Json depths = Json::object();
+        for (const auto& [depth, count] : byDepth) depths[std::to_string(depth)] = count;
+        const Json chains = {{"leaders_following_a_leader", followingALeader}, {"mutual_pairs", mutual}, {"in_loops", inLoops},
+                             {"deepest", deepest}, {"leaders_at_depth", depths}};
+        std::array<long long, 4> kinFollowers{};  // all leaders' followers: their young, their parents, siblings, unrelated
+        long long onlyYoung = 0;  // leaders followed by none but their own young
+        for (const Bitzkey* head : heads) {
+            int nearby = 0, young = 0, elders = 0, siblings = 0;
             double apartSum = 0.0;
             for (const Bitzkey* one : animals) {
                 if (one->follows != head->identifier) continue;
                 ++nearby;
                 apartSum += steps(*one, *head);
+                if (one->mother == head->identifier || one->father == head->identifier) ++young;  // its own young
+                else if (head->mother == one->identifier || head->father == one->identifier) ++elders;  // its parent
+                else if ((one->mother >= 0 && one->mother == head->mother) || (one->father >= 0 && one->father == head->father)) ++siblings;
             }
+            kinFollowers[0] += young;
+            kinFollowers[1] += elders;
+            kinFollowers[2] += siblings;
+            kinFollowers[3] += nearby - young - elders - siblings;
+            onlyYoung += nearby > 0 && young == nearby;
+            if (recognised.size() >= 20) continue;
             recognised.push_back({{"id", head->identifier}, {"followers", head->followers}, {"followers_now", nearby},
+                                  {"followers_kin", {{"its_young", young}, {"its_parents", elders}, {"its_siblings", siblings}, {"unrelated", nearby - young - elders - siblings}}},
                                   {"followers_mean_steps", nearby ? Json(apartSum / nearby) : Json(nullptr)},
                                   {"age_share", static_cast<double>(head->age) / std::max(1.0, static_cast<double>(head->lifespan))},
-                                  {"elder", head->age > AGEING * head->lifespan}, {"regarded", head->regarded}, {"realm", head->realm},
+                                  {"elder", head->age > AGEING * head->lifespan}, {"regarded", head->regarded}, {"realm", head->realm}, {"follows", head->follows},
                                   {"mark", head->mark == PrestigeMark ? "prestige" : head->mark == WarriorMark ? "warrior" : "none"}});
         }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}, {"territory", territory}}},
-            {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following}, {"recognised_leaders", recognised}, {"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
+            {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following}, {"chains", chains}, {"followers_kin", {{"their_young", kinFollowers[0]}, {"their_parents", kinFollowers[1]}, {"their_siblings", kinFollowers[2]}, {"unrelated", kinFollowers[3]}}}, {"followed_only_by_their_young", onlyYoung}, {"recognised_leaders", recognised}, {"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
                          {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}},
                          {"factions", {{"top_twenty_friends_of_their_colour", top_friends ? Json(static_cast<double>(top_friends_of_colour) / top_friends) : Json(nullptr)},
                                        {"all_friends_of_their_colour", all_friends ? Json(static_cast<double>(all_friends_of_colour) / all_friends) : Json(nullptr)},
