@@ -10,6 +10,7 @@
 #include <numbers>
 #include <numeric>
 #include <optional>
+#include <random>
 #include <regex>
 #include <stdexcept>
 #include <tuple>
@@ -759,7 +760,8 @@ Json Probe::calls(Simulation& world) const {
         // hunter in sight, hungry, food in sight, kin alongside, goods it could trade: 32 in all), and how much the loudest call heard tells of
         // what the listener did (fled, moved, rested, other), in bits.
         std::array<std::array<long long, 32>, CALL_COUNT> said{};
-        std::array<std::array<long long, 4>, CALL_COUNT> answered{};
+        std::array<std::array<long long, 4>, CALL_COUNT> answered{}, answered_kin{}, answered_others{};  // and by the caller: its own kind or another
+        Heard fled_kin, fled_others;  // with a hunter in sight, having heard its own kind loudest, or another kind
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->has_last_senses) continue;
             const Senses& senses = agent->last_senses;
@@ -784,6 +786,13 @@ Json Probe::calls(Simulation& world) const {
             if (loudest >= 0) {
                 const int answer = agent->last_choice == Flee ? 0 : moved(agent->last_choice) ? 1 : agent->last_choice == Rest ? 2 : 3;
                 ++answered[static_cast<std::size_t>(loudest - FirstCall)][static_cast<std::size_t>(answer)];
+                const bool kin = senses[heard_sense(loudest, HeardKin)] > 0;
+                ++(kin ? answered_kin : answered_others)[static_cast<std::size_t>(loudest - FirstCall)][static_cast<std::size_t>(answer)];
+                if (hunter) {
+                    Heard& fled = kin ? fled_kin : fled_others;
+                    fled.heard += 1;
+                    fled.acted += agent->last_choice == Flee;
+                }
             }
             bool any = false;
             for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
@@ -842,10 +851,224 @@ Json Probe::calls(Simulation& world) const {
         };
         result[std::string(species_name(species))] = {
             {"call_tells_situation", information(said)}, {"heard_call_tells_action", information(answered)},
+            {"heard_own_kind", {{"tells_action", information(answered_kin)}, {"hunter_in_sight", fled_kin.heard}, {"fled", share(fled_kin.acted, fled_kin.heard)}}},
+            {"heard_other_kinds", {{"tells_action", information(answered_others)}, {"hunter_in_sight", fled_others.heard}, {"fled", share(fled_others.acted, fled_others.heard)}}},
             {"choices", threatened + calm}, {"with_hunter", threatened}, {"calls", calls},
             {"fled_hearing_nothing", share(threat_none.acted, threat_none.heard)}, {"moved_hearing_nothing", share(calm_none.acted, calm_none.heard)}};
     }
     return {{"turn", world.turn()}, {"calls", result}};
+}
+
+Json Probe::language(Simulation& world) const {
+    // Meaning is never assigned, only looked for, each against what chance gives:
+    // - each free call's profile: how much likelier each thing is when it is made than over all choices (lift 1 is none);
+    // - what listeners do after each call, loudest heard, against those who heard nothing;
+    // - conventions: whether callers within a call's reach of each other, and parents and their young, make the same call;
+    // - dialects: whether colour groups' calls differ more than the same callers shuffled among the groups.
+    constexpr std::array<const char*, 6> FEATURES = {"hunter", "hungry", "food", "kin", "goods", "night"};
+    constexpr std::array<const char*, 4> ANSWERS = {"fled", "moved", "rested", "other"};
+    const auto moved = [](int action) { return action >= GoNorth && action <= WalkWest; };
+    const int width = world.width();
+    const auto apart = [width](const Bitzkey& a, const Bitzkey& b) {
+        const int dx = std::abs(a.x - b.x);
+        return std::min(dx, width - dx) + std::abs(a.y - b.y);
+    };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        long long choices = 0, quiet_listeners = 0;
+        std::array<long long, FEATURES.size()> base{};
+        std::array<long long, CALL_COUNT> uses{};
+        std::array<std::array<long long, FEATURES.size()>, CALL_COUNT> with{};
+        std::array<std::array<long long, ANSWERS.size()>, CALL_COUNT> answers{};
+        std::array<long long, ANSWERS.size()> quiet{};
+        std::vector<std::pair<const Bitzkey*, int>> callers;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species || !agent->has_last_senses) continue;
+            const Senses& senses = agent->last_senses;
+            bool goods = false;
+            for (int good = 0; good < GOODS && !goods; ++good) goods = Simulation::holds(*agent, good);
+            const std::array<bool, FEATURES.size()> feature = {
+                senses[SenseThreatCloseness] > 0, senses[SenseHunger] >= 0.5,
+                senses[SenseGrassSeen] > 0 || senses[SensePlantCloseness] > 0 || senses[SensePreyCloseness] > 0 || senses[SenseCarrionCloseness] > 0,
+                senses[SenseKinNear] > 0, goods, senses[SenseNight] > 0};
+            ++choices;
+            for (std::size_t at = 0; at < FEATURES.size(); ++at) base[at] += feature[at];
+            if (agent->last_call >= FirstCall && agent->last_call < FirstCall + CALL_COUNT) {
+                const auto call = static_cast<std::size_t>(agent->last_call - FirstCall);
+                ++uses[call];
+                for (std::size_t at = 0; at < FEATURES.size(); ++at) with[call][at] += feature[at];
+                callers.emplace_back(agent, static_cast<int>(call));
+            }
+            int loudest = -1;
+            for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
+                if (senses[heard_sense(call, HeardLoudness)] > (loudest < 0 ? 0.0 : senses[heard_sense(loudest, HeardLoudness)])) loudest = call;
+            }
+            const std::size_t answer = agent->last_choice == Flee ? 0 : moved(agent->last_choice) ? 1 : agent->last_choice == Rest ? 2 : 3;
+            if (loudest >= 0) {
+                ++answers[static_cast<std::size_t>(loudest - FirstCall)][answer];
+            } else {
+                ++quiet[answer];
+                ++quiet_listeners;
+            }
+        }
+        const auto ratio = [](double part, double whole) { return whole > 0 ? Json(part / whole) : Json(nullptr); };
+        Json calls = Json::object();
+        std::array<double, FEATURES.size()> least{}, most{};
+        least.fill(1e9);
+        int profiled = 0;
+        for (std::size_t call = 0; call < CALL_COUNT; ++call) {
+            Json lift = Json::object();
+            for (std::size_t at = 0; at < FEATURES.size(); ++at) {
+                const double everywhere = choices > 0 ? static_cast<double>(base[at]) / choices : 0.0;
+                if (uses[call] == 0 || everywhere <= 0) {
+                    lift[FEATURES[at]] = nullptr;
+                    continue;
+                }
+                const double value = static_cast<double>(with[call][at]) / static_cast<double>(uses[call]) / everywhere;
+                lift[FEATURES[at]] = value;
+                if (uses[call] >= 10) {
+                    least[at] = std::min(least[at], value);
+                    most[at] = std::max(most[at], value);
+                }
+            }
+            profiled += uses[call] >= 10;
+            long long heard = 0;
+            for (const long long count : answers[call]) heard += count;
+            Json response = Json::object();
+            for (std::size_t at = 0; at < ANSWERS.size(); ++at) {
+                const double after = heard > 0 ? static_cast<double>(answers[call][at]) / static_cast<double>(heard) : 0.0;
+                const double otherwise = quiet_listeners > 0 ? static_cast<double>(quiet[at]) / static_cast<double>(quiet_listeners) : 0.0;
+                response[ANSWERS[at]] = heard > 0 && otherwise > 0 ? Json(after / otherwise) : Json(nullptr);
+            }
+            calls["call_" + std::to_string(call + 1)] = {{"made", uses[call]}, {"lift", lift}, {"heard_by", heard}, {"listeners_lift", response}};
+        }
+        Json spread = Json::object();  // per thing, the most a call leans to it less the least, among calls made 10 times or more
+        for (std::size_t at = 0; at < FEATURES.size(); ++at) spread[FEATURES[at]] = profiled >= 2 ? Json(most[at] - least[at]) : Json(nullptr);
+        // Conventions: two callers make the same call by chance as often as the sum of each call's share squared.
+        long long made = 0;
+        for (const long long count : uses) made += count;
+        double same_by_chance = 0;
+        for (const long long count : uses) same_by_chance += made > 0 ? std::pow(static_cast<double>(count) / static_cast<double>(made), 2) : 0.0;
+        long long pairs = 0, same = 0, kin_pairs = 0, kin_same = 0;
+        std::unordered_map<int, int> call_of;
+        for (const auto& [agent, call] : callers) call_of[agent->identifier] = call;
+        for (std::size_t a = 0; a < callers.size(); ++a) {
+            for (std::size_t b = a + 1; b < callers.size(); ++b) {
+                if (apart(*callers[a].first, *callers[b].first) > CALL_REACH) continue;
+                ++pairs;
+                same += callers[a].second == callers[b].second;
+            }
+            for (const int parent : {callers[a].first->mother, callers[a].first->father}) {
+                const auto found = call_of.find(parent);
+                if (found == call_of.end()) continue;
+                ++kin_pairs;
+                kin_same += found->second == callers[a].second;
+            }
+        }
+        // Dialects: how far each colour group's calls stray from its species', weighted by callers, against shuffles.
+        const auto dialect = [&](const std::vector<int>& groups) -> std::optional<double> {
+            std::map<int, std::array<double, CALL_COUNT>> by_group;
+            std::map<int, double> sizes;
+            for (std::size_t at = 0; at < callers.size(); ++at) {
+                if (groups[at] < 0) continue;
+                by_group[groups[at]][static_cast<std::size_t>(callers[at].second)] += 1;
+                sizes[groups[at]] += 1;
+            }
+            double total = 0, weight = 0;
+            for (const auto& [group, counts] : by_group) {
+                if (sizes[group] < 8) continue;
+                double distance = 0;
+                for (std::size_t call = 0; call < CALL_COUNT; ++call) distance += std::abs(counts[call] / sizes[group] - static_cast<double>(uses[call]) / static_cast<double>(made));
+                total += sizes[group] * distance / 2;
+                weight += sizes[group];
+            }
+            if (weight <= 0) return std::nullopt;
+            return total / weight;
+        };
+        std::vector<int> groups;
+        for (const auto& [agent, call] : callers) groups.push_back(agent->realm);
+        const std::optional<double> spoken = dialect(groups);
+        double shuffled = 0;
+        std::mt19937 shuffle(static_cast<unsigned>(world.turn()));  // the probe's own, never the world's
+        for (int round = 0; round < 20 && spoken; ++round) {
+            std::vector<int> mixed = groups;
+            std::shuffle(mixed.begin(), mixed.end(), shuffle);
+            shuffled += dialect(mixed).value_or(0.0) / 20;
+        }
+        result[std::string(species_name(species))] = {
+            {"choices", choices}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
+            {"conventions", {{"neighbour_pairs", pairs}, {"neighbours_same", ratio(static_cast<double>(same), static_cast<double>(pairs))},
+                             {"parent_young_pairs", kin_pairs}, {"parent_young_same", ratio(static_cast<double>(kin_same), static_cast<double>(kin_pairs))},
+                             {"same_by_chance", made > 0 ? Json(same_by_chance) : Json(nullptr)}}},
+            {"dialects", {{"groups_differ", spoken ? Json(*spoken) : Json(nullptr)}, {"by_chance", spoken ? Json(shuffled) : Json(nullptr)}}}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
+Json Probe::towns(Simulation& world) const {
+    // Steps from the sea (four ways, wrapping east and west) of every land square, then how the works, the animals and
+    // the plants spread over those steps: 1 is the shore.
+    const int width = world.width(), height = world.height();
+    std::vector<int> steps(static_cast<std::size_t>(width) * height, -1);
+    std::vector<std::pair<int, int>> frontier;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (world.sea(x, y)) { steps[static_cast<std::size_t>(y) * width + x] = 0; frontier.emplace_back(x, y); }
+        }
+    }
+    for (std::size_t at = 0; at < frontier.size(); ++at) {
+        const auto [x, y] = frontier[at];
+        const int here = steps[static_cast<std::size_t>(y) * width + x];
+        for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            const int nx = (x + dx + width) % width, ny = y + dy;
+            if (ny < 0 || ny >= height) continue;
+            int& there = steps[static_cast<std::size_t>(ny) * width + nx];
+            if (there < 0) { there = here + 1; frontier.emplace_back(nx, ny); }
+        }
+    }
+    const auto step_at = [&](int x, int y) { return steps[static_cast<std::size_t>(y) * width + x]; };
+    struct Spread {
+        long long count = 0, at_sea = 0, shore = 0, closer = 0, inland = 0, distant = 0;  // 0, 1, 2-3, 4-8, more
+        double sum = 0;
+        void add(int step) {
+            ++count;
+            if (step < 0) step = 99;  // no sea anywhere
+            if (step == 0) ++at_sea; else if (step == 1) ++shore; else if (step <= 3) ++closer; else if (step <= 8) ++inland; else ++distant;
+            if (step > 0) sum += step;
+        }
+        Json json() const {
+            const auto share = [&](long long part) { return count > 0 ? Json(static_cast<double>(part) / count) : Json(nullptr); };
+            const long long ashore = count - at_sea;
+            return {{"count", count}, {"at_sea", share(at_sea)}, {"shore", share(shore)}, {"two_three", share(closer)},
+                    {"four_eight", share(inland)}, {"further", share(distant)}, {"mean_steps_ashore", ashore > 0 ? Json(sum / ashore) : Json(nullptr)}};
+        }
+    };
+    Spread land, shelters, sites, roads, sheltered, builders, plants;
+    std::map<std::string, Spread> by_species, by_terrain;
+    std::map<std::string, Spread> shelters_by_band;  // north edge, north, middle, south, south edge
+    const auto band = [&](int y) { const double at = static_cast<double>(y) / height;
+        return at < 0.1 ? "north_edge" : at < 0.4 ? "north" : at < 0.6 ? "middle" : at < 0.9 ? "south" : "south_edge"; };
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const int step = step_at(x, y);
+            if (step != 0) land.add(step);
+            if (world.shelter_at(x, y)) { shelters.add(step); shelters_by_band[band(y)].add(step); }
+            if (world.site_at(x, y) > 0) sites.add(step);
+            if (world.road_at(x, y)) roads.add(step);
+        }
+    }
+    for (const Bitzkey* agent : world.living()) {
+        const int step = step_at(agent->x, agent->y);
+        if (agent->species == Species::Plant) { plants.add(step); continue; }
+        by_species[std::string(species_name(agent->species))].add(step);
+        by_terrain[std::string(terrain_name(agent->terrain))].add(step);
+        if (world.safe_inside(*agent)) sheltered.add(step);
+        if (agent->last_action == "built" || agent->last_action == "finished a shelter") builders.add(step);
+    }
+    const auto all = [](const std::map<std::string, Spread>& spreads) { Json out = Json::object(); for (const auto& [name, spread] : spreads) out[name] = spread.json(); return out; };
+    return {{"turn", world.turn()}, {"land", land.json()}, {"shelters", shelters.json()}, {"shelters_by_band", all(shelters_by_band)},
+            {"sites", sites.json()}, {"roads", roads.json()}, {"sheltered_animals", sheltered.json()}, {"building_now", builders.json()},
+            {"plants", plants.json()}, {"animals_by_species", all(by_species)}, {"animals_by_terrain", all(by_terrain)}};
 }
 
 Json Probe::brain(Simulation& world, int identifier, bool weights) const {
@@ -1843,6 +2066,12 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/language", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return language(world); }));
+    }));
+    server.Get(prefix + "/towns", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return towns(world); }));
     }));
     server.Get(prefix + "/opinions", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return opinions(world); }));
