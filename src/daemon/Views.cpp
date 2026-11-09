@@ -297,7 +297,7 @@ std::string frame(const Simulation& simulation) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
             const int stone = simulation.pile_at(x, y, StonePile), bone = simulation.pile_at(x, y, BonePile), wood = simulation.pile_at(x, y, WoodPile);
             int gear = 0;
-            for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) gear += simulation.pile_at(x, y, kind);
+            for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, BowPile}) gear += simulation.pile_at(x, y, kind);
             const bool fire = simulation.fire_at(x, y) > simulation.turn();
             const int building = simulation.shelter_at(x, y) ? 2 : simulation.site_at(x, y) ? 1 : 0;
             if (!simulation.arable_at(x, y) && !meat && !fruit && !stone && !bone && !wood && !gear && !fire && !building && !simulation.pile_at(x, y, CookedMeatPile) && !simulation.pile_at(x, y, CookedFruitPile)) continue;

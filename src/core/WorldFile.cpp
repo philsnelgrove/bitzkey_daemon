@@ -216,7 +216,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
-        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses},
+        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
@@ -320,9 +320,16 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->weapon_uses = record.value("weapon_uses", 0);
     agent->armour_uses = record.value("armour_uses", 0);
     agent->crafts = record.value("crafts", 0);
-    if (record.contains("craft_tries")) agent->craft_tries = record.at("craft_tries").get<std::array<int, 5>>();
-    if (record.contains("craft_source")) agent->craft_source = record.at("craft_source").get<std::array<int, 5>>();
-    if (record.contains("craft_chain")) agent->craft_chain = record.at("craft_chain").get<std::array<int, 5>>();
+    const auto per_craft = [&](const char* key, std::array<int, CRAFT_COUNT>& into) {  // as many as were saved: five before the bow
+        if (!record.contains(key)) return;
+        const auto saved = record.at(key).get<std::vector<int>>();
+        for (std::size_t craft = 0; craft < into.size() && craft < saved.size(); ++craft) into[craft] = saved[craft];
+    };
+    per_craft("craft_tries", agent->craft_tries);
+    per_craft("craft_source", agent->craft_source);
+    per_craft("craft_chain", agent->craft_chain);
+    agent->bow_uses = record.value("bow_uses", 0);
+    agent->archery = record.value("archery", 0.0);
     agent->cooked_meat = record.value("cooked_meat", 0);
     agent->cooked_fruit = record.value("cooked_fruit", 0);
     agent->carried_stone = record.value("carried_stone", 0);
@@ -516,7 +523,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         for (int x = 0; x < simulation.width_; ++x) {
             const int meat = simulation.meat_pile_at(x, y), fruit = simulation.fruit_pile_at(x, y);
             const std::size_t cell = static_cast<std::size_t>(y) * simulation.width_ + x;
-            for (const PileKind kind : {StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile}) {
+            for (const PileKind kind : {StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile, BowPile}) {
                 if (const int count = simulation.pile_at(x, y, kind)) materials.push_back({x, y, static_cast<int>(kind), count, simulation.pile_turns_[kind][static_cast<std::size_t>(y) * simulation.width_ + x]});
             }
             if (meat || fruit) piles.push_back({x, y, meat, fruit, meat ? simulation.pile_turns_[MeatPile][cell] : 0, fruit ? simulation.pile_turns_[FruitPile][cell] : 0});

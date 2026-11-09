@@ -64,7 +64,9 @@ TEST_CASE("brains on the GPU value and learn as on the CPU, near enough") {
     engine->values(handles, senses, values);
     for (std::size_t index = 0; index < brains.size(); ++index) {
         const Values expected = brains[index].values(senses[index]);
-        for (int action = 0; action < ACTION_COUNT; ++action) CHECK(values[index][action] == doctest::Approx(expected[action]).epsilon(1e-4));
+        for (int output = 0; output < OUTPUT_COUNT; ++output) {  // every output: actions, calls, memory and foresight (past 64, beyond the threads)
+            CHECK(values[index][output] == doctest::Approx(expected[output]).epsilon(1e-4));
+        }
     }
 
     // Each brain learns a traced lesson, a plain one, then another traced one, as on the CPU.

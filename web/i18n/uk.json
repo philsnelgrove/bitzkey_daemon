@@ -1882,5 +1882,21 @@
 "Call payoff": "Винагорода за поклик",
 "joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "радість того, хто кличе, за кожного зі свого виду, хто почув поклик, а тоді втік від мисливця або, голодний, поїв; помножене на половину плюс його емпатію чи товариськість",
 "Heeded regard": "Вдячність за поклик",
-"how much better one helped so thinks of its caller, of a deed's weight": "наскільки краще той, кому так допомогли, думає про того, хто кликав, від ваги вчинку"
+"how much better one helped so thinks of its caller, of a deed's weight": "наскільки краще той, кому так допомогли, думає про того, хто кликав, від ваги вчинку",
+"MAKE_BOW": "Зробити лук",
+"SHOOT": "Стріляти",
+"PRACTISE": "Тренуватися",
+"lost sight of its mark": "втратив ціль з очей",
+"missed in practice": "схибив на тренуванні",
+"shot and missed": "вистрілив і схибив",
+"hit the mark in practice": "влучив у ціль на тренуванні",
+"shot and hit": "вистрілив і влучив",
+"Bow uses": "Постріли лука",
+"shots a bow makes before it is spent": "постріли, які робить лук, перш ніж зноситься",
+"Archery joy": "Радість лучника",
+"joy of a hit with a bow, in practice too, the more for the skilled": "радість від влучання з лука, і на тренуванні, більша для вправних",
+"Archery regard": "Повага до лучника",
+"respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "повага всіх, хто бачить влучання з лука, від ваги вчинку, у вмінні й прихильності",
+"Archery learning": "Навчання стрільби з лука",
+"share of the skill left to learn that each shot with a bow teaches": "частка ще не здобутого вміння, якої навчає кожен постріл з лука"
 }

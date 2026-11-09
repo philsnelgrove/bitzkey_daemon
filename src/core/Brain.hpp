@@ -173,13 +173,16 @@ enum Sense : int {
     SenseStandoutLeads,
     // What it thinks of the group whose land it stands in, -1 to 1; 0 in its own land, in none, or holding no view.
     SenseLandOwnerRegard,
+    // Archery: the uses left in the bow it carries, a share of a new one's; and its skill at hitting, 0..1.
+    SenseBow,
+    SenseArchery,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach,
                     TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried,
-                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook, Construct, EatSeed, PlantSeed, BuildRoad, EatMarrow, Fertilize, Skin, Demand, Steal, Give, Offer };
-constexpr int ACTION_COUNT = 62;
+                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, MakeBow, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook, Construct, EatSeed, PlantSeed, BuildRoad, EatMarrow, Fertilize, Skin, Demand, Steal, Give, Offer, Shoot, Practise };
+constexpr int ACTION_COUNT = 65;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -217,7 +220,7 @@ constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
-    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed", "build_road", "eat_marrow", "fertilize", "skin", "demand", "steal", "give", "offer"};
+    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "make_bow", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed", "build_road", "eat_marrow", "fertilize", "skin", "demand", "steal", "give", "offer", "shoot", "practise"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write, then what it foresees.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
@@ -244,7 +247,7 @@ constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
 constexpr int SenseImagined = SenseNocturnal + 1;
-constexpr int IMAGINED_BITS = 6;
+constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 constexpr int INPUT_SIZE = SenseImagined + IMAGINED_BITS;
 // The senses as a brain reads them: each that runs 0..1 centred, read as -1..1, so that a lesson moves a neuron's weights
@@ -281,7 +284,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
-    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "land_owner_regard", "aggression", "libido", "curiosity",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "land_owner_regard", "bow_carried", "archery", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

@@ -2394,6 +2394,12 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 break;
             }
         }
+        if (!s.gear_pile && agent.bow_uses == 0) {  // a bow, carried apart from all else
+            if (const auto pile = nearest_pile(agent, sight, BowPile)) {
+                s.gear_pile = pile;
+                s.gear_kind = BowPile;
+            }
+        }
     }
     if (any_fires_) {
         const Side side = tie_side(agent);
@@ -2431,6 +2437,24 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     if (s.suitor) s.suitor_at = Cell{s.suitor->x, s.suitor->y};
     s.flora = seen.flora;
+    if (agent.bow_uses > 0) {  // what it might shoot at: the prey it would hunt, else the nearest foe; and a plant to practise on
+        if (s.quarry && distance(s.quarry->x, s.quarry->y, agent.x, agent.y) <= sight) s.shoot_at = s.quarry;
+        int foe_away = sight + 1, plant_away = sight + 1;
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive()) continue;
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away > sight) continue;
+            if (other->species == Species::Plant) {
+                if (away < plant_away) {
+                    plant_away = away;
+                    s.practise_on = other;
+                }
+            } else if (!s.quarry && away < foe_away && is_foe(agent, *other)) {
+                foe_away = away;
+                s.shoot_at = other;
+            }
+        }
+    }
     for (Bitzkey* other : neighbors) {
         if (agent.assailant && other->identifier == *agent.assailant) {
             s.assailant = other;
@@ -2531,6 +2555,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[MakeBoneAxe] = known(MakeBoneAxe) && free_hand && !agent.armour && agent.carried_bone > 0;
     available[MakeClub] = known(MakeClub) && free_hand && !agent.armour && agent.carried_wood > 0;
     available[MakeStoneAxe] = known(MakeStoneAxe) && free_hand && agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0;
+    available[MakeBow] = known(MakeBow) && agent.weapon == StoneAxe && agent.carried_wood >= BOW_WOOD && agent.hide > 0 && agent.bow_uses == 0;
+    available[Shoot] = s.shoot_at != nullptr;
+    available[Practise] = s.practise_on != nullptr;
     const bool bare = !agent.armour && agent.weapon != BoneAxe && agent.weapon != Club;
     available[MakeBoneArmour] = known(MakeBoneArmour) && bare && agent.carried_bone > 0;
     available[MakeWoodArmour] = known(MakeWoodArmour) && bare && agent.carried_wood > 0;
@@ -2782,6 +2809,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         s.admired = std::min(3, admirers) / 3.0;
         agent.standout = standout ? standout->identifier : -1;
         senses[SenseLeader] = agent.leader ? 1.0 : 0.0;
+        senses[SenseBow] = BOW_USES > 0 ? std::min(1.0, static_cast<double>(agent.bow_uses) / BOW_USES) : 0.0;
+        senses[SenseArchery] = agent.archery;
         if (agent.leader && LEADER_FOLLOWERS > 0) {
             int followed = 0;
             for (const Bitzkey* other : around(agent, sight)) followed += other != &agent && other->alive() && follows(*other, agent);
@@ -3392,6 +3421,53 @@ double Simulation::ambition(const Bitzkey& agent, double regard, bool welcome) {
     return welcome ? regard * 2 * soft : -regard;
 }
 
+double Simulation::hit_chance(const Bitzkey& archer, int away) {
+    const double steady = (archer.feeling(Patience) + archer.feeling(Intellect) + 1 - archer.feeling(Fear)) / 3;
+    const double aimed = ARCHERY_LEAST + (1 - ARCHERY_LEAST) * (0.4 * steady + 0.6 * archer.archery);
+    return aimed * (1 - 0.5 * std::min(1.0, static_cast<double>(away) / std::max(1, archer.sight)));  // half as likely at the edge of sight
+}
+
+void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
+    const int away = distance(target.x, target.y, archer.x, archer.y);
+    if (archer.bow_uses <= 0 || !target.alive() || away > archer.sight) {
+        archer.last_action = "lost sight of its mark";
+        return;
+    }
+    --archer.bow_uses;  // an arrow, and the bow the worse for it
+    const bool hit = (practice || !safe_inside(target)) && rng().random() < hit_chance(archer, away);
+    archer.archery += ARCHERY_LEARNING * (1 - archer.archery);  // every shot teaches
+    if (!hit) {
+        archer.last_action = practice ? "missed in practice" : "shot and missed";
+        return;
+    }
+    archer.reward += ARCHERY_JOY * (0.5 + archer.archery);
+    deed_seen(archer, ARCHERY_REGARD, nullptr, SkillDeed);  // all who see it think it the more skilled, and the better of it
+    if (practice) {
+        archer.last_action = "hit the mark in practice";
+        note_first("hit_in_practice", archer.species, archer.identifier);
+        return;
+    }
+    // As hard as a carried stone strikes, whatever it wields.
+    const double blow = damage(archer, target) / gear_force(archer) * STONE_FORCE * land_guard(target, archer);
+    wear_armour(target);
+    target.health -= blow;
+    archer.reward += harm_felt(archer, regard_for(archer, target));
+    tally_attack(archer, target);
+    archer.last_action = "shot and hit";
+    note_first("shot_with_a_bow", archer.species, archer.identifier);
+    experience(archer, Hit);
+    const bool killed = !target.alive();
+    archer.reward -= EMPATHY_PAIN * (killed ? 2 : 1) * archer.feeling(Empathy) * (same_kind(archer, target) ? 1.0 : OTHER_KIND);
+    if (killed) {
+        experience(archer, Kill);
+        die(target, "killed", &archer, "shooting");
+    } else {
+        target.last_action = "wounded";
+        struck(target, archer);
+        experience(target, Wounded);
+    }
+}
+
 bool Simulation::leader_in_sight(const Bitzkey& agent) const {
     if (agent.follows < 0) return false;
     const Bitzkey* leader = find_agent(agent.follows);
@@ -3566,12 +3642,13 @@ const Simulation::Fight* Simulation::fight_of(int identifier) const {
 int Simulation::value_of(const Bitzkey& agent, int possession) {
     if (possession == HidePossession) return agent.hide;
     if (possession == WeaponPossession) return agent.weapon == StoneAxe ? 2 : agent.weapon ? 1 : 0;
+    if (possession == BowPossession) return agent.bow_uses > 0 ? 1 : 0;
     return agent.armour ? 1 : 0;
 }
 
 int Simulation::better_possession(const Bitzkey& taker, const Bitzkey& owner) {
     int best = -1, most = 0;
-    for (int possession = HidePossession; possession <= ArmourPossession; ++possession) {
+    for (int possession = HidePossession; possession <= BowPossession; ++possession) {
         const int more = value_of(owner, possession) - value_of(taker, possession);
         if (more > most) {
             most = more;
@@ -3592,7 +3669,11 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
         one.armour = NoArmour;
         one.armour_uses = 0;
     };
-    if (possession == HidePossession) {
+    if (possession == BowPossession) {
+        if (to.bow_uses > 0) drop_gear(to.x, to.y, BowPile, BOW_USES - to.bow_uses);
+        to.bow_uses = from.bow_uses;
+        from.bow_uses = 0;
+    } else if (possession == HidePossession) {
         to.hide = from.hide;
         to.hide_armour = from.hide_armour;
         from.hide = 0;
@@ -3679,6 +3760,7 @@ double Simulation::good_worth(const Bitzkey& judge, const Bitzkey& holder, int g
         const double quality = holder.weapon == StoneAxe ? 1.0 : 0.5 * (1.0 - static_cast<double>(holder.weapon_uses) / GEAR_USES);
         return quality * (0.5 + judge.feeling(Aggression));
     }
+    if (good == BowPossession) return (BOW_USES > 0 ? static_cast<double>(holder.bow_uses) / BOW_USES : 0.0) * (0.5 + judge.archery);  // shots left, to one who can use them
     return 1.0 - static_cast<double>(holder.armour_uses) / GEAR_USES;
 }
 
@@ -3788,7 +3870,7 @@ void Simulation::settle_fights() {
 }
 
 double Simulation::possessions(const Bitzkey& agent) {
-    return agent.hide / 3.0 + (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) + (agent.armour ? 0.5 : 0.0);
+    return agent.hide / 3.0 + (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0);
 }
 
 double Simulation::envy_of(const Bitzkey& agent) const {
@@ -3979,9 +4061,11 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     if (in_bounds(agent.x, agent.y)) {  // and what it wielded and wore
         if (agent.weapon) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + agent.weapon - BoneAxe), agent.weapon_uses);
         if (agent.armour) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneArmourPile + agent.armour - BoneArmour), agent.armour_uses);
+        if (agent.bow_uses > 0) drop_gear(agent.x, agent.y, BowPile, BOW_USES - agent.bow_uses);  // as worn as it was
     }
     agent.weapon = NoWeapon;
     agent.armour = NoArmour;
+    agent.bow_uses = 0;
     agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
         kills_[static_cast<std::size_t>(agent.y) * width_ + agent.x].push_back(&agent);
@@ -4210,7 +4294,14 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case MakeStoneAxe:
         case MakeBoneArmour:
         case MakeWoodArmour:
+        case MakeBow:
             make_gear(agent, action);
+            break;
+        case Shoot:
+            shoot(agent, *s.shoot_at, false);
+            break;
+        case Practise:
+            shoot(agent, *s.practise_on, true);
             break;
         case Cut:
             cut(agent, *s.flora);
@@ -5108,9 +5199,10 @@ void Simulation::wear_armour(Bitzkey& agent) {
 }
 
 void Simulation::discover(Bitzkey& agent) {
-    const std::array<bool, 5> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
-                                    agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0};  // as the crafts' actions run
-    for (int craft = 0; craft < 5; ++craft) {
+    const std::array<bool, CRAFT_COUNT> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
+                                              agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0,
+                                              agent.weapon == StoneAxe && agent.carried_wood >= BOW_WOOD && agent.hide > 0};  // as the crafts' actions run
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
             agent.craft_source[static_cast<std::size_t>(craft)] = 1;
@@ -5135,13 +5227,20 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
         case MakeClub: --agent.carried_wood; agent.weapon = Club; break;
         case MakeBoneArmour: --agent.carried_bone; agent.armour = BoneArmour; break;
         case MakeWoodArmour: --agent.carried_wood; agent.armour = WoodArmour; break;
+        case MakeBow:  // two wood and the hide it wore, with the stone axe it keeps
+            agent.carried_wood -= BOW_WOOD;
+            agent.hide = 0;
+            agent.hide_armour = 0.0;
+            agent.bow_uses = BOW_USES;
+            note_first("made_a_bow", agent.species, agent.identifier);
+            break;
         default:  // a stone axe, of a stone and a bone, or wood if it has no bone
             --agent.carried_stone;
             --(agent.carried_bone ? agent.carried_bone : agent.carried_wood);
             agent.weapon = StoneAxe;
     }
     agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
-    agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
+    if (action != MakeBow) agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
     deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, action - MakeBoneAxe, CraftCulture);
 }
@@ -5161,6 +5260,7 @@ void Simulation::take_gear(Bitzkey& agent, Situation& s) {
         case BoneAxePile: agent.weapon = BoneAxe; agent.weapon_uses = uses; break;
         case ClubPile: agent.weapon = Club; agent.weapon_uses = uses; break;
         case StoneAxePile: agent.weapon = StoneAxe; agent.weapon_uses = uses; break;
+        case BowPile: agent.bow_uses = std::max(1, BOW_USES - uses); break;
         case BoneArmourPile: agent.armour = BoneArmour; agent.armour_uses = uses; break;
         default: agent.armour = WoodArmour; agent.armour_uses = uses;
     }

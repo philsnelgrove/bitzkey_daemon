@@ -1882,5 +1882,21 @@
 "Call payoff": "呼び声の報い",
 "joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "呼び声を聞いた同種が、その後ハンターから逃れたり、空腹で食べたりするたびに呼び手が得る喜び。0.5に共感か社交性を足したものを掛ける",
 "Heeded regard": "呼び声への感謝",
-"how much better one helped so thinks of its caller, of a deed's weight": "そうして助けられた者が呼び手をどれだけ良く思うか。行いの重みに対する割合"
+"how much better one helped so thinks of its caller, of a deed's weight": "そうして助けられた者が呼び手をどれだけ良く思うか。行いの重みに対する割合",
+"MAKE_BOW": "弓を作る",
+"SHOOT": "射る",
+"PRACTISE": "練習",
+"lost sight of its mark": "的を見失った",
+"missed in practice": "練習で外した",
+"shot and missed": "射て外した",
+"hit the mark in practice": "練習で的に当てた",
+"shot and hit": "射て当てた",
+"Bow uses": "弓の使用回数",
+"shots a bow makes before it is spent": "弓が使えなくなるまでに射られる回数",
+"Archery joy": "弓の喜び",
+"joy of a hit with a bow, in practice too, the more for the skilled": "弓で当てた喜び。練習でも。熟練者ほど大きい",
+"Archery regard": "射手への敬意",
+"respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "弓で当てるのを見た者すべての敬意。行いの重みに対する割合で、技量と好意に",
+"Archery learning": "弓の上達",
+"share of the skill left to learn that each shot with a bow teaches": "弓で一度射るごとに身につく、残りの技量の割合"
 }

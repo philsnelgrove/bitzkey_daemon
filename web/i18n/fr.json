@@ -1882,5 +1882,21 @@
 "Call payoff": "Récompense de l'appel",
 "joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "joie d'un appelant pour chacun de son espèce qui a entendu son appel puis a échappé à un chasseur ou, affamé, a mangé ; fois un demi plus son empathie ou sa sociabilité",
 "Heeded regard": "Reconnaissance de l'appel",
-"how much better one helped so thinks of its caller, of a deed's weight": "à quel point celui ainsi aidé pense mieux de son appelant, du poids d'un acte"
+"how much better one helped so thinks of its caller, of a deed's weight": "à quel point celui ainsi aidé pense mieux de son appelant, du poids d'un acte",
+"MAKE_BOW": "Fabriquer un arc",
+"SHOOT": "Tirer",
+"PRACTISE": "S'entraîner",
+"lost sight of its mark": "a perdu sa cible de vue",
+"missed in practice": "a manqué à l'entraînement",
+"shot and missed": "a tiré et manqué",
+"hit the mark in practice": "a touché la cible à l'entraînement",
+"shot and hit": "a tiré et touché",
+"Bow uses": "Tirs d'un arc",
+"shots a bow makes before it is spent": "tirs qu'un arc fait avant d'être usé",
+"Archery joy": "Joie de l'archer",
+"joy of a hit with a bow, in practice too, the more for the skilled": "joie d'un tir réussi à l'arc, à l'entraînement aussi, plus grande pour les habiles",
+"Archery regard": "Respect pour l'archer",
+"respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "respect de tous ceux qui voient un tir réussi à l'arc, du poids d'un acte, en habileté et en estime",
+"Archery learning": "Apprentissage de l'arc",
+"share of the skill left to learn that each shot with a bow teaches": "part de l'habileté restant à apprendre que chaque tir à l'arc enseigne"
 }

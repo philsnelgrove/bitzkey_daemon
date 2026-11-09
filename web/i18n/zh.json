@@ -1882,5 +1882,21 @@
 "Call payoff": "呼叫回报",
 "joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability": "同类听到它的呼叫后逃离猎手或在饥饿时进食，呼叫者每遇一次所得的愉悦；乘以二分之一加其同理心或社交性",
 "Heeded regard": "呼叫之恩",
-"how much better one helped so thinks of its caller, of a deed's weight": "被如此帮助者对呼叫者的看法提高多少，占一次行为分量的比例"
+"how much better one helped so thinks of its caller, of a deed's weight": "被如此帮助者对呼叫者的看法提高多少，占一次行为分量的比例",
+"MAKE_BOW": "制弓",
+"SHOOT": "射击",
+"PRACTISE": "练习",
+"lost sight of its mark": "看不见目标了",
+"missed in practice": "练习时射偏",
+"shot and missed": "射击未中",
+"hit the mark in practice": "练习时射中目标",
+"shot and hit": "射击命中",
+"Bow uses": "弓的使用次数",
+"shots a bow makes before it is spent": "一张弓用坏前能射的次数",
+"Archery joy": "射箭之乐",
+"joy of a hit with a bow, in practice too, the more for the skilled": "用弓射中的喜悦，练习时亦然，越熟练越强",
+"Archery regard": "对射手的敬重",
+"respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "所有看见用弓射中者的敬重，占一次行为分量的比例，体现在技艺和好感上",
+"Archery learning": "射箭进步",
+"share of the skill left to learn that each shot with a bow teaches": "每射一箭所学会的、尚待学习技艺的比例"
 }

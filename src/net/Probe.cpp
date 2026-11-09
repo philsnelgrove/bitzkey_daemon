@@ -28,7 +28,6 @@ using Json = Probe::Json;
 
 constexpr std::size_t MOST_KEPT = 100000;  // turns of a watched track kept at most
 constexpr int FAMILY_DEPTH = 4;            // generations up and down a family is followed
-constexpr int CRAFT_COUNT = 5;             // the crafts, in the order of their actions from MakeBoneAxe
 constexpr std::array<const char*, 4> WEAPON_NAMES{"none", "bone_axe", "club", "stone_axe"};
 constexpr std::array<const char*, 3> ARMOUR_NAMES{"none", "bone_armour", "wood_armour"};
 
@@ -238,6 +237,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["plenty_known"] = agent->plenty_known;
     result["surprise"] = agent->surprise;
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
+                      {"bow_uses", agent->bow_uses}, {"archery", agent->archery},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
                       {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
                       {"cooked_meat", agent->cooked_meat}, {"cooked_fruit", agent->cooked_fruit}};
@@ -1101,7 +1101,8 @@ Json Probe::skills(Simulation& world) const {
         std::array<std::size_t, 4> hides{};
         std::array<double, 4> regarded{};
         std::size_t envious = 0, fighting = 0, thieves = 0, thefts = 0, held_liars = 0, leaning = 0, tasted = 0, loving = 0;
-        std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0;
+        std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0, archers = 0, shot = 0;
+        double skill = 0.0;
         std::array<std::size_t, CRAFT_COUNT> known{}, tried{}, mastered{};
         std::array<std::array<std::size_t, 5>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
         std::array<int, CRAFT_COUNT> chain{};
@@ -1125,6 +1126,11 @@ Json Probe::skills(Simulation& world) const {
             }
             ++wielding[static_cast<std::size_t>(agent->weapon)];
             ++wearing[static_cast<std::size_t>(agent->armour)];
+            archers += agent->bow_uses > 0;
+            if (agent->archery > 0) {  // any who have ever shot
+                ++shot;
+                skill += agent->archery;
+            }
             const auto hide = static_cast<std::size_t>(std::clamp(agent->hide, 0, 3));
             ++hides[hide];
             regarded[hide] += agent->regarded;
@@ -1155,7 +1161,8 @@ Json Probe::skills(Simulation& world) const {
         for (std::size_t armour = 0; armour < ARMOUR_NAMES.size(); ++armour) armours[ARMOUR_NAMES[armour]] = wearing[armour];
         result[std::string(species_name(species))] = {{"living", living}, {"infants_taught", infants_taught}, {"taught_by_elder", elders_taught},
                                                       {"elders", elders}, {"oldest_share", oldest}, {"crafts", crafts},
-                                                      {"wielding", weapons}, {"wearing", armours}, {"possessions", possessions}};
+                                                      {"wielding", weapons}, {"wearing", armours}, {"possessions", possessions},
+                                                      {"archery", {{"bows", archers}, {"have_shot", shot}, {"mean_skill_of_those", shot > 0 ? Json(skill / static_cast<double>(shot)) : Json(nullptr)}}}};
     }
     int fires = 0, shelters = 0, sites = 0, arable = 0, roads = 0, road_works = 0, fertilized = 0;
     for (int y = 0; y < world.height(); ++y) {
@@ -1633,7 +1640,7 @@ Json Probe::gifts(Simulation& world) const {
             {"giver_received_anything_later", giverGotLater / n}};
     }
     // Offers: how often accepted, and who comes off better, the sharper or the duller of the two.
-    static constexpr std::array<const char*, GOODS> GOOD_NAMES = {"hide", "weapon", "armour", "meat", "fruit"};
+    static constexpr std::array<const char*, GOODS> GOOD_NAMES = {"hide", "weapon", "armour", "bow", "meat", "fruit"};
     const std::vector<Simulation::Trade> trades = world.trades_so_far();
     Json offers = Json::object();
     for (std::size_t index = 0; index < SPECIES.size(); ++index) {

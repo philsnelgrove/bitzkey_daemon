@@ -3988,3 +3988,40 @@ TEST_CASE("the hard would impose themselves on a foe's land, the soft are at eas
     CHECK(Simulation::ambition(hard, 1.0, true) == doctest::Approx(0.0));
     CHECK(Simulation::ambition(soft, 1.0, false) == doctest::Approx(-1.0));  // uninvited, uneasy all the same
 }
+
+TEST_CASE("a bow is made of two wood and a worn hide, the stone axe kept; it shoots its uses, and hits teach, please and are respected") {
+    Simulation simulation = world();
+    Bitzkey& archer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}, {"patience", 7}, {"intellect", 7}, {"fear", 0}}), 5, 5);
+    archer.weapon = StoneAxe;
+    archer.carried_wood = 3;
+    archer.hide = 2;
+    archer.crafts = 1 << (MakeBow - MakeBoneAxe);
+    archer.craft_tries[MakeBow - MakeBoneAxe] = CRAFT_TRIES - 1;
+    simulation.make_gear(archer, MakeBow);
+    CHECK(archer.bow_uses == BOW_USES);
+    CHECK(archer.carried_wood == 1);  // two spent
+    CHECK(archer.hide == 0);          // and the hide
+    CHECK(archer.weapon == StoneAxe); // the axe kept
+    CHECK(Simulation::hit_chance(archer, 1) > Simulation::hit_chance(archer, archer.sight));  // harder at the edge of sight
+
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {{"size", 3}}), 7, 5);
+    const Bitzkey& onlooker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 6);
+    simulation.index_cells();
+    const double health = plant.health, skill = simulation.skill_held(onlooker, archer);
+    for (int shot = 0; shot < BOW_USES; ++shot) simulation.shoot(archer, plant, true);
+    CHECK(archer.bow_uses == 0);  // spent
+    CHECK(archer.archery == doctest::Approx(1 - std::pow(1 - ARCHERY_LEARNING, BOW_USES)));  // every shot taught
+    CHECK(plant.health == health);  // practice harms nothing
+    CHECK(simulation.skill_held(onlooker, archer) > skill);  // its hits were seen
+
+    Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 1}}), 5, 7);
+    simulation.index_cells();
+    archer.archery = 1.0;
+    const double before = prey.health;
+    for (int shot = 0; shot < 20 && prey.health == before; ++shot) {
+        archer.bow_uses = 1;
+        simulation.shoot(archer, prey, false);
+    }
+    CHECK(prey.health < before);  // struck from two steps off
+}
+

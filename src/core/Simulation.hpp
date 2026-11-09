@@ -521,7 +521,7 @@ inline double PLANT_MEAL_FOR_SIZE = 0;
 // meat (times its digestion) and a bite of a plant's fruit (times its share of the food in plants).
 inline double MEAT_PORTION = 855;
 inline double FRUIT_PORTION = 70;
-enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile, PILE_KINDS };
+enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile, BowPile, PILE_KINDS };
 inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double FIRE_COMFORT = 0.3;  // the comfort of seeing a fire that is its own or its herd's, as an unfamiliar one frightens
@@ -589,6 +589,18 @@ enum Weapon : int { NoWeapon, BoneAxe, Club, StoneAxe };
 enum Armouring : int { NoArmour, BoneArmour, WoodArmour };
 inline int GEAR_USES = 7;
 inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
+// Archery. A bow is made of BOW_WOOD carried wood and the hide it wears, both spent, with a stone axe in hand, kept;
+// it is carried apart from what it wields, and shoots BOW_USES times (arrows assumed) before it is spent. It shoots
+// as far as the archer sees: at the prey it would hunt or, else, the nearest it holds a foe, striking as hard as a
+// carried stone; or at a plant, for practice, harming nothing. The chance of a hit rises with steadiness (patience,
+// intellect, fearlessness) and with skill, and falls with distance; every shot adds ARCHERY_LEARNING of what skill is
+// left to learn. A hit, in practice too, is a joy (ARCHERY_JOY, the more for the skilled), and all who see it hold the
+// archer the more skilled, and think the better of it, by ARCHERY_REGARD of a deed.
+inline constexpr int BOW_WOOD = 2;
+inline int BOW_USES = 20;
+inline double ARCHERY_JOY = 1.0, ARCHERY_REGARD = 0.1, ARCHERY_LEARNING = 0.05;
+inline constexpr double ARCHERY_LEAST = 0.2;  // the chance of a hit at the archer's feet, unsteady and unskilled
+constexpr int CRAFT_COUNT = 6;  // the crafts, in the order of their actions from MakeBoneAxe
 inline int ARMOUR_LEAST = 2;  // stone never spoils
 // Agriculture: raw fruit eaten leaves a seed, which feeds SEED_FOOD of a fruit's portion or may be planted in worked
 // land. Digging with any tool works the land, only in the medium zone; it stays worked.
@@ -688,8 +700,8 @@ inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COM
 // By temperament: the aggressive, dominant and fearless are drawn the more to a foe's land, the empathetic, sociable
 // and tolerant the less (even uneasy there), and these are at ease as welcome guests of a friend (Simulation::ambition).
 inline double LAND_AMBITION = 0.1, WELCOME_LEVEL = 0.5;
-enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
-constexpr int MeatGood = 3, FruitGood = 4, GOODS = 5;  // what may be offered: the possessions, then food
+enum Possession : int { HidePossession, WeaponPossession, ArmourPossession, BowPossession };
+constexpr int MeatGood = 4, FruitGood = 5, GOODS = 6;  // what may be offered: the possessions, then food
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -926,9 +938,11 @@ struct Bitzkey {
     int carried_seed = 0;  // kept from raw fruit it ate, up to its capacity, and no weight to it
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered
-    std::array<int, 5> craft_tries{};  // how often it has tried each
-    std::array<int, 5> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched
-    std::array<int, 5> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
+    std::array<int, CRAFT_COUNT> craft_tries{};  // how often it has tried each
+    std::array<int, CRAFT_COUNT> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched
+    std::array<int, CRAFT_COUNT> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
+    int bow_uses = 0;      // shots left in the bow it carries; 0 for none
+    double archery = 0.0;  // its skill at hitting with a bow, 0..1, from its shots
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
     std::optional<int> died_turn;
@@ -1374,6 +1388,8 @@ public:
         Bitzkey* hunter = nullptr;
         Bitzkey* suitor = nullptr;
         std::optional<Cell> suitor_at;  // where it was when seen
+        Bitzkey* shoot_at = nullptr;     // with a bow: the prey it would hunt in sight, else the nearest foe
+        Bitzkey* practise_on = nullptr;  // and the nearest plant in sight, to practise on
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
         std::optional<Cell> stone_pile, bone_pile, wood_pile, gear_pile;
@@ -1719,6 +1735,8 @@ public:
     static bool follows(const Bitzkey& follower, const Bitzkey& leader) { return leader.leader && follower.follows == leader.identifier; }
     bool leader_in_sight(const Bitzkey& agent) const;
     void pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid);  // see CALL_PAYOFF
+    void shoot(Bitzkey& archer, Bitzkey& target, bool practice);  // see BOW_USES
+    static double hit_chance(const Bitzkey& archer, int away);
     static double ambition(const Bitzkey& agent, double regard, bool welcome);  // see LAND_AMBITION
     void recognise_leaders();
     static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }
