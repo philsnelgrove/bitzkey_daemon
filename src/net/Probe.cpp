@@ -755,6 +755,11 @@ Json Probe::calls(Simulation& world) const {
         };
         std::array<Heard, CALL_COUNT> threat_heard{}, threat_heard_kin{}, calm_heard{};
         Heard threat_none, calm_none;
+        // What a call says, with no meaning given it: how much the free call made tells of the caller's situation (a
+        // hunter in sight, hungry, food in sight, kin alongside, goods it could trade: 32 in all), and how much the loudest call heard tells of
+        // what the listener did (fled, moved, rested, other), in bits.
+        std::array<std::array<long long, 32>, CALL_COUNT> said{};
+        std::array<std::array<long long, 4>, CALL_COUNT> answered{};
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->has_last_senses) continue;
             const Senses& senses = agent->last_senses;
@@ -764,6 +769,22 @@ Json Probe::calls(Simulation& world) const {
                 (hunter ? made[static_cast<std::size_t>(agent->last_call)].with : made[static_cast<std::size_t>(agent->last_call)].without) += 1;
             }
             const bool acted = hunter ? agent->last_choice == Flee : moved(agent->last_choice);
+            if (agent->last_call >= FirstCall && agent->last_call < FirstCall + CALL_COUNT) {
+                const bool food = senses[SenseGrassSeen] > 0 || senses[SensePlantCloseness] > 0 || senses[SensePreyCloseness] > 0 || senses[SenseCarrionCloseness] > 0;
+                const int situation = (hunter ? 1 : 0) | (senses[SenseHunger] >= 0.5 ? 2 : 0) | (food ? 4 : 0) | (senses[SenseKinNear] > 0 ? 8 : 0);
+                bool wares = false;  // something it could offer in trade, as a vendor might cry its wares
+                for (int good = 0; good < GOODS && !wares; ++good) wares = Simulation::holds(*agent, good);
+                const int offered = situation | (wares ? 16 : 0);
+                ++said[static_cast<std::size_t>(agent->last_call - FirstCall)][static_cast<std::size_t>(offered)];
+            }
+            int loudest = -1;
+            for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
+                if (senses[heard_sense(call, HeardLoudness)] > (loudest < 0 ? 0.0 : senses[heard_sense(loudest, HeardLoudness)])) loudest = call;
+            }
+            if (loudest >= 0) {
+                const int answer = agent->last_choice == Flee ? 0 : moved(agent->last_choice) ? 1 : agent->last_choice == Rest ? 2 : 3;
+                ++answered[static_cast<std::size_t>(loudest - FirstCall)][static_cast<std::size_t>(answer)];
+            }
             bool any = false;
             for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
                 if (senses[heard_sense(call, HeardLoudness)] <= 0) continue;
@@ -799,7 +820,28 @@ Json Probe::calls(Simulation& world) const {
             }
             calls[name] = entry;
         }
+        const auto information = [](const auto& table) {  // the bits shared, the samples, and the bits chance alone gives so few
+            long long total = 0;
+            std::vector<double> rows, columns(table[0].size(), 0.0);
+            for (const auto& row : table) {
+                double sum = 0;
+                for (std::size_t at = 0; at < row.size(); ++at) { sum += static_cast<double>(row[at]); columns[at] += static_cast<double>(row[at]); }
+                rows.push_back(sum);
+                total += static_cast<long long>(sum);
+            }
+            double bits = 0;
+            for (std::size_t r = 0; r < table.size(); ++r) {
+                for (std::size_t c = 0; c < table[r].size(); ++c) {
+                    const double n = static_cast<double>(table[r][c]);
+                    if (n > 0) bits += n / total * std::log2(n * total / (rows[r] * columns[c]));
+                }
+            }
+            const auto used = [](const std::vector<double>& sums) { return static_cast<double>(std::count_if(sums.begin(), sums.end(), [](double s) { return s > 0; })); };
+            const double chance = total > 0 ? std::max(0.0, used(rows) - 1) * std::max(0.0, used(columns) - 1) / (2.0 * total * std::log(2.0)) : 0.0;
+            return Json{{"bits", total > 0 ? Json(bits) : Json(nullptr)}, {"by_chance", chance}, {"samples", total}};
+        };
         result[std::string(species_name(species))] = {
+            {"call_tells_situation", information(said)}, {"heard_call_tells_action", information(answered)},
             {"choices", threatened + calm}, {"with_hunter", threatened}, {"calls", calls},
             {"fled_hearing_nothing", share(threat_none.acted, threat_none.heard)}, {"moved_hearing_nothing", share(calm_none.acted, calm_none.heard)}};
     }

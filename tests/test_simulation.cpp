@@ -3943,6 +3943,9 @@ TEST_CASE("a guest is welcome in a friend's land and contests none of it; in a f
 }
 
 TEST_CASE("a call that helps pays its caller: joy for one of its kind that got away or, hungry, ate, and regard from it") {
+    const double payoff = CALL_PAYOFF, heeded = HEEDED_REGARD;  // none by default
+    CALL_PAYOFF = 0.2;
+    HEEDED_REGARD = 0.05;
     Simulation simulation = world();
     const Dna dna = encode_dna(Species::Grazer, {{"size", 1}});
     Bitzkey& caller = simulation.add_agent(dna, 5, 5);
@@ -3970,4 +3973,6 @@ TEST_CASE("a call that helps pays its caller: joy for one of its kind that got a
     const double before = caller.reward;
     simulation.pay_callers(listener, Simulation::Situation{}, paid);
     CHECK(caller.reward == before);
+    CALL_PAYOFF = payoff;
+    HEEDED_REGARD = heeded;
 }

@@ -327,13 +327,13 @@ inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hun
 inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
 // Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
 // one, and costs its caller this much hunger, as any call does, the alert among them.
-inline int CALL_REACH = 4;
-inline double CALL_COST = 0.2;
+inline int CALL_REACH = 8;
+inline double CALL_COST = 0.05;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
 // next turn, it got away (a hunter was in sight and it was not struck) or, hungry (half or more), it ate, the caller
 // takes joy in it (CALL_PAYOFF, times a half and its empathy or sociability, the greater; for three helped a turn at
 // most), and the one helped thinks the better of it (HEEDED_REGARD of a deed's weight). Nothing says what a call means.
-inline double CALL_PAYOFF = 0.2, HEEDED_REGARD = 0.05;
+inline double CALL_PAYOFF = 0.0, HEEDED_REGARD = 0.0;  // none by default: what a call earns is left to what it does
 constexpr int CALL_PAYOFFS_A_TURN = 3;
 // Memory (Brain.hpp): how many choices back a lesson's error is carried to the memory gates that wrote what the brain
 // read, 0 for none (what it keeps is then only what it was born to), up to MAX_MEMORY_STEPS; and how fast they learn,
