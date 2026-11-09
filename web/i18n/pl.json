@@ -1898,5 +1898,11 @@
 "Archery regard": "Szacunek dla łucznika",
 "respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "szacunek wszystkich, którzy widzą trafienie z łuku, z wagi czynu, w umiejętności i sympatii",
 "Archery learning": "Nauka łucznictwa",
-"share of the skill left to learn that each shot with a bow teaches": "część umiejętności pozostałej do nauki, której uczy każdy strzał z łuku"
+"share of the skill left to learn that each shot with a bow teaches": "część umiejętności pozostałej do nauki, której uczy każdy strzał z łuku",
+"TUTOR": "Udzielaj lekcji",
+"tutored": "udzielił lekcji",
+"lost its pupil": "stracił ucznia",
+"Tutor joy": "Radość nauczania",
+"joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "radość z udzielenia komuś ze swego gatunku lekcji rzemiosła lub umiejętności, większa dla empatycznych",
+"chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "szansa, że rzemiosło widziane u kogoś ze swego gatunku, kogo nie uważa za wroga, zostanie wyuczone przez patrzenie, oraz część lekcji strzału, której uczy widziane trafienie z łuku; 0 brak"
 }

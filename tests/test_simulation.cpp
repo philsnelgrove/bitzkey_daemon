@@ -2675,12 +2675,12 @@ TEST_CASE("one held skilled comforts and is copied, a teacher anchors its studen
     simulation.index_cells();
     const double watching = WATCH_LEARNING;
     WATCH_LEARNING = 1.0;
-    agent.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.0});
+    agent.known.push_back(Acquaintance{doer.identifier, -1.0, 0, 0.0, 0.0});
     stranger.known.push_back(Acquaintance{doer.identifier, 0.0, 0, 0.0, 0.9});
     simulation.deed_seen(doer, CRAFT_DEED, nullptr, SkillDeed, 1);
-    CHECK((agent.crafts & 2) == 0);  // not yet held skilled
+    CHECK((agent.crafts & 2) == 0);  // held a foe: nothing learnt from it
     CHECK((stranger.crafts & 2) == 0);  // not of its kind
-    agent.known[0].skill = 0.9;
+    agent.known[0].regard = 0.0;  // no foe, skilled or not
     simulation.deed_seen(doer, CRAFT_DEED, nullptr, SkillDeed, 1);
     CHECK((agent.crafts & 2) != 0);
     CHECK(agent.craft_source[1] == 4);
@@ -4023,5 +4023,34 @@ TEST_CASE("a bow is made of two wood and a worn hide, the stone axe kept; it sho
         simulation.shoot(archer, prey, false);
     }
     CHECK(prey.health < before);  // struck from two steps off
+}
+
+TEST_CASE("a tutor gives one of its kind beside it a lesson: a recipe it lacks, then archery, then a try nearer mastery") {
+    Simulation simulation = world();
+    Bitzkey& tutor = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& pupil = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    const int club = MakeClub - MakeBoneAxe;
+    CHECK(Simulation::lesson_for(tutor, pupil) == -1);  // nothing worth teaching
+    tutor.crafts = 1 << club;
+    tutor.archery = 0.5;
+    CHECK(Simulation::lesson_for(tutor, pupil) == club);
+    const double hunger = tutor.hunger, joy = tutor.reward;
+    simulation.tutor(tutor, pupil, club);
+    CHECK((pupil.crafts >> club & 1) != 0);  // the recipe, now known
+    CHECK(pupil.craft_source[static_cast<std::size_t>(club)] == 5);
+    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 1);  // as if tried once
+    CHECK(tutor.hunger == doctest::Approx(hunger + CALL_COST));  // as dear as a call
+    CHECK(tutor.reward > joy);
+    CHECK(simulation.regard_for(pupil, tutor) > 0.0);
+    CHECK(Simulation::lesson_for(tutor, pupil) == CRAFT_COUNT);  // then archery, as it shoots the better
+    simulation.tutor(tutor, pupil, CRAFT_COUNT);
+    CHECK(pupil.archery == doctest::Approx(ARCHERY_LEARNING));  // as one shot teaches
+    pupil.archery = 0.5;
+    CHECK(Simulation::lesson_for(tutor, pupil) == club);  // then a try nearer mastery
+    simulation.tutor(tutor, pupil, club);
+    CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 2);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+    CHECK(Simulation::lesson_for(tutor, stranger) == -1);  // not of its kind
 }
 

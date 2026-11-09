@@ -1898,5 +1898,11 @@
 "Archery regard": "Rispetto per l'arciere",
 "respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "rispetto di tutti quelli che vedono un colpo a segno con l'arco, del peso di un gesto, in abilità e stima",
 "Archery learning": "Apprendimento dell'arco",
-"share of the skill left to learn that each shot with a bow teaches": "parte dell'abilità ancora da imparare che ogni tiro con l'arco insegna"
+"share of the skill left to learn that each shot with a bow teaches": "parte dell'abilità ancora da imparare che ogni tiro con l'arco insegna",
+"TUTOR": "Istruire",
+"tutored": "ha istruito",
+"lost its pupil": "ha perso il suo allievo",
+"Tutor joy": "Gioia di istruire",
+"joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "gioia di dare a uno della sua specie una lezione in un mestiere o un'abilità, maggiore per gli empatici",
+"chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "probabilità che un mestiere visto fare da uno della sua specie che non ritiene nemico sia imparato guardando, e parte della lezione di un tiro che insegna un colpo a segno con l'arco visto; 0 per nessuna"
 }

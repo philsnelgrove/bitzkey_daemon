@@ -218,7 +218,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
     }
     if (agent->species == Species::Plant) return result;
     result["infant_taught"] = agent->infant_taught;  // given its brain by a parent, its first chance
-    static constexpr std::array<std::string_view, 5> CRAFT_SOURCES = {"unrecorded", "discovered", "parent", "elder", "watched"};  // how it came to know it
+    static constexpr std::array<std::string_view, 6> CRAFT_SOURCES = {"unrecorded", "discovered", "parent", "elder", "watched", "tutored"};  // how it came to know it
     Json crafts = Json::object();  // each craft: whether it has discovered it, how often it has tried, and from whom it came
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         crafts[std::string(ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)])] = {{"known", (agent->crafts >> craft & 1) != 0},
@@ -1104,7 +1104,7 @@ Json Probe::skills(Simulation& world) const {
         std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0, archers = 0, shot = 0;
         double skill = 0.0;
         std::array<std::size_t, CRAFT_COUNT> known{}, tried{}, mastered{};
-        std::array<std::array<std::size_t, 5>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
+        std::array<std::array<std::size_t, 6>, CRAFT_COUNT> sources{};  // of those who know it, how many came to it each way
         std::array<int, CRAFT_COUNT> chain{};
         std::array<std::size_t, WEAPON_NAMES.size()> wielding{};
         std::array<std::size_t, ARMOUR_NAMES.size()> wearing{};
@@ -1155,7 +1155,7 @@ Json Probe::skills(Simulation& world) const {
         Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
         for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
             crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}, {"mastered", mastered[craft]}, {"unrecorded", sources[craft][0]},
-                                                                 {"discovered", sources[craft][1]}, {"by_parent", sources[craft][2]}, {"by_elder", sources[craft][3]}, {"watched", sources[craft][4]}, {"longest_chain", chain[craft]}};
+                                                                 {"discovered", sources[craft][1]}, {"by_parent", sources[craft][2]}, {"by_elder", sources[craft][3]}, {"watched", sources[craft][4]}, {"tutored", sources[craft][5]}, {"longest_chain", chain[craft]}};
         }
         for (std::size_t weapon = 0; weapon < WEAPON_NAMES.size(); ++weapon) weapons[WEAPON_NAMES[weapon]] = wielding[weapon];
         for (std::size_t armour = 0; armour < ARMOUR_NAMES.size(); ++armour) armours[ARMOUR_NAMES[armour]] = wearing[armour];

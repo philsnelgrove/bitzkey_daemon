@@ -2674,6 +2674,12 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 ++students;
                 if (!s.student) s.student = other;
             }
+            if (!s.pupil && distance(other->x, other->y, agent.x, agent.y) <= 1 && !is_foe(agent, *other)) {
+                if (const int lesson = lesson_for(agent, *other); lesson >= 0) {
+                    s.pupil = other;
+                    s.lesson = lesson;
+                }
+            }
         }
         sensed.senses[SenseStudentNear] = std::min(3, students) / 3.0;
         if (oldest) {
@@ -2684,6 +2690,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     available[Teach] = s.student != nullptr;
+    available[Tutor] = s.pupil != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -3234,8 +3241,8 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
         const bool wronged = deed >= 0 || !target || other->species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
         note_deed(*other, doer, deed, WITNESS_SHARE, kind, wronged);
         if (kind == SkillDeed && SKILL_WITNESS > WITNESS_SHARE) note_deed(*other, doer, 0.0, SKILL_WITNESS - WITNESS_SHARE, kind, false);  // the rest, on skill alone
-        if (craft >= 0 && !(other->crafts >> craft & 1) && same_kind(*other, doer) && skill_held(*other, doer) >= SKILL_HELD &&
-            rng().random() < WATCH_LEARNING) {  // a craft watched done by one it holds skilled, learnt from the watching
+        if (craft >= 0 && !(other->crafts >> craft & 1) && same_kind(*other, doer) && !is_foe(*other, doer) &&
+            rng().random() < WATCH_LEARNING) {  // a craft watched done by one of its kind it holds no foe, learnt from the watching
             other->crafts |= 1 << craft;
             other->craft_source[static_cast<std::size_t>(craft)] = 4;
             note_first("watched", other->species, other->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
@@ -3421,6 +3428,42 @@ double Simulation::ambition(const Bitzkey& agent, double regard, bool welcome) {
     return welcome ? regard * 2 * soft : -regard;
 }
 
+int Simulation::lesson_for(const Bitzkey& tutor, const Bitzkey& pupil) {
+    if (pupil.species != tutor.species || !pupil.brain) return -1;
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {  // a recipe it lacks
+        if ((tutor.crafts >> craft & 1) && !(pupil.crafts >> craft & 1)) return craft;
+    }
+    if (tutor.archery > pupil.archery + ARCHERY_WORTH_TEACHING) return CRAFT_COUNT;  // a better shot
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {  // a recipe it has not mastered
+        if ((tutor.crafts >> craft & 1) && pupil.craft_tries[static_cast<std::size_t>(craft)] < CRAFT_TRIES) return craft;
+    }
+    return -1;
+}
+
+void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
+    if (!pupil.alive() || distance(pupil.x, pupil.y, tutor.x, tutor.y) > 1 || lesson < 0) {
+        tutor.last_action = "lost its pupil";
+        return;
+    }
+    tutor.hunger = std::min(100.0, tutor.hunger + CALL_COST);  // as dear as a call
+    if (lesson == CRAFT_COUNT) {
+        pupil.archery += ARCHERY_LEARNING * (1 - pupil.archery);  // as one shot teaches
+    } else {
+        const auto craft = static_cast<std::size_t>(lesson);
+        if (!(pupil.crafts >> lesson & 1)) {  // a recipe it lacked, now known
+            pupil.crafts |= 1 << lesson;
+            pupil.craft_source[craft] = 5;
+            pupil.craft_chain[craft] = std::max(tutor.craft_chain[craft], tutor.craft_source[craft] >= 2 ? 1 : 0) + 1;
+            note_first("tutored", pupil.species, pupil.identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + lesson)]);
+        }
+        pupil.craft_tries[craft] = std::min(CRAFT_TRIES, pupil.craft_tries[craft] + 1);  // a try nearer mastery
+    }
+    tutor.last_action = "tutored";
+    tutor.reward += TUTOR_JOY * (0.5 + tutor.feeling(Empathy)) + help_felt(tutor, regard_for(tutor, pupil));
+    note_deed(pupil, tutor, TEACHING_DEED, 0.5, SkillDeed);  // half a teaching's goodwill
+    deed_seen(tutor, 0.5 * TEACHING_DEED, &pupil, SkillDeed);
+}
+
 double Simulation::hit_chance(const Bitzkey& archer, int away) {
     const double steady = (archer.feeling(Patience) + archer.feeling(Intellect) + 1 - archer.feeling(Fear)) / 3;
     const double aimed = ARCHERY_LEAST + (1 - ARCHERY_LEAST) * (0.4 * steady + 0.6 * archer.archery);
@@ -3442,6 +3485,11 @@ void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
     }
     archer.reward += ARCHERY_JOY * (0.5 + archer.archery);
     deed_seen(archer, ARCHERY_REGARD, nullptr, SkillDeed);  // all who see it think it the more skilled, and the better of it
+    for (Bitzkey* other : around(archer, archer.sight)) {  // and those of its kind who see it learn a little of how
+        if (other == &archer || !other->alive() || !same_kind(*other, archer) || is_foe(*other, archer)) continue;
+        if (distance(other->x, other->y, archer.x, archer.y) > other->sight) continue;
+        other->archery += WATCH_LEARNING * ARCHERY_LEARNING * (1 - other->archery);
+    }
     if (practice) {
         archer.last_action = "hit the mark in practice";
         note_first("hit_in_practice", archer.species, archer.identifier);
@@ -4233,6 +4281,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Teach:
             teach(agent, *s.student);
+            break;
+        case Tutor:
+            tutor(agent, *s.pupil, s.lesson);
             break;
         case TakeMeat:
             take_meat(agent, s);

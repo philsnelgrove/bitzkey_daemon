@@ -1898,5 +1898,11 @@
 "Archery regard": "射手への敬意",
 "respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "弓で当てるのを見た者すべての敬意。行いの重みに対する割合で、技量と好意に",
 "Archery learning": "弓の上達",
-"share of the skill left to learn that each shot with a bow teaches": "弓で一度射るごとに身につく、残りの技量の割合"
+"share of the skill left to learn that each shot with a bow teaches": "弓で一度射るごとに身につく、残りの技量の割合",
+"TUTOR": "指導する",
+"tutored": "指導した",
+"lost its pupil": "教え子を見失った",
+"Tutor joy": "指導の喜び",
+"joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "同種の仲間に技や腕前の手ほどきをする喜び。共感の強い者ほど大きい",
+"chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "敵と見なしていない同種の仲間が技を行うのを見て、見て覚える確率。また、弓で当てるのを見たときに一射分の上達のうち身につく割合。0で無し"
 }

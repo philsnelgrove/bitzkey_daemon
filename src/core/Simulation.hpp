@@ -257,6 +257,12 @@ inline int STUDENT_INTELLECT = 4;  // the least inborn intellect an animal needs
 inline double STUDENT_AGE = 0.5;  // the oldest a student may be, as a share of its elder's age
 inline double STUDENT_TRUST = 0.25;  // how trusting an animal must be to be willing to be taught
 inline double TEACHING_JOY = 1.0;  // how glad an elder is of teaching a student; more if empathetic
+// Tutoring: anyone may give one of its kind beside it, not a foe, one lesson in a craft or skill it has worth teaching,
+// for the hunger of a call: a recipe the pupil lacks (now known, as if tried once), else archery if it shoots the better
+// (a shot's lesson), else a recipe the pupil has not mastered (a try nearer it). The tutor is glad of it (TUTOR_JOY,
+// more if empathetic) and the pupil thinks the better of it, by half a teaching.
+inline double TUTOR_JOY = 0.5;
+inline constexpr double ARCHERY_WORTH_TEACHING = 0.05;  // how much the better a shot a tutor must be to teach archery
 // Kinship: the most a herd-mate's or partner's social background may differ from its own, at full kinship and
 // no tolerance, is 1 less this; less kinship, or more tolerance, accepts more.
 inline double KINSHIP_SHUN = 0.8;
@@ -576,7 +582,7 @@ inline double PROTECTION_JOY = 1.0;
 // within FOLLOW_REACH steps spares it FOLLOW_SAFETY of its dread, felt as relief as any protection is.
 constexpr double SKILL_HELD = 0.5;  // the skill at which another is held skilled
 inline double SKILL_COMFORT = 0.5;
-inline double WATCH_LEARNING = 0.1;
+inline double WATCH_LEARNING = 0.25;
 inline double ELDER_COMFORT = 0.5;
 inline int ELDER_REACH = 3;
 inline double FOLLOW_SAFETY = 0.5;
@@ -939,7 +945,7 @@ struct Bitzkey {
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears
     int crafts = 0;  // a bit for each craft it has discovered
     std::array<int, CRAFT_COUNT> craft_tries{};  // how often it has tried each
-    std::array<int, CRAFT_COUNT> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched
+    std::array<int, CRAFT_COUNT> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched, 5 tutored
     std::array<int, CRAFT_COUNT> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
     int bow_uses = 0;      // shots left in the bow it carries; 0 for none
     double archery = 0.0;  // its skill at hitting with a bow, 0..1, from its shots
@@ -1390,6 +1396,8 @@ public:
         std::optional<Cell> suitor_at;  // where it was when seen
         Bitzkey* shoot_at = nullptr;     // with a bow: the prey it would hunt in sight, else the nearest foe
         Bitzkey* practise_on = nullptr;  // and the nearest plant in sight, to practise on
+        Bitzkey* pupil = nullptr;        // one beside it worth tutoring
+        int lesson = -1;                 // in which craft, or CRAFT_COUNT for archery
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
         std::optional<Cell> stone_pile, bone_pile, wood_pile, gear_pile;
@@ -1737,6 +1745,8 @@ public:
     void pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid);  // see CALL_PAYOFF
     void shoot(Bitzkey& archer, Bitzkey& target, bool practice);  // see BOW_USES
     static double hit_chance(const Bitzkey& archer, int away);
+    static int lesson_for(const Bitzkey& tutor, const Bitzkey& pupil);  // what it has worth teaching it, -1 for nothing
+    void tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson);  // see TUTOR_JOY
     static double ambition(const Bitzkey& agent, double regard, bool welcome);  // see LAND_AMBITION
     void recognise_leaders();
     static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }

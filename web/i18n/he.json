@@ -1898,5 +1898,11 @@
 "Archery regard": "כבוד לקשת",
 "respect of all who see a hit with a bow, of a deed's weight, in skill and liking": "כבוד כל הרואים פגיעה בקשת, ממשקלו של מעשה, במיומנות ובחיבה",
 "Archery learning": "למידת קשתות",
-"share of the skill left to learn that each shot with a bow teaches": "חלק המיומנות שנותר ללמוד שכל ירייה בקשת מלמדת"
+"share of the skill left to learn that each shot with a bow teaches": "חלק המיומנות שנותר ללמוד שכל ירייה בקשת מלמדת",
+"TUTOR": "הדרכה",
+"tutored": "הדריך",
+"lost its pupil": "איבד את תלמידו",
+"Tutor joy": "שמחת ההדרכה",
+"joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "שמחה בנתינת שיעור במלאכה או במיומנות לבן מינו, רבה יותר לאמפתיים",
+"chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "הסיכוי שמלאכה שנראתה נעשית בידי בן מינו שאינו נחשב לו אויב תילמד מצפייה, וחלק משיעורה של ירייה שפגיעה בקשת שנראתה מלמדת; 0 לאף אחד"
 }
