@@ -920,6 +920,7 @@ void Simulation::take_turn() {
     index_cells();
     if (turn_ % std::max(1, LAND_TURNS) == 0) {
         count_lands();
+        count_welcomes();
         recognise_leaders();
     }
     for (const auto& agent : agents_) {  // a body some cost starved, its death not yet recorded: recorded now
@@ -2725,6 +2726,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         s.war = war_standing(agent.realm);
         senses[SenseOwnLand] = at_home ? 1.0 : 0.0;
         senses[SenseForeignLand] = trespassing(agent) ? 1.0 : 0.0;
+        if (const LandClaims* here = !at_home && agent.realm >= 0 ? claims_at(agent.x, agent.y) : nullptr) {
+            for (const Claim& claim : *here) {  // the first other claimant it holds a view of
+                if (claim.realm < 0 || claim.realm == agent.realm) continue;
+                const std::optional<double> view = view_of_realm(agent, claim.realm);
+                if (!view) continue;
+                senses[SenseLandOwnerRegard] = std::clamp(*view, -1.0, 1.0);
+                if (!welcomed(claim.realm, agent.realm)) s.ambition = -senses[SenseLandOwnerRegard];
+                break;
+            }
+        }
         if (holds && !at_home) {  // which way the nearest square of its own land lies
             int square = -1, nearest = 0;
             for (const int patch : realm->second.patches) {
@@ -2745,7 +2756,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             best_mark = std::max(best_mark, other->mark);
             if (!holds || other->realm == agent.realm) continue;
             const LandClaims* there = claims_at(other->x, other->y);
-            if (there && claims(*there, agent.realm)) trespasser = std::min(trespasser, distance(other->x, other->y, agent.x, agent.y));
+            if (there && claims(*there, agent.realm) && !welcomed(agent.realm, other->realm)) trespasser = std::min(trespasser, distance(other->x, other->y, agent.x, agent.y));
         }
         if (trespasser <= sight) senses[SenseTrespasser] = 1.0 - static_cast<double>(trespasser - 1) / std::max(1, sight);
         senses[SenseWarStanding] = s.war;
@@ -3239,7 +3250,47 @@ bool Simulation::trespassing(const Bitzkey& agent) const {
     if (agent.species == Species::Plant) return false;
     const LandClaims* land = claims_at(agent.x, agent.y);
     if (!land) return false;
-    return std::any_of(land->begin(), land->end(), [&](const Claim& claim) { return claim.realm >= 0 && claim.realm != agent.realm; });
+    return std::any_of(land->begin(), land->end(),
+                       [&](const Claim& claim) { return claim.realm >= 0 && claim.realm != agent.realm && !welcomed(claim.realm, agent.realm); });
+}
+
+std::optional<double> Simulation::view_of_realm(const Bitzkey& agent, int realm) const {
+    const auto found = realms_.find(realm);
+    if (found == realms_.end()) return std::nullopt;
+    for (const Faction& faction : agent.factions) {
+        if (colour_difference(faction.ring, found->second.ring) <= FACTION_WIDTH) return faction.regard;
+    }
+    return std::nullopt;
+}
+
+void Simulation::count_welcomes() {
+    // For each owner of land, the groups standing in it, and what the owner's members think of each, on average.
+    welcome_.clear();
+    if (WELCOME_LEVEL > 1) return;
+    std::map<int, std::set<int>> visiting;  // owner: the groups of those standing in its land
+    for (const auto& agent : agents_) {
+        if (!agent->alive() || agent->realm < 0 || agent->species == Species::Plant) continue;
+        if (const LandClaims* land = claims_at(agent->x, agent->y)) {
+            for (const Claim& claim : *land) {
+                if (claim.realm >= 0 && claim.realm != agent->realm) visiting[claim.realm].insert(agent->realm);
+            }
+        }
+    }
+    std::map<std::pair<int, int>, std::pair<double, int>> views;  // (owner, guest): regard summed, views held
+    for (const auto& agent : agents_) {
+        const auto guests = agent->alive() ? visiting.find(agent->realm) : visiting.end();
+        if (guests == visiting.end()) continue;
+        for (const int guest : guests->second) {
+            if (const std::optional<double> view = view_of_realm(*agent, guest)) {
+                auto& [sum, count] = views[{agent->realm, guest}];
+                sum += *view;
+                ++count;
+            }
+        }
+    }
+    for (const auto& [pair, held] : views) {
+        if (held.second > 0 && held.first / held.second >= WELCOME_LEVEL) welcome_.insert(pair);
+    }
 }
 
 int Simulation::war_standing(int realm, int enemy) const {
@@ -3260,7 +3311,7 @@ bool Simulation::drives_out(const Bitzkey& hunter, const Bitzkey& other) const {
     if ((hunter.species != Species::Omnivore && hunter.species != Species::Predator) || other.species == Species::Plant) return false;
     if (hunter.realm < 0 || other.realm == hunter.realm || other.guarded || !within_reach(hunter, other)) return false;
     const LandClaims* there = claims_at(other.x, other.y);
-    return there && claims(*there, hunter.realm) && in_own_land(hunter) && is_foe(hunter, other);
+    return there && claims(*there, hunter.realm) && in_own_land(hunter) && !welcomed(hunter.realm, other.realm) && is_foe(hunter, other);
 }
 
 void Simulation::trespass(Bitzkey& agent) {
@@ -3400,7 +3451,8 @@ void Simulation::count_lands() {
             if (claim.realm < 0) continue;
             const Claim& other = land[1 - slot];
             const auto there = here.find(claim.realm);
-            const bool losing = other.realm >= 0 && war_standing(claim.realm, other.realm) < 0;
+            const bool losing = (other.realm >= 0 && war_standing(claim.realm, other.realm) < 0) ||
+                                (slot == 1 && welcomed(other.realm, claim.realm));  // or a guest there, which contests nothing
             if (there != here.end() && large(claim.realm) && !losing) claim.hold = 1.0;
             else claim.hold -= fading;
             if (claim.hold <= 1e-9 || !realms_.contains(claim.realm)) claim = Claim{};
@@ -3410,7 +3462,8 @@ void Simulation::count_lands() {
         // A new claim, by the group standing there in the most strength, enough of it and large enough.
         int best = -1, most = std::max(1, LAND_HOLD) - 1;
         for (const auto& [realm, count] : here) {
-            if (count > most && realm != land[0].realm && large(realm) && (land[0].realm < 0 || war_standing(realm, land[0].realm) >= 0)) {  // not the beaten
+            if (count > most && realm != land[0].realm && large(realm) && (land[0].realm < 0 || war_standing(realm, land[0].realm) >= 0) &&
+                !welcomed(land[0].realm, realm)) {  // not the beaten, nor a guest
                 best = realm;
                 most = count;
             }
@@ -3770,7 +3823,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
     }
     const double envious = ENVY_UNEASE * envy_of(agent) * s.envy;
     // At ease in its own land and uneasy away from it; glad of a war clearly being won, and troubled by one being lost.
-    const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war +
+    const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war + LAND_AMBITION * s.ambition +  // drawn to a disliked group's land
                              // Glad to be held a friend by those about it, and at ease near the one it esteems most
                              STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +

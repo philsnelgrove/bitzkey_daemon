@@ -331,6 +331,8 @@ std::vector<Rule> make_rules() {
         {"TRADE_WARINESS", "Mind", "Trade wariness", "how much worse an offer seems from one its owner thinks ill of, times that ill regard", 0.0, 2.0, 0.05, false, &TRADE_WARINESS},
         {"LEADER_FOLLOWERS", "Mind", "Leader followers", "members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders", 0, 100, 1, true, &LEADER_FOLLOWERS},
         {"LEADER_DEFERENCE", "Mind", "Leader deference", "how much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight", 0.0, 2.0, 0.05, false, &LEADER_DEFERENCE},
+        {"LAND_AMBITION", "Mind", "Land ambition", "pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group", 0.0, 1.0, 0.01, false, &LAND_AMBITION},
+        {"WELCOME_LEVEL", "Mind", "Welcome level", "how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none", 0.0, 1.5, 0.05, false, &WELCOME_LEVEL},
         {"LEADER_RALLY", "Fighting", "Leader rally", "share of the chance to panic or break that a follower in sight of its leader overcomes", 0.0, 1.0, 0.05, false, &LEADER_RALLY},
         {"LEADER_JOY", "Mind", "Leader joy", "pleasure a leader takes in its followers in sight, in full with as many as Leader followers", 0.0, 3.0, 0.05, false, &LEADER_JOY},
         {"LEADER_ALLURE", "Mind", "Leader allure", "how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it", 0.0, 3.0, 0.05, false, &LEADER_ALLURE},

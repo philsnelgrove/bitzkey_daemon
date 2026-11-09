@@ -109,6 +109,7 @@ public:
     Json diary(Simulation& world) const;
     Json lands(Simulation& world) const;  // colour groups, their lands and wars, and the marks of the victor
     Json gifts(Simulation& world) const;  // the gifts lately given, looked over for trade
+    Json opinions(Simulation& world) const;  // whether what animals think of a colour group goes with entering or contesting its land
     Json regard(Simulation& world) const;
     Json society(Simulation& world) const;
     Json minds(Simulation& world) const;

@@ -171,6 +171,8 @@ enum Sense : int {
     // Leadership, as recognised at the last count: whether it leads, and whether its standout does.
     SenseLeader,
     SenseStandoutLeads,
+    // What it thinks of the group whose land it stands in, -1 to 1; 0 in its own land, in none, or holding no view.
+    SenseLandOwnerRegard,
     SenseMind,  // then its current temperament, mind and social traits, each 0..7 scaled to 0..1
 };
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
@@ -257,7 +259,7 @@ constexpr bool signed_sense(int sense) {
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
            sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
-           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense >= SenseImagined;
+           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense >= SenseImagined;
 }
 inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
@@ -279,7 +281,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
-    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "aggression", "libido", "curiosity",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "land_owner_regard", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",

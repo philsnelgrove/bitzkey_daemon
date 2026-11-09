@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <array>
+#include <set>
 #include <unordered_set>
 #include <cmath>
 #include <numbers>
@@ -1415,6 +1416,107 @@ Json Probe::gifts(Simulation& world) const {
             {"species", bySpecies}};
 }
 
+// Opinion and land. Each animal's regard for a colour group is its regard for that colour (its faction memory), none if it
+// holds no view. Read two ways:
+//   animals: for every animal and every land-holding group not its own, how often it stands in that group's land, by
+//   what it thinks of the group: hostile (-0.5 or below), cool, warm, friendly (0.5 or above), or no view.
+//   groups: for every two land-holding groups, what the first's members think of the second, on average, and whether
+//   they are at war (contesting land) or at peace.
+Json Probe::opinions(Simulation& world) const {
+    const auto view_of = [](const Bitzkey& agent, std::uint32_t ring) -> std::optional<double> {
+        for (const Faction& faction : agent.factions) {
+            if (colour_difference(faction.ring, ring) <= FACTION_WIDTH) return faction.regard;
+        }
+        return std::nullopt;
+    };
+    std::map<int, const Realm*> holders;  // the groups holding land
+    for (const auto& [identifier, realm] : world.realms()) {
+        if (!realm.patches.empty()) holders[identifier] = &realm;
+    }
+    static constexpr std::array<const char*, 5> BUCKETS = {"hostile", "cool", "warm", "friendly", "no_view"};
+    const auto bucket = [](std::optional<double> regard) -> std::size_t {
+        if (!regard) return 4;
+        return *regard <= -0.5 ? 0 : *regard < 0 ? 1 : *regard < 0.5 ? 2 : 3;
+    };
+    std::array<long long, 5> pairs{}, inside{};
+    std::map<std::pair<int, int>, std::pair<double, long long>> groupView;  // (of, about): regard summed, views held
+    std::map<std::pair<int, int>, long long> groupInside;  // (of, about): members standing in the other's land
+    std::map<int, long long> membersAlive;
+    double trespasserViewOfOwner = 0.0, trespasserViewOfOthers = 0.0;
+    long long trespasserOwnerViews = 0, trespasserOtherViews = 0;
+    for (const Bitzkey* agent : world.living()) {
+        if (agent->species == Species::Plant || agent->realm < 0) continue;
+        ++membersAlive[agent->realm];
+        std::set<int> owners;  // the groups whose land it stands in
+        if (const LandClaims* land = world.claims_at(agent->x, agent->y)) {
+            for (const Claim& claim : *land) {
+                if (claim.realm >= 0 && claim.realm != agent->realm) owners.insert(claim.realm);
+            }
+        }
+        for (const auto& [identifier, realm] : holders) {
+            if (identifier == agent->realm) continue;
+            const std::optional<double> view = view_of(*agent, realm->ring);
+            const std::size_t at = bucket(view);
+            const bool in = owners.contains(identifier);
+            ++pairs[at];
+            inside[at] += in;
+            groupInside[{agent->realm, identifier}] += in;
+            if (view) {
+                auto& [sum, count] = groupView[{agent->realm, identifier}];
+                sum += *view;
+                ++count;
+                if (!owners.empty()) {
+                    if (in) {
+                        trespasserViewOfOwner += *view;
+                        ++trespasserOwnerViews;
+                    } else {
+                        trespasserViewOfOthers += *view;
+                        ++trespasserOtherViews;
+                    }
+                }
+            }
+        }
+    }
+    Json animals = Json::object();
+    for (std::size_t at = 0; at < BUCKETS.size(); ++at) {
+        animals[BUCKETS[at]] = {{"pairs", pairs[at]}, {"standing_in_their_land", inside[at]},
+                                {"share_in_their_land", pairs[at] ? Json(static_cast<double>(inside[at]) / pairs[at]) : Json(nullptr)}};
+    }
+    const auto mean = [](double sum, long long count) { return count ? Json(sum / count) : Json(nullptr); };
+    // Groups: at war or at peace, and what each side thinks of the other.
+    std::set<std::pair<int, int>> atWar;
+    for (const War& war : world.wars()) {
+        atWar.insert({war.first, war.second});
+        atWar.insert({war.second, war.first});
+    }
+    double warSum = 0.0, peaceSum = 0.0;
+    long long warPairs = 0, peacePairs = 0;
+    Json wars = Json::array();
+    for (const auto& [key, held] : groupView) {
+        const auto& [sum, count] = held;
+        if (count < 5) continue;  // too few views to speak for the group
+        const double regard = sum / count;
+        if (atWar.contains(key)) {
+            warSum += regard;
+            ++warPairs;
+            const long long members = membersAlive[key.first];
+            wars.push_back({{"group", key.first}, {"about", key.second}, {"mean_regard", regard}, {"views", count},
+                            {"members_in_their_land", groupInside[key]}, {"members", members}});
+        } else {
+            peaceSum += regard;
+            ++peacePairs;
+        }
+    }
+    return {{"turn", world.turn()},
+            {"land_holding_groups", holders.size()},
+            {"animals", animals},
+            {"trespassers", {{"regard_for_the_land_they_stand_in", mean(trespasserViewOfOwner, trespasserOwnerViews)},
+                             {"regard_for_other_land_holders", mean(trespasserViewOfOthers, trespasserOtherViews)}}},
+            {"groups", {{"at_war", {{"pairs", warPairs}, {"mean_regard", mean(warSum, warPairs)}}},
+                        {"at_peace", {{"pairs", peacePairs}, {"mean_regard", mean(peaceSum, peacePairs)}}},
+                        {"wars", wars}}}};
+}
+
 Json Probe::lands(Simulation& world) const {
     // Colour groups and their lands: per species, how many groups, how many hold land, the living in their own land (and
     // of those, on land another group contests), trespassing (on land only other groups claim), and the marks of the
@@ -1697,6 +1799,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/opinions", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return opinions(world); }));
     }));
     server.Get(prefix + "/gifts", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return gifts(world); }));

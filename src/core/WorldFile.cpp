@@ -606,6 +606,8 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     }
     json wars = json::array();
     for (const War& war : simulation.wars_) wars.push_back({war.first, war.second, war.first_kills, war.second_kills, war.since});
+    json welcomes = json::array();  // each [owner, guest]
+    for (const auto& [owner, guest] : simulation.welcome_) welcomes.push_back({owner, guest});
     const json record = {
         {"format", WORLD_FORMAT}, {"genome_version", GENOME_VERSION}, {"senses", names(SENSES)}, {"centred_senses", true}, {"value_scale", VALUE_SCALE}, {"actions", names(OUTPUTS)},
         {"temperament", names(TEMPERAMENT)},
@@ -618,7 +620,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
         {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
-        {"lands", {{"patch", simulation.land_patch_}, {"columns", simulation.land_columns_}, {"squares", simulation.lands_.size()}, {"next_realm", simulation.next_realm_}, {"realms", std::move(realms)}, {"claims", std::move(claims)}, {"wars", std::move(wars)}}},
+        {"lands", {{"patch", simulation.land_patch_}, {"columns", simulation.land_columns_}, {"squares", simulation.lands_.size()}, {"next_realm", simulation.next_realm_}, {"realms", std::move(realms)}, {"claims", std::move(claims)}, {"wars", std::move(wars)}, {"welcomes", std::move(welcomes)}}},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
         {"death_strings", strings}, {"death_records", {{"at", ints.size()}, {"count", dead.size()}}},
@@ -841,6 +843,7 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             for (const json& war : lands.at("wars")) {
                 world.wars_.push_back({war.at(0).get<int>(), war.at(1).get<int>(), war.at(2).get<int>(), war.at(3).get<int>(), war.at(4).get<int>()});
             }
+            for (const json& pair : lands.value("welcomes", json::array())) world.welcome_.insert({pair.at(0).get<int>(), pair.at(1).get<int>()});  // none before
             world.index_realm_patches();
         }
         world.stones_scattered_ = record.value("stones_scattered", false);

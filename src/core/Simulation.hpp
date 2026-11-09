@@ -15,6 +15,7 @@
 #include <mutex>
 #include <memory>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -673,6 +674,12 @@ inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_
 inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
               TRESPASS_GROWTH = 0.25, LAND_RALLY = 0.75, WAR_ENMITY = 0.1, WAR_MORALE = 0.1, WAR_NERVE = 0.25,
               WAR_FADE = 0.1;
+// Ambition and welcome. Standing in another group's land, an animal is drawn to stay the more it dislikes that group,
+// and uneasy the more it likes it (LAND_AMBITION, times its regard for the group's colour, -1 to 1), unless welcome
+// there. At each count, a group whose members think well enough of a colour group, on average, of those holding a
+// view (WELCOME_LEVEL or more), welcomes it: those of it in its land are guests, not trespassers, neither thought the
+// worse of nor driven out, at no unease; and they claim none of its land, nor keep a claim on it, while welcome.
+inline double LAND_AMBITION = 0.1, WELCOME_LEVEL = 0.5;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 constexpr int MeatGood = 3, FruitGood = 4, GOODS = 5;  // what may be offered: the possessions, then food
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
@@ -1401,6 +1408,7 @@ public:
         double admired = 0.0;  // those in sight who hold it a friend, a third each, to 1
         double standout = 0.0;  // its esteem for its standout, times how close it is
         double followed = 0.0;  // a leader's followers in sight, a LEADER_FOLLOWERS-th each, to 1
+        double ambition = 0.0;  // its dislike of the group whose land it stands in, uninvited: -1 a friend's, 1 a foe's
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1661,7 +1669,11 @@ public:
     int land_columns() const { return land_columns_; }  // land squares to a row
     static bool claims(const LandClaims& land, int realm) { return realm >= 0 && (land[0].realm == realm || land[1].realm == realm); }
     bool in_own_land(const Bitzkey& agent) const;
-    bool trespassing(const Bitzkey& agent) const;  // in a land with a claimant other than its own group
+    bool trespassing(const Bitzkey& agent) const;  // in a land with a claimant other than its own group, that does not welcome it
+    bool welcomed(int owner, int guest) const { return owner >= 0 && guest >= 0 && welcome_.contains({owner, guest}); }
+    // Its regard for a colour group, by its colour, if it holds a view.
+    std::optional<double> view_of_realm(const Bitzkey& agent, int realm) const;
+    void count_welcomes();  // which groups welcome which, from what their members think of them
     // How its group's war with `enemy` goes, or, with none named, all its wars together: 1 clearly winning, -1 clearly
     // losing, 0 neither, too few killed to tell, or at peace.
     int war_standing(int realm, int enemy = -1) const;
@@ -2001,6 +2013,7 @@ private:
     std::vector<LandClaims> lands_;  // each land square's claims, row by row; empty with no lands
     int land_patch_ = 0, land_columns_ = 0;  // the square's size in cells, and how many squares to a row
     std::vector<War> wars_;
+    std::set<std::pair<int, int>> welcome_;  // (owner, guest): groups an owner of land welcomes, as of the last count
     int next_realm_ = 0;
     std::vector<Fight> fights_;  // changed only between turns, so all read the same while they act
     // Each species' cut for envy, taking and giving: the drive at Envy, Take and Give level of its living, ranked each

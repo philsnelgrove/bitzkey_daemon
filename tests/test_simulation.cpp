@@ -3902,3 +3902,42 @@ TEST_CASE("a leader is recognised by those who hold it their standout, and its f
     simulation.struck(head, foe);  // its followers close by come to its defence
     CHECK(band[0]->herd_assailant == std::optional<int>(foe.identifier));
 }
+
+TEST_CASE("a guest is welcome in a friend's land and contests none of it; in a foe's land an animal is drawn to stay") {
+    SmallLands lands;
+    Simulation simulation = world(24);
+    const Dna red = encode_dna(Species::Omnivore, {{"size", 3}});
+    const Dna blue = flipped(red, std::uint64_t{0xFFFF0000} << 32);
+    std::vector<Bitzkey*> hosts, guests;
+    for (const auto& [x, y] : {std::pair{2, 2}, std::pair{3, 2}, std::pair{2, 3}}) hosts.push_back(&simulation.add_agent(red, x, y));
+    for (const auto& [x, y] : {std::pair{18, 18}, std::pair{19, 18}, std::pair{18, 19}}) guests.push_back(&simulation.add_agent(blue, x, y));
+    simulation.index_cells();
+    simulation.count_lands();  // each group claims where it stands
+    const int host = hosts[0]->realm, guest = guests[0]->realm;
+    REQUIRE((host >= 0 && guest >= 0 && host != guest));
+    for (std::size_t index = 0; index < guests.size(); ++index) {  // all of them into the host's land
+        guests[index]->x = 4 + static_cast<int>(index);
+        guests[index]->y = 4;
+    }
+    simulation.index_cells();
+    CHECK(simulation.trespassing(*guests[0]));
+    for (Bitzkey* one : hosts) one->factions.push_back(Faction{body_word(blue), 0.9, 0});  // the hosts think well of the guests' colour
+    simulation.count_welcomes();
+    CHECK(simulation.welcomed(host, guest));
+    CHECK_FALSE(simulation.trespassing(*guests[0]));
+    simulation.count_lands();
+    const LandClaims* land = simulation.claims_at(2, 2);
+    REQUIRE(land);
+    CHECK(Simulation::claims(*land, host));
+    CHECK_FALSE(Simulation::claims(*land, guest));  // guests contest none of their host's land
+
+    guests[0]->factions.push_back(Faction{body_word(red), -0.8, 0});  // one dislikes its hosts, and uninvited it would stay
+    for (Bitzkey* one : hosts) one->factions.back().regard = 0.0;
+    simulation.count_welcomes();
+    CHECK_FALSE(simulation.welcomed(host, guest));
+    const Simulation::Sensed sensed = simulation.sense(*guests[0]);
+    CHECK(sensed.senses[SenseLandOwnerRegard] == doctest::Approx(-0.8));
+    CHECK(sensed.situation.ambition == doctest::Approx(0.8));
+    simulation.count_lands();
+    CHECK(Simulation::claims(*simulation.claims_at(2, 2), guest));  // unwelcome, they contest it
+}
