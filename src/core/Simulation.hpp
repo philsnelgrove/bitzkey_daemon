@@ -685,6 +685,8 @@ inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COM
 // there. At each count, a group whose members think well enough of a colour group, on average, of those holding a
 // view (WELCOME_LEVEL or more), welcomes it: those of it in its land are guests, not trespassers, neither thought the
 // worse of nor driven out, at no unease; and they claim none of its land, nor keep a claim on it, while welcome.
+// By temperament: the aggressive, dominant and fearless are drawn the more to a foe's land, the empathetic, sociable
+// and tolerant the less (even uneasy there), and these are at ease as welcome guests of a friend (Simulation::ambition).
 inline double LAND_AMBITION = 0.1, WELCOME_LEVEL = 0.5;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession };
 constexpr int MeatGood = 3, FruitGood = 4, GOODS = 5;  // what may be offered: the possessions, then food
@@ -1717,6 +1719,7 @@ public:
     static bool follows(const Bitzkey& follower, const Bitzkey& leader) { return leader.leader && follower.follows == leader.identifier; }
     bool leader_in_sight(const Bitzkey& agent) const;
     void pay_callers(Bitzkey& listener, const Situation& now, std::map<int, int>& paid);  // see CALL_PAYOFF
+    static double ambition(const Bitzkey& agent, double regard, bool welcome);  // see LAND_AMBITION
     void recognise_leaders();
     static double mark_worth(int mark) { return mark == PrestigeMark ? PRESTIGE_MARK : mark == WarriorMark ? WARRIOR_MARK : 0.0; }
     bool is_friend(const Bitzkey& agent, const Bitzkey& other) const { return regard_for(agent, other) >= REGARD_STRONG; }

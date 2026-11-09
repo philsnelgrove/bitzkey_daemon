@@ -3937,7 +3937,8 @@ TEST_CASE("a guest is welcome in a friend's land and contests none of it; in a f
     CHECK_FALSE(simulation.welcomed(host, guest));
     const Simulation::Sensed sensed = simulation.sense(*guests[0]);
     CHECK(sensed.senses[SenseLandOwnerRegard] == doctest::Approx(-0.8));
-    CHECK(sensed.situation.ambition == doctest::Approx(0.8));
+    CHECK(sensed.situation.ambition == doctest::Approx(Simulation::ambition(*guests[0], -0.8, false)));  // by its temperament
+    CHECK(sensed.situation.ambition != 0.0);
     simulation.count_lands();
     CHECK(Simulation::claims(*simulation.claims_at(2, 2), guest));  // unwelcome, they contest it
 }
@@ -3975,4 +3976,15 @@ TEST_CASE("a call that helps pays its caller: joy for one of its kind that got a
     CHECK(caller.reward == before);
     CALL_PAYOFF = payoff;
     HEEDED_REGARD = heeded;
+}
+
+TEST_CASE("the hard would impose themselves on a foe's land, the soft are at ease as a friend's guests") {
+    Simulation simulation = world();
+    const Bitzkey& hard = simulation.add_agent(encode_dna(Species::Grazer, {{"aggression", 7}, {"dominance", 7}, {"fear", 0}, {"empathy", 0}, {"sociability", 0}, {"tolerance", 0}}), 1, 1);
+    const Bitzkey& soft = simulation.add_agent(encode_dna(Species::Grazer, {{"aggression", 0}, {"dominance", 0}, {"fear", 7}, {"empathy", 7}, {"sociability", 7}, {"tolerance", 7}}), 3, 3);
+    CHECK(Simulation::ambition(hard, -1.0, false) == doctest::Approx(2.0));  // a foe's land: drawn to it
+    CHECK(Simulation::ambition(soft, -1.0, false) == doctest::Approx(-1.0));  // uneasy there
+    CHECK(Simulation::ambition(soft, 1.0, true) == doctest::Approx(2.0));  // at ease as a friend's guest
+    CHECK(Simulation::ambition(hard, 1.0, true) == doctest::Approx(0.0));
+    CHECK(Simulation::ambition(soft, 1.0, false) == doctest::Approx(-1.0));  // uninvited, uneasy all the same
 }

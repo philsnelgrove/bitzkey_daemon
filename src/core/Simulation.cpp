@@ -2734,7 +2734,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 const std::optional<double> view = view_of_realm(agent, claim.realm);
                 if (!view) continue;
                 senses[SenseLandOwnerRegard] = std::clamp(*view, -1.0, 1.0);
-                if (!welcomed(claim.realm, agent.realm)) s.ambition = -senses[SenseLandOwnerRegard];
+                s.ambition = ambition(agent, senses[SenseLandOwnerRegard], welcomed(claim.realm, agent.realm));
                 break;
             }
         }
@@ -3381,6 +3381,15 @@ void Simulation::pay_callers(Bitzkey& listener, const Situation& now, std::map<i
     listener.heard_turn = turn_;
     listener.heard_hunger = listener.hunger;
     listener.heard_danger = now.hunter || now.threat;
+}
+
+double Simulation::ambition(const Bitzkey& agent, double regard, bool welcome) {
+    // The hard (aggressive, dominant, fearless) would impose themselves on a foe's land; the soft (empathetic, sociable,
+    // tolerant) are uneasy there, and at ease as guests of friends. Uninvited in a friend's land, all are uneasy.
+    const double hard = (agent.feeling(Aggression) + agent.feeling(Dominance) + 1 - agent.feeling(Fear)) / 3;
+    const double soft = (agent.feeling(Empathy) + agent.feeling(Sociability) + agent.feeling(Tolerance)) / 3;
+    if (regard < 0) return welcome ? 0.0 : -regard * (2 * hard - soft);
+    return welcome ? regard * 2 * soft : -regard;
 }
 
 bool Simulation::leader_in_sight(const Bitzkey& agent) const {
