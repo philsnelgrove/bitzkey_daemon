@@ -2599,19 +2599,20 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     available[Demand] = available[Steal] = s.claim_from != nullptr;
     available[Give] = s.gift_to != nullptr;
-    {  // an offer: the deal that gains it most, giving what it would miss least, to one that would gain by it
+    {  // an offer: the deal that seems to gain it most, giving what it seems to miss least, to one that would gain by it
         double best = 0.0;
+        const double clouded = TRADE_MISJUDGE * (1.0 - agent.intelligence());  // as it sees each kind of good, always
         for (Bitzkey* other : neighbors) {
             if (other == &agent || !other->alive() || other->species == Species::Plant || other->infant() || is_foe(agent, *other)) continue;
             for (int wanted = 0; wanted < GOODS; ++wanted) {
                 if (!holds(*other, wanted)) continue;
-                const double gain = trade_gain(agent, *other, wanted);
+                const double gain = trade_gain(agent, *other, wanted) + clouded * trade_bias(agent.identifier, wanted);
                 if (gain <= best) continue;
                 int offered = -1;
                 double least = 0.0;
                 for (int good = 0; good < GOODS; ++good) {
                     if (good == wanted || !holds(agent, good) || trade_gain(*other, agent, good) <= 0) continue;
-                    const double loss = good_worth(agent, agent, good);
+                    const double loss = good_worth(agent, agent, good) + clouded * trade_bias(agent.identifier, good);
                     if (offered < 0 || loss < least) {
                         offered = good;
                         least = loss;
@@ -3619,17 +3620,19 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
     if (judged(agent, trade_gain(agent, owner, wanted)) <= judged(agent, good_worth(agent, agent, offered))) {
         trade.withdrawn = true;
         agent.last_action = "thought better of an offer";
-    } else if (judged(owner, trade_gain(owner, agent, offered)) + (follows(owner, agent) ? LEADER_DEFERENCE : 0.0) <=
+    } else if (judged(owner, trade_gain(owner, agent, offered)) + (follows(owner, agent) ? LEADER_DEFERENCE : 0.0) +
+                   TRADE_WARINESS * std::min(0.0, regard_for(owner, agent)) <=  // warier of one it thinks ill of
                judged(owner, good_worth(owner, owner, wanted))) {
         agent.last_action = "was refused";
     } else {
         trade.accepted = true;
         pass_good(agent, owner, offered);
         pass_good(owner, agent, wanted);
-        note_deed(owner, agent, 1.0, TRADE_REGARD, PlainDeed, true);  // a kindness both ways
-        note_deed(agent, owner, 1.0, TRADE_REGARD, PlainDeed, true);
-        agent.reward += TRADE_JOY;  // trade joy: a deal made pleases both
-        owner.reward += TRADE_JOY;
+        // A kindness to each that truly gained, and trade joy; a wrong to one that truly lost, which it holds against the other.
+        note_deed(owner, agent, owner_gain > 0 ? 1.0 : -1.0, TRADE_REGARD, PlainDeed, true);
+        note_deed(agent, owner, agent_gain > 0 ? 1.0 : -1.0, TRADE_REGARD, PlainDeed, true);
+        if (agent_gain > 0) agent.reward += TRADE_JOY;
+        if (owner_gain > 0) owner.reward += TRADE_JOY;
         agent.last_action = "traded";
         note_first("traded", agent.species, agent.identifier);
     }

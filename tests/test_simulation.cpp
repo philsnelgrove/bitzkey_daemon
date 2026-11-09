@@ -3842,6 +3842,29 @@ TEST_CASE("an offer is weighed by both: a deal that seems a gain to each is made
     simulation.offer(trader, owner, ArmourPossession, MeatGood);
     CHECK(trader.last_action == "traded");
     CHECK((owner.carried_meat == 1 && trader.carried_meat == 0 && trader.armour == WoodArmour));
+
+    // A dull owner may be talked into a deal that truly costs it: no joy, and it thinks the worse of the trader.
+    CHECK(Simulation::trade_bias(7, 2) == Simulation::trade_bias(7, 2));  // its misjudgement, the same each time
+    CHECK(Simulation::trade_bias(7, 2) != Simulation::trade_bias(7, 3));
+    CHECK(Simulation::trade_bias(7, 2) == doctest::Approx(0.9222179767494598).epsilon(1e-15));  // as the Python version's
+    owner.mind[Intellect] = 0.0;
+    owner.hunger = 0.0;
+    owner.carried_meat = 0;
+    owner.armour = WoodArmour;
+    trader.armour = NoArmour;
+    trader.carried_fruit = 1;  // a little fruit, worth less than armour to a sated owner
+    const double regard = simulation.regard_for(owner, trader), joy = owner.reward;
+    const double misjudge = TRADE_MISJUDGE;
+    TRADE_MISJUDGE = 2.0;  // badly, so it is soon talked into it
+    bool cheated = false;
+    for (int tries = 0; tries < 200 && !cheated; ++tries) {  // until its misjudgement lets it through
+        simulation.offer(trader, owner, ArmourPossession, FruitGood);
+        cheated = trader.last_action == "traded";
+    }
+    TRADE_MISJUDGE = misjudge;
+    REQUIRE(cheated);
+    CHECK(owner.reward == joy);
+    CHECK(simulation.regard_for(owner, trader) < regard);
 }
 
 TEST_CASE("a leader is recognised by those who hold it their standout, and its followers defer, rally and defend it") {

@@ -624,8 +624,11 @@ inline double GIVE_LEVEL = 0.75, GIVE_JOY = 0.5, TAKE_LEVEL = 0.75, THEFT_DISREG
 // least that the other would gain from, for what it would gain most from. Each judges the deal, misjudging each
 // good's worth by up to TRADE_MISJUDGE times one less its intelligence, either way: the one offering may think better
 // of it, and the other accepts only if it seems a gain. An accepted deal is a kindness both ways (TRADE_REGARD of a
-// deed's weight) and a joy to both (TRADE_JOY), whoever came off better; a refusal is nothing.
-inline double TRADE_MISJUDGE = 0.5, TRADE_REGARD = 0.5, TRADE_JOY = 0.5;
+// deed's weight); each side that truly gained takes joy in it (TRADE_JOY), and one that truly lost thinks the worse
+// of the other instead, as much. A refusal is nothing. Choosing what to offer, an animal sees each kind of good
+// through a misjudgement of its own, the same each time (Simulation::trade_bias), as large as at the deal; and it
+// judges an offer from one it thinks ill of the worse, by TRADE_WARINESS times that ill regard.
+inline double TRADE_MISJUDGE = 0.5, TRADE_REGARD = 0.5, TRADE_JOY = 0.5, TRADE_WARINESS = 0.5;
 // Marks of the victor: one that defeats an omnivore, killing it or winning a fight over a possession, bears the mark of
 // the warrior (WARRIOR_MARK), and one that defeats a predator the mark of prestige (PRESTIGE_MARK), the better; it keeps
 // the better it has earned for life, whatever it does after. Each turn, all who see it and don't hold it a foe move their
@@ -1702,6 +1705,14 @@ public:
     double good_worth(const Bitzkey& judge, const Bitzkey& holder, int good) const;  // holder's good, to judge
     double trade_gain(const Bitzkey& judge, const Bitzkey& from, int good) const;  // judge taking from's good
     static bool holds(const Bitzkey& holder, int good);
+    // An animal's own misjudgement of a kind of good, -1 to 1, the same every time: a hash of the two.
+    static double trade_bias(int identifier, int good) {
+        std::uint32_t hash = static_cast<std::uint32_t>(identifier) * 2654435761u ^ static_cast<std::uint32_t>(good + 1) * 2246822519u;
+        hash ^= hash >> 15;
+        hash *= 2654435761u;
+        hash ^= hash >> 13;
+        return hash / 4294967295.0 * 2.0 - 1.0;
+    }
     void pass_good(Bitzkey& from, Bitzkey& to, int good);
     void begin_fight(const Fight& fight);
     void brawl(Bitzkey& agent, Bitzkey& opponent);  // a turn of the fight: closer, or a blow
