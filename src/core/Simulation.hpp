@@ -949,6 +949,7 @@ struct Bitzkey {
     int realm = -1;  // its colour group (see Realm), as of the last count; -1 for none yet
     int standout = -1;  // the member of its colour group in sight it esteems most, as last sensed; -1 for none
     int follows = -1;  // its standout as of the last count, if that one was then recognised a leader; -1 for none
+    int left_leader = -1;  // why it last stopped following a leader, to be counted (see Simulation::followers_lost)
     int followers = 0;  // those whose standout it was at the last count
     bool leader = false;  // recognised a leader at the last count
     int trespass = 0;  // turns it has stood in another group's land without a break
@@ -1354,6 +1355,9 @@ public:
     static constexpr std::size_t GIFT_LOG = 20000;
     std::vector<Gift> gifts_so_far() const;
     const std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4>& call_payoffs() const { return call_payoffs_; }
+    // Followers who stopped holding a recognised leader as their standout, by species and why: it died, one of them left
+    // the other's colour group, its esteem fell to nothing, or one in sight outshone it; since the world began or was loaded.
+    const std::array<std::array<long long, 4>, 4>& followers_lost() const { return followers_lost_; }
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
     struct Trade {
         int turn, offerer, owner, wanted, offered;
@@ -2006,6 +2010,7 @@ private:
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
     std::deque<Gift> gifts_;
     // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
+    std::array<std::array<long long, 4>, 4> followers_lost_{};
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood
     int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;

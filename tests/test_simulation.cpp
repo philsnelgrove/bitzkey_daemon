@@ -3592,9 +3592,11 @@ TEST_CASE("a standout is remembered out of sight until one in sight is esteemed 
     simulation.note_deed(follower, rival, 1.0, 0.3, PlainDeed, true);
     simulation.sense(follower, true);
     CHECK(follower.standout == leader.identifier);  // esteemed less: no better
+    follower.follows = leader.identifier;  // as if counted its leader
     for (int deed = 0; deed < 40; ++deed) simulation.note_deed(follower, rival, 1.0, 1.0, PlainDeed, true);  // many good turns
     simulation.sense(follower, true);
     CHECK(follower.standout == rival.identifier);  // proved the better
+    CHECK(follower.left_leader == 3);  // its leader outshone
 }
 
 TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it follows, holds more and shelters, unhitched it keeps what it held") {

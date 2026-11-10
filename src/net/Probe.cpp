@@ -1566,7 +1566,11 @@ Json Probe::society(Simulation& world) const {
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}, {"territory", territory}}},
-            {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following}, {"chains", chains}, {"followers_kin", {{"their_young", kinFollowers[0]}, {"their_parents", kinFollowers[1]}, {"their_siblings", kinFollowers[2]}, {"unrelated", kinFollowers[3]}}}, {"followed_only_by_their_young", onlyYoung}, {"recognised_leaders", recognised}, {"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
+            {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following},
+                         {"followers_lost", [&] {  // since the world began or was loaded
+                              const auto& lost = world.followers_lost()[static_cast<std::size_t>(species)];
+                              return Json{{"leader_died", lost[0]}, {"left_its_group", lost[1]}, {"esteem_fell", lost[2]}, {"outshone", lost[3]}};
+                          }()}, {"chains", chains}, {"followers_kin", {{"their_young", kinFollowers[0]}, {"their_parents", kinFollowers[1]}, {"their_siblings", kinFollowers[2]}, {"unrelated", kinFollowers[3]}}}, {"followed_only_by_their_young", onlyYoung}, {"recognised_leaders", recognised}, {"followed_by_three_or_more", followed_by_three}, {"top_five_share_of_standing", followers > 0 ? Json(static_cast<double>(top_followers) / followers) : Json(nullptr)}, {"top", leaders},
                          {"lineage", {{"top_twenty", top_twenty.size()}, {"with_kin_in_top_twenty", with_kin}, {"with_a_well_regarded_living_parent", with_regarded_parent}}},
                          {"factions", {{"top_twenty_friends_of_their_colour", top_friends ? Json(static_cast<double>(top_friends_of_colour) / top_friends) : Json(nullptr)},
                                        {"all_friends_of_their_colour", all_friends ? Json(static_cast<double>(all_friends_of_colour) / all_friends) : Json(nullptr)},

@@ -1872,6 +1872,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         Bitzkey* agent = agents[index];
         const Sensed& sensed = plans[index];
         pay_callers(*agent, sensed.situation, paid);
+        if (agent->left_leader >= 0 && agent->species != Species::Plant) {
+            ++followers_lost_[static_cast<std::size_t>(agent->species)][static_cast<std::size_t>(agent->left_leader)];
+            agent->left_leader = -1;
+        }
         note_place(*agent, sensed.senses);
         if (travelled(agent->last_action)) {
             if (sensed.situation.threat) {
@@ -2837,6 +2841,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         s.admired = std::min(3, admirers) / 3.0;
+        if (agent.follows >= 0 && agent.follows == agent.standout && (!standout || standout->identifier != agent.standout)) {
+            // Why it no longer holds its leader its standout, counted at its turn (the senses are read in parallel).
+            if (!remembered || !remembered->alive()) agent.left_leader = 0;
+            else if (remembered->species != agent.species || (agent.realm >= 0 && remembered->realm != agent.realm)) agent.left_leader = 1;
+            else if (regard_for(agent, *remembered) <= 0) agent.left_leader = 2;
+            else agent.left_leader = 3;
+        }
         agent.standout = standout ? standout->identifier : -1;
         senses[SenseLeader] = agent.leader ? 1.0 : 0.0;
         senses[SenseBow] = BOW_USES > 0 ? std::min(1.0, static_cast<double>(agent.bow_uses) / BOW_USES) : 0.0;
