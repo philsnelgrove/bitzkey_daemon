@@ -558,6 +558,9 @@ inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a sh
 inline double GEAR_EASE = 0.15;  // the ease, each turn, of a weapon or bow in hand, and as much again of armour worn
 inline double GEAR_COURAGE = 0.25;  // the share of fear's effects a weapon or bow in hand takes off, and as much again armour worn
 inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this a joy, and armour ARMOUR_JOY times this
+inline double GEAR_DESIRE = 0.05;  // desire for a kind of gear stirred by seeing it pay off, up to 1; envy counts that gear 1 + desire times
+inline double DESIRE_FADE = 0.999;  // the share of a desire for gear kept each turn, so it fades without fresh sights
+enum GearDesire { WeaponDesire, ArmourDesire, BowDesire };
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
 // A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
 // (SHELTER_COMFORT, half standing in one), and each turn of it is remembered, to a full memory after a day, so that
@@ -953,6 +956,7 @@ struct Bitzkey {
     std::array<int, CRAFT_COUNT> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
     int bow_uses = 0;      // shots left in the bow it carries; 0 for none
     double archery = 0.0;  // its skill at hitting with a bow, 0..1, from its shots
+    std::array<double, 3> desire{};  // its desire for a weapon, armour and a bow (GearDesire), 0..1, from seeing each pay off
     int tutored_turn = -1;  // the turn it last had a lesson from a tutor; -1 never
     int weapon_uses = 0, armour_uses = 0;      // how often each has been used
     int mother = -1, father = -1;  // its parents' identifiers; -1 for one spawned, imported or deployed
@@ -1789,6 +1793,9 @@ public:
     static int hide_from(const Bitzkey& corpse) { return std::max(static_cast<int>(corpse.species), corpse.hide); }
     static double garb_of(int hide) { return hide == static_cast<int>(Species::Predator) ? PRESTIGE_GARB : hide == static_cast<int>(Species::Omnivore) ? WARRIOR_GARB : 0.0; }
     static double possessions(const Bitzkey& agent);  // its possessions, for envy: its hide, tool and armour
+    static double possessions(const Bitzkey& agent, const Bitzkey& judge);  // as the judge, by its desires, weighs them
+    void gear_seen(const Bitzkey& user, int kind);  // those who see gear of that kind pay off desire it the more
+    void gear_witnessed(const Bitzkey& striker, const Bitzkey& struck);  // a blow seen: the weapon that added to it, the armour that saved
     static void donned(Bitzkey& agent, bool had_weapon, bool had_armour);  // glad of a weapon or armour it lacked
     double envy_of(const Bitzkey& agent) const;  // how envious it is: 0 at or below its kind's envy cut, 1 at the most
     // The drives that envy, taking and giving go by, each its larger of two feelings.

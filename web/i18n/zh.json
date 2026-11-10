@@ -1912,5 +1912,7 @@
 "Gear courage": "装备之勇",
 "share of its fear's effects a weapon or bow in hand takes off, and as much again armour worn": "手持武器或弓所消除的恐惧影响的份额，穿戴护甲再消除同样多",
 "Donning joy": "穿戴之乐",
-"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy": "获得武器或弓的喜悦，为工具之乐的这一份额；获得护甲的喜悦，为护甲之乐的这一份额"
+"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy": "获得武器或弓的喜悦，为工具之乐的这一份额；获得护甲的喜悦，为护甲之乐的这一份额",
+"Gear desire": "装备之欲",
+"desire for a weapon, armour or a bow stirred on seeing one pay off, friend or foe, up to 1; envy counts that gear one plus its desire times": "看到武器、护甲或弓发挥作用（无论友敌）而激起的欲望，最高为1；嫉妒将该装备按（1＋欲望）倍计算"
 }

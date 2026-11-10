@@ -3555,6 +3555,23 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("seeing gear pay off stirs a desire for it, friend or foe, and desire weighs in envy") {
+    Simulation simulation = world();
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& struck = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+    Bitzkey& watcher = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 6, 5);
+    striker.weapon = StoneAxe;
+    struck.armour = BoneArmour;
+    simulation.gear_witnessed(striker, struck);
+    CHECK(watcher.desire[WeaponDesire] == doctest::Approx(GEAR_DESIRE));
+    CHECK(watcher.desire[ArmourDesire] == doctest::Approx(GEAR_DESIRE));
+    CHECK(watcher.desire[BowDesire] == 0);
+    CHECK(striker.desire[WeaponDesire] == 0);  // not stirred by its own blow
+    CHECK(Simulation::possessions(striker, watcher) == doctest::Approx(Simulation::possessions(striker) + GEAR_DESIRE));
+    for (int sight = 0; sight < 100; ++sight) simulation.gear_witnessed(striker, struck);
+    CHECK(watcher.desire[WeaponDesire] == doctest::Approx(1.0));  // up to 1
+}
+
 TEST_CASE("a parent teaches its infant once, crafts and all, and an elder may teach it again") {
     Simulation simulation = world();
     Bitzkey& parent = simulation.add_agent(encode_dna(Species::Omnivore, {{"intellect", 4}}), 5, 5);

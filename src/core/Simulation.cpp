@@ -2658,9 +2658,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     available[Offer] = s.trade_with != nullptr;
     if (envy_of(agent) > 0) {  // the best possessions it sees, beside its own
-        const double mine = possessions(agent);
+        const double mine = possessions(agent, agent);  // each weighed by its own desires
         for (Bitzkey* other : around(agent, sight)) {
-            if (other != &agent && other->alive() && other->species != Species::Plant) s.envy = std::max(s.envy, possessions(*other) - mine);
+            if (other != &agent && other->alive() && other->species != Species::Plant) s.envy = std::max(s.envy, possessions(*other, agent) - mine);
         }
     }
     {  // the oldest of its kind in sight, and, an elder itself, the students beside it
@@ -3480,6 +3480,7 @@ void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
         return;
     }
     --archer.bow_uses;  // an arrow, and the bow the worse for it
+    gear_seen(archer, BowDesire);  // a bow drawn, seen
     const bool hit = (practice || !safe_inside(target)) && rng().random() < hit_chance(archer, away);
     archer.archery += ARCHERY_LEARNING * (1 - archer.archery);  // every shot teaches
     if (!hit) {
@@ -3501,6 +3502,7 @@ void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
     // As hard as a carried stone strikes, whatever it wields.
     const double blow = damage(archer, target) / gear_force(archer) * STONE_FORCE * land_guard(target, archer);
     wear_armour(target);
+    if (target.wearing()) gear_seen(target, ArmourDesire);
     target.health -= blow;
     archer.reward += harm_felt(archer, regard_for(archer, target));
     tally_attack(archer, target);
@@ -3926,6 +3928,26 @@ double Simulation::possessions(const Bitzkey& agent) {
     return agent.hide / 3.0 + (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0);
 }
 
+double Simulation::possessions(const Bitzkey& agent, const Bitzkey& judge) {
+    return agent.hide / 3.0 + (1 + judge.desire[WeaponDesire]) * (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) +
+           (1 + judge.desire[ArmourDesire]) * (agent.armour ? 0.5 : 0.0) + (1 + judge.desire[BowDesire]) * (agent.bow_uses > 0 ? 0.5 : 0.0);
+}
+
+void Simulation::gear_seen(const Bitzkey& user, int kind) {
+    if (GEAR_DESIRE <= 0) return;
+    for (Bitzkey* other : around(user, user.sight)) {  // friend or foe, any kind, that has it in sight
+        if (!other->alive() || other->species == Species::Plant || distance(other->x, other->y, user.x, user.y) > other->sight) continue;
+        double& desire = other->desire[static_cast<std::size_t>(kind)];
+        desire = std::min(1.0, desire + GEAR_DESIRE);
+    }
+}
+
+void Simulation::gear_witnessed(const Bitzkey& striker, const Bitzkey& struck) {
+    if (striker.species == Species::Plant || struck.species == Species::Plant) return;
+    if (gear_force(striker) > 1) gear_seen(striker, WeaponDesire);
+    if (struck.wearing()) gear_seen(struck, ArmourDesire);
+}
+
 void Simulation::donned(Bitzkey& agent, bool had_weapon, bool had_armour) {
     if (!had_weapon && agent.wielding()) agent.reward += DON_JOY * TOOL_JOY;
     if (!had_armour && agent.wearing()) agent.reward += DON_JOY * ARMOUR_JOY;
@@ -4143,7 +4165,8 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         if (agent.call == AlertCall && s.alert_to) alert(agent, *s.alert_to);
     }
     const std::size_t passed = agent.trail.size();
-    const double had = possessions(agent);
+    for (double& desire : agent.desire) desire *= DESIRE_FADE;
+    const double had = possessions(agent, agent);
     const Fight* fight = action != Flee ? fight_of(agent.identifier) : nullptr;
     Bitzkey* opponent = fight ? find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief) : nullptr;
     if (opponent && opponent->alive()) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
@@ -4153,7 +4176,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         agent.food_memory = Place{agent.x, agent.y, turn_};
     }
     if (!agent.alive()) return;
-    if (const double gained = possessions(agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
+    if (const double gained = possessions(agent, agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
     if (garb_of(agent.hide) > 0) deed_seen(agent, garb_of(agent.hide), nullptr, GarbDeed);  // its garb, seen
     if (agent.mark != NoMark && MARK_REGARD > 0) deed_seen(agent, mark_worth(agent.mark), nullptr, MarkDeed);  // and its mark
     if (did == "rested") {
@@ -5359,6 +5382,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     const double joy = FIGHT_JOY * agent.feeling(Aggression) * (1 - 0.6 * empathy) * (1 - 0.75 * agent.feeling(Tolerance));
     double blow = damage(agent, victim);
     gear_pays(agent, victim, blow);
+    gear_witnessed(agent, victim);
     wear_weapon(agent);
     wear_armour(victim);
     for (const Bitzkey* other : around(victim, 1)) {
@@ -5427,6 +5451,7 @@ void Simulation::exhausted(Bitzkey& agent) {
 void Simulation::defend(Bitzkey& agent, Bitzkey& assailant, bool for_herd) {
     const double blow = damage(agent, assailant, true) * land_guard(assailant, agent);  // less, at one in its own land
     gear_pays(agent, assailant, blow);
+    gear_witnessed(agent, assailant);
     wear_weapon(agent);
     wear_armour(assailant);
     assailant.health -= blow;
