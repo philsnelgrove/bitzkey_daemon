@@ -368,6 +368,7 @@ inline double REGARD_LEARNING = 0.3;
 // A child is held, by one that has not yet judged it by its own deeds, at INHERITED_REGARD of how that one holds its
 // parents (those of the two it knows, averaged): their regard, and their reputation for danger and skill.
 inline double INHERITED_REGARD = 0.5;
+inline double EAVESDROP_SHARE = 0.1;  // see deed_seen: a friend's treatment of another, seen, colours the watcher's view of that other
 inline double WITNESS_SHARE = 0.25;
 // A deed of skill seen counts for more toward how skilled the doer is held than toward liking it: SKILL_WITNESS of
 // its weight on skill (and on danger, which it lowers), however little Witness share gives regard.

@@ -238,6 +238,7 @@ std::vector<Rule> make_rules() {
         {"FACTIONS", "Mind", "Factions", "how many body colours an animal keeps a reputation for; none at 0", 0, MAX_FACTIONS, 1, true, &FACTIONS},
         {"FACTION_SHARE", "Mind", "Faction share", "how much of a deed's weight also falls on the doer's whole colour", 0.0, 1.0, 0.05, false, &FACTION_SHARE},
         {"FACTION_WIDTH", "Mind", "Faction width", "how far apart on the body ring two animals may be and count as one faction", 0.0, 0.5, 0.01, false, &FACTION_WIDTH},
+        {"EAVESDROP_SHARE", "Mind", "Eavesdropping", "how much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen", 0.0, 1.0, 0.05, false, &EAVESDROP_SHARE},
         {"WITNESS_SHARE", "Mind", "Witness share", "how much of a deed's weight it has on regard when only seen done, not done to the animal", 0.0, 1.0, 0.05, false, &WITNESS_SHARE},
         {"SKILL_WITNESS", "Mind", "Skill witness", "how much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share", 0.0, 1.0, 0.05, false, &SKILL_WITNESS},
         {"REGARD_LEARNING", "Mind", "Regard learning", "how far each deed moves an animal's regard for the doer toward the deed's worth", 0.0, 1.0, 0.05, false, &REGARD_LEARNING},

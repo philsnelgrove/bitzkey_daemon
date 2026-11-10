@@ -3555,6 +3555,25 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("seeing a friend treat another well or ill colours the watcher's view of that other; a foe's deeds do not") {
+    Simulation simulation = world(20);
+    Bitzkey& watcher = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    Bitzkey& foe = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 6);
+    simulation.note_deed(watcher, friend_, 1.0, 0.8, PlainDeed, true);
+    simulation.note_deed(watcher, foe, -1.0, 1.0, PlainDeed, true);
+    simulation.note_deed(watcher, other, 0.0, 1.0, PlainDeed, true);  // known, held neither way
+    const double before = simulation.regard_for(watcher, other);
+    simulation.deed_seen(foe, 1.0, &other, PlainDeed);
+    CHECK(simulation.regard_for(watcher, other) == before);  // one it holds no friend teaches it nothing
+    simulation.deed_seen(friend_, 1.0, &other, PlainDeed);  // a friend's kindness to it
+    const double kind = simulation.regard_for(watcher, other);
+    CHECK(kind > before);
+    simulation.deed_seen(friend_, -1.0, &other, HarmDeed);  // and a friend's blow
+    CHECK(simulation.regard_for(watcher, other) < kind);
+}
+
 TEST_CASE("a standout is remembered out of sight until one in sight is esteemed more, and its call is known") {
     Simulation simulation = world(60);
     Bitzkey& follower = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);

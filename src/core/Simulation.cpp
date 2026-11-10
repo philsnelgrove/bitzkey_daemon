@@ -3251,6 +3251,14 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
     for (Bitzkey* other : around(doer, doer.sight)) {
         if (other == &doer || other == target || !other->alive() || !other->brain) continue;
         if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
+        // Eavesdropping: how one it holds a friend treats another, well or ill, colours its own view of that other, as
+        // much as it regards the friend. Nothing is told; it is seen.
+        if (target && EAVESDROP_SHARE > 0 && target->alive() && target->species != Species::Plant) {
+            const double treated = kind == VictoryDeed || kind == TheftDeed ? -1.0 : kind == CultureDeed || kind == GarbDeed || kind == LieDeed || kind == MarkDeed ? 0.0
+                                   : deed > 0 ? 1.0 : deed < 0 ? -1.0 : 0.0;
+            const double trust = regard_for(*other, doer);
+            if (treated != 0 && trust > 0) note_deed(*other, *target, treated, EAVESDROP_SHARE * trust, PlainDeed, true);
+        }
         if (culture != NoCulture || kind == VictoryDeed) culture_seen(*other, doer, kind == VictoryDeed ? VictoryCulture : culture);
         if (kind == CultureDeed) continue;
         if (kind == GarbDeed || kind == LieDeed) {
