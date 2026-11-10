@@ -365,6 +365,7 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
         {"wears", agent.armour},
         {"leader", agent.alive() && agent.leader},
         {"rank", agent.alive() && agent.leader ? agent.rank : 0},
+        {"emperor", agent.alive() && agent.emperor},
         {"rank_title", std::string(TITLES[static_cast<std::size_t>(agent.alive() && agent.leader ? std::clamp(agent.rank, 0, MAX_RANK) : 0)])},
         {"terrain", std::string(terrain_name(agent.terrain))},
         {"dot", hex_word(mind_word(agent.dna))},

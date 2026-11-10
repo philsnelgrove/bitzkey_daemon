@@ -707,11 +707,13 @@ inline double STANDING_JOY = 0.2, FOLLOW_COMFORT = 0.2;
 // courted first by any that may breed with it, and its partner takes LEADER_ALLURE more joy in breeding with it.
 // Each senses whether it leads, and whether its standout does. LEADER_FOLLOWERS 0 for no leaders.
 inline int LEADER_FOLLOWERS = 5;
-// Ranks: a leader no leader follows is a chief; one a leader of rank r follows is of rank r + 1, up to MAX_RANK. Each rank
-// above chief makes its leader's bonuses RANK_BONUS the stronger, and each who sees a titled leader and holds it no foe
-// esteems it TITLE_REGARD times its rank the more, each turn.
-constexpr int MAX_RANK = 6;
-constexpr std::array<std::string_view, MAX_RANK + 1> TITLES = {"none", "chief", "lord", "baron", "count", "duke", "king"};
+// Ranks: a leader no leader follows is a chief; one a leader of rank r follows is of rank r + 1, by the longest chain
+// beneath it, up to king; leaders who follow one another round a loop hold no rank over each other. The first king of a
+// colour group with no emperor living is crowned its emperor, for life, and follows none. Each rank above chief makes its
+// leader's bonuses RANK_BONUS the stronger, and each who sees a titled leader and holds it no foe esteems it TITLE_REGARD
+// times its rank the more, each turn.
+constexpr int KING_RANK = 6, EMPEROR_RANK = 7, MAX_RANK = EMPEROR_RANK;
+constexpr std::array<std::string_view, MAX_RANK + 1> TITLES = {"none", "chief", "lord", "baron", "count", "duke", "king", "emperor"};
 inline double RANK_BONUS = 0.25, TITLE_REGARD = 0.01;
 inline double LEADER_DEFERENCE = 0.5, LEADER_RALLY = 0.5, LEADER_JOY = 0.3, LEADER_ALLURE = 0.5;
 inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
@@ -959,6 +961,7 @@ struct Bitzkey {
     int followers = 0;  // those whose standout it was at the last count
     bool leader = false;  // recognised a leader at the last count
     int rank = 0;  // and its rank then, by those under it: 0 none, 1 a chief, up to MAX_RANK (see TITLES)
+    bool emperor = false;  // crowned its colour group's emperor, for life: a leader that follows none
     double rank_factor() const { return 1 + RANK_BONUS * std::max(0, rank - 1); }  // its leader's bonuses, by its rank
     int trespass = 0;  // turns it has stood in another group's land without a break
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)

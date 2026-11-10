@@ -3598,7 +3598,7 @@ void Simulation::recognise_leaders() {
     // Each counted as the standout of so many, now: recognised at LEADER_FOLLOWERS, kept until under half as many.
     std::unordered_map<int, int> held;
     for (const auto& agent : agents_) {
-        if (agent->alive() && agent->standout >= 0) ++held[agent->standout];
+        if (agent->alive() && agent->standout >= 0 && !agent->emperor) ++held[agent->standout];  // an emperor follows none
     }
     leaders_ = 0;
     for (const auto& agent : agents_) {
@@ -3606,30 +3606,55 @@ void Simulation::recognise_leaders() {
         const auto found = held.find(agent->identifier);
         agent->followers = found == held.end() ? 0 : found->second;
         const bool was = agent->leader;
-        agent->leader = LEADER_FOLLOWERS > 0 && agent->species != Species::Plant && !agent->infant() &&
-                        agent->followers >= (was ? (LEADER_FOLLOWERS + 1) / 2 : LEADER_FOLLOWERS);
+        agent->leader = agent->emperor || (LEADER_FOLLOWERS > 0 && agent->species != Species::Plant && !agent->infant() &&
+                                           agent->followers >= (was ? (LEADER_FOLLOWERS + 1) / 2 : LEADER_FOLLOWERS));  // an emperor for life
         if (agent->leader && !was) note_first("recognised_a_leader", agent->species, agent->identifier);
         leaders_ += agent->leader;
     }
     for (const auto& agent : agents_) {
         const Bitzkey* standout = agent->standout >= 0 ? find_agent(agent->standout) : nullptr;
-        agent->follows = standout && standout->alive() && standout->leader ? standout->identifier : -1;
+        agent->follows = !agent->emperor && standout && standout->alive() && standout->leader ? standout->identifier : -1;
     }
-    // Ranks, afresh: a chief each leader, and each followed by a leader one rank above it, as far as a few rounds carry
-    // (a loop of leaders stops at MAX_RANK).
-    for (const auto& agent : agents_) agent->rank = agent->alive() && agent->leader ? 1 : 0;
-    for (int round = 1; round < MAX_RANK; ++round) {
-        bool raised = false;
-        for (const auto& agent : agents_) {
-            if (agent->rank == 0 || agent->follows < 0) continue;
-            Bitzkey* above = find_agent(agent->follows);
-            const int rank = std::min(MAX_RANK, agent->rank + 1);
-            if (above && above->rank > 0 && above->rank < rank) {
-                above->rank = rank;
-                raised = true;
+    // Leaders who follow one another round a loop hold no rank over each other: none of them follows another.
+    for (const auto& agent : agents_) {
+        if (!agent->leader || agent->follows < 0) continue;
+        std::vector<Bitzkey*> loop{agent.get()};
+        for (Bitzkey* step = find_agent(agent->follows); step && step->leader && loop.size() <= 64; step = step->follows >= 0 ? find_agent(step->follows) : nullptr) {
+            if (step == agent.get()) {
+                for (Bitzkey* one : loop) one->follows = -1;
+                break;
             }
+            loop.push_back(step);
         }
-        if (!raised) break;
+    }
+    // Ranks, afresh: a chief each leader, and one rank above the highest leader that follows it, by the longest chain
+    // beneath it, up to king.
+    std::unordered_map<int, std::vector<Bitzkey*>> under;
+    for (const auto& agent : agents_) {
+        agent->rank = 0;
+        if (agent->alive() && agent->leader && agent->follows >= 0) under[agent->follows].push_back(agent.get());
+    }
+    std::unordered_map<int, int> ranked;
+    const std::function<int(Bitzkey&)> rank_of = [&](Bitzkey& leader) {
+        if (const auto known = ranked.find(leader.identifier); known != ranked.end()) return known->second;
+        int rank = 1;
+        if (const auto found = under.find(leader.identifier); found != under.end()) {
+            for (Bitzkey* below : found->second) rank = std::max(rank, std::min(KING_RANK, rank_of(*below) + 1));
+        }
+        ranked[leader.identifier] = rank;
+        return rank;
+    };
+    std::set<std::pair<int, int>> reigning;  // the colour groups (by species and group) with an emperor living
+    for (const auto& agent : agents_) {
+        if (!agent->alive() || !agent->leader) continue;
+        agent->rank = agent->emperor ? EMPEROR_RANK : rank_of(*agent);
+        if (agent->emperor) reigning.insert({static_cast<int>(agent->species), agent->realm});
+    }
+    for (const auto& agent : agents_) {  // the first king of a group with no emperor is crowned, and follows none
+        if (!agent->alive() || agent->rank != KING_RANK || !reigning.insert({static_cast<int>(agent->species), agent->realm}).second) continue;
+        agent->emperor = true;
+        agent->rank = EMPEROR_RANK;
+        agent->follows = -1;
     }
     for (const auto& agent : agents_) {
         if (agent->rank >= 2) note_first(std::string("first_") + std::string(TITLES[static_cast<std::size_t>(agent->rank)]), agent->species, agent->identifier);

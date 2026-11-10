@@ -3555,6 +3555,35 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("leaders who follow one another hold no rank over each other; the first king of a group is crowned its emperor") {
+    Simulation simulation = world(60);
+    const auto leader_at = [&](int x, int y, int followers) {
+        Bitzkey& one = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), x, y);
+        one.age = static_cast<decltype(one.age)>(one.infancy() + 1);
+        for (int index = 0; index < followers; ++index) simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), x, y + 1).standout = one.identifier;
+        return &one;
+    };
+    Bitzkey& a = *leader_at(2, 2, LEADER_FOLLOWERS - 1);
+    Bitzkey& b = *leader_at(4, 2, LEADER_FOLLOWERS - 1);
+    a.standout = b.identifier;
+    b.standout = a.identifier;
+    simulation.recognise_leaders();
+    CHECK(a.rank == 1);  // a loop: neither above the other
+    CHECK(b.rank == 1);
+    std::vector<Bitzkey*> chain;
+    for (int link = 0; link < KING_RANK; ++link) chain.push_back(leader_at(10 + 3 * link, 20, link == 0 ? LEADER_FOLLOWERS : LEADER_FOLLOWERS - 1));
+    for (int link = 0; link + 1 < KING_RANK; ++link) chain[static_cast<std::size_t>(link)]->standout = chain[static_cast<std::size_t>(link + 1)]->identifier;
+    simulation.recognise_leaders();
+    CHECK(chain.back()->emperor);  // reached king, crowned
+    CHECK(chain.back()->rank == EMPEROR_RANK);
+    CHECK(TITLES[EMPEROR_RANK] == "emperor");
+    CHECK(chain[KING_RANK - 2]->rank == 5);  // a duke beneath it
+    chain.back()->standout = a.identifier;  // an emperor follows none
+    simulation.recognise_leaders();
+    CHECK(chain.back()->follows == -1);
+    CHECK(chain.back()->rank == EMPEROR_RANK);
+}
+
 TEST_CASE("a leader followed by leaders ranks above them, and its bonuses grow with its rank") {
     Simulation simulation = world(30);
     std::vector<Bitzkey*> made;

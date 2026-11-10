@@ -329,7 +329,7 @@ export function drawCrown(ctx, x, y, radius, rank = 1) {
                          [x - half / 2, foot - high / 2], [x - half, foot - high]]) ctx.lineTo(px, py);
   ctx.closePath();
   ctx.fill();
-  const stars = Math.max(0, Math.min(6, rank)), outer = Math.max(2, radius / 3), inner = Math.max(1, outer * 0.4);
+  const stars = Math.max(0, Math.min(7, rank)), outer = Math.max(2, radius / 3), inner = Math.max(1, outer * 0.4);
   const cy = foot - high - outer - 2, step = 2 * outer + Math.max(1, outer / 2);
   ctx.fillStyle = 'rgb(250, 228, 140)';
   for (let star = 0; star < stars; ++star) {
