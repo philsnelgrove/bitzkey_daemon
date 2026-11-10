@@ -1944,5 +1944,15 @@
 "Regrowth joy": "Alegría del rebrote",
 "the gladness of seeing a plant it last picked bear fruit again": "la alegría de ver dar fruto de nuevo a una planta que recogió la última vez",
 "Loyalty margin": "Margen de lealtad",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "cuánta más estima, por su lealtad, debe tener un seguidor por otro antes de poder dejar a su líder por él; más allá, más probable cuanto más, y más seguro cuanto menos leal"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "cuánta más estima, por su lealtad, debe tener un seguidor por otro antes de poder dejar a su líder por él; más allá, más probable cuanto más, y más seguro cuanto menos leal",
+"Conviction level": "Nivel de convicción",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "parte de su rango completo a partir de la cual la empatía o la tolerancia se vuelve una convicción mantenida aun pasando hambre: un herbívoro empático no arranca, un depredador empático perdona a las crías y a las preñadas, un animal tolerante no golpea a ningún enemigo ni expulsa a ninguno",
+"Sociable trade": "Comercio sociable",
+"how much more an animal values making an offer, times its sociability": "cuánto más valora un animal hacer una oferta, por su sociabilidad",
+"Uproot sorrow": "Pesar al arrancar",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "el pesar de un herbívoro al arrancar una planta, por la mitad más su empatía",
+"Empathy scruple": "Escrúpulo de empatía",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "cuánto menos valora un animal arrancar una planta, por su empatía, y un depredador cazar, golpear o devorar crías o preñadas",
+"Tolerance scruple": "Escrúpulo de tolerancia",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "cuánto menos valora un animal golpear o expulsar a un enemigo, por su tolerancia; cazar para comer no cambia"
 }

@@ -1944,5 +1944,15 @@
 "Regrowth joy": "Радість відростання",
 "the gladness of seeing a plant it last picked bear fruit again": "радість бачити, як рослина, з якої востаннє зривав, знову плодоносить",
 "Loyalty margin": "Межа вірності",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "наскільки більшу пошану, помножену на вірність, послідовник має мати до іншого, перш ніж може покинути свого ватажка заради нього; понад це, тим імовірніше, чим далі, і тим певніше, чим менш вірний"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "наскільки більшу пошану, помножену на вірність, послідовник має мати до іншого, перш ніж може покинути свого ватажка заради нього; понад це, тим імовірніше, чим далі, і тим певніше, чим менш вірний",
+"Conviction level": "Рівень переконання",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "частка повного діапазону, від якої емпатія чи терпимість стає переконанням, яке тримають навіть голодуючи: емпатичний травоїдний не вириває, емпатичний хижак щадить малят і вагітних, терпима тварина не б'є ворога й нікого не виганяє",
+"Sociable trade": "Товариська торгівля",
+"how much more an animal values making an offer, times its sociability": "наскільки більше тварина цінує зробити пропозицію, помножено на її товариськість",
+"Uproot sorrow": "Жаль вирвати",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "жаль травоїдного, що вирвав рослину, помножений на половину плюс його емпатію",
+"Empathy scruple": "Докори емпатії",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "наскільки менше тварина цінує вирвати рослину, помножено на її емпатію, а хижак полювати, бити чи поїдати малят або вагітних",
+"Tolerance scruple": "Докори терпимості",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "наскільки менше тварина цінує вдарити чи вигнати ворога, помножено на її терпимість; полювання заради їжі не змінюється"
 }

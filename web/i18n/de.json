@@ -1944,5 +1944,15 @@
 "Regrowth joy": "Freude am Nachwachsen",
 "the gladness of seeing a plant it last picked bear fruit again": "die Freude, eine zuletzt gepflückte Pflanze wieder Früchte tragen zu sehen",
 "Loyalty margin": "Treuespielraum",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "wie viel mehr Achtung, mal seiner Treue, ein Gefolgsmann einem anderen entgegenbringen muss, bevor er seinen Anführer für ihn verlassen kann; darüber hinaus umso wahrscheinlicher, je weiter, und umso sicherer, je weniger treu"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "wie viel mehr Achtung, mal seiner Treue, ein Gefolgsmann einem anderen entgegenbringen muss, bevor er seinen Anführer für ihn verlassen kann; darüber hinaus umso wahrscheinlicher, je weiter, und umso sicherer, je weniger treu",
+"Conviction level": "Überzeugungsgrad",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "Anteil seiner vollen Spanne, ab dem Mitgefühl oder Toleranz zu einer Überzeugung wird, die auch hungernd gehalten wird: ein mitfühlender Weidegänger entwurzelt nicht, ein mitfühlender Räuber verschont Junge und Trächtige, ein tolerantes Tier schlägt keinen Feind und vertreibt keinen",
+"Sociable trade": "Geselliger Handel",
+"how much more an animal values making an offer, times its sociability": "wie viel mehr ein Tier es schätzt, ein Angebot zu machen, mal seiner Geselligkeit",
+"Uproot sorrow": "Kummer beim Entwurzeln",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "der Kummer eines Weidegängers, eine Pflanze auszureißen, mal einer Hälfte plus seinem Mitgefühl",
+"Empathy scruple": "Skrupel des Mitgefühls",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "wie viel weniger ein Tier es schätzt, eine Pflanze zu entwurzeln, mal seinem Mitgefühl, und ein Räuber, Junge oder Trächtige zu jagen, zu schlagen oder zu fressen",
+"Tolerance scruple": "Skrupel der Toleranz",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "wie viel weniger ein Tier es schätzt, einen Feind zu schlagen oder zu vertreiben, mal seiner Toleranz; die Jagd zum Fressen bleibt unberührt"
 }

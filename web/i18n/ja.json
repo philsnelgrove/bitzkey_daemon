@@ -1944,5 +1944,15 @@
 "Regrowth joy": "再結実の喜び",
 "the gladness of seeing a plant it last picked bear fruit again": "最後に摘んだ植物がまた実をつけるのを見る喜び",
 "Loyalty margin": "忠誠の幅",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "従者がリーダーを離れて別の者に付く前に、その者をどれだけ多く敬わねばならないか（忠誠を掛ける）。それを超えると、差が大きいほど起こりやすく、忠誠が低いほど確実"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "従者がリーダーを離れて別の者に付く前に、その者をどれだけ多く敬わねばならないか（忠誠を掛ける）。それを超えると、差が大きいほど起こりやすく、忠誠が低いほど確実",
+"Conviction level": "信念の水準",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "共感や寛容が飢えても守る信念となる、その全幅に対する割合：共感的な草食獣は根こそぎにせず、共感的な捕食者は子や身ごもった者を見逃し、寛容な動物は敵を打たず追い払いもしない",
+"Sociable trade": "社交的な交易",
+"how much more an animal values making an offer, times its sociability": "動物が申し出をすることをどれだけ多く重んじるか（社交性を掛ける）",
+"Uproot sorrow": "根こそぎの悲しみ",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "草食獣が植物を引き抜くときの悲しみ（半分に共感を足したものを掛ける）",
+"Empathy scruple": "共感のためらい",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "動物が植物を根こそぎにすることをどれだけ低く見るか（共感を掛ける）、また捕食者が子や身ごもった者を狩り・打ち・食べること",
+"Tolerance scruple": "寛容のためらい",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "動物が敵を打ったり追い払ったりすることをどれだけ低く見るか（寛容を掛ける）。食べるための狩りは変わらない"
 }

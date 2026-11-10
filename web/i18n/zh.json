@@ -1944,5 +1944,15 @@
 "Regrowth joy": "再结果之乐",
 "the gladness of seeing a plant it last picked bear fruit again": "看到自己最后采摘过的植物再次结果的喜悦",
 "Loyalty margin": "忠诚门槛",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "追随者须对另一者多敬重多少（乘以其忠诚）才可能为其离开自己的首领；超过之后，差距越大越可能，越不忠诚越确定"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "追随者须对另一者多敬重多少（乘以其忠诚）才可能为其离开自己的首领；超过之后，差距越大越可能，越不忠诚越确定",
+"Conviction level": "信念门槛",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "共情或宽容达到其全幅的这一比例时成为即使挨饿也坚守的信念：有共情的食草者不拔植物，有共情的捕食者放过幼崽和怀孕者，宽容的动物不攻击敌人也不驱逐任何人",
+"Sociable trade": "爱交际的交易",
+"how much more an animal values making an offer, times its sociability": "动物多重视提出交易（乘以其社交性）",
+"Uproot sorrow": "拔根之憾",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "食草者拔起植物时的悲伤（乘以一半加其共情）",
+"Empathy scruple": "共情的顾忌",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "动物对拔起植物的看重降低多少（乘以其共情），以及捕食者对猎捕、攻击或吞食幼崽和怀孕者的看重",
+"Tolerance scruple": "宽容的顾忌",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "动物对攻击或驱逐敌人的看重降低多少（乘以其宽容）；为食而猎不受影响"
 }

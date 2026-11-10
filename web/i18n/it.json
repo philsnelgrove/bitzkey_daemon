@@ -1944,5 +1944,15 @@
 "Regrowth joy": "Gioia della ricrescita",
 "the gladness of seeing a plant it last picked bear fruit again": "la gioia di vedere una pianta che ha colto per ultimo dare di nuovo frutti",
 "Loyalty margin": "Margine di lealtà",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "quanta più stima, per la sua lealtà, un seguace deve avere per un altro prima di poter lasciare il suo capo per lui; oltre, tanto più probabile quanto più, e tanto più sicuro quanto meno leale"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "quanta più stima, per la sua lealtà, un seguace deve avere per un altro prima di poter lasciare il suo capo per lui; oltre, tanto più probabile quanto più, e tanto più sicuro quanto meno leale",
+"Conviction level": "Livello di convinzione",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "quota del suo intero intervallo oltre la quale l'empatia o la tolleranza diventa una convinzione mantenuta anche affamato: un erbivoro empatico non sradica, un predatore empatico risparmia i piccoli e le gravide, un animale tollerante non colpisce nemici né ne scaccia",
+"Sociable trade": "Commercio socievole",
+"how much more an animal values making an offer, times its sociability": "quanto più un animale apprezza fare un'offerta, per la sua socievolezza",
+"Uproot sorrow": "Dolore dello sradicare",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "il dolore di un erbivoro nello sradicare una pianta, per una metà più la sua empatia",
+"Empathy scruple": "Scrupolo dell'empatia",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "quanto meno un animale apprezza sradicare una pianta, per la sua empatia, e un predatore cacciare, colpire o divorare piccoli o gravide",
+"Tolerance scruple": "Scrupolo della tolleranza",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "quanto meno un animale apprezza colpire o scacciare un nemico, per la sua tolleranza; cacciare per mangiare resta invariato"
 }

@@ -1134,6 +1134,57 @@ TEST_CASE("loyalty: a follower leaves its leader for a better only by chance, th
     CHECK((whim(7, 100) >= 0.0 && whim(7, 100) < 1.0));
 }
 
+TEST_CASE("convictions: an empathetic grazer won't uproot, an empathetic predator spares the young, a tolerant one strikes no foe") {
+    Simulation simulation(Simulation::Settings{30, 30, 0, 3});
+    simulation.clear_grass();
+    simulation.set_grass_regrowth(0);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 10, 10);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant, {{"size", 0}}), 11, 10);
+    simulation.index_cells();
+    const auto offered = [](const Simulation::Sensed& found, int action) {
+        return std::find(found.options.begin(), found.options.end(), action) != found.options.end();
+    };
+    grazer.hunger = 85;
+    plant.fruit = 0;
+    grazer.mind[Empathy] = 6.0;
+    CHECK(offered(simulation.sense(grazer), Uproot));
+    grazer.mind[Empathy] = 7.0;  // the most there is: it would rather starve
+    CHECK_FALSE(offered(simulation.sense(grazer), Uproot));
+    grazer.mind[Tolerance] = 7.0;
+    CHECK(Simulation::convinced(grazer, Tolerance));
+}
+
+TEST_CASE("convictions: an empathetic predator spares the young") {
+    const double feeble_youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;  // young are infants for a tenth of their lives, as in a world
+    Simulation simulation = world(20);
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator), 5, 5);
+    Bitzkey& young = simulation.add_agent(encode_dna(Species::Predator, {{"size", 0}}), 6, 5);  // newborn, as in the guarding test
+    REQUIRE(young.infant());
+    predator.mind[Empathy] = 6.0;
+    CHECK_FALSE(Simulation::spares(predator, young));
+    predator.mind[Empathy] = 7.0;
+    CHECK(Simulation::spares(predator, young));  // the young are spared
+    young.age = static_cast<int>(std::lround(young.lifespan / 2));
+    young.grow();
+    REQUIRE_FALSE(young.infant());
+    CHECK_FALSE(Simulation::spares(predator, young));  // a grown one, hunted as ever
+    FEEBLE_YOUTH = feeble_youth;
+}
+
+TEST_CASE("scruples: the kinder value uprooting less, and the more tolerant striking a foe, as their traits rise") {
+    Simulation simulation(Simulation::Settings{30, 30, 0, 3});
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Simulation::Situation nothing;
+    for (const double empathy : {0.0, 3.5, 7.0}) {
+        grazer.mind[Empathy] = empathy;
+        Values valued{};
+        simulation.add_scruples(grazer, valued, nothing);
+        CHECK(valued[Uproot] == doctest::Approx(-EMPATHY_SCRUPLE * grazer.feeling(Empathy)));
+        CHECK(valued[Hunt] == 0.0);  // nothing to hunt or strike
+    }
+}
+
 TEST_CASE("no body is left without a recorded death, even when moving, striking and seeding starve") {
     const double go = GO_EFFORT, strike = STRIKE_EFFORT;
     const double seed_cost = SEED_COST, seed_hunger = SEED_HUNGER;

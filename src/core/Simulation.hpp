@@ -248,6 +248,16 @@ inline double LOYALTY_PULL = 0.25;
 // share of the way it is from there to the most there can be, raised to its loyalty. A loyal one needs a far better
 // one even to waver; one without loyalty turns to any better on a whim.
 inline double LOYALTY_MARGIN = 0.5;
+// Convictions: a trait at CONVICTION_LEVEL of its full range or more is one it won't break, even starving. Empathy: a
+// grazer won't uproot a plant, and a predator won't hunt, strike or feast on an infant or one carrying young.
+// Tolerance: it won't strike a foe nor drive one from its land, only defend itself and its own; it still hunts to eat.
+inline double CONVICTION_LEVEL = 1.0;
+// Scruples, short of conviction: the kinder value uprooting a plant EMPATHY_SCRUPLE less, times their empathy, and a
+// predator likewise hunting, striking or feasting on an infant or one carrying young; the more tolerant value striking
+// a foe or driving one out TOLERANCE_SCRUPLE less, times their tolerance, though not hunting to eat.
+inline double EMPATHY_SCRUPLE = 1.0, TOLERANCE_SCRUPLE = 1.0;
+// Sociability: an animal values making an offer this much more, times its sociability.
+inline double SOCIABLE_TRADE = 0.25;
 inline bool swayed(double loyalty, double margin, double chance) {
     const double need = LOYALTY_MARGIN * loyalty;
     if (margin <= need || need >= 1.0) return false;
@@ -764,6 +774,7 @@ inline int PLANT_RECOVERY = 24;  // a day, after it is uprooted from
 inline int UPROOT_HUNGER = 80;  // starving: hunger at least this
 inline double UPROOT_MEALS = 0.5;  // share of a feast on a body of the plant's size an uprooting grazer eats
 inline int UPROOT_BITE = 45;
+inline double UPROOT_SORROW = 0.5;  // a grazer's sorrow at tearing into a plant, times a half plus its empathy
 inline std::array<double, 2> SEED_CHANCE = {0.03, 0.10};
 inline double SEED_COST = 20;
 inline double SEED_HUNGER = 40;
@@ -1811,8 +1822,15 @@ public:
     int war_standing(int realm, int enemy = -1) const;
     // Whether a hunter standing in its own land may strike a trespasser there that it holds a foe.
     bool drives_out(const Bitzkey& hunter, const Bitzkey& other) const;
+    static bool convinced(const Bitzkey& agent, int trait) { return agent.feeling(trait) >= CONVICTION_LEVEL; }
+    // An empathetic predator spares the young and those carrying young, alive or dead.
+    static bool spares(const Bitzkey& hunter, const Bitzkey& other) {
+        return hunter.species == Species::Predator && (other.infant() || !other.womb.empty()) && convinced(hunter, Empathy);
+    }
+    void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
     bool preys_on(const Bitzkey& hunter, const Bitzkey& other) const {
-        return is_prey(hunter, other) || drives_out(hunter, other) || grazer_assails(hunter, other);
+        if (spares(hunter, other)) return false;
+        return is_prey(hunter, other) || (!convinced(hunter, Tolerance) && (drives_out(hunter, other) || grazer_assails(hunter, other)));
     }
     // A grazer has no prey, but may attack a foe within reach.
     bool grazer_assails(const Bitzkey& grazer, const Bitzkey& other) const {

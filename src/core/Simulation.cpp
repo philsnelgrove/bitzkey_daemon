@@ -2084,6 +2084,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         double hungriest = 0.0;  // of its infants about it
         for (const Bitzkey* child : situation.young) hungriest = std::max(hungriest, std::min(100.0, child->hunger));
         add_instincts(agent, valued, options, agent.hunger, hungriest);
+        add_scruples(agent, valued, situation);
         hope_for_untried(agent, valued, options);
         if (!imagined[index].empty()) {  // each against the others, so imagining favours none of them over the rest of its options
             double mean = 0.0;
@@ -2505,7 +2506,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     Bitzkey* alerted_kill = nullptr;
     if (agent.kill_alert && in_bounds(agent.kill_alert->x, agent.kill_alert->y)) {  // a pack-mate's alert
         for (Bitzkey* corpse : kills_[static_cast<std::size_t>(agent.kill_alert->y) * width_ + agent.kill_alert->x]) {
-            if (feeds_on(agent, *corpse)) {
+            if (feeds_on(agent, *corpse) && !spares(agent, *corpse)) {
                 alerted_kill = corpse;
                 break;
             }
@@ -2546,7 +2547,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         // Starving, with food scarce: it may tear into a plant beside it.
-        available[Uproot] = s.uprootable && food_supply(agent) < UPROOT_FOOD;
+        available[Uproot] = s.uprootable && food_supply(agent) < UPROOT_FOOD && !convinced(agent, Empathy);  // unless it would rather starve
         s.tears = available[Uproot];
     }
     // Food to carry off, with room for it; what it carries to put down; a pile with food in it for this gut.
@@ -4730,6 +4731,19 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     last_bite(agent);
 }
 
+void Simulation::add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const {
+    const double empathy = EMPATHY_SCRUPLE * agent.feeling(Empathy), tolerance = TOLERANCE_SCRUPLE * agent.feeling(Tolerance);
+    valued[Uproot] -= empathy;
+    const auto tender = [](const Bitzkey* one) { return one && (one->infant() || !one->womb.empty()); };
+    if (agent.species == Species::Predator) {
+        if (tender(s.quarry)) valued[Hunt] -= empathy;
+        if (tender(s.prey)) valued[Attack] -= empathy;
+        if (tender(s.kill)) valued[Feast] -= empathy;
+    }
+    if (s.quarry && !is_prey(agent, *s.quarry)) valued[Hunt] -= tolerance;  // a foe, not food
+    if (s.prey && !is_prey(agent, *s.prey)) valued[Attack] -= tolerance;
+}
+
 void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     if (!plant.alive()) {  // another got to it first
         agent.last_action = "sought plants";
@@ -4739,6 +4753,7 @@ void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {
     agent.nourish(UPROOT_MEALS * feast * plant_yield(plant));
     plant.health -= UPROOT_BITE;
     plant.cooldown = PLANT_RECOVERY;
+    agent.reward -= UPROOT_SORROW * (0.5 + agent.feeling(Empathy));  // sorry to have torn into it
     agent.last_action = "uprooted";
     if (!plant.alive()) {
         die(plant, "uprooted", &agent, "uprooting");
@@ -4785,6 +4800,7 @@ void add_instincts(const Bitzkey& agent, Values& valued, std::span<const int> op
     valued[Hunt] -= CARRION_AVERSION * scavenger;      // and its aversion to killing for itself
     valued[Attack] -= CARRION_AVERSION * scavenger;
     valued[Herd] += LOYALTY_PULL * agent.feeling(Loyalty);  // loyalty: keeping to its herd
+    valued[Offer] += SOCIABLE_TRADE * agent.feeling(Sociability);  // sociability: trading
     if (agent.infant()) valued[Herd] += INFANT_HERDING;      // an infant keeps close to its kind
     if (std::find(options.begin(), options.end(), FeedYoung) != options.end()) {
         // The instinct to feed its hungry young: closing on the best of its other options, however much those are worth.
@@ -5041,6 +5057,7 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
     if (s.tears) {
         plant->health -= UPROOT_BITE;
         plant->cooldown = PLANT_RECOVERY;
+        agent.reward -= UPROOT_SORROW * (0.5 + agent.feeling(Empathy));
     } else {
         plant->fruit = fruit_left(*plant) - 1;  // a fruit picked, the plant unhurt
         plant->picked_by = agent.identifier;
@@ -6197,7 +6214,7 @@ Bitzkey* Simulation::nearest_kill(const Bitzkey& agent, int sight) const {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
         if (!in_bounds(x, y)) continue;
         for (Bitzkey* corpse : kills_[static_cast<std::size_t>(y) * width_ + x]) {
-            if (feeds_on(agent, *corpse) && agent.can_be(corpse->wet)) return corpse;
+            if (feeds_on(agent, *corpse) && agent.can_be(corpse->wet) && !spares(agent, *corpse)) return corpse;
         }
     }
     return nullptr;

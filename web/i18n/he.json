@@ -1944,5 +1944,15 @@
 "Regrowth joy": "שמחת הצמיחה מחדש",
 "the gladness of seeing a plant it last picked bear fruit again": "השמחה לראות צמח שקטף לאחרונה נושא פרי שוב",
 "Loyalty margin": "מרווח נאמנות",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "כמה יותר הערכה, כפול נאמנותו, על חסיד לרחוש לאחר לפני שיוכל לעזוב את מנהיגו בשבילו; מעבר לכך, סביר יותר ככל שהפער גדל, ובטוח יותר ככל שהוא פחות נאמן"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "כמה יותר הערכה, כפול נאמנותו, על חסיד לרחוש לאחר לפני שיוכל לעזוב את מנהיגו בשבילו; מעבר לכך, סביר יותר ככל שהפער גדל, ובטוח יותר ככל שהוא פחות נאמן",
+"Conviction level": "רמת שכנוע",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "החלק מטווחו המלא שבו אמפתיה או סובלנות הופכות לשכנוע שנשמר גם ברעב: אוכל עשב אמפתי לא עוקר, טורף אמפתי חס על צעירים ועל הרות, בעל חיים סובלני לא מכה אויב ולא מגרש אף אחד",
+"Sociable trade": "מסחר חברותי",
+"how much more an animal values making an offer, times its sociability": "כמה יותר מעריך בעל חיים הצעת עסקה, כפול חברותיותו",
+"Uproot sorrow": "צער העקירה",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "צערו של אוכל עשב על עקירת צמח, כפול חצי ועוד האמפתיה שלו",
+"Empathy scruple": "נקיפת מצפון של אמפתיה",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "כמה פחות מעריך בעל חיים עקירת צמח, כפול האמפתיה שלו, וטורף ציד, הכאה או אכילה של צעירים או הרות",
+"Tolerance scruple": "נקיפת מצפון של סובלנות",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "כמה פחות מעריך בעל חיים הכאת אויב או גירושו, כפול הסובלנות שלו; ציד למאכל אינו משתנה"
 }

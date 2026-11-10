@@ -1944,5 +1944,15 @@
 "Regrowth joy": "Joie de la repousse",
 "the gladness of seeing a plant it last picked bear fruit again": "la joie de voir une plante qu'il a cueillie en dernier porter de nouveau des fruits",
 "Loyalty margin": "Marge de loyauté",
-"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "combien d'estime de plus, fois sa loyauté, un suiveur doit porter à un autre avant de pouvoir quitter son chef pour lui ; au-delà, d'autant plus probable que l'écart est grand, et plus sûr qu'il est peu loyal"
+"how much more esteem, times its loyalty, a follower must hold another in before it may leave its leader for it; past that, the likelier the further, and surer the less loyal": "combien d'estime de plus, fois sa loyauté, un suiveur doit porter à un autre avant de pouvoir quitter son chef pour lui ; au-delà, d'autant plus probable que l'écart est grand, et plus sûr qu'il est peu loyal",
+"Conviction level": "Seuil de conviction",
+"share of its full range at which empathy or tolerance becomes a conviction kept even starving: an empathetic grazer won't uproot, an empathetic predator spares the young and those carrying young, a tolerant animal strikes no foe and drives none out": "part de toute son étendue à partir de laquelle l'empathie ou la tolérance devient une conviction tenue même affamé : un brouteur empathique ne déracine pas, un prédateur empathique épargne les petits et les femelles pleines, un animal tolérant ne frappe aucun ennemi et n'en chasse aucun",
+"Sociable trade": "Commerce sociable",
+"how much more an animal values making an offer, times its sociability": "combien un animal apprécie davantage de faire une offre, fois sa sociabilité",
+"Uproot sorrow": "Peine du déracinement",
+"a grazer's sorrow at tearing into a plant, times a half plus its empathy": "la peine d'un brouteur à arracher une plante, fois une moitié plus son empathie",
+"Empathy scruple": "Scrupule d'empathie",
+"how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "combien un animal apprécie moins de déraciner une plante, fois son empathie, et un prédateur de chasser, frapper ou dévorer les petits ou les femelles pleines",
+"Tolerance scruple": "Scrupule de tolérance",
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "combien un animal apprécie moins de frapper ou chasser un ennemi, fois sa tolérance ; chasser pour manger n'est pas touché"
 }
