@@ -826,7 +826,7 @@ Json Probe::calls(Simulation& world) const {
                                             {"fled_having_heard_kin", share(threat_heard_kin[at].acted, threat_heard_kin[at].heard)}};
                 entry["no_hunter"] = {{"heard", calm_heard[at].heard}, {"moved_having_heard", share(calm_heard[at].acted, calm_heard[at].heard)}};
                 const auto& helped = world.call_payoffs()[static_cast<std::size_t>(species)][at];  // since the world began, or was loaded
-                entry["helped"] = {{"escapes", helped[0]}, {"meals", helped[1]}};
+                entry["helped"] = {{"escapes", helped[0]}, {"meals", helped[1]}, {"understood", helped[2]}};
             }
             calls[name] = entry;
         }

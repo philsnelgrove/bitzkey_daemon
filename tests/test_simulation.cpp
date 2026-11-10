@@ -3555,6 +3555,32 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("a call answered by a deed good for both is a joy to each, of its own gain; one ill for either is answered unrewarded") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    listener.answer_to = caller.identifier;
+    listener.answer_call = FirstCall + 1;
+    caller.reward = listener.reward = 0;
+    simulation.answered(listener, caller, 1.0, 0.0);
+    CHECK(listener.answer_to == caller.identifier);  // the caller untouched: still to answer
+    CHECK(listener.reward == 0);
+    simulation.answered(listener, caller, 1.0, 2.0);
+    CHECK(listener.reward == doctest::Approx(COMMUNICATION_JOY * 1.0));
+    CHECK(caller.reward == doctest::Approx(COMMUNICATION_JOY * 2.0));
+    CHECK(listener.answer_to == -1);  // answered
+    CHECK(simulation.call_payoffs()[static_cast<std::size_t>(Species::Omnivore)][1][2] == 1);
+    listener.answer_to = caller.identifier;
+    caller.reward = listener.reward = 0;
+    simulation.answered(listener, caller, 1.0, -2.0);
+    CHECK(listener.reward == 0);  // ill for the caller
+    CHECK(caller.reward == 0);
+    CHECK(listener.answer_to == -1);
+    listener.answer_to = caller.identifier;
+    simulation.answered(listener, caller, -1.0, 2.0);
+    CHECK(caller.reward == 0);  // ill for the listener
+}
+
 TEST_CASE("seeing gear pay off stirs a desire for it, friend or foe, and desire weighs in envy") {
     Simulation simulation = world();
     Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

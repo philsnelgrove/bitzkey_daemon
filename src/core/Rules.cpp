@@ -340,6 +340,7 @@ std::vector<Rule> make_rules() {
         {"LAND_AMBITION", "Mind", "Land ambition", "pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group", 0.0, 1.0, 0.01, false, &LAND_AMBITION},
         {"WELCOME_LEVEL", "Mind", "Welcome level", "how well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none", 0.0, 1.5, 0.05, false, &WELCOME_LEVEL},
         {"CALL_PAYOFF", "Mind", "Call payoff", "joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability", 0.0, 2.0, 0.05, false, &CALL_PAYOFF},
+        {"COMMUNICATION_JOY", "Mind", "Communication joy", "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand", 0.0, 2.0, 0.05, false, &COMMUNICATION_JOY},
         {"HEEDED_REGARD", "Mind", "Heeded regard", "how much better one helped so thinks of its caller, of a deed's weight", 0.0, 1.0, 0.01, false, &HEEDED_REGARD},
         {"LEADER_RALLY", "Fighting", "Leader rally", "share of the chance to panic or break that a follower in sight of its leader overcomes", 0.0, 1.0, 0.05, false, &LEADER_RALLY},
         {"LEADER_JOY", "Mind", "Leader joy", "pleasure a leader takes in its followers in sight, in full with as many as Leader followers", 0.0, 3.0, 0.05, false, &LEADER_JOY},

@@ -341,6 +341,7 @@ inline double CALL_COST = 0.05;
 // takes joy in it (CALL_PAYOFF, times a half and its empathy or sociability, the greater; for three helped a turn at
 // most), and the one helped thinks the better of it (HEEDED_REGARD of a deed's weight). Nothing says what a call means.
 inline double CALL_PAYOFF = 0.0, HEEDED_REGARD = 0.0;  // none by default: what a call earns is left to what it does
+inline double COMMUNICATION_JOY = 0.5;  // a call answered within a day by a deed good for both: each takes this share of its own gain
 constexpr int CALL_PAYOFFS_A_TURN = 3;
 // Memory (Brain.hpp): how many choices back a lesson's error is carried to the memory gates that wrote what the brain
 // read, 0 for none (what it keeps is then only what it was born to), up to MAX_MEMORY_STEPS; and how fast they learn,
@@ -979,6 +980,7 @@ struct Bitzkey {
     int heard_turn = -1;                // that turn
     double heard_hunger = 0.0;          // its hunger then
     bool heard_danger = false;          // and whether a hunter was in sight
+    int answer_to = -1, answer_call = -1, answer_turn = -1;  // the last caller of any kind it heard, its call and when, till answered or a day passes
     int struck_turn = -1;               // the last turn it was struck
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
@@ -1328,7 +1330,7 @@ public:
     };
     static constexpr std::size_t GIFT_LOG = 20000;
     std::vector<Gift> gifts_so_far() const;
-    const std::array<std::array<std::array<long long, 2>, CALL_COUNT>, 4>& call_payoffs() const { return call_payoffs_; }
+    const std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4>& call_payoffs() const { return call_payoffs_; }
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
     struct Trade {
         int turn, offerer, owner, wanted, offered;
@@ -1464,6 +1466,7 @@ public:
         double followed = 0.0;  // a leader's followers in sight, a LEADER_FOLLOWERS-th each, to 1
         double ambition = 0.0;  // its dislike of the group whose land it stands in, uninvited: -1 a friend's, 1 a foe's
         int heard_from = -1, heard_call = -1;  // the loudest caller of its kind it heard, and its call
+        int loudest_from = -1, loudest_call = -1;  // the loudest caller of any kind it heard, and its call
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1796,6 +1799,7 @@ public:
     static double possessions(const Bitzkey& agent, const Bitzkey& judge);  // as the judge, by its desires, weighs them
     void gear_seen(const Bitzkey& user, int kind);  // those who see gear of that kind pay off desire it the more
     void gear_witnessed(const Bitzkey& striker, const Bitzkey& struck);  // a blow seen: the weapon that added to it, the armour that saved
+    void answered(Bitzkey& listener, Bitzkey& caller, double mine, double theirs);  // a deed of a listener that touched the caller it heard
     static void donned(Bitzkey& agent, bool had_weapon, bool had_armour);  // glad of a weapon or armour it lacked
     double envy_of(const Bitzkey& agent) const;  // how envious it is: 0 at or below its kind's envy cut, 1 at the most
     // The drives that envy, taking and giving go by, each its larger of two feelings.
@@ -1962,7 +1966,7 @@ private:
     std::deque<std::pair<int, int>> death_order_;  // (turn, identifier) of each death, oldest first
     std::deque<Gift> gifts_;
     // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
-    std::array<std::array<std::array<long long, 2>, CALL_COUNT>, 4> call_payoffs_{};
+    std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood
     int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;
     std::unique_ptr<std::mutex> gifts_writing_ = std::make_unique<std::mutex>();  // animals act side by side; held apart so a world still moves

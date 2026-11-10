@@ -2927,6 +2927,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
+    if (caller) {
+        s.loudest_from = caller->identifier;
+        s.loudest_call = caller->call;
+    }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
             const Heading& way = HEADINGS[static_cast<std::size_t>(heading)];
@@ -3411,6 +3415,11 @@ void Simulation::pay_callers(Bitzkey& listener, const Situation& now, std::map<i
             ++call_payoffs_[static_cast<std::size_t>(caller->species)][static_cast<std::size_t>(listener.heard_call - FirstCall)][escaped ? 0 : 1];
             note_first("a_call_helped", caller->species, caller->identifier);
         }
+    }
+    if (now.loudest_from >= 0) {  // a call to answer, within a day
+        listener.answer_to = now.loudest_from;
+        listener.answer_call = now.loudest_call;
+        listener.answer_turn = turn_;
     }
     listener.heard_from = now.heard_from;  // and what it hears now, to judge next time
     listener.heard_call = now.heard_call;
@@ -3948,6 +3957,20 @@ void Simulation::gear_witnessed(const Bitzkey& striker, const Bitzkey& struck) {
     if (struck.wearing()) gear_seen(struck, ArmourDesire);
 }
 
+void Simulation::answered(Bitzkey& listener, Bitzkey& caller, double mine, double theirs) {
+    // What it did touched the caller it heard: the call is answered, well or ill; and if well for both, each is glad of it,
+    // whatever the call meant, as only they know.
+    if (theirs == 0) return;
+    listener.answer_to = -1;
+    if (mine <= 0 || theirs <= 0 || COMMUNICATION_JOY <= 0) return;
+    listener.reward += COMMUNICATION_JOY * mine;
+    caller.reward += COMMUNICATION_JOY * theirs;
+    if (listener.answer_call >= FirstCall && caller.species != Species::Plant) {
+        ++call_payoffs_[static_cast<std::size_t>(caller.species)][static_cast<std::size_t>(listener.answer_call - FirstCall)][2];
+    }
+    note_first("call_understood", caller.species, caller.identifier);
+}
+
 void Simulation::donned(Bitzkey& agent, bool had_weapon, bool had_armour) {
     if (!had_weapon && agent.wielding()) agent.reward += DON_JOY * TOOL_JOY;
     if (!had_armour && agent.wearing()) agent.reward += DON_JOY * ARMOUR_JOY;
@@ -4170,7 +4193,13 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     const Fight* fight = action != Flee ? fight_of(agent.identifier) : nullptr;
     Bitzkey* opponent = fight ? find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief) : nullptr;
     if (opponent && opponent->alive()) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
-    else perform(agent, action, s);
+    else {
+        Bitzkey* caller = agent.answer_to >= 0 && turn_ - agent.answer_turn <= DAY_LENGTH ? find_agent(agent.answer_to) : nullptr;
+        if (caller && !caller->alive()) caller = nullptr;
+        const double caller_had = caller ? caller->reward : 0.0, had_reward = agent.reward;
+        perform(agent, action, s);
+        if (caller) answered(agent, *caller, agent.reward - had_reward, caller->reward - caller_had);
+    }
     const std::string_view did = agent.last_action;
     if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged" || did == "ate from a pile" || did == "ate what it carried") {
         agent.food_memory = Place{agent.x, agent.y, turn_};
