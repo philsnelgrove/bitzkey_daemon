@@ -1927,5 +1927,15 @@
 "Wagon drag": "荷車の重さ",
 "share more tiring each step is, dragging a wagon": "荷車を引くとき一歩ごとに増える疲れの割合",
 "Eavesdropping": "盗み聞き",
-"how much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen": "友と思う者が他者を良く悪く扱う（贈り物、一撃、盗み、敗北）のを見て、その他者への見方が動く度合い。その友への評価を掛ける。言葉はなく、見るだけ"
+"how much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen": "友と思う者が他者を良く悪く扱う（贈り物、一撃、盗み、敗北）のを見て、その他者への見方が動く度合い。その友への評価を掛ける。言葉はなく、見るだけ",
+"Rank bonus": "位階の加算",
+"share more of each leader's bonuses (deference, rally, joy in followers, allure) for each rank above chief": "族長より上の位階ひとつごとに、各指導者の利点（服従、鼓舞、従う者への喜び、魅力）がどれだけ強まるか",
+"Title regard": "称号への敬意",
+"esteem a titled leader wins each turn from each who sees it and holds it no foe, times its rank": "称号を持つ指導者が、それを見て敵と思わない各者から毎ターン得る敬意。位階を掛ける",
+"chief": "族長",
+"lord": "領主",
+"baron": "男爵",
+"count": "伯爵",
+"duke": "公爵",
+"king": "王"
 }

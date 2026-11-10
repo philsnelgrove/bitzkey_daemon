@@ -4,7 +4,7 @@
 
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
-import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, iconCanvas, css, pyRound,
+import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, portraitCanvas, iconCanvas, css, pyRound,
          GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, drawCrown, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
@@ -255,7 +255,8 @@ function parseFrame(view) {
       x: view.getUint16(offset + 4, true),
       y: view.getUint16(offset + 6, true),
       species: view.getUint8(offset + 8),
-      size: view.getUint8(offset + 9),
+      size: view.getUint8(offset + 9) & 15,
+      rank: view.getUint8(offset + 9) >> 4 & 7,  // as a leader: 0 none, 1 a chief, up to 6 a king
       alive: (view.getUint8(offset + 10) & 1) === 1,
       wields: view.getUint8(offset + 10) >> 1 & 7,
       wears: view.getUint8(offset + 10) >> 4 & 7,
@@ -595,7 +596,7 @@ function drawMap() {
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
     drawGear(ctx, agent.wields, agent.wears, px, py, radius);
-    if (agent.alive && agent.leader) drawCrown(ctx, px, py, radius);  // recognised a leader
+    if (agent.alive && agent.leader) drawCrown(ctx, px, py, radius, agent.rank);  // recognised a leader, a star for each rank
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
       drawReticle(ctx, px, py, (radius + RING_WIDTH + 3) * reticlePulse());
     }
@@ -1069,9 +1070,11 @@ function drawExemplars() {
       }
       const radius = Math.max(4, Math.min(16, Math.floor(card.clientHeight / 5)));
       body.replaceChildren(
-        bitzkeyCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius),
+        portraitCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius, RING_WIDTH, true,
+          { wields: found.wields, wears: found.wears, rank: found.rank }),
         element('div', { class: 'card-text' },
-          element('span', { class: 'card-name' }, `#${pad3(found.identifier)}`),
+          element('span', { class: 'card-name' }, `#${pad3(found.identifier)}`,
+            found.rank > 0 ? element('span', { class: 'card-title' }, `  ${upper(tr(found.rank_title))}`) : ''),
           element('span', { class: 'card-name' }, `${tr(found.terrain)} ${tr(found.species)}`),  // its own line, so a long name fits
           element('span', { class: 'card-said' }, found.said)));
     }
@@ -1115,7 +1118,7 @@ async function drawSidebar() {
   holder.replaceChildren(
     element('div', { class: 'heading-row' }, element('div', { class: 'heading' }, 'SELECTED BITZKEY'),
       agent.alive !== false ? element('button', { onclick: () => inspectBrains(identifier) }, 'INSPECT BRAINS') : null),
-    details(agent),
+    details(agent, { behind: true }),
     element('div', { class: 'faint keys', style: { marginTop: '14px' } }, 'C  copy as JSON      A  export      K  catalog'),
     element('div', { class: 'sidebar-buttons' },
       element('button', { class: listed ? 'lit' : '', onclick: toggleExport }, listed ? 'REMOVE FROM EXPORT' : 'ADD TO EXPORT'),

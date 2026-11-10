@@ -2850,6 +2850,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         agent.standout = standout ? standout->identifier : -1;
         senses[SenseLeader] = agent.leader ? 1.0 : 0.0;
+        senses[SenseRank] = static_cast<double>(agent.rank) / MAX_RANK;
         senses[SenseBow] = BOW_USES > 0 ? std::min(1.0, static_cast<double>(agent.bow_uses) / BOW_USES) : 0.0;
         senses[SenseArchery] = agent.archery;
         if (agent.leader && LEADER_FOLLOWERS > 0) {
@@ -2859,6 +2860,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         if (standout) {
             senses[SenseStandoutLeads] = standout->leader ? 1.0 : 0.0;
+            senses[SenseStandoutRank] = static_cast<double>(standout->rank) / MAX_RANK;
             const int away = distance(standout->x, standout->y, agent.x, agent.y);
             const bool seen = away <= sight;
             const double near = seen ? closeness(agent, Cell{standout->x, standout->y}, sight) : 0.0;
@@ -3272,6 +3274,10 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
         }
         if (culture != NoCulture || kind == VictoryDeed) culture_seen(*other, doer, kind == VictoryDeed ? VictoryCulture : culture);
         if (kind == CultureDeed) continue;
+        if (kind == TitleDeed) {  // a titled leader, esteemed by all who see it and hold it no foe
+            if (!is_foe(*other, doer)) note_deed(*other, doer, 1.0, deed, PlainDeed, true);
+            continue;
+        }
         if (kind == GarbDeed || kind == LieDeed) {
             garb_seen(*other, doer, deed, kind == LieDeed);
             continue;
@@ -3609,6 +3615,25 @@ void Simulation::recognise_leaders() {
         const Bitzkey* standout = agent->standout >= 0 ? find_agent(agent->standout) : nullptr;
         agent->follows = standout && standout->alive() && standout->leader ? standout->identifier : -1;
     }
+    // Ranks, afresh: a chief each leader, and each followed by a leader one rank above it, as far as a few rounds carry
+    // (a loop of leaders stops at MAX_RANK).
+    for (const auto& agent : agents_) agent->rank = agent->alive() && agent->leader ? 1 : 0;
+    for (int round = 1; round < MAX_RANK; ++round) {
+        bool raised = false;
+        for (const auto& agent : agents_) {
+            if (agent->rank == 0 || agent->follows < 0) continue;
+            Bitzkey* above = find_agent(agent->follows);
+            const int rank = std::min(MAX_RANK, agent->rank + 1);
+            if (above && above->rank > 0 && above->rank < rank) {
+                above->rank = rank;
+                raised = true;
+            }
+        }
+        if (!raised) break;
+    }
+    for (const auto& agent : agents_) {
+        if (agent->rank >= 2) note_first(std::string("first_") + std::string(TITLES[static_cast<std::size_t>(agent->rank)]), agent->species, agent->identifier);
+    }
 }
 
 void Simulation::count_lands() {
@@ -3916,7 +3941,7 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
     if (judged(agent, trade_gain(agent, owner, wanted)) <= judged(agent, good_worth(agent, agent, offered))) {
         trade.withdrawn = true;
         agent.last_action = "thought better of an offer";
-    } else if (judged(owner, trade_gain(owner, agent, offered)) + (follows(owner, agent) ? LEADER_DEFERENCE : 0.0) +
+    } else if (judged(owner, trade_gain(owner, agent, offered)) + (follows(owner, agent) ? LEADER_DEFERENCE * agent.rank_factor() : 0.0) +
                    TRADE_WARINESS * std::min(0.0, regard_for(owner, agent)) <=  // warier of one it thinks ill of
                judged(owner, good_worth(owner, owner, wanted))) {
         agent.last_action = "was refused";
@@ -4151,7 +4176,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
                              // Glad to be held a friend by those about it, and at ease near the one it esteems most
                              STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +
-                             LEADER_JOY * s.followed;  // a leader glad of its followers about it
+                             LEADER_JOY * agent.rank_factor() * s.followed;  // a leader glad of its followers about it, the more the higher its rank
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging +
            armed_ease;
 }
@@ -4320,6 +4345,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     }
     if (const double gained = possessions(agent, agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
     if (garb_of(agent.hide) > 0) deed_seen(agent, garb_of(agent.hide), nullptr, GarbDeed);  // its garb, seen
+    if (agent.rank > 0 && TITLE_REGARD > 0) deed_seen(agent, TITLE_REGARD * agent.rank, nullptr, TitleDeed);  // its title, seen
     if (agent.mark != NoMark && MARK_REGARD > 0) deed_seen(agent, mark_worth(agent.mark), nullptr, MarkDeed);  // and its mark
     if (did == "rested") {
         agent.stamina = std::min(FULL_STAMINA, agent.stamina + rest_recovery());
@@ -5909,7 +5935,7 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
                                                     (parent.terrain == Terrain::Amphibious ? AMPHIBIOUS_COOLDOWN : 1.0)));
         parent.children += litter;
         parent.stamina = std::max(0.0, parent.stamina - fatigue(parent, BREED_FATIGUE));
-        parent.reward += mating_joy(parent, BREED_JOY * (pair[1 - index]->leader ? 1 + LEADER_ALLURE : 1.0));
+        parent.reward += mating_joy(parent, BREED_JOY * (pair[1 - index]->leader ? 1 + LEADER_ALLURE * pair[1 - index]->rank_factor() : 1.0));
         if (!parent.alive()) {
             die(parent, "bred to death");
         } else {

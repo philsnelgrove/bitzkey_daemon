@@ -3555,6 +3555,30 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("a leader followed by leaders ranks above them, and its bonuses grow with its rank") {
+    Simulation simulation = world(30);
+    std::vector<Bitzkey*> made;
+    for (int one = 0; one < 3; ++one) made.push_back(&simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5 + one, 5));
+    Bitzkey& king = *made[0];
+    Bitzkey& lord = *made[1];
+    Bitzkey& chief = *made[2];
+    for (Bitzkey* one : made) one->age = static_cast<decltype(one->age)>(one->infancy() + 1);  // grown
+    for (int one = 0; one < LEADER_FOLLOWERS; ++one) simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 10 + one, 10).standout = chief.identifier;
+    for (int one = 0; one < LEADER_FOLLOWERS - 1; ++one) simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 10 + one, 12).standout = lord.identifier;
+    for (int one = 0; one < LEADER_FOLLOWERS - 1; ++one) simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 10 + one, 14).standout = king.identifier;
+    chief.standout = lord.identifier;
+    lord.standout = king.identifier;
+    simulation.recognise_leaders();  // each a leader, with its followers
+    CHECK(chief.rank == 1);
+    simulation.recognise_leaders();  // the chief following the lord, and the lord the king
+    CHECK(chief.rank == 1);
+    CHECK(lord.rank == 2);
+    CHECK(king.rank == 3);
+    CHECK(TITLES[static_cast<std::size_t>(king.rank)] == "baron");
+    CHECK(king.rank_factor() == doctest::Approx(1 + 2 * RANK_BONUS));
+    CHECK(chief.rank_factor() == 1.0);
+}
+
 TEST_CASE("seeing a friend treat another well or ill colours the watcher's view of that other; a foe's deeds do not") {
     Simulation simulation = world(20);
     Bitzkey& watcher = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);

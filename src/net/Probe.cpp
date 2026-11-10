@@ -1561,12 +1561,21 @@ Json Probe::society(Simulation& world) const {
                                   {"followers_mean_steps", nearby ? Json(apartSum / nearby) : Json(nullptr)},
                                   {"age_share", static_cast<double>(head->age) / std::max(1.0, static_cast<double>(head->lifespan))},
                                   {"elder", head->age > AGEING * head->lifespan}, {"regarded", head->regarded}, {"realm", head->realm}, {"follows", head->follows},
-                                  {"mark", head->mark == PrestigeMark ? "prestige" : head->mark == WarriorMark ? "warrior" : "none"}});
+                                  {"mark", head->mark == PrestigeMark ? "prestige" : head->mark == WarriorMark ? "warrior" : "none"},
+                                  {"title", TITLES[static_cast<std::size_t>(std::clamp(head->rank, 0, MAX_RANK))]}});
         }
         result[std::string(species_name(species))] = {
             {"living", count}, {"strangers_mean_steps", mean(apart, static_cast<long long>(count))}, {"families", families}, {"tribes", tribes},
             {"factions", {{"colours", colours.size()}, {"largest", largest_colours}, {"regard_for_own_colour", mean(own_regard, own_views)}, {"regard_for_other_colours", mean(other_regard, other_views)}, {"territory", territory}}},
             {"leaders", {{"recognised", heads.size()}, {"following_a_leader", following},
+                         {"titles", [&] {  // its leaders by rank
+                              Json titles = Json::object();
+                              for (int rank = 1; rank <= MAX_RANK; ++rank) {
+                                  titles[std::string(TITLES[static_cast<std::size_t>(rank)])] =
+                                      std::count_if(heads.begin(), heads.end(), [&](const Bitzkey* head) { return head->rank == rank; });
+                              }
+                              return titles;
+                          }()},
                          {"followers_lost", [&] {  // since the world began or was loaded
                               const auto& lost = world.followers_lost()[static_cast<std::size_t>(species)];
                               return Json{{"leader_died", lost[0]}, {"left_its_group", lost[1]}, {"esteem_fell", lost[2]}, {"outshone", lost[3]}};

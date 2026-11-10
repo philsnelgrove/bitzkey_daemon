@@ -3,7 +3,7 @@
 
 import { element, pad3, upper } from './common.js';
 import { tr } from './i18n.js';
-import { bitzkeyCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css, shownColour } from './draw.js';
+import { bitzkeyCanvas, portraitCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css, shownColour } from './draw.js';
 
 const SHORT = ['hot', 'medium', 'cold', 'v. cold'];
 
@@ -127,7 +127,7 @@ function wordPopup(part, hex, rgb) {
 
 const row = (cls, text) => element('div', { class: cls, 'data-no-translate': '' }, text);
 
-export function details(agent, { large = 0 } = {}) {
+export function details(agent, { large = 0, behind = false } = {}) {
   const known = agent.known;
   // At twice the size it has on the map, beside its name, its colours and its terrain
   const radius = large || 2 * dotRadius(agent.body[1], DOT_RADIUS_LARGEST);
@@ -138,9 +138,16 @@ export function details(agent, { large = 0 } = {}) {
     hovering(element('span', { class: 'chit' }, element('i', { class: 'swatch', style: { background: rgb ? css(shownColour(rgb)) : 'none' } }), tr(label)),
       () => wordPopup(part, hex, rgb))));
   if (agent.terrain) chits.append(element('span', { class: 'terrain' }, upper(tr(agent.terrain))));
+  const gear = { wields: agent.wields || 0, wears: agent.wears || 0, rank: agent.rank || 0 };
+  if (behind) {  // its portrait three times as large, behind the words and lines
+    const portrait = portraitCanvas(look(agent), 3 * radius, 12, agent.alive !== false || !known, gear);
+    portrait.classList.add('portrait-behind');
+    panel.append(portrait);
+  }
+  const title = agent.rank > 0 ? element('span', { class: 'details-rank' }, upper(tr(agent.rank_title))) : '';
   panel.append(element('div', { class: 'details-head' },
-    bitzkeyCanvas(look(agent), radius, large ? Math.round(large / 4) : 4, agent.alive !== false || !known),
-    element('div', { class: 'details-title' }, element('span', { class: 'details-name', 'data-no-translate': '' }, name), chits),
+    behind ? element('span', { style: { width: `${2 * (radius + 6)}px` } }) : portraitCanvas(look(agent), radius, large ? Math.round(large / 4) : 4, agent.alive !== false || !known, gear),
+    element('div', { class: 'details-title' }, element('span', { class: 'details-name', 'data-no-translate': '' }, name), title, chits),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
   const temperament = (heading, names, first) => {

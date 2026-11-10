@@ -271,7 +271,7 @@ std::string frame(const Simulation& simulation) {
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->x));
         put<std::uint16_t>(out, static_cast<std::uint16_t>(agent->y));
         out.push_back(static_cast<char>(agent->species));
-        out.push_back(static_cast<char>(agent->body[Size]));
+        out.push_back(static_cast<char>(agent->body[Size] | std::clamp(agent->rank, 0, MAX_RANK) << 4));  // its size, and its rank above
         // whether it lives, then what it wields (1 to 3, 4 a stone) and wears (1 or 2), and whether it is a leader
         const int wields = agent->weapon ? agent->weapon : agent->carried_stone > 0 ? 4 : 0;
         out.push_back(static_cast<char>((agent->alive() ? 1 : 0) | wields << 1 | agent->armour << 4 | (agent->leader ? 1 : 0) << 7));
@@ -361,6 +361,11 @@ Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
         {"species", std::string(species_name(agent.species))},
         {"species_index", static_cast<int>(agent.species)},
         {"nocturnal", agent.nocturnal},
+        {"wields", agent.weapon ? agent.weapon : agent.carried_stone > 0 ? 4 : 0},
+        {"wears", agent.armour},
+        {"leader", agent.alive() && agent.leader},
+        {"rank", agent.alive() && agent.leader ? agent.rank : 0},
+        {"rank_title", std::string(TITLES[static_cast<std::size_t>(agent.alive() && agent.leader ? std::clamp(agent.rank, 0, MAX_RANK) : 0)])},
         {"terrain", std::string(terrain_name(agent.terrain))},
         {"dot", hex_word(mind_word(agent.dna))},
         {"ring", hex_word(body_word(agent.dna))},
@@ -483,6 +488,10 @@ Json exemplars(const Simulation& simulation, const std::vector<int>& choices) {
             card["terrain"] = std::string(terrain_name(best->terrain));
             card["species_index"] = static_cast<int>(best->species);
             card["size"] = best->body[Size];
+            card["wields"] = best->weapon ? best->weapon : best->carried_stone > 0 ? 4 : 0;
+            card["wears"] = best->armour;
+            card["rank"] = best->leader ? best->rank : 0;
+            card["rank_title"] = std::string(TITLES[static_cast<std::size_t>(best->leader ? std::clamp(best->rank, 0, MAX_RANK) : 0)]);
             card["dot_rgb"] = rgb(color_from_word(mind_word(best->dna)));
             card["ring_rgb"] = rgb(color_from_word(body_word(best->dna)));
             card["social_rgb"] = rgb(color_from_word(social_word(best->dna)));

@@ -1927,5 +1927,15 @@
 "Wagon drag": "拉车之累",
 "share more tiring each step is, dragging a wagon": "拉车时每一步多出的疲劳份额",
 "Eavesdropping": "旁听",
-"how much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen": "看到自己视为朋友者善待或恶待另一者（赠礼、打击、偷窃、击败）时，旁观者对那一者看法变动的程度，乘以其对该朋友的敬重；无需言语，只凭所见"
+"how much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen": "看到自己视为朋友者善待或恶待另一者（赠礼、打击、偷窃、击败）时，旁观者对那一者看法变动的程度，乘以其对该朋友的敬重；无需言语，只凭所见",
+"Rank bonus": "位阶加成",
+"share more of each leader's bonuses (deference, rally, joy in followers, allure) for each rank above chief": "首领以上每高一阶，每位领袖的好处（顺从、鼓舞、对追随者的喜悦、魅力）增强多少",
+"Title regard": "头衔之敬",
+"esteem a titled leader wins each turn from each who sees it and holds it no foe, times its rank": "有头衔的领袖每回合从每个看见他且不视其为敌者处获得的敬重，乘以其位阶",
+"chief": "首领",
+"lord": "领主",
+"baron": "男爵",
+"count": "伯爵",
+"duke": "公爵",
+"king": "国王"
 }

@@ -375,7 +375,7 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed };  // CultureDeed: seen for its culture alone
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed, TitleDeed };  // CultureDeed: seen for its culture alone
 // Cultures: what each species esteems, seen done by one of its own kind, over and above the deed's own worth, by
 // CULTURE_REGARD, twice it from family (parent, child or sibling) and, for a predator, from its pack. Predators esteem
 // victories; omnivores, crafting and building (shelters and roads); grazers, sowing and fruit picked from a plant
@@ -707,6 +707,12 @@ inline double STANDING_JOY = 0.2, FOLLOW_COMFORT = 0.2;
 // courted first by any that may breed with it, and its partner takes LEADER_ALLURE more joy in breeding with it.
 // Each senses whether it leads, and whether its standout does. LEADER_FOLLOWERS 0 for no leaders.
 inline int LEADER_FOLLOWERS = 5;
+// Ranks: a leader no leader follows is a chief; one a leader of rank r follows is of rank r + 1, up to MAX_RANK. Each rank
+// above chief makes its leader's bonuses RANK_BONUS the stronger, and each who sees a titled leader and holds it no foe
+// esteems it TITLE_REGARD times its rank the more, each turn.
+constexpr int MAX_RANK = 6;
+constexpr std::array<std::string_view, MAX_RANK + 1> TITLES = {"none", "chief", "lord", "baron", "count", "duke", "king"};
+inline double RANK_BONUS = 0.25, TITLE_REGARD = 0.01;
 inline double LEADER_DEFERENCE = 0.5, LEADER_RALLY = 0.5, LEADER_JOY = 0.3, LEADER_ALLURE = 0.5;
 inline int LAND_PATCH = 8, LAND_SIZE = 12, LAND_HOLD = 3, LAND_MEMORY = 5, LAND_TURNS = 24, WAR_KILLS = 3;
 inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COMFORT = 0.1, TRESPASS_REGARD = 0.02,
@@ -952,6 +958,8 @@ struct Bitzkey {
     int left_leader = -1;  // why it last stopped following a leader, to be counted (see Simulation::followers_lost)
     int followers = 0;  // those whose standout it was at the last count
     bool leader = false;  // recognised a leader at the last count
+    int rank = 0;  // and its rank then, by those under it: 0 none, 1 a chief, up to MAX_RANK (see TITLES)
+    double rank_factor() const { return 1 + RANK_BONUS * std::max(0, rank - 1); }  // its leader's bonuses, by its rank
     int trespass = 0;  // turns it has stood in another group's land without a break
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
     double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
@@ -1797,7 +1805,7 @@ public:
     double nerve(const Bitzkey& agent, const Bitzkey* foe) const {
         const bool rallied = in_own_land(agent) && (!foe || foe->realm != agent.realm);
         return (rallied ? 1 - LAND_RALLY : 1.0) * std::max(0.0, 1 - WAR_NERVE * war_standing(agent.realm)) *
-               (leader_in_sight(agent) ? 1 - LEADER_RALLY : 1.0);  // and its leader in sight
+               (leader_in_sight(agent) ? 1 - std::min(1.0, LEADER_RALLY * find_agent(agent.follows)->rank_factor()) : 1.0);  // and its leader in sight
     }
     // Whether it follows that one, a leader, as of the last count; and whether its leader is in its sight.
     static bool follows(const Bitzkey& follower, const Bitzkey& leader) { return leader.leader && follower.follows == leader.identifier; }

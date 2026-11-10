@@ -346,6 +346,8 @@ std::vector<Rule> make_rules() {
         {"COMMUNICATION_JOY", "Mind", "Communication joy", "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand", 0.0, 2.0, 0.05, false, &COMMUNICATION_JOY},
         {"HEEDED_REGARD", "Mind", "Heeded regard", "how much better one helped so thinks of its caller, of a deed's weight", 0.0, 1.0, 0.01, false, &HEEDED_REGARD},
         {"LEADER_RALLY", "Fighting", "Leader rally", "share of the chance to panic or break that a follower in sight of its leader overcomes", 0.0, 1.0, 0.05, false, &LEADER_RALLY},
+        {"RANK_BONUS", "Mind", "Rank bonus", "share more of each leader's bonuses (deference, rally, joy in followers, allure) for each rank above chief", 0.0, 2.0, 0.05, false, &RANK_BONUS},
+        {"TITLE_REGARD", "Mind", "Title regard", "esteem a titled leader wins each turn from each who sees it and holds it no foe, times its rank", 0.0, 0.2, 0.005, false, &TITLE_REGARD},
         {"LEADER_JOY", "Mind", "Leader joy", "pleasure a leader takes in its followers in sight, in full with as many as Leader followers", 0.0, 3.0, 0.05, false, &LEADER_JOY},
         {"LEADER_ALLURE", "Mind", "Leader allure", "how much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it", 0.0, 3.0, 0.05, false, &LEADER_ALLURE},
         {"THEFT_DISREGARD", "Mind", "Theft disregard", "how much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe", 0.0, 1.0, 0.05, false, &THEFT_DISREGARD},

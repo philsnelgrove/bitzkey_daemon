@@ -318,8 +318,8 @@ export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
 }
 
 // What a Bitzkey wears and wields: a small shield at its lower left, a small tool at its upper right.
-// A leader's mark: a small gold crown above it.
-export function drawCrown(ctx, x, y, radius) {
+// A leader's mark: a small gold crown above it, and a small star over that for each rank (a chief one, a king six).
+export function drawCrown(ctx, x, y, radius, rank = 1) {
   const half = Math.max(3, radius * 0.75), high = Math.max(3, radius * 0.75);
   const foot = y - radius - RING_WIDTH - 1;  // its band just clear of the ring
   ctx.fillStyle = 'rgb(236, 190, 60)';
@@ -329,6 +329,19 @@ export function drawCrown(ctx, x, y, radius) {
                          [x - half / 2, foot - high / 2], [x - half, foot - high]]) ctx.lineTo(px, py);
   ctx.closePath();
   ctx.fill();
+  const stars = Math.max(0, Math.min(6, rank)), outer = Math.max(2, radius / 3), inner = Math.max(1, outer * 0.4);
+  const cy = foot - high - outer - 2, step = 2 * outer + Math.max(1, outer / 2);
+  ctx.fillStyle = 'rgb(250, 228, 140)';
+  for (let star = 0; star < stars; ++star) {
+    const cx = x + (2 * star - (stars - 1)) * step / 2;
+    ctx.beginPath();
+    for (let point = 0; point < 10; ++point) {  // its ten points, out and in by turns, the first straight up
+      const angle = -Math.PI / 2 + point * Math.PI / 5, reach = point % 2 ? inner : outer;
+      ctx[point ? 'lineTo' : 'moveTo'](cx + reach * Math.cos(angle), cy + reach * Math.sin(angle));
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 export function drawGear(ctx, wields, wears, x, y, radius) {
@@ -501,6 +514,24 @@ export function bitzkeyCanvas(look, radius, ringWidth = RING_WIDTH, alive = true
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
   drawBitzkey(ctx, look, side / 2, side / 2, radius, ringWidth, alive);
+  return canvas;
+}
+
+// A Bitzkey as it looks on the map, on a canvas of its own with room around it: its gear, and a leader's crown and stars.
+export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = true, { wields = 0, wears = 0, rank = 0 } = {}) {
+  const canvas = document.createElement('canvas');
+  const side = 2 * Math.ceil(radius * 2.4 + ringWidth + 2);
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = Math.ceil(side * scale);
+  canvas.height = Math.ceil(side * scale);
+  canvas.style.width = `${side}px`;
+  canvas.style.height = `${side}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  const cx = side / 2, cy = side / 2 + radius * 0.6;  // lower, leaving room above for its crown
+  drawBitzkey(ctx, look, cx, cy, radius, ringWidth, alive);
+  drawGear(ctx, wields, wears, cx, cy, radius);
+  if (alive && rank > 0) drawCrown(ctx, cx, cy, radius, rank);
   return canvas;
 }
 
