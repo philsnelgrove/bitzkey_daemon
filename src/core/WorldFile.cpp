@@ -216,7 +216,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
-        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery}, {"desire", agent.desire}, {"tutored_turn", agent.tutored_turn},
+        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery}, {"desire", agent.desire}, {"wagon", agent.wagon}, {"tutored_turn", agent.tutored_turn},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"spare_tools", [&] { json out = json::array(); for (const auto& tool : agent.spare_tools) out.push_back(json::array({tool.kind, tool.uses})); return out; }()}, {"spare_hides", [&] { json out = json::array(); for (const auto& hide : agent.spare_hides) out.push_back(json::array({hide.kind, hide.armour})); return out; }()}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
@@ -330,6 +330,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     per_craft("craft_chain", agent->craft_chain);
     agent->bow_uses = record.value("bow_uses", 0);
     agent->archery = record.value("archery", 0.0);
+    agent->wagon = record.value("wagon", -1);
     if (record.contains("desire")) agent->desire = record["desire"].get<std::array<double, 3>>();  // none, in a world saved before desire
     agent->tutored_turn = record.value("tutored_turn", -1);
     agent->cooked_meat = record.value("cooked_meat", 0);
@@ -636,7 +637,11 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"wagons", [&] {
+             json out = json::array();  // x, y, its hitcher or -1, and what it holds
+             for (const auto& wagon : simulation.wagons_) out.push_back({wagon.x, wagon.y, wagon.hitched_to, wagon.goods});
+             return out;
+         }()}, {"stones_scattered", simulation.stones_scattered_}, {"diary", std::move(diary)}, {"diary_since", simulation.diary_since_}, {"seeds", std::move(seeds)}, {"insights", std::move(insights)},
         {"lands", {{"patch", simulation.land_patch_}, {"columns", simulation.land_columns_}, {"squares", simulation.lands_.size()}, {"next_realm", simulation.next_realm_}, {"realms", std::move(realms)}, {"claims", std::move(claims)}, {"wars", std::move(wars)}, {"welcomes", std::move(welcomes)}}},
         {"census", {{"stride", simulation.census_.stride()}, {"snapshots", std::move(snapshots)}}},
         {"lineage", {{"at", lineage_at}, {"count", simulation.lineage_.size()}, {"first", simulation.lineage_first_}}},
@@ -834,6 +839,10 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             world.shelters_[cell] = shelter.at(3).get<int>();
             world.site_turns_[cell] = shelter.size() > 4 ? shelter.at(4).get<int>() : world.turn_;  // built now, in a world saved before they fell
             world.site_stone_[cell] = shelter.size() > 5 ? shelter.at(5).get<int>() : 0;  // all wood, in a world saved before
+        }
+        for (const json& wagon : record.value("wagons", json::array())) {  // none in an older world
+            world.wagons_.push_back({wagon.at(0).get<int>(), wagon.at(1).get<int>(), wagon.at(2).get<int>(), wagon.at(3).get<std::array<int, 7>>()});
+            if (world.wagons_.back().hitched_to < 0) world.parked_.emplace(world.cell_index(world.wagons_.back().x, world.wagons_.back().y), static_cast<int>(world.wagons_.size()) - 1);
         }
         world.diary_since_ = record.value("diary_since", record.at("turn").get<int>());  // an older world's firsts begin now
         world.diary_.clear();

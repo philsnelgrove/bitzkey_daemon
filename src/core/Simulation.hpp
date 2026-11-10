@@ -562,6 +562,10 @@ inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this
 inline double GEAR_DESIRE = 0.05;  // desire for a kind of gear stirred by seeing it pay off, up to 1; envy counts that gear 1 + desire times
 inline double DESIRE_FADE = 0.999;  // the share of a desire for gear kept each turn, so it fades without fresh sights
 enum GearDesire { WeaponDesire, ArmourDesire, BowDesire };
+// A wagon: made of WAGON_STONE stones and WAGON_WOOD wood with an axe, kept; hitched, it follows its hitcher, holds
+// SHELTER_UNITS more of its load, shelters it as a shelter does, and makes each step WAGON_DRAG more tiring.
+constexpr int WAGON_STONE = 2, WAGON_WOOD = 3;
+inline double WAGON_DRAG = 0.5;
 inline double READY_JOY = 0.3;  // for each part of a set it holds for what it knows how to make (half plus mostly patience)
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
 // A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
@@ -615,7 +619,7 @@ inline constexpr int BOW_WOOD = 2;
 inline int BOW_USES = 20;
 inline double ARCHERY_JOY = 1.0, ARCHERY_REGARD = 0.1, ARCHERY_LEARNING = 0.05;
 inline constexpr double ARCHERY_LEAST = 0.2;  // the chance of a hit at the archer's feet, unsteady and unskilled
-constexpr int CRAFT_COUNT = 6;  // the crafts, in the order of their actions from MakeBoneAxe
+constexpr int CRAFT_COUNT = 7;  // the crafts, in the order of their actions from MakeBoneAxe
 inline int ARMOUR_LEAST = 2;  // stone never spoils
 // Agriculture: raw fruit eaten leaves a seed, which feeds SEED_FOOD of a fruit's portion or may be planted in worked
 // land. Digging with any tool works the land, only in the medium zone; it stays worked.
@@ -716,7 +720,7 @@ inline double LAND_HEALING = 1.0, LAND_DEFENCE = 0.25, LAND_HERD = 0.5, LAND_COM
 // and tolerant the less (even uneasy there), and these are at ease as welcome guests of a friend (Simulation::ambition).
 inline double LAND_AMBITION = 0.1, WELCOME_LEVEL = 0.5;
 enum Possession : int { HidePossession, WeaponPossession, ArmourPossession, BowPossession };
-constexpr int MeatGood = 4, FruitGood = 5, GOODS = 6;  // what may be offered: the possessions, then food
+constexpr int MeatGood = 4, FruitGood = 5, WagonGood = 6, GOODS = 7;  // what may be offered: the possessions, then food, then a wagon
 inline double WOOD_LASTS = 10.0;  // times as long as a pile of food a pile of wood or bone lasts
 inline int STONE_SCATTER_PER = 100;  // one stone to this many squares, scattered once in a world's life
 inline double PILE_LASTS = 3.0;  // times as long as a corpse a pile lasts, since food was last dropped on it
@@ -936,6 +940,7 @@ struct Bitzkey {
     struct SpareHide { int kind = 0; double armour = 0.0; };  // a hide carried beside the one worn, and its armour
     std::vector<SpareTool> spare_tools;  // each a unit of its load (see Simulation::arrange)
     std::vector<SpareHide> spare_hides;
+    int wagon = -1;  // the wagon it drags, by its place among the world's, or -1
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
@@ -1074,7 +1079,7 @@ struct Bitzkey {
     }
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
-    int capacity() const { return trait(Size) + 1; }  // the portions it can carry
+    int capacity() const { return trait(Size) + 1 + (wagon >= 0 ? SHELTER_UNITS : 0); }  // the portions it can carry, the more with a wagon
     int load() const {
         return carried_meat + carried_fruit + cooked_meat + cooked_fruit + carried_stone + carried_bone + carried_wood +
                static_cast<int>(spare_tools.size() + spare_hides.size());
@@ -1437,6 +1442,7 @@ public:
         std::optional<Cell> stone_pile, bone_pile, wood_pile, gear_pile;
         std::optional<Cell> eat_meat, eat_fruit, fire;  // the nearest food to eat, cooked or not, and fire
         PileKind gear_kind = BoneAxePile;  // of the gear it may take
+        int wagon_near = -1;              // a wagon no one drags within a step
         Bitzkey* dressable = nullptr;  // the body it would dress: a fresh kill, or else carrion
         bool grass_here = false;
         Bitzkey* carrion = nullptr;
@@ -1714,7 +1720,17 @@ public:
     void eat_seed(Bitzkey& agent);
     void plant_seed(Bitzkey& agent);
     bool shelter_at(int x, int y) const { return in_bounds(x, y) && shelters_[static_cast<std::size_t>(y) * width_ + x]; }
-    bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && shelter_at(animal.x, animal.y); }
+    bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && under_cover(animal); }
+    bool under_cover(const Bitzkey& animal) const { return shelter_at(animal.x, animal.y) || animal.wagon >= 0 || parked_.contains(cell_index(animal.x, animal.y)); }
+    std::size_t cell_index(int x, int y) const { return static_cast<std::size_t>(y) * width_ + x; }
+    struct Wagon {
+        int x = 0, y = 0;
+        int hitched_to = -1;                // who drags it, or -1
+        std::array<int, 7> goods{};         // what it holds beyond its hitcher's own load: stone, wood, bone, meat, fruit, cooked meat and fruit
+    };
+    const std::vector<Wagon>& wagons() const { return wagons_; }
+    void hitch(Bitzkey& agent, int wagon);  // it drags it, and what it holds comes to its load as far as it has room
+    void unhitch(Bitzkey& agent);  // it leaves it where it stands, with what it can no longer carry
     int site_at(int x, int y) const { return in_bounds(x, y) ? sites_[static_cast<std::size_t>(y) * width_ + x] : 0; }  // units in an unfinished shelter
     void construct(Bitzkey& agent);  // a unit of what it carries, stone first, into the shelter on its square
     bool road_at(int x, int y) const { return in_bounds(x, y) && roads_[static_cast<std::size_t>(y) * width_ + x]; }
@@ -2101,6 +2117,8 @@ private:
     std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
+    std::vector<Wagon> wagons_;  // every wagon made
+    std::unordered_multimap<std::size_t, int> parked_;  // the wagons no one drags, by their squares
     std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
     std::vector<int> fertilized_;  // worked land fed crushed bone, until a seed sprouts there
     std::map<int, Realm> realms_;  // the colour groups, by identifier

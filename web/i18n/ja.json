@@ -1918,5 +1918,12 @@
 "Communication joy": "伝わる喜び",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "聞いた呼び声に一日以内に双方に良い行いで応えたとき、各自が得る自分の利得の割合。呼んだ側は分かってもらえた喜び、聞いた側は分かった喜び",
 "Ready joy": "準備の喜び",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "作り方を知っている物に要る材料（レシピの材料、避難所一つ分の石か木、道一区画分の石、それぞれ必要な道具とともに）を初めて揃えたときの、部品ごとの喜び。忍耐強いほど大きく、賢ければ少し大きい。使うか与える以外でそろいを崩せば同じだけの損失"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "作り方を知っている物に要る材料（レシピの材料、避難所一つ分の石か木、道一区画分の石、それぞれ必要な道具とともに）を初めて揃えたときの、部品ごとの喜び。忍耐強いほど大きく、賢ければ少し大きい。使うか与える以外でそろいを崩せば同じだけの損失",
+"MAKE_WAGON": "荷車を作る",
+"HITCH": "繋ぐ",
+"UNHITCH": "外す",
+"hitched a wagon": "荷車を繋いだ",
+"unhitched its wagon": "荷車を外した",
+"Wagon drag": "荷車の重さ",
+"share more tiring each step is, dragging a wagon": "荷車を引くとき一歩ごとに増える疲れの割合"
 }

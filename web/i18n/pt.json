@@ -1918,5 +1918,12 @@
 "Communication joy": "Alegria de comunicar",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "parte do próprio ganho que cada um recebe quando um responde a um chamado que ouviu, dentro de um dia, com um ato bom para ambos: quem chama feliz por ser entendido, quem ouve por entender",
 "Ready joy": "Alegria de estar pronto",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "alegria, por cada parte, de ter pela primeira vez tudo o que uma coisa que sabe fazer precisa: os materiais de uma receita, a pedra ou madeira de um abrigo ou as pedras de um troço de estrada, com a ferramenta que cada um pede; mais se paciente, um pouco se inteligente; desfazer o conjunto senão usando-o ou dando-o é uma perda igual"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "alegria, por cada parte, de ter pela primeira vez tudo o que uma coisa que sabe fazer precisa: os materiais de uma receita, a pedra ou madeira de um abrigo ou as pedras de um troço de estrada, com a ferramenta que cada um pede; mais se paciente, um pouco se inteligente; desfazer o conjunto senão usando-o ou dando-o é uma perda igual",
+"MAKE_WAGON": "Fazer carroça",
+"HITCH": "Atrelar",
+"UNHITCH": "Desatrelar",
+"hitched a wagon": "atrelou uma carroça",
+"unhitched its wagon": "desatrelou a sua carroça",
+"Wagon drag": "Arrasto da carroça",
+"share more tiring each step is, dragging a wagon": "quanto mais cansa cada passo ao puxar uma carroça"
 }

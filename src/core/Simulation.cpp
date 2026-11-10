@@ -2564,6 +2564,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[TakeGear] = s.gear_pile.has_value();
     const bool axe = agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe);
     available[Cut] = s.flora && axe;
+    available[MakeWagon] = known(MakeWagon) && axe && agent.wagon < 0 && agent.carried_stone >= WAGON_STONE && agent.carried_wood >= WAGON_WOOD &&
+                           !sea(agent.x, agent.y);
+    for (const auto [dx, dy] : {std::pair{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {  // a wagon no one drags, within a step
+        const int x = py_mod(agent.x + dx, width_), y = agent.y + dy;
+        if (y < 0 || y >= height_) continue;
+        if (const auto parked = parked_.find(cell_index(x, y)); parked != parked_.end()) {
+            s.wagon_near = parked->second;
+            break;
+        }
+    }
+    available[Hitch] = agent.wagon < 0 && s.wagon_near >= 0;
+    available[Unhitch] = agent.wagon >= 0;
     available[Dig] = agent.any_tool() && !sea(agent.x, agent.y);
     available[EatSeed] = agent.carried_seed > 0 && agent.browsing > 0;
     available[PlantSeed] = agent.carried_seed > 0 && arable_at(agent.x, agent.y);
@@ -3026,7 +3038,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     s.herd_near = view.close;
     s.herd_middle = view.middle;
     s.exposure = std::min(2.0, discomfort) / 2 * agent.exposure_share(here);
-    s.inside = shelter_at(agent.x, agent.y) ? (agent.last_choice == Rest ? 2 : 1) : 0;
+    s.inside = under_cover(agent) ? (agent.last_choice == Rest ? 2 : 1) : 0;
     if (s.exposure > 0 && (s.inside || sheltered(agent) || warmed_by_fire(agent, here))) {  // kept from the weather, it feels none, only relief
         s.spared = s.exposure;
         s.exposure = 0.0;
@@ -3706,12 +3718,14 @@ int Simulation::value_of(const Bitzkey& agent, int possession) {
     if (possession == HidePossession) return agent.hide;
     if (possession == WeaponPossession) return agent.weapon == StoneAxe ? 2 : agent.weapon ? 1 : 0;
     if (possession == BowPossession) return agent.bow_uses > 0 ? 1 : 0;
+    if (possession == WagonGood) return agent.wagon >= 0 ? 1 : 0;
     return agent.armour ? 1 : 0;
 }
 
 int Simulation::better_possession(const Bitzkey& taker, const Bitzkey& owner) {
     int best = -1, most = 0;
-    for (int possession = HidePossession; possession <= BowPossession; ++possession) {
+    for (const int possession : {static_cast<int>(HidePossession), static_cast<int>(WeaponPossession), static_cast<int>(ArmourPossession),
+                                 static_cast<int>(BowPossession), WagonGood}) {
         const int more = value_of(owner, possession) - value_of(taker, possession);
         if (more > most) {
             most = more;
@@ -3740,6 +3754,11 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
         to.spare_tools.push_back({from.weapon, from.weapon_uses});
         from.weapon = NoWeapon;
         from.weapon_uses = 0;
+    } else if (possession == WagonGood) {  // the wagon, and what it holds beyond the giver's own load
+        const int wagon = from.wagon;
+        unhitch(from);
+        unhitch(to);
+        hitch(to, wagon);
     } else {
         drop_armour(to);
         to.armour = from.armour;
@@ -3817,6 +3836,7 @@ double Simulation::good_worth(const Bitzkey& judge, const Bitzkey& holder, int g
         const double quality = holder.weapon == StoneAxe ? 1.0 : 0.5 * (1.0 - static_cast<double>(holder.weapon_uses) / GEAR_USES);
         return quality * (0.5 + judge.feeling(Aggression));
     }
+    if (good == WagonGood) return 1.0;  // a mobile shelter and store
     if (good == BowPossession) return (BOW_USES > 0 ? static_cast<double>(holder.bow_uses) / BOW_USES : 0.0) * (0.5 + judge.archery);  // shots left, to one who can use them
     return 1.0 - static_cast<double>(holder.armour_uses) / GEAR_USES;
 }
@@ -3828,7 +3848,7 @@ double Simulation::trade_gain(const Bitzkey& judge, const Bitzkey& from, int goo
 }
 
 void Simulation::pass_good(Bitzkey& from, Bitzkey& to, int good) {
-    if (good < MeatGood) {
+    if (good < MeatGood || good == WagonGood) {
         hand_over(from, to, good);
         return;
     }
@@ -3941,12 +3961,13 @@ double hides_worth(const Bitzkey& agent) {  // worn and carried
 }  // namespace
 
 double Simulation::possessions(const Bitzkey& agent) {
-    return hides_worth(agent) + tools_worth(agent) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0);
+    return hides_worth(agent) + tools_worth(agent) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0) + (agent.wagon >= 0 ? 1.0 : 0.0);
 }
 
 double Simulation::possessions(const Bitzkey& agent, const Bitzkey& judge) {
     return hides_worth(agent) + (1 + judge.desire[WeaponDesire]) * tools_worth(agent) +
-           (1 + judge.desire[ArmourDesire]) * (agent.armour ? 0.5 : 0.0) + (1 + judge.desire[BowDesire]) * (agent.bow_uses > 0 ? 0.5 : 0.0);
+           (1 + judge.desire[ArmourDesire]) * (agent.armour ? 0.5 : 0.0) + (1 + judge.desire[BowDesire]) * (agent.bow_uses > 0 ? 0.5 : 0.0) +
+           (agent.wagon >= 0 ? 1.0 : 0.0);
 }
 
 void Simulation::gear_seen(const Bitzkey& user, int kind) {
@@ -3969,7 +3990,8 @@ int Simulation::ready_sets(const Bitzkey& agent) {
     // road section's stones with a stone axe, once it knows shelters or roads.
     const std::array<bool, CRAFT_COUNT> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
                                               agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0,
-                                              agent.has_tool(StoneAxe) && agent.carried_wood >= BOW_WOOD && agent.any_hide()};
+                                              agent.has_tool(StoneAxe) && agent.carried_wood >= BOW_WOOD && agent.any_hide(),
+                                              agent.carried_stone >= WAGON_STONE && agent.carried_wood >= WAGON_WOOD && (agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe))};
     int sets = 0;
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         if ((agent.crafts >> craft & 1) && holds[static_cast<std::size_t>(craft)]) sets |= 1 << craft;
@@ -3980,7 +4002,7 @@ int Simulation::ready_sets(const Bitzkey& agent) {
 }
 
 double Simulation::ready_worth(const Bitzkey& agent, int sets) {
-    static constexpr std::array<int, CRAFT_COUNT> PARTS{1, 1, 1, 1, 2, 4};  // a bow: a kept stone axe, two wood and a hide
+    static constexpr std::array<int, CRAFT_COUNT> PARTS{1, 1, 1, 1, 2, 4, 6};  // a bow: a kept stone axe, two wood and a hide; a wagon, an axe and five
     double parts = 0;
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         if (sets >> craft & 1) parts += PARTS[static_cast<std::size_t>(craft)];
@@ -4203,6 +4225,16 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     }
     agent.spare_tools.clear();
     agent.spare_hides.clear();  // the body keeps the one worn
+    if (agent.wagon >= 0) {  // its wagon stands where it fell
+        Wagon& wagon = wagons_[static_cast<std::size_t>(agent.wagon)];
+        wagon.hitched_to = -1;
+        if (in_bounds(agent.x, agent.y)) {
+            wagon.x = agent.x;
+            wagon.y = agent.y;
+        }
+        parked_.emplace(cell_index(wagon.x, wagon.y), agent.wagon);
+        agent.wagon = -1;
+    }
     agent.weapon = NoWeapon;
     agent.armour = NoArmour;
     agent.bow_uses = 0;
@@ -4266,6 +4298,11 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (by_road) {
         agent.road_known = std::min(1.0, agent.road_known + static_cast<double>(by_road) / DAY_LENGTH);
         agent.reward += ROAD_JOY * agent.road_known;
+    }
+    if (agent.wagon >= 0) {  // its wagon follows, and each step drags it
+        cells *= 1 + WAGON_DRAG;
+        wagons_[static_cast<std::size_t>(agent.wagon)].x = agent.x;
+        wagons_[static_cast<std::size_t>(agent.wagon)].y = agent.y;
     }
     double cost = ACTION_FATIGUE + cells * STEP_FATIGUE * (agent.terrain == Terrain::Avian ? FLIGHT_FATIGUE : 1.0);
     if (did == "attacked" || did == "pounced" || did == "defended") cost += STRIKE_FATIGUE;
@@ -4507,6 +4544,12 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Cook:
             cook(agent, *s.fire);
+            break;
+        case Hitch:
+            hitch(agent, s.wagon_near);
+            break;
+        case Unhitch:
+            unhitch(agent);
             break;
         case TakeGear:
             take_gear(agent, s);
@@ -5396,6 +5439,49 @@ void Simulation::arrange(Bitzkey& agent) {
     }
 }
 
+namespace {
+std::array<int*, 7> wagon_load(Bitzkey& agent) {  // as a wagon's goods: stone, wood, bone, meat, fruit, cooked meat and fruit
+    return {&agent.carried_stone, &agent.carried_wood, &agent.carried_bone, &agent.carried_meat, &agent.carried_fruit, &agent.cooked_meat, &agent.cooked_fruit};
+}
+}  // namespace
+
+void Simulation::hitch(Bitzkey& agent, int wagon) {
+    if (wagon < 0 || agent.wagon >= 0) return;
+    Wagon& it = wagons_[static_cast<std::size_t>(wagon)];
+    for (auto parked = parked_.begin(); parked != parked_.end(); ++parked) {
+        if (parked->second == wagon) {
+            parked_.erase(parked);
+            break;
+        }
+    }
+    it.hitched_to = agent.identifier;
+    it.x = agent.x;
+    it.y = agent.y;
+    agent.wagon = wagon;
+    const std::array<int*, 7> load = wagon_load(agent);
+    for (std::size_t good = 0; good < load.size(); ++good) {
+        for (; it.goods[good] > 0 && agent.load() < agent.capacity(); --it.goods[good]) ++*load[good];
+    }
+    agent.last_action = "hitched a wagon";
+    note_first("hitched_a_wagon", agent.species, agent.identifier);
+}
+
+void Simulation::unhitch(Bitzkey& agent) {
+    if (agent.wagon < 0) return;
+    Wagon& it = wagons_[static_cast<std::size_t>(agent.wagon)];
+    it.hitched_to = -1;
+    it.x = agent.x;
+    it.y = agent.y;
+    parked_.emplace(cell_index(agent.x, agent.y), agent.wagon);
+    agent.wagon = -1;
+    const std::array<int*, 7> load = wagon_load(agent);
+    for (std::size_t good = 0; good < load.size(); ++good) {
+        for (; agent.load() > agent.capacity() && *load[good] > 0; --*load[good]) ++it.goods[good];
+    }
+    arrange(agent);  // and spare tools or hides it cannot carry fall
+    agent.last_action = "unhitched its wagon";
+}
+
 void Simulation::spend_tool(Bitzkey& agent, int kind) {
     if (agent.weapon == kind) {
         agent.weapon = NoWeapon;
@@ -5417,7 +5503,8 @@ void Simulation::wear_armour(Bitzkey& agent) {
 void Simulation::discover(Bitzkey& agent) {
     const std::array<bool, CRAFT_COUNT> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
                                               agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0,
-                                              agent.has_tool(StoneAxe) && agent.carried_wood >= BOW_WOOD && agent.any_hide()};  // as the crafts' actions run
+                                              agent.has_tool(StoneAxe) && agent.carried_wood >= BOW_WOOD && agent.any_hide(),
+                                              agent.carried_stone >= WAGON_STONE && agent.carried_wood >= WAGON_WOOD && (agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe))};  // as the crafts' actions run
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
         if (holds[craft] && !(agent.crafts >> craft & 1) && rng().random() < DISCOVERY_CHANCE * agent.intelligence() * (agent.species == Species::Omnivore ? 2 : 1)) {
             agent.crafts |= 1 << craft;
@@ -5456,6 +5543,13 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
             }
             agent.bow_uses = BOW_USES;
             note_first("made_a_bow", agent.species, agent.identifier);
+            break;
+        case MakeWagon:  // two stones and three wood, with an axe it keeps; left where it stands, for any to hitch
+            agent.carried_stone -= WAGON_STONE;
+            agent.carried_wood -= WAGON_WOOD;
+            wagons_.push_back({agent.x, agent.y});
+            parked_.emplace(cell_index(agent.x, agent.y), static_cast<int>(wagons_.size()) - 1);
+            note_first("made_a_wagon", agent.species, agent.identifier);
             break;
         default:  // a stone axe, of a stone and a bone, or wood if it has no bone
             --agent.carried_stone;

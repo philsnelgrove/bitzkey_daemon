@@ -1918,5 +1918,12 @@
 "Communication joy": "沟通之乐",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "一方在一天内以对双方都有益的举动回应所听到的呼唤时，各自获得自身收益的这一份额：呼唤者因被理解而喜，聆听者因理解而喜",
 "Ready joy": "备齐之乐",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "首次备齐它会制作之物所需的一切时，每个部件带来的喜悦：配方的材料、一座庇护所的石或木、一段道路的石头，以及各自所需的工具；越有耐心越多，聪明则稍多；除使用或赠予外拆散这一套，同样是损失"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "首次备齐它会制作之物所需的一切时，每个部件带来的喜悦：配方的材料、一座庇护所的石或木、一段道路的石头，以及各自所需的工具；越有耐心越多，聪明则稍多；除使用或赠予外拆散这一套，同样是损失",
+"MAKE_WAGON": "造车",
+"HITCH": "套车",
+"UNHITCH": "卸车",
+"hitched a wagon": "套上了一辆车",
+"unhitched its wagon": "卸下了自己的车",
+"Wagon drag": "拉车之累",
+"share more tiring each step is, dragging a wagon": "拉车时每一步多出的疲劳份额"
 }

@@ -250,6 +250,7 @@ Json Probe::animal(Simulation& world, int identifier) const {
                            for (const auto& hide : agent->spare_hides) hides.push_back(std::string(SPECIES[static_cast<std::size_t>(hide.kind)]));
                            return hides;
                        }()},
+                      {"wagon", agent->wagon >= 0},
                       {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
                       {"cooked_meat", agent->cooked_meat}, {"cooked_fruit", agent->cooked_fruit}};
     Json mind = Json::object();
@@ -1197,7 +1198,8 @@ Json Probe::skills(Simulation& world) const {
             arable += world.arable_at(x, y);
         }
     }
-    return {{"turn", world.turn()}, {"skills", result}, {"fights", world.fights().size()}, {"works", {{"arable", arable}, {"fertilized", fertilized}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}, {"roads", roads}, {"roads_begun", road_works}}}};
+    return {{"turn", world.turn()}, {"skills", result}, {"fights", world.fights().size()}, {"works", {{"arable", arable}, {"fertilized", fertilized}, {"fires", fires}, {"shelters", shelters}, {"sites", sites}, {"roads", roads}, {"roads_begun", road_works}, {"wagons", world.wagons().size()},
+                                              {"wagons_hitched", std::count_if(world.wagons().begin(), world.wagons().end(), [](const auto& wagon) { return wagon.hitched_to >= 0; })}}}};
 }
 
 Json Probe::regard(Simulation& world) const {
@@ -1661,7 +1663,7 @@ Json Probe::gifts(Simulation& world) const {
             {"giver_received_anything_later", giverGotLater / n}};
     }
     // Offers: how often accepted, and who comes off better, the sharper or the duller of the two.
-    static constexpr std::array<const char*, GOODS> GOOD_NAMES = {"hide", "weapon", "armour", "bow", "meat", "fruit"};
+    static constexpr std::array<const char*, GOODS> GOOD_NAMES = {"hide", "weapon", "armour", "bow", "meat", "fruit", "wagon"};
     const std::vector<Simulation::Trade> trades = world.trades_so_far();
     Json offers = Json::object();
     for (std::size_t index = 0; index < SPECIES.size(); ++index) {

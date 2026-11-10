@@ -3555,6 +3555,36 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it follows, holds more and shelters, unhitched it keeps what it held") {
+    Simulation simulation = world();
+    Bitzkey& maker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    maker.weapon = BoneAxe;
+    maker.carried_stone = WAGON_STONE;
+    maker.carried_wood = WAGON_WOOD;
+    maker.crafts = 1 << (MakeWagon - MakeBoneAxe);
+    maker.craft_tries[MakeWagon - MakeBoneAxe] = CRAFT_TRIES;
+    simulation.make_gear(maker, MakeWagon);
+    REQUIRE(simulation.wagons().size() == 1);
+    CHECK(maker.carried_stone + maker.carried_wood == 0);
+    CHECK(maker.weapon == BoneAxe);  // the axe kept
+    CHECK(maker.wagon == -1);  // left for any to hitch
+    const int alone = maker.capacity();
+    simulation.hitch(maker, 0);
+    CHECK(maker.wagon == 0);
+    CHECK(maker.capacity() == alone + SHELTER_UNITS);
+    CHECK(simulation.under_cover(maker));
+    maker.carried_stone = alone + 2;  // more than it can carry alone
+    simulation.unhitch(maker);
+    CHECK(maker.wagon == -1);
+    CHECK(maker.load() <= alone);
+    CHECK(simulation.wagons()[0].goods[0] == 2);  // the stones it could not carry, left in the wagon
+    CHECK(simulation.under_cover(maker));  // standing by it
+    CHECK(Simulation::value_of(maker, WagonGood) == 0);
+    simulation.hitch(maker, 0);
+    CHECK(maker.carried_stone == alone + 2);  // and taken up again
+    CHECK(Simulation::value_of(maker, WagonGood) == 1);
+}
+
 TEST_CASE("tools and hides are carried beside those in hand and worn; the best is used, and any serves for crafting") {
     Simulation simulation = world();
     Bitzkey& agent = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);

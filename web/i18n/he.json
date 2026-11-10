@@ -1918,5 +1918,12 @@
 "Communication joy": "שמחת התקשורת",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "החלק מרווחו שלו שכל אחד מקבל כשאחד עונה לקריאה ששמע, בתוך יום, במעשה טוב לשניהם: הקורא שמח שהובן, והשומע שהבין",
 "Ready joy": "שמחת המוכנות",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "שמחה, לכל חלק, על החזקה ראשונה של כל מה שדרוש לדבר שהוא יודע לעשות: חומרי מתכון, אבן או עץ למחסה או אבני קטע דרך, עם הכלי הדרוש; יותר אם הוא סבלני, מעט אם הוא נבון; פירוק הסט שלא בשימוש או בנתינה הוא הפסד שווה"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "שמחה, לכל חלק, על החזקה ראשונה של כל מה שדרוש לדבר שהוא יודע לעשות: חומרי מתכון, אבן או עץ למחסה או אבני קטע דרך, עם הכלי הדרוש; יותר אם הוא סבלני, מעט אם הוא נבון; פירוק הסט שלא בשימוש או בנתינה הוא הפסד שווה",
+"MAKE_WAGON": "לבנות עגלה",
+"HITCH": "לרתום",
+"UNHITCH": "להתיר",
+"hitched a wagon": "רתם עגלה",
+"unhitched its wagon": "התיר את עגלתו",
+"Wagon drag": "גרירת עגלה",
+"share more tiring each step is, dragging a wagon": "כמה יותר מעייף כל צעד בגרירת עגלה"
 }

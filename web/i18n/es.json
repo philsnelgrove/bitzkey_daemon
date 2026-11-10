@@ -1918,5 +1918,12 @@
 "Communication joy": "Alegría de comunicarse",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "parte de su propia ganancia que recibe cada uno cuando uno responde a una llamada que oyó, en un día, con un acto bueno para ambos: el que llama, contento de ser entendido; el que escucha, de entender",
 "Ready joy": "Alegría de estar listo",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "alegría, por cada parte, de tener por primera vez todo lo que necesita algo que sabe hacer: los materiales de una receta, la piedra o madera de un refugio o las piedras de un tramo de camino, con la herramienta que cada uno pide; más si es paciente, algo más si es listo; deshacer el conjunto salvo usándolo o dándolo es una pérdida igual"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "alegría, por cada parte, de tener por primera vez todo lo que necesita algo que sabe hacer: los materiales de una receta, la piedra o madera de un refugio o las piedras de un tramo de camino, con la herramienta que cada uno pide; más si es paciente, algo más si es listo; deshacer el conjunto salvo usándolo o dándolo es una pérdida igual",
+"MAKE_WAGON": "Hacer carro",
+"HITCH": "Enganchar",
+"UNHITCH": "Desenganchar",
+"hitched a wagon": "enganchó un carro",
+"unhitched its wagon": "desenganchó su carro",
+"Wagon drag": "Arrastre del carro",
+"share more tiring each step is, dragging a wagon": "cuánto más cansa cada paso al arrastrar un carro"
 }

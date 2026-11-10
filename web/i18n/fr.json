@@ -1918,5 +1918,12 @@
 "Communication joy": "Joie de communiquer",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "part de son propre gain que chacun reçoit quand l'un répond à un appel entendu, dans la journée, par un acte bon pour les deux : l'appelant heureux d'être compris, l'auditeur de comprendre",
 "Ready joy": "Joie d'être prêt",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "joie, par partie, de tenir pour la première fois tout ce qu'il faut à une chose qu'il sait faire : les matériaux d'une recette, la pierre ou le bois d'un abri ou les pierres d'un tronçon de route, avec l'outil voulu ; davantage s'il est patient, un peu s'il est intelligent ; défaire l'ensemble autrement qu'en l'utilisant ou en le donnant est une perte égale"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "joie, par partie, de tenir pour la première fois tout ce qu'il faut à une chose qu'il sait faire : les matériaux d'une recette, la pierre ou le bois d'un abri ou les pierres d'un tronçon de route, avec l'outil voulu ; davantage s'il est patient, un peu s'il est intelligent ; défaire l'ensemble autrement qu'en l'utilisant ou en le donnant est une perte égale",
+"MAKE_WAGON": "Fabriquer un chariot",
+"HITCH": "Atteler",
+"UNHITCH": "Dételer",
+"hitched a wagon": "attela un chariot",
+"unhitched its wagon": "détela son chariot",
+"Wagon drag": "Traction du chariot",
+"share more tiring each step is, dragging a wagon": "de combien chaque pas fatigue plus en tirant un chariot"
 }

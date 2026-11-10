@@ -1918,5 +1918,12 @@
 "Communication joy": "Verständigungsfreude",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "Anteil am eigenen Gewinn, den jeder erhält, wenn einer einen gehörten Ruf binnen eines Tages mit einer Tat beantwortet, die beiden guttut: der Rufer froh, verstanden zu werden, der Hörer, zu verstehen",
 "Ready joy": "Bereitschaftsfreude",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "Freude, je Teil, alles zum ersten Mal beisammenzuhaben, was ein Ding braucht, das es zu machen weiß: die Stoffe eines Rezepts, Stein oder Holz für einen Unterschlupf oder die Steine eines Wegstücks, mit dem jeweils nötigen Werkzeug; mehr, wenn geduldig, ein wenig, wenn klug; den Satz anders als durch Gebrauch oder Weggeben aufzulösen ist ein ebenso großer Verlust"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "Freude, je Teil, alles zum ersten Mal beisammenzuhaben, was ein Ding braucht, das es zu machen weiß: die Stoffe eines Rezepts, Stein oder Holz für einen Unterschlupf oder die Steine eines Wegstücks, mit dem jeweils nötigen Werkzeug; mehr, wenn geduldig, ein wenig, wenn klug; den Satz anders als durch Gebrauch oder Weggeben aufzulösen ist ein ebenso großer Verlust",
+"MAKE_WAGON": "Wagen bauen",
+"HITCH": "Anspannen",
+"UNHITCH": "Abspannen",
+"hitched a wagon": "spannte einen Wagen an",
+"unhitched its wagon": "spannte seinen Wagen ab",
+"Wagon drag": "Wagenlast",
+"share more tiring each step is, dragging a wagon": "um wie viel mehr jeder Schritt ermüdet, wenn es einen Wagen zieht"
 }

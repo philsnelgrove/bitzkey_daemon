@@ -1918,5 +1918,12 @@
 "Communication joy": "Радість порозуміння",
 "share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand": "частка власного здобутку, яку отримує кожен, коли один відповідає на почутий поклик протягом дня вчинком, добрим для обох: той, хто кличе, радий, що його зрозуміли, а слухач — що зрозумів",
 "Ready joy": "Радість готовності",
-"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "радість, за кожну частину, від того, що вперше має все потрібне для речі, яку вміє робити: матеріали рецепта, камінь чи дерево на сховище або камені на відтинок дороги, з потрібним знаряддям; більша, якщо терплячий, трохи — якщо кмітливий; розбити набір інакше, ніж ужити чи віддати, — така ж втрата"
+"joy, for each part, of first holding all a thing it knows how to make needs: a recipe's materials, a shelter's worth of stone or wood, or a road section's stones, with the tool each wants; mostly more if patient, a little if clever; breaking the set but by using or giving it is as much a loss": "радість, за кожну частину, від того, що вперше має все потрібне для речі, яку вміє робити: матеріали рецепта, камінь чи дерево на сховище або камені на відтинок дороги, з потрібним знаряддям; більша, якщо терплячий, трохи — якщо кмітливий; розбити набір інакше, ніж ужити чи віддати, — така ж втрата",
+"MAKE_WAGON": "Зробити воза",
+"HITCH": "Запрягти",
+"UNHITCH": "Розпрягти",
+"hitched a wagon": "запріг воза",
+"unhitched its wagon": "розпріг свого воза",
+"Wagon drag": "Тягар воза",
+"share more tiring each step is, dragging a wagon": "наскільки більше втомлює кожен крок, коли тягне воза"
 }
