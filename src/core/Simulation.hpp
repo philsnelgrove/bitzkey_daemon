@@ -932,6 +932,10 @@ struct Bitzkey {
     double road_known = 0.0;  // its memory of going by road, 0 to 1 after a day of it (see ROAD_LONGING)
     int hide = 0;  // the hide it wears, by the species it came from: 0 none, else Grazer, Omnivore or Predator; a body keeps it
     double hide_armour = 0.0;  // the armour the hide adds
+    struct SpareTool { int kind = 0; int uses = 0; };      // a tool carried beside the one in hand, and its uses
+    struct SpareHide { int kind = 0; double armour = 0.0; };  // a hide carried beside the one worn, and its armour
+    std::vector<SpareTool> spare_tools;  // each a unit of its load (see Simulation::arrange)
+    std::vector<SpareHide> spare_hides;
     bool skinned = false;  // a body whose hide has been taken
     double regarded = 0.0;  // how well those who know it regard it, on average, as of this turn
     int thefts = 0;  // possessions it has stolen
@@ -1071,7 +1075,10 @@ struct Bitzkey {
     // Whether it may be in the sea, or on the land, by its terrain.
     bool can_be(bool sea) const { return fits(terrain, sea); }
     int capacity() const { return trait(Size) + 1; }  // the portions it can carry
-    int load() const { return carried_meat + carried_fruit + cooked_meat + cooked_fruit + carried_stone + carried_bone + carried_wood; }
+    int load() const {
+        return carried_meat + carried_fruit + cooked_meat + cooked_fruit + carried_stone + carried_bone + carried_wood +
+               static_cast<int>(spare_tools.size() + spare_hides.size());
+    }
     bool exhausted() const { return species != Species::Plant && stamina <= 0; }  // it can only rest
     // The squares it goes a step from where it stands: its steps, but an amphibious animal on land AMPHIBIOUS_SPEED of
     // them, rounded half up, at least one.
@@ -1118,6 +1125,15 @@ struct Bitzkey {
     bool wielding() const { return weapon != NoWeapon || bow_uses > 0; }
     bool wearing() const { return armour != NoArmour; }
     int gear_held() const { return wielding() + wearing(); }  // a weapon or bow in hand, and armour worn
+    bool has_tool(int kind) const {  // in hand or carried: either serves for crafting
+        if (weapon == kind) return true;
+        for (const SpareTool& tool : spare_tools) {
+            if (tool.kind == kind) return true;
+        }
+        return false;
+    }
+    bool any_tool() const { return weapon != NoWeapon || !spare_tools.empty(); }
+    bool any_hide() const { return hide > 0 || !spare_hides.empty(); }
     // The share of its fear's effects hunger leaves a predator: all when fed, falling with its hunger to none
     // as it starves; any other animal feels them all.
     double unafraid() const { return species == Species::Predator ? std::max(0.0, 1 - hunger / 100) : 1.0; }
@@ -1594,6 +1610,10 @@ public:
     void make_gear(Bitzkey& agent, int action);    // from what it carries, wielded or worn at once
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken
     static void wear_weapon(Bitzkey& agent);       // a use of what it wields, which may break it
+    static void wield_best(Bitzkey& agent);        // in hand the best tool it carries that it may wield
+    static void wear_best(Bitzkey& agent);         // on it the best hide it carries
+    void arrange(Bitzkey& agent);                  // both, and what it can no longer carry falls
+    void spend_tool(Bitzkey& agent, int kind);     // one of that kind, in hand or carried, used up
     static void wear_armour(Bitzkey& agent);
     static double gear_toughness(const Bitzkey& agent);  // with what it wears
     static double gear_force(const Bitzkey& agent);      // how many times as hard what it wields strikes
@@ -1702,7 +1722,7 @@ public:
     void build_road(Bitzkey& agent);  // a turn's work on the road on its square
     bool fertilized_at(int x, int y) const { return in_bounds(x, y) && fertilized_[static_cast<std::size_t>(y) * width_ + x]; }
     bool can_crush(const Bitzkey& agent) const {  // a bone to hand and something to crush it with
-        return (agent.weapon == Club || agent.weapon == StoneAxe || agent.carried_stone > 0) && (agent.carried_bone > 0 || pile_at(agent.x, agent.y, BonePile) > 0);
+        return (agent.has_tool(Club) || agent.has_tool(StoneAxe) || agent.carried_stone > 0) && (agent.carried_bone > 0 || pile_at(agent.x, agent.y, BonePile) > 0);
     }
     bool crush_bone(Bitzkey& agent);  // spends the bone it carries, or else one from the pile on its square; false if none is left
     void eat_marrow(Bitzkey& agent);

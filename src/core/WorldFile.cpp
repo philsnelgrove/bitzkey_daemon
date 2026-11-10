@@ -219,7 +219,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery}, {"desire", agent.desire}, {"tutored_turn", agent.tutored_turn},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
-        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
+        {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"spare_tools", [&] { json out = json::array(); for (const auto& tool : agent.spare_tools) out.push_back(json::array({tool.kind, tool.uses})); return out; }()}, {"spare_hides", [&] { json out = json::array(); for (const auto& hide : agent.spare_hides) out.push_back(json::array({hide.kind, hide.armour})); return out; }()}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
         {"died_turn", optional_value(agent.died_turn)},
         {"assailant", optional_value(agent.assailant)}, {"panicked", agent.panicked}, {"primal_fear", agent.primal_fear},
         {"rivalry", agent.rivalry}, {"own_rivalry", agent.own_rivalry}, {"hunts_grazers", agent.hunts_grazers},
@@ -346,6 +346,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->plenty_known = record.value("plenty_known", -1.0);
     agent->hide = record.value("hide", 0);
     agent->hide_armour = record.value("hide_armour", 0.0);
+    for (const json& tool : record.value("spare_tools", json::array())) agent->spare_tools.push_back({tool.at(0).get<int>(), tool.at(1).get<int>()});
+    for (const json& hide : record.value("spare_hides", json::array())) agent->spare_hides.push_back({hide.at(0).get<int>(), hide.at(1).get<double>()});
     agent->skinned = record.value("skinned", false);
     agent->thefts = record.value("thefts", 0);
     agent->mark = record.value("mark", 0);  // none, in an older world

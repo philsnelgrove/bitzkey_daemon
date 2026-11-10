@@ -240,6 +240,16 @@ Json Probe::animal(Simulation& world, int identifier) const {
                       {"bow_uses", agent->bow_uses}, {"archery", agent->archery},
                       {"desire", {{"weapon", agent->desire[WeaponDesire]}, {"armour", agent->desire[ArmourDesire]}, {"bow", agent->desire[BowDesire]}}},
                       {"armour", ARMOUR_NAMES[static_cast<std::size_t>(agent->armour)]}, {"armour_uses", agent->armour_uses},
+                      {"spare_tools", [&] {
+                           Json tools = Json::array();
+                           for (const auto& tool : agent->spare_tools) tools.push_back(WEAPON_NAMES[static_cast<std::size_t>(tool.kind)]);
+                           return tools;
+                       }()},
+                      {"spare_hides", [&] {
+                           Json hides = Json::array();
+                           for (const auto& hide : agent->spare_hides) hides.push_back(std::string(SPECIES[static_cast<std::size_t>(hide.kind)]));
+                           return hides;
+                       }()},
                       {"seeds", agent->carried_seed}, {"stone", agent->carried_stone}, {"bone", agent->carried_bone}, {"wood", agent->carried_wood},
                       {"cooked_meat", agent->cooked_meat}, {"cooked_fruit", agent->cooked_fruit}};
     Json mind = Json::object();
@@ -1102,7 +1112,7 @@ Json Probe::skills(Simulation& world) const {
         std::array<std::size_t, 4> hides{};
         std::array<double, 4> regarded{};
         std::array<double, 3> desired{};
-        std::size_t counted = 0;
+        std::size_t counted = 0, spare_tools = 0, spare_hides = 0;
         std::size_t envious = 0, fighting = 0, thieves = 0, thefts = 0, held_liars = 0, leaning = 0, tasted = 0, loving = 0;
         std::size_t living = 0, infants_taught = 0, elders_taught = 0, elders = 0, archers = 0, shot = 0;
         double skill = 0.0;
@@ -1140,6 +1150,8 @@ Json Probe::skills(Simulation& world) const {
             envious += world.envy_of(*agent) > 0;
             for (std::size_t kind = 0; kind < desired.size(); ++kind) desired[kind] += agent->desire[kind];
             ++counted;
+            spare_tools += agent->spare_tools.size();
+            spare_hides += agent->spare_hides.size();
             fighting += world.fight_of(agent->identifier) != nullptr;
             thieves += agent->thefts > 0;
             thefts += static_cast<std::size_t>(agent->thefts);
@@ -1159,7 +1171,8 @@ Json Probe::skills(Simulation& world) const {
                                   {"tasted_cooked", tasted}, {"love_cooked", loving},
                                   {"mean_desire", {{"weapon", counted ? desired[WeaponDesire] / counted : 0.0},
                                                    {"armour", counted ? desired[ArmourDesire] / counted : 0.0},
-                                                   {"bow", counted ? desired[BowDesire] / counted : 0.0}}}};
+                                                   {"bow", counted ? desired[BowDesire] / counted : 0.0}}},
+                                  {"spare_tools", spare_tools}, {"spare_hides", spare_hides}};
         Json crafts = Json::object(), weapons = Json::object(), armours = Json::object();
         for (std::size_t craft = 0; craft < CRAFT_COUNT; ++craft) {
             crafts[std::string(ACTIONS[MakeBoneAxe + craft])] = {{"known", known[craft]}, {"tried", tried[craft]}, {"mastered", mastered[craft]}, {"unrecorded", sources[craft][0]},

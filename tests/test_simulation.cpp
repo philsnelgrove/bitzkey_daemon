@@ -3555,6 +3555,41 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("tools and hides are carried beside those in hand and worn; the best is used, and any serves for crafting") {
+    Simulation simulation = world();
+    Bitzkey& agent = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    agent.weapon = BoneAxe;
+    agent.hide = static_cast<int>(Species::Predator);
+    agent.spare_tools.push_back({StoneAxe, 0});
+    agent.spare_hides.push_back({static_cast<int>(Species::Grazer), 0.1});
+    simulation.arrange(agent);
+    CHECK(agent.weapon == StoneAxe);  // the better to hand
+    REQUIRE(agent.spare_tools.size() == 1);
+    CHECK(agent.spare_tools[0].kind == BoneAxe);
+    CHECK(agent.hide == static_cast<int>(Species::Predator));  // the finer worn
+    CHECK(agent.load() == 2);
+    agent.armour = BoneArmour;
+    agent.weapon = NoWeapon;
+    agent.spare_tools = {{BoneAxe, 0}};
+    simulation.arrange(agent);
+    CHECK(agent.weapon == NoWeapon);  // no bone axe in hand with armour on, but carried
+    CHECK(agent.has_tool(BoneAxe));
+    agent.armour = NoArmour;
+    agent.spare_tools = {{StoneAxe, 0}};
+    agent.weapon = Club;
+    agent.carried_wood = BOW_WOOD;
+    agent.crafts = 1 << (MakeBow - MakeBoneAxe);
+    agent.craft_tries[MakeBow - MakeBoneAxe] = CRAFT_TRIES;
+    simulation.arrange(agent);
+    simulation.make_gear(agent, MakeBow);  // the stone axe carried serves, and the poorer hide is spent
+    CHECK(agent.bow_uses == BOW_USES);
+    CHECK(agent.spare_hides.empty());
+    CHECK(agent.hide == static_cast<int>(Species::Predator));
+    for (int many = 0; many < 20; ++many) agent.spare_hides.push_back({static_cast<int>(Species::Grazer), 0.1});
+    simulation.arrange(agent);
+    CHECK(agent.load() <= agent.capacity());  // what it cannot carry falls
+}
+
 TEST_CASE("holding all a known thing needs is a joy by its parts; only what it knows counts") {
     Simulation simulation = world();
     Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
