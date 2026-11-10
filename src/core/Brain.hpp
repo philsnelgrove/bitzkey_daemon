@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cmath>
 #include <optional>
 #include <span>
@@ -264,7 +265,6 @@ constexpr bool signed_sense(int sense) {
            sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
            sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense >= SenseImagined;
 }
-inline double read_sense(int sense, double value) { return signed_sense(sense) ? value : value * 2.0 - 1.0; }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
     "ready_to_breed", "prey_near", "prey_frailty", "prey_closeness", "prey_pregnant", "threat_near", "threat_danger",
@@ -292,7 +292,40 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
     "heat_tolerance", "cold_tolerance", "swims", "walks", "flies", "nocturnal",
-    "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6"};
+    "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
+// Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
+// teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
+// the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
+constexpr std::array<std::string_view, 42> SPARSE_SENSES = {
+    "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
+    "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
+    "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
+    "student_near", "meat_carried", "fruit_carried", "meat_pile_closeness", "stone_carried", "wood_carried",
+    "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "foe_sheltered", "shelter_here",
+    "seed_carried", "road_here", "hide_worn", "envy", "fighting", "cooking_smell", "leader", "standout_leads",
+    "bow_carried", "archery"};
+enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
+inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
+    std::array<std::uint8_t, INPUT_SIZE> readings{};
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) {
+        readings[static_cast<std::size_t>(sense)] = signed_sense(sense) ? SignedReading : CentredReading;
+        for (const std::string_view name : SPARSE_SENSES) {
+            if (SENSES[static_cast<std::size_t>(sense)] == name) readings[static_cast<std::size_t>(sense)] = SparseReading;
+        }
+    }
+    return readings;
+}();
+static_assert([] {
+    int found = 0;
+    for (const SenseReading reading : {SparseReading}) {
+        for (const std::uint8_t each : SENSE_READINGS) found += each == reading;
+    }
+    return found;
+}() == static_cast<int>(SPARSE_SENSES.size()));  // each a sense it has
+inline double read_sense(int sense, double value) {
+    const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+    return reading == SignedReading ? value : reading == SparseReading ? value * 2.0 : value * 2.0 - 1.0;
+}
 int action_index(std::string_view name);  // -1 when unknown
 int sense_index(std::string_view name);   // -1 when unknown
 

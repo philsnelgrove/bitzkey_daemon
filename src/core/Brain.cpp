@@ -275,15 +275,17 @@ Brain Brain::resized(int depth, int width) const {
 }
 
 void Brain::centre_inputs() {
-    // A sense x read as 2x - 1: each weight on it halved, and the half it gave at 0 given by the neuron's bias.
+    // A sense x read as 2x - 1: each weight on it halved, and the half it gave at 0 given by the neuron's bias; one read
+    // as 2x (a sparse sense), halved alone.
     if (layers.empty()) return;
     Layer& first = layers.front();
     for (int neuron = 0; neuron < first.neurons(); ++neuron) {
         double* weights = first.row(neuron);
         for (int sense = 0; sense < INPUT_SIZE; ++sense) {
-            if (signed_sense(sense)) continue;
+            const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+            if (reading == SignedReading) continue;
             weights[sense] /= 2;
-            first.biases[static_cast<std::size_t>(neuron)] += weights[sense];
+            if (reading == CentredReading) first.biases[static_cast<std::size_t>(neuron)] += weights[sense];
         }
     }
     traces.reset();

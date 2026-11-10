@@ -330,6 +330,8 @@ TEST_CASE("a brain that read its senses uncentred, made to read them centred, va
     CHECK(read_sense(SenseHunger, 0.0) == -1.0);
     CHECK(read_sense(SenseHunger, 1.0) == 1.0);
     CHECK(read_sense(SenseLatitude, -0.4) == -0.4);  // already -1..1
+    CHECK(read_sense(SenseAlarm, 0.0) == 0.0);  // mostly nothing: off, it pushes nothing
+    CHECK(read_sense(SenseAlarm, 1.0) == 2.0);
 }
 
 TEST_CASE("a brain made to hold its values in hundredths values everything as before, and exports them whole") {
