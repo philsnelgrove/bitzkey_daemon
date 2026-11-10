@@ -555,6 +555,9 @@ inline double FIRE_FEED_JOY = 1.0;  // and in feeding one, so it burns on
 inline double CRAFT_JOY = 1.0;  // a craft that works: a weapon's in full, armour's in half (half plus curiosity)
 inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share of its victim's health
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
+inline double GEAR_EASE = 0.15;  // the ease, each turn, of a weapon or bow in hand, and as much again of armour worn
+inline double GEAR_COURAGE = 0.25;  // the share of fear's effects a weapon or bow in hand takes off, and as much again armour worn
+inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this a joy, and armour ARMOUR_JOY times this
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
 // A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
 // (SHELTER_COMFORT, half standing in one), and each turn of it is remembered, to a full memory after a day, so that
@@ -1100,8 +1103,14 @@ struct Bitzkey {
     // Its intellect now, as a share of the full range, as it counts in all it does: a predator's
     // PREDATOR_INTELLIGENCE times over, up to the full range.
     double intelligence() const { return std::min(1.0, feeling(Intellect) * (species == Species::Predator ? PREDATOR_INTELLIGENCE : 1.0)); }
-    // Its fear, as its effects feel it: a predator's PREDATOR_FEAR as much, and less the hungrier it is.
-    double fearfulness() const { return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR * unafraid() : 1.0); }
+    // Its fear, as its effects feel it: a predator's PREDATOR_FEAR as much, and less the hungrier it is; and GEAR_COURAGE
+    // the less for each of a weapon or bow in hand and armour worn.
+    double fearfulness() const {
+        return feeling(Fear) * (species == Species::Predator ? PREDATOR_FEAR * unafraid() : 1.0) * (1 - GEAR_COURAGE * gear_held());
+    }
+    bool wielding() const { return weapon != NoWeapon || bow_uses > 0; }
+    bool wearing() const { return armour != NoArmour; }
+    int gear_held() const { return wielding() + wearing(); }  // a weapon or bow in hand, and armour worn
     // The share of its fear's effects hunger leaves a predator: all when fed, falling with its hunger to none
     // as it starves; any other animal feels them all.
     double unafraid() const { return species == Species::Predator ? std::max(0.0, 1 - hunger / 100) : 1.0; }
@@ -1780,6 +1789,7 @@ public:
     static int hide_from(const Bitzkey& corpse) { return std::max(static_cast<int>(corpse.species), corpse.hide); }
     static double garb_of(int hide) { return hide == static_cast<int>(Species::Predator) ? PRESTIGE_GARB : hide == static_cast<int>(Species::Omnivore) ? WARRIOR_GARB : 0.0; }
     static double possessions(const Bitzkey& agent);  // its possessions, for envy: its hide, tool and armour
+    static void donned(Bitzkey& agent, bool had_weapon, bool had_armour);  // glad of a weapon or armour it lacked
     double envy_of(const Bitzkey& agent) const;  // how envious it is: 0 at or below its kind's envy cut, 1 at the most
     // The drives that envy, taking and giving go by, each its larger of two feelings.
     static double envy_drive(const Bitzkey& agent) { return std::max(agent.feeling(Moodiness), agent.feeling(Dominance)); }

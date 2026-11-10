@@ -3531,11 +3531,11 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     crafter.craft_tries[MakeClub - MakeBoneAxe] = CRAFT_TRIES - 1;
     crafter.reward = 0;
     simulation.make_gear(crafter, MakeClub);
-    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 1.5));  // half plus a full curiosity
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 1.5 + DON_JOY * TOOL_JOY));  // half plus a full curiosity, and glad of a weapon
     crafter.craft_tries[MakeBoneArmour - MakeBoneAxe] = CRAFT_TRIES - 1;
     crafter.reward = 0;
     simulation.make_gear(crafter, MakeBoneArmour);
-    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 0.75));  // armour, half
+    CHECK(crafter.reward == doctest::Approx(CRAFT_JOY * 0.75 + DON_JOY * ARMOUR_JOY));  // armour, half, and glad of it
 
     Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 8, 8);
     Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 8, 9);

@@ -3720,6 +3720,7 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
         one.armour = NoArmour;
         one.armour_uses = 0;
     };
+    const bool had_weapon = to.wielding(), had_armour = to.wearing();
     if (possession == BowPossession) {
         if (to.bow_uses > 0) drop_gear(to.x, to.y, BowPile, BOW_USES - to.bow_uses);
         to.bow_uses = from.bow_uses;
@@ -3744,6 +3745,7 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
         from.armour_uses = 0;
         if (to.weapon == BoneAxe || to.weapon == Club) drop_weapon(to);
     }
+    donned(to, had_weapon, had_armour);
 }
 
 void Simulation::demand(Bitzkey& agent, Bitzkey& owner, int possession) {
@@ -3924,6 +3926,11 @@ double Simulation::possessions(const Bitzkey& agent) {
     return agent.hide / 3.0 + (agent.weapon == StoneAxe ? 1.0 : agent.weapon ? 0.5 : 0.0) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0);
 }
 
+void Simulation::donned(Bitzkey& agent, bool had_weapon, bool had_armour) {
+    if (!had_weapon && agent.wielding()) agent.reward += DON_JOY * TOOL_JOY;
+    if (!had_armour && agent.wearing()) agent.reward += DON_JOY * ARMOUR_JOY;
+}
+
 double Simulation::envy_of(const Bitzkey& agent) const {
     if (agent.species == Species::Plant || ENVY_LEVEL >= 1) return 0.0;
     const double drive = envy_drive(agent), cut = envy_cut_[static_cast<std::size_t>(agent.species)];
@@ -4000,13 +4007,15 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
         relief += PROTECTION_JOY * spared;
     }
     const double envious = ENVY_UNEASE * envy_of(agent) * s.envy;
+    const double armed_ease = GEAR_EASE * agent.gear_held();  // at ease with a weapon in hand and armour on, while it keeps them
     // At ease in its own land and uneasy away from it; glad of a war clearly being won, and troubled by one being lost.
     const double belonging = LAND_COMFORT * s.land + WAR_MORALE * s.war + LAND_AMBITION * s.ambition +  // drawn to a disliked group's land
                              // Glad to be held a friend by those about it, and at ease near the one it esteems most
                              STANDING_JOY * (0.5 + agent.feeling(Dominance)) * s.admired +
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +
                              LEADER_JOY * s.followed;  // a leader glad of its followers about it
-    return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging;
+    return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging +
+           armed_ease;
 }
 
 std::vector<Simulation::Gift> Simulation::gifts_so_far() const {
@@ -5275,6 +5284,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
         return;
     }
     tries = CRAFT_TRIES;  // it has it now
+    const bool had_weapon = agent.wielding(), had_armour = agent.wearing();
     if (agent.craft_source[static_cast<std::size_t>(action - MakeBoneAxe)] >= 2) note_first("made_taught", agent.species, agent.identifier, ACTIONS[static_cast<std::size_t>(action)]);
     switch (action) {
         case MakeBoneAxe: --agent.carried_bone; agent.weapon = BoneAxe; break;
@@ -5294,6 +5304,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
             agent.weapon = StoneAxe;
     }
     agent.reward += CRAFT_JOY * (action == MakeBoneArmour || action == MakeWoodArmour ? 0.5 : 1.0) * (0.5 + agent.feeling(Curiosity));
+    donned(agent, had_weapon, had_armour);
     if (action != MakeBow) agent.weapon_uses = agent.armour_uses = action == MakeBoneArmour || action == MakeWoodArmour ? agent.weapon_uses : 0;
     agent.last_action = "made gear";
     deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, action - MakeBoneAxe, CraftCulture);
@@ -5310,6 +5321,7 @@ void Simulation::take_gear(Bitzkey& agent, Situation& s) {
     const int uses = wear / pile_at(pile.x, pile.y, s.gear_kind);  // its share of the pile's wear
     wear -= uses;
     add_to_pile(pile.x, pile.y, s.gear_kind, -1);
+    const bool had_weapon = agent.wielding(), had_armour = agent.wearing();
     switch (s.gear_kind) {
         case BoneAxePile: agent.weapon = BoneAxe; agent.weapon_uses = uses; break;
         case ClubPile: agent.weapon = Club; agent.weapon_uses = uses; break;
@@ -5318,6 +5330,7 @@ void Simulation::take_gear(Bitzkey& agent, Situation& s) {
         case BoneArmourPile: agent.armour = BoneArmour; agent.armour_uses = uses; break;
         default: agent.armour = WoodArmour; agent.armour_uses = uses;
     }
+    donned(agent, had_weapon, had_armour);
     agent.last_action = "took gear";
 }
 

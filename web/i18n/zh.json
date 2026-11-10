@@ -1906,5 +1906,11 @@
 "joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "给同类上一堂手艺或技能课的喜悦，越有同理心越强",
 "chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "看见不视为敌人的同类施展手艺时，靠旁观学会的概率；以及看见一次弓箭命中所学到的一箭之课的比例；0 为无",
 "Tutored practice": "受教练习",
-"share of a try, or of a shot's lesson, that a lesson from a tutor is worth": "导师的一堂课相当于一次尝试或一箭之课的比例"
+"share of a try, or of a shot's lesson, that a lesson from a tutor is worth": "导师的一堂课相当于一次尝试或一箭之课的比例",
+"Gear ease": "装备之安",
+"ease, each turn, of a weapon or bow in hand, and as much again of armour worn": "每回合手持武器或弓带来的安心，穿戴护甲再加同样多",
+"Gear courage": "装备之勇",
+"share of its fear's effects a weapon or bow in hand takes off, and as much again armour worn": "手持武器或弓所消除的恐惧影响的份额，穿戴护甲再消除同样多",
+"Donning joy": "穿戴之乐",
+"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy": "获得武器或弓的喜悦，为工具之乐的这一份额；获得护甲的喜悦，为护甲之乐的这一份额"
 }

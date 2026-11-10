@@ -1906,5 +1906,11 @@
 "joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic": "同種の仲間に技や腕前の手ほどきをする喜び。共感の強い者ほど大きい",
 "chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none": "敵と見なしていない同種の仲間が技を行うのを見て、見て覚える確率。また、弓で当てるのを見たときに一射分の上達のうち身につく割合。0で無し",
 "Tutored practice": "指導による練習",
-"share of a try, or of a shot's lesson, that a lesson from a tutor is worth": "指導者からの一回の手ほどきが、一回の試み、または一射分の上達の何割に当たるか"
+"share of a try, or of a shot's lesson, that a lesson from a tutor is worth": "指導者からの一回の手ほどきが、一回の試み、または一射分の上達の何割に当たるか",
+"Gear ease": "装備の安らぎ",
+"ease, each turn, of a weapon or bow in hand, and as much again of armour worn": "毎ターン、手にした武器か弓による安らぎ、さらに身に着けた防具で同じだけ",
+"Gear courage": "装備の勇気",
+"share of its fear's effects a weapon or bow in hand takes off, and as much again armour worn": "手にした武器か弓が取り除く恐れの効果の割合、さらに身に着けた防具で同じだけ",
+"Donning joy": "装着の喜び",
+"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy": "武器か弓を得る喜び（道具の喜びのこの割合）、および防具を得る喜び（防具の喜びのこの割合）"
 }
