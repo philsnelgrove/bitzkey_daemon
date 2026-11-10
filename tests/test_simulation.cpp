@@ -1107,6 +1107,33 @@ TEST_CASE("a starving grazer with food scarce may uproot a plant beside it") {
     CHECK_FALSE(offered(simulation.sense(omnivore), Uproot));  // grazers only
 }
 
+TEST_CASE("a grazer is glad of fruit picked without uprooting, and the plant remembers its picker") {
+    Simulation simulation(Simulation::Settings{30, 30, 0, 3});
+    simulation.clear_grass();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant), 11, 10);
+    simulation.index_cells();
+    grazer.hunger = 50;
+    Simulation::Sensed sensed = simulation.sense(grazer);
+    REQUIRE(std::find(sensed.options.begin(), sensed.options.end(), Browse) != sensed.options.end());
+    const double reward = grazer.reward;
+    simulation.act(grazer, Browse, sensed.situation);
+    CHECK(grazer.last_action == "browsed");
+    CHECK(grazer.reward >= reward + HARVEST_JOY - 1e-9);  // the gladness of harvest, on top of what else it felt
+    CHECK(plant.picked_by == grazer.identifier);
+}
+
+TEST_CASE("loyalty: a follower leaves its leader for a better only by chance, the less the more loyal") {
+    CHECK(swayed(0.0, 0.01, 0.999));        // no loyalty: any better wins it
+    CHECK_FALSE(swayed(1.0, 0.45, 0.0));    // full loyalty: not even a wavering short of LOYALTY_MARGIN more
+    CHECK(swayed(1.0, 0.9, 0.5));           // far better: four fifths of the way past it
+    CHECK_FALSE(swayed(1.0, 0.6, 0.5));     // a little past it: a fifth
+    CHECK_FALSE(swayed(0.5, 0.0, 0.0));     // none better, none left
+    CHECK(whim(7, 100) == whim(7, 100));
+    CHECK(whim(7, 100) != whim(7, 101));
+    CHECK((whim(7, 100) >= 0.0 && whim(7, 100) < 1.0));
+}
+
 TEST_CASE("no body is left without a recorded death, even when moving, striking and seeding starve") {
     const double go = GO_EFFORT, strike = STRIKE_EFFORT;
     const double seed_cost = SEED_COST, seed_hunger = SEED_HUNGER;

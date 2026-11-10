@@ -212,7 +212,7 @@ Mind mind_from(const json& values) {
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
     json record = {
         {"identifier", agent.identifier}, {"dna", genome_text(agent.dna)}, {"x", agent.x}, {"y", agent.y},
-        {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown}, {"fruit", agent.fruit},
+        {"hunger", agent.hunger}, {"health", agent.health}, {"stamina", agent.stamina}, {"age", agent.age}, {"cooldown", agent.cooldown}, {"fruit", agent.fruit}, {"picked_by", agent.picked_by},
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
@@ -307,6 +307,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->age = record.at("age").get<int>();
     agent->cooldown = record.at("cooldown").get<int>();
     agent->fruit = record.value("fruit", -1);  // full, in an older world
+    agent->picked_by = record.value("picked_by", -1);
     agent->last_action = interned(record.at("last_action").get<std::string>());
     agent->brain = numbers.brain(record.at("brain"), agent->dna);
     agent->generation = record.at("generation").get<int>();

@@ -243,6 +243,23 @@ inline double OTHER_KIND = 0.4;
 // more, times its loyalty. Dominance: a ready animal breeds with the most dominant willing partner in reach, and
 // a territory's crowding troubles the dominant less and the submissive more, by up to this share.
 inline double LOYALTY_PULL = 0.25;
+// Loyalty to a leader: a follower turns from the leader it holds its standout to one held in more esteem only by
+// chance. Not at all unless the new one is esteemed more by its loyalty times LOYALTY_MARGIN; past that, with the
+// share of the way it is from there to the most there can be, raised to its loyalty. A loyal one needs a far better
+// one even to waver; one without loyalty turns to any better on a whim.
+inline double LOYALTY_MARGIN = 0.5;
+inline bool swayed(double loyalty, double margin, double chance) {
+    const double need = LOYALTY_MARGIN * loyalty;
+    if (margin <= need || need >= 1.0) return false;
+    return chance < std::pow((margin - need) / (1.0 - need), loyalty);
+}
+// A chance of its own this turn, 0 to 1, the same on whichever core reads its senses.
+inline double whim(int identifier, int turn) {
+    std::uint64_t z = (static_cast<std::uint64_t>(static_cast<std::uint32_t>(identifier)) << 32 | static_cast<std::uint32_t>(turn)) + 0x9E3779B97F4A7C15ULL;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+    return static_cast<double>((z ^ (z >> 31)) >> 11) * 0x1.0p-53;
+}
 inline double PARENTAL_INSTINCT = 2.0;  // how much of the gap between feeding its young and its best other option a parent
                                         // closes, times the hungriest's hunger and a half and its empathy: at 2, half hungry, level
 inline double INFANT_HERDING = 1.0;  // how much more an infant values keeping to its kind, and it herds once a cell from their middle
@@ -625,6 +642,9 @@ inline int ARMOUR_LEAST = 2;  // stone never spoils
 // Agriculture: raw fruit eaten leaves a seed, which feeds SEED_FOOD of a fruit's portion or may be planted in worked
 // land. Digging with any tool works the land, only in the medium zone; it stays worked.
 inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
+// Harvest: a fruit picked from a plant without uprooting it is a small gladness (HARVEST_JOY), and its picker, seeing
+// the plant bear fruit again, is glad of it (REGROWTH_JOY), once for the last picking of it.
+inline double HARVEST_JOY = 0.1, REGROWTH_JOY = 0.5;
 // Bone crushed with a stone carried, a club or a stone axe, a bone it carries or one from a pile on its square: a
 // scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
 // sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
@@ -931,6 +951,7 @@ struct Bitzkey {
     int age = 0;
     int cooldown = 0;
     int fruit = -1;  // a plant's fruit left to pick; below 0 while it is full (see fruit_left)
+    int picked_by = -1;  // a plant's last picker, glad to see it bear again (REGROWTH_JOY); -1 for none
     std::string_view last_action = "new";
     std::shared_ptr<Brain> brain;  // shared with history snapshots; copied before it learns
     int generation = 0;

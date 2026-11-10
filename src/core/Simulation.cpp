@@ -1007,7 +1007,17 @@ void Simulation::take_turn() {
                 continue;
             }
             agent->health = std::min(agent->max_health, agent->health + agent->max_health * PLANT_REGROWTH);
-            if (agent->fruit >= 0 && dawn(agent->x) && ++agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;  // a fruit a morning, until full
+            if (agent->fruit >= 0 && dawn(agent->x)) {  // a fruit a morning, until full
+                if (++agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;
+                if (agent->picked_by >= 0 && REGROWTH_JOY > 0) {  // its last picker, seeing it bear again, is glad of it
+                    Bitzkey* picker = find_agent(agent->picked_by);
+                    if (picker && picker->alive() && distance(picker->x, picker->y, agent->x, agent->y) <= picker->sight) {
+                        picker->reward += REGROWTH_JOY;
+                        note_first("regrowth_joy", picker->species, picker->identifier);
+                    }
+                }
+                agent->picked_by = -1;
+            }
             agent->last_action = "photosynthesized";
             seed_plant(*agent);
             continue;
@@ -2835,7 +2845,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         const Bitzkey* remembered = agent.standout >= 0 ? find_agent(agent.standout) : nullptr;
         if (remembered && remembered->alive() && remembered->species == agent.species && (agent.realm < 0 || remembered->realm == agent.realm)) {
             const double esteem = std::min(1.0, regard_for(agent, *remembered));
-            if (esteem > 0 && esteem >= best) {
+            const bool loyal = remembered->leader && !swayed(agent.feeling(Loyalty), best - esteem, whim(agent.identifier, turn_));
+            if (esteem > 0 && (esteem >= best || loyal)) {  // a leader is kept against a better as its loyalty bids
                 best = esteem;
                 standout = remembered;
             }
@@ -4711,6 +4722,8 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     }
     agent.nourish((PLANT_MEAL + PLANT_MEAL_FOR_SIZE * plant.physique(Size)) * agent.browsing * plant_yield(plant));
     plant.fruit = fruit_left(plant) - 1;  // a fruit picked, the plant unhurt
+    plant.picked_by = agent.identifier;
+    agent.reward += HARVEST_JOY;
     agent.last_action = "browsed";
     deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);  // fruit picked without uprooting
     if (plant.physique(Weapons) > 0) defend(plant, agent);  // a plant can't flee, but an armed one strikes back
@@ -5030,6 +5043,8 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
         plant->cooldown = PLANT_RECOVERY;
     } else {
         plant->fruit = fruit_left(*plant) - 1;  // a fruit picked, the plant unhurt
+        plant->picked_by = agent.identifier;
+        agent.reward += HARVEST_JOY;
         deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);
     }
     ++agent.carried_fruit;
