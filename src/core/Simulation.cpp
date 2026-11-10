@@ -3957,6 +3957,32 @@ void Simulation::gear_witnessed(const Bitzkey& striker, const Bitzkey& struck) {
     if (struck.wearing()) gear_seen(struck, ArmourDesire);
 }
 
+int Simulation::ready_sets(const Bitzkey& agent) {
+    // Each recipe it knows whose materials it holds, as in discover(); a shelter's worth of stone or wood with a tool, and a
+    // road section's stones with a stone axe, once it knows shelters or roads.
+    const std::array<bool, CRAFT_COUNT> holds{agent.carried_bone > 0, agent.carried_bone > 0, agent.carried_wood > 0, agent.carried_wood > 0,
+                                              agent.carried_stone > 0 && agent.carried_bone + agent.carried_wood > 0,
+                                              agent.weapon == StoneAxe && agent.carried_wood >= BOW_WOOD && agent.hide > 0};
+    int sets = 0;
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
+        if ((agent.crafts >> craft & 1) && holds[static_cast<std::size_t>(craft)]) sets |= 1 << craft;
+    }
+    if (agent.shelter_known > 0 && agent.weapon != NoWeapon && agent.carried_stone + agent.carried_wood >= SHELTER_UNITS) sets |= 1 << CRAFT_COUNT;
+    if (agent.road_known > 0 && agent.weapon == StoneAxe && agent.carried_stone >= ROAD_STONES) sets |= 1 << (CRAFT_COUNT + 1);
+    return sets;
+}
+
+double Simulation::ready_worth(const Bitzkey& agent, int sets) {
+    static constexpr std::array<int, CRAFT_COUNT> PARTS{1, 1, 1, 1, 2, 4};  // a bow: a kept stone axe, two wood and a hide
+    double parts = 0;
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
+        if (sets >> craft & 1) parts += PARTS[static_cast<std::size_t>(craft)];
+    }
+    if (sets >> CRAFT_COUNT & 1) parts += SHELTER_UNITS;
+    if (sets >> (CRAFT_COUNT + 1) & 1) parts += 1 + ROAD_STONES;
+    return READY_JOY * parts * (0.5 + 0.75 * agent.feeling(Patience) + 0.25 * agent.intelligence());
+}
+
 void Simulation::answered(Bitzkey& listener, Bitzkey& caller, double mine, double theirs) {
     // What it did touched the caller it heard: the call is answered, well or ill; and if well for both, each is glad of it,
     // whatever the call meant, as only they know.
@@ -4190,6 +4216,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     const std::size_t passed = agent.trail.size();
     for (double& desire : agent.desire) desire *= DESIRE_FADE;
     const double had = possessions(agent, agent);
+    const int ready_before = ready_sets(agent);
     const Fight* fight = action != Flee ? fight_of(agent.identifier) : nullptr;
     Bitzkey* opponent = fight ? find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief) : nullptr;
     if (opponent && opponent->alive()) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
@@ -4205,6 +4232,12 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         agent.food_memory = Place{agent.x, agent.y, turn_};
     }
     if (!agent.alive()) return;
+    if (READY_JOY > 0) {  // glad to hold all that a thing it knows needs, and as sorry to break the set, but by using or giving it
+        const int ready_now = ready_sets(agent);
+        agent.reward += ready_worth(agent, ready_now & ~ready_before);
+        const bool spent = (action >= MakeBoneAxe && action <= MakeBow) || action == Construct || action == BuildRoad || action == Give || action == Offer;
+        if (!spent) agent.reward -= ready_worth(agent, ready_before & ~ready_now);
+    }
     if (const double gained = possessions(agent, agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
     if (garb_of(agent.hide) > 0) deed_seen(agent, garb_of(agent.hide), nullptr, GarbDeed);  // its garb, seen
     if (agent.mark != NoMark && MARK_REGARD > 0) deed_seen(agent, mark_worth(agent.mark), nullptr, MarkDeed);  // and its mark

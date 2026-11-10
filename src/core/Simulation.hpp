@@ -562,6 +562,7 @@ inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this
 inline double GEAR_DESIRE = 0.05;  // desire for a kind of gear stirred by seeing it pay off, up to 1; envy counts that gear 1 + desire times
 inline double DESIRE_FADE = 0.999;  // the share of a desire for gear kept each turn, so it fades without fresh sights
 enum GearDesire { WeaponDesire, ArmourDesire, BowDesire };
+inline double READY_JOY = 0.3;  // for each part of a set it holds for what it knows how to make (half plus mostly patience)
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
 // A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
 // (SHELTER_COMFORT, half standing in one), and each turn of it is remembered, to a full memory after a day, so that
@@ -1800,6 +1801,8 @@ public:
     void gear_seen(const Bitzkey& user, int kind);  // those who see gear of that kind pay off desire it the more
     void gear_witnessed(const Bitzkey& striker, const Bitzkey& struck);  // a blow seen: the weapon that added to it, the armour that saved
     void answered(Bitzkey& listener, Bitzkey& caller, double mine, double theirs);  // a deed of a listener that touched the caller it heard
+    static int ready_sets(const Bitzkey& agent);  // a bit for each set of materials it holds for what it knows how to make
+    static double ready_worth(const Bitzkey& agent, int sets);  // the joy of those sets, by their parts
     static void donned(Bitzkey& agent, bool had_weapon, bool had_armour);  // glad of a weapon or armour it lacked
     double envy_of(const Bitzkey& agent) const;  // how envious it is: 0 at or below its kind's envy cut, 1 at the most
     // The drives that envy, taking and giving go by, each its larger of two feelings.

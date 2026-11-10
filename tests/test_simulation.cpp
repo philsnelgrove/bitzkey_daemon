@@ -3555,6 +3555,25 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("holding all a known thing needs is a joy by its parts; only what it knows counts") {
+    Simulation simulation = world();
+    Bitzkey& crafter = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    crafter.carried_wood = 2;
+    crafter.carried_stone = 2;
+    crafter.hide = 1;
+    crafter.weapon = StoneAxe;
+    CHECK(Simulation::ready_sets(crafter) == 0);  // it knows nothing to make of them
+    crafter.crafts = 1 << (MakeClub - MakeBoneAxe) | 1 << (MakeBow - MakeBoneAxe);
+    const int sets = Simulation::ready_sets(crafter);
+    CHECK(sets == (1 << (MakeClub - MakeBoneAxe) | 1 << (MakeBow - MakeBoneAxe)));
+    const double club = Simulation::ready_worth(crafter, 1 << (MakeClub - MakeBoneAxe));
+    CHECK(club > 0);
+    CHECK(Simulation::ready_worth(crafter, 1 << (MakeBow - MakeBoneAxe)) == doctest::Approx(4 * club));  // a bow, four parts
+    crafter.road_known = 0.5;
+    CHECK((Simulation::ready_sets(crafter) >> (CRAFT_COUNT + 1) & 1) == 1);  // a road section's stones, with a stone axe
+    CHECK((Simulation::ready_sets(crafter) >> CRAFT_COUNT & 1) == 0);  // not a shelter's worth, nor known
+}
+
 TEST_CASE("a call answered by a deed good for both is a joy to each, of its own gain; one ill for either is answered unrewarded") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
