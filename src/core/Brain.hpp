@@ -172,6 +172,8 @@ enum Sense : int {
     // Leadership, as recognised at the last count: whether it leads, and whether its standout does.
     SenseLeader,
     SenseStandoutLeads,
+    // How loud its standout's call was, heard last turn, in sight or out of it: a voice it knows among the rest.
+    SenseStandoutHeard,
     // What it thinks of the group whose land it stands in, -1 to 1; 0 in its own land, in none, or holding no view.
     SenseLandOwnerRegard,
     // Archery: the uses left in the bow it carries, a share of a new one's; and its skill at hitting, 0..1.
@@ -284,7 +286,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
     "elder_age", "elder_closeness", "elder_east", "elder_south", "student_near",
     "load", "meat_carried", "fruit_carried", "meat_pile_closeness", "fruit_pile_closeness",
-    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "land_owner_regard", "bow_carried", "archery", "aggression", "libido", "curiosity",
+    "stone_carried", "bone_carried", "wood_carried", "stone_pile_closeness", "bone_pile_closeness", "wood_pile_closeness", "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "armoured", "foe_sheltered", "shelter_here", "arable_here", "seed_carried", "boredom", "road_here", "fertilized_here", "hide_worn", "regarded", "envy", "fighting", "foe_closeness", "cooking_smell", "food_plenty", "prey_flanked", "own_land", "foreign_land", "own_land_east", "own_land_south", "trespasser", "war_standing", "marked", "mark_seen", "standout_esteem", "standout_closeness", "standout_east", "standout_south", "leader", "standout_leads", "standout_heard", "land_owner_regard", "bow_carried", "archery", "aggression", "libido", "curiosity",
     "fear", "appetite", "patience", "intellect", "memory", "resilience", "moodiness", "sociability", "empathy",
     "tolerance", "loyalty", "dominance", "trust", "kinship", "inborn_aggression", "inborn_libido", "inborn_curiosity",
     "inborn_fear", "inborn_appetite", "inborn_patience", "inborn_intellect", "inborn_memory", "inborn_resilience",
@@ -296,13 +298,13 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 42> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 43> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
     "student_near", "meat_carried", "fruit_carried", "meat_pile_closeness", "stone_carried", "wood_carried",
     "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "foe_sheltered", "shelter_here",
-    "seed_carried", "road_here", "hide_worn", "envy", "fighting", "cooking_smell", "leader", "standout_leads",
+    "seed_carried", "road_here", "hide_worn", "envy", "fighting", "cooking_smell", "leader", "standout_leads", "standout_heard",
     "bow_carried", "archery"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
 inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {

@@ -3555,6 +3555,29 @@ TEST_CASE("a craft that works, a weapon's harm and armour's saving are each a jo
     CHECK(victim.reward == doctest::Approx(3 * saved));  // the bigger the blow, the more it saved
 }
 
+TEST_CASE("a standout is remembered out of sight until one in sight is esteemed more, and its call is known") {
+    Simulation simulation = world(60);
+    Bitzkey& follower = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+    Bitzkey& leader = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    simulation.note_deed(follower, leader, 1.0, 0.8, PlainDeed, true);
+    simulation.sense(follower, true);
+    REQUIRE(follower.standout == leader.identifier);
+    leader.x = 40;  // far out of sight
+    leader.call = FirstCall;
+    leader.call_turn = simulation.turn() - 1;
+    const Simulation::Sensed far = simulation.sense(follower, true);
+    CHECK(follower.standout == leader.identifier);  // remembered
+    CHECK(far.senses[SenseStandoutCloseness] == 0.0);
+    CHECK(far.situation.standout == 0.0);  // no ease out of its presence
+    Bitzkey& rival = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+    simulation.note_deed(follower, rival, 1.0, 0.3, PlainDeed, true);
+    simulation.sense(follower, true);
+    CHECK(follower.standout == leader.identifier);  // esteemed less: no better
+    for (int deed = 0; deed < 40; ++deed) simulation.note_deed(follower, rival, 1.0, 1.0, PlainDeed, true);  // many good turns
+    simulation.sense(follower, true);
+    CHECK(follower.standout == rival.identifier);  // proved the better
+}
+
 TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it follows, holds more and shelters, unhitched it keeps what it held") {
     Simulation simulation = world();
     Bitzkey& maker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

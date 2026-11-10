@@ -2826,6 +2826,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 standout = other;
             }
         }
+        // Its standout is remembered out of sight while it lives, is of its group and is held in esteem, until one in
+        // sight is held in more: it has proved itself the better.
+        const Bitzkey* remembered = agent.standout >= 0 ? find_agent(agent.standout) : nullptr;
+        if (remembered && remembered->alive() && remembered->species == agent.species && (agent.realm < 0 || remembered->realm == agent.realm)) {
+            const double esteem = std::min(1.0, regard_for(agent, *remembered));
+            if (esteem > 0 && esteem >= best) {
+                best = esteem;
+                standout = remembered;
+            }
+        }
         s.admired = std::min(3, admirers) / 3.0;
         agent.standout = standout ? standout->identifier : -1;
         senses[SenseLeader] = agent.leader ? 1.0 : 0.0;
@@ -2838,12 +2848,22 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         if (standout) {
             senses[SenseStandoutLeads] = standout->leader ? 1.0 : 0.0;
-            const double near = closeness(agent, Cell{standout->x, standout->y}, sight);
-            s.standout = best * near;
+            const int away = distance(standout->x, standout->y, agent.x, agent.y);
+            const bool seen = away <= sight;
+            const double near = seen ? closeness(agent, Cell{standout->x, standout->y}, sight) : 0.0;
+            s.standout = best * near;  // at ease in its presence
             senses[SenseStandoutEsteem] = best;
             senses[SenseStandoutCloseness] = near;
-            senses[SenseStandoutEast] = std::clamp(static_cast<double>(standout->x - agent.x) / std::max(1, sight), -1.0, 1.0);
-            senses[SenseStandoutSouth] = std::clamp(static_cast<double>(standout->y - agent.y) / std::max(1, sight), -1.0, 1.0);
+            double heard = 0.0;  // its voice known among the rest, and from where, in sight or out of it
+            if (standout->call >= FirstCall && standout->call_turn == turn_ - 1 && away <= call_reach(*standout)) {
+                heard = 1 - static_cast<double>(away) / (call_reach(*standout) + 1);
+            }
+            senses[SenseStandoutHeard] = heard;
+            if (seen || heard > 0) {
+                const int span = std::max(1, seen ? sight : call_reach(*standout));
+                senses[SenseStandoutEast] = std::clamp(static_cast<double>(standout->x - agent.x) / span, -1.0, 1.0);
+                senses[SenseStandoutSouth] = std::clamp(static_cast<double>(standout->y - agent.y) / span, -1.0, 1.0);
+            }
         }
     }
     senses[SenseFoodPlenty] = agent.plenty + agent.plenty_known > 0 ? agent.plenty / (agent.plenty + std::max(0.0, agent.plenty_known)) : 0.5;
