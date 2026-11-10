@@ -1912,7 +1912,7 @@
 "Gear courage": "装備の勇気",
 "share of its fear's effects a weapon or bow in hand takes off, and as much again armour worn": "手にした武器か弓が取り除く恐れの効果の割合、さらに身に着けた防具で同じだけ",
 "Donning joy": "装着の喜び",
-"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy": "武器か弓を得る喜び（道具の喜びのこの割合）、および防具を得る喜び（防具の喜びのこの割合）",
+"the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy; dropping one is as much a loss": "武器か弓を得る喜び（道具の喜びのこの割合）、および防具を得る喜び（防具の喜びのこの割合）。手放せば同じだけの損失",
 "Gear desire": "装備への欲求",
 "desire for a weapon, armour or a bow stirred on seeing one pay off, friend or foe, up to 1; envy counts that gear one plus its desire times": "武器・防具・弓が役立つのを見て（味方でも敵でも）湧く欲求、最大1。妬みはその装備を（1＋欲求）倍に数える"
 }

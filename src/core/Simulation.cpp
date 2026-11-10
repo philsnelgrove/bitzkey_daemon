@@ -4444,12 +4444,14 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + agent.weapon - BoneAxe), agent.weapon_uses);
             agent.weapon = NoWeapon;
             agent.weapon_uses = 0;
+            if (!agent.wielding()) agent.reward -= DON_JOY * TOOL_JOY;  // as glum as gaining it was glad, unless a bow is still in hand
             agent.last_action = "dropped gear";
             break;
         case DropArmour:
             drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneArmourPile + agent.armour - BoneArmour), agent.armour_uses);
             agent.armour = NoArmour;
             agent.armour_uses = 0;
+            agent.reward -= DON_JOY * ARMOUR_JOY;  // as glum as gaining it was glad
             agent.last_action = "dropped gear";
             break;
         case EatPile:

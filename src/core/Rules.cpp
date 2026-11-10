@@ -299,7 +299,7 @@ std::vector<Rule> make_rules() {
         {"ARMOUR_JOY", "Food", "Armour joy", "the joy of the harm its armour took off a blow, times the share of its health that harm was", 0.0, 10.0, 0.1, false, &ARMOUR_JOY},
         {"GEAR_EASE", "Food", "Gear ease", "ease, each turn, of a weapon or bow in hand, and as much again of armour worn", 0.0, 2.0, 0.05, false, &GEAR_EASE},
         {"GEAR_COURAGE", "Food", "Gear courage", "share of its fear's effects a weapon or bow in hand takes off, and as much again armour worn", 0.0, 0.5, 0.05, false, &GEAR_COURAGE},
-        {"DON_JOY", "Food", "Donning joy", "the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy", 0.0, 2.0, 0.05, false, &DON_JOY},
+        {"DON_JOY", "Food", "Donning joy", "the joy of gaining a weapon or bow, as this share of tool joy, and armour, as this share of armour joy; dropping one is as much a loss", 0.0, 2.0, 0.05, false, &DON_JOY},
         {"GEAR_DESIRE", "Food", "Gear desire", "desire for a weapon, armour or a bow stirred on seeing one pay off, friend or foe, up to 1; envy counts that gear one plus its desire times", 0.0, 1.0, 0.01, false, &GEAR_DESIRE},
         {"BUILD_THRILL", "Food", "Build thrill", "the thrill of each stage of a shelter built, growing with every stage and doubled for finishing it, times curiosity", 0.0, 5.0, 0.1, false, &BUILD_THRILL},
         {"SHELTER_UNITS", "Food", "Shelter size", "units of stone or wood that finish a shelter", 1, 50, 1, true, &SHELTER_UNITS},

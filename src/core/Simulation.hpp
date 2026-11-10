@@ -557,7 +557,7 @@ inline double TOOL_JOY = 2.0;  // the harm a weapon added to a blow, as a share 
 inline double ARMOUR_JOY = 2.0;  // the harm its armour took off a blow, as a share of its health
 inline double GEAR_EASE = 0.15;  // the ease, each turn, of a weapon or bow in hand, and as much again of armour worn
 inline double GEAR_COURAGE = 0.25;  // the share of fear's effects a weapon or bow in hand takes off, and as much again armour worn
-inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this a joy, and armour ARMOUR_JOY times this
+inline double DON_JOY = 0.25;  // gaining a weapon or bow is TOOL_JOY times this a joy, and armour ARMOUR_JOY times this; dropping one as much a loss
 inline double GEAR_DESIRE = 0.05;  // desire for a kind of gear stirred by seeing it pay off, up to 1; envy counts that gear 1 + desire times
 inline double DESIRE_FADE = 0.999;  // the share of a desire for gear kept each turn, so it fades without fresh sights
 enum GearDesire { WeaponDesire, ArmourDesire, BowDesire };
