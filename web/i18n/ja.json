@@ -1954,5 +1954,9 @@
 "Empathy scruple": "共感のためらい",
 "how much less an animal values uprooting a plant, times its empathy, and a predator hunting, striking or feasting on the young or those carrying young": "動物が植物を根こそぎにすることをどれだけ低く見るか（共感を掛ける）、また捕食者が子や身ごもった者を狩り・打ち・食べること",
 "Tolerance scruple": "寛容のためらい",
-"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "動物が敵を打ったり追い払ったりすることをどれだけ低く見るか（寛容を掛ける）。食べるための狩りは変わらない"
+"how much less an animal values striking a foe or driving one out, times its tolerance; hunting to eat is untouched": "動物が敵を打ったり追い払ったりすることをどれだけ低く見るか（寛容を掛ける）。食べるための狩りは変わらない",
+"Arable fruit": "耕地の実り",
+"times as much fruit a plant on worked land bears each morning": "耕された土地の植物が毎朝つける実の倍率",
+"Fertilized fruit": "肥料の実り",
+"times as much again on worked land fed bone; the bone is spent": "骨を施した耕地でさらに何倍になるか。骨は使い切られる"
 }

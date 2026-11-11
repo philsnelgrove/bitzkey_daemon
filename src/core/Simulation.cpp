@@ -1007,12 +1007,14 @@ void Simulation::take_turn() {
                 continue;
             }
             agent->health = std::min(agent->max_health, agent->health + agent->max_health * PLANT_REGROWTH);
-            if (agent->fruit >= 0 && dawn(agent->x)) {  // a fruit a morning, until full
-                if (++agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;
+            if (agent->fruit >= 0 && dawn(agent->x)) {  // fruit each morning, until full
+                const int grown = morning_fruit(*agent);
+                agent->fruit += grown;
+                if (agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;
                 if (agent->picked_by >= 0 && REGROWTH_JOY > 0) {  // its last picker, seeing it bear again, is glad of it
                     Bitzkey* picker = find_agent(agent->picked_by);
                     if (picker && picker->alive() && distance(picker->x, picker->y, agent->x, agent->y) <= picker->sight) {
-                        picker->reward += REGROWTH_JOY;
+                        picker->reward += REGROWTH_JOY * grown;  // the gladder the more it bears
                         note_first("regrowth_joy", picker->species, picker->identifier);
                     }
                 }
@@ -1061,6 +1063,14 @@ void Simulation::take_turn() {
     take_census();
     free_the_dead();
     timings.after += lap(clock);
+}
+
+int Simulation::morning_fruit(Bitzkey& plant) {
+    if (!arable_at(plant.x, plant.y)) return 1;
+    const std::size_t cell = static_cast<std::size_t>(plant.y) * width_ + plant.x;
+    if (!fertilized_[cell]) return ARABLE_FRUIT;
+    fertilized_[cell] = 0;  // the bone spent on it
+    return ARABLE_FRUIT * FERTILIZED_FRUIT;
 }
 
 void Simulation::restart_census() {

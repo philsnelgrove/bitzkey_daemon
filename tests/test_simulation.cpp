@@ -1185,6 +1185,30 @@ TEST_CASE("scruples: the kinder value uprooting less, and the more tolerant stri
     }
 }
 
+TEST_CASE("a plant on worked land bears twice the fruit, and twice again where bone was fed, spending it") {
+    Simulation simulation(10, 40, 0, 1);
+    int temperate = -1;
+    for (int y = 0; y < 40; ++y) {
+        if (zone_temperature(y, 40) == Medium) temperate = y;
+    }
+    REQUIRE(temperate >= 0);
+    Bitzkey& wild = simulation.add_agent(encode_dna(Species::Plant), 2, temperate);
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, temperate);
+    Bitzkey& farmed = simulation.add_agent(encode_dna(Species::Plant), 6, temperate);
+    simulation.index_cells();
+    CHECK(simulation.morning_fruit(wild) == 1);
+    farmer.weapon = Club;
+    simulation.dig(farmer);
+    REQUIRE(simulation.arable_at(6, temperate));
+    CHECK(simulation.morning_fruit(farmed) == ARABLE_FRUIT);
+    farmer.carried_bone = 1;
+    simulation.fertilize(farmer);
+    REQUIRE(simulation.fertilized_at(6, temperate));
+    CHECK(simulation.morning_fruit(farmed) == ARABLE_FRUIT * FERTILIZED_FRUIT);
+    CHECK_FALSE(simulation.fertilized_at(6, temperate));  // the bone spent
+    CHECK(simulation.morning_fruit(farmed) == ARABLE_FRUIT);
+}
+
 TEST_CASE("no body is left without a recorded death, even when moving, striking and seeding starve") {
     const double go = GO_EFFORT, strike = STRIKE_EFFORT;
     const double seed_cost = SEED_COST, seed_hunger = SEED_HUNGER;

@@ -653,8 +653,11 @@ inline int ARMOUR_LEAST = 2;  // stone never spoils
 // land. Digging with any tool works the land, only in the medium zone; it stays worked.
 inline double SEED_FOOD = 0.1, PLANTING_JOY = 1.0;
 // Harvest: a fruit picked from a plant without uprooting it is a small gladness (HARVEST_JOY), and its picker, seeing
-// the plant bear fruit again, is glad of it (REGROWTH_JOY), once for the last picking of it.
+// the plant bear fruit again, is glad of it (REGROWTH_JOY for each fruit it bears), once for the last picking of it.
 inline double HARVEST_JOY = 0.1, REGROWTH_JOY = 0.5;
+// Farming: a plant on worked land bears ARABLE_FRUIT times as much fruit each morning, and, the land fed bone,
+// FERTILIZED_FRUIT times that again, the bone spent on it.
+inline int ARABLE_FRUIT = 2, FERTILIZED_FRUIT = 2;
 // Bone crushed with a stone carried, a club or a stone axe, a bone it carries or one from a pile on its square: a
 // scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
 // sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
@@ -1377,6 +1380,7 @@ public:
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
     void restart_census();  // the colour graph begun afresh: those alive now its first snapshot
+    int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
     Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier - lineage_first_)); }
     bool remembered(int identifier) const {
