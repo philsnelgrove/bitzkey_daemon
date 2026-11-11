@@ -629,6 +629,9 @@ inline double PROTECTION_JOY = 1.0;
 constexpr double SKILL_HELD = 0.5;  // the skill at which another is held skilled
 inline double SKILL_COMFORT = 0.5;
 inline double WATCH_LEARNING = 0.25;
+// A child that hears its parent call learns, at this share of its own learning, to make that call where the parent
+// made it, and, hearing it, what the parent then did; 0, not at all.
+inline double CHILD_CALL_LEARNING = 1.0;
 inline double ELDER_COMFORT = 0.5;
 inline int ELDER_REACH = 3;
 inline double FOLLOW_SAFETY = 0.5;
@@ -1388,6 +1391,9 @@ public:
     const Census& census() const { return census_; }
     void restart_census();  // the colour graph begun afresh: those alive now its first snapshot
     void go_fallow();  // worked land untended FALLOW_YEARS gone wild
+    // A child hearing its parent call: the call, in the parent's situation, valued as its own best call, to copy;
+    // and what the parent then did, in its own senses holding the call, valued as its own turn, to take in.
+    void learn_from_parent(Bitzkey& child, double target, double call_target, double rate);
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.

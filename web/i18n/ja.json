@@ -1967,5 +1967,7 @@
 "had nothing to cook": "調理する物がなかった",
 "had nothing to drop": "置く物がなかった",
 "Fallow years": "休耕年数",
-"years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地が手入れされずに野に戻るまでの年数（骨肥料も失われる）。0なら戻らない"
+"years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地が手入れされずに野に戻るまでの年数（骨肥料も失われる）。0なら戻らない",
+"Child call learning": "子の鳴き声学習",
+"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "親の鳴き声を聞いた子が、親が鳴いた場面でその声を出すこと、また聞いたときに親が次にしたことを学ぶ、自身の学習に対する割合。0で学ばない"
 }

@@ -1967,5 +1967,7 @@
 "had nothing to cook": "无物可煮",
 "had nothing to drop": "无物可放",
 "Fallow years": "休耕年数",
-"years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地无人照料多少年后荒芜，连同其骨肥；0 表示永不"
+"years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地无人照料多少年后荒芜，连同其骨肥；0 表示永不",
+"Child call learning": "幼时学叫声",
+"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "幼崽听到父母呼叫时，按自身学习的这一比例学会在父母呼叫的情境下发出该叫声，并在听到时学父母随后的行为；0 表示不学"
 }

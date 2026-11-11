@@ -1693,6 +1693,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             agent.own_brain().learn_memory(agent.last_senses, past, agent.last_choice, target, rate * MEMORY_LEARNING);
         }
     }
+    if (rate > 0) learn_from_parent(agent, target, call_target, rate);
     if (replay && DIARY_ENTRIES > 0 && !agent.diary.empty() && rate > 0) {  // one diary entry, in turn
         const Bitzkey::Memory& memory = agent.diary[static_cast<std::size_t>(turn_) % agent.diary.size()].memory;
         if (gpu_) queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
@@ -2323,6 +2324,22 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         teachings_.insert(teachings_.end(), tile.teaching.begin(), tile.teaching.end());
     }
     return true;
+}
+
+void Simulation::learn_from_parent(Bitzkey& child, double target, double call_target, double rate) {
+    if (CHILD_CALL_LEARNING <= 0 || !child.infant() || child.heard_turn != turn_ || child.heard_from < 0 ||
+        (child.heard_from != child.mother && child.heard_from != child.father)) {
+        return;
+    }
+    const Bitzkey* parent = find_agent(child.heard_from);
+    if (!parent || !parent->alive() || !parent->has_last_senses) return;
+    const double share = rate * CHILD_CALL_LEARNING;
+    const auto lesson = [&](const Senses& senses, int output, double value) {
+        if (gpu_) queue_lesson(child, senses, output, value, share, false, 0.0);
+        else child.own_brain().learn(senses, output, value, share);
+    };
+    if (parent->last_call >= FirstCall) lesson(parent->last_senses, call_output(parent->last_call), call_target);
+    lesson(child.last_senses, parent->last_choice, target);
 }
 
 void Simulation::learn_witnessed() {

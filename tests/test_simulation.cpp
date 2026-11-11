@@ -1172,6 +1172,38 @@ TEST_CASE("convictions: an empathetic predator spares the young") {
     FEEBLE_YOUTH = feeble_youth;
 }
 
+TEST_CASE("a child hearing its parent call copies the call and takes in what the parent did, a stranger's not") {
+    const double feeble_youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;  // young are infants for a tenth of their lives, as in a world
+    Simulation simulation = world(20);
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer), 4, 5);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 0}}), 6, 5);
+    REQUIRE(child.infant());
+    child.mother = parent.identifier;
+    for (Bitzkey* caller : {&parent, &stranger}) {
+        caller->has_last_senses = true;
+        caller->last_senses = {};
+        caller->last_senses[0] = 1.0;
+        caller->last_call = FirstCall + 2;
+        caller->last_choice = Eat;
+    }
+    child.has_last_senses = true;
+    child.last_senses = {};
+    child.last_senses[1] = 1.0;
+    const int call = call_output(FirstCall + 2);
+    const double call_before = child.brain->values(parent.last_senses)[call], deed_before = child.brain->values(child.last_senses)[Eat];
+    child.heard_from = stranger.identifier;
+    child.heard_turn = simulation.turn();
+    simulation.learn_from_parent(child, 5.0, 5.0, 0.1);
+    CHECK(child.brain->values(parent.last_senses)[call] == call_before);  // a stranger's call, not its parent's
+    child.heard_from = parent.identifier;
+    simulation.learn_from_parent(child, 5.0, 5.0, 0.1);
+    CHECK(child.brain->values(parent.last_senses)[call] > call_before);  // copied, where the parent called it
+    CHECK(child.brain->values(child.last_senses)[Eat] > deed_before);  // and, hearing it, what the parent did
+    FEEBLE_YOUTH = feeble_youth;
+}
+
 TEST_CASE("scruples: the kinder value uprooting less, and the more tolerant striking a foe, as their traits rise") {
     Simulation simulation(Simulation::Settings{30, 30, 0, 3});
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
