@@ -1063,6 +1063,13 @@ void Simulation::take_turn() {
     timings.after += lap(clock);
 }
 
+void Simulation::restart_census() {
+    census_ = {};
+    std::vector<int> identifiers;
+    for (const Bitzkey* agent : living()) identifiers.push_back(agent->identifier);
+    census_.record(turn_, std::move(identifiers));
+}
+
 void Simulation::take_census() {
     std::vector<int> identifiers;
     for (const Bitzkey* agent : living()) identifiers.push_back(agent->identifier);

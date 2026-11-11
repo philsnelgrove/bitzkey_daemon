@@ -1376,6 +1376,7 @@ public:
     std::size_t grass_tufts() const;
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
+    void restart_census();  // the colour graph begun afresh: those alive now its first snapshot
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
     Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier - lineage_first_)); }
     bool remembered(int identifier) const {
