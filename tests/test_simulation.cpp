@@ -1204,6 +1204,38 @@ TEST_CASE("a child hearing its parent call copies the call and takes in what the
     FEEBLE_YOUTH = feeble_youth;
 }
 
+TEST_CASE("a sharer brings its food to the store nearest its herd's middle, gladly, and at its height eats none directly") {
+    Simulation simulation = world(20);
+    Bitzkey& sharer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 9, 5);
+    lighter.weapon = Club;
+    simulation.light_fire(lighter);
+    simulation.add_to_pile(3, 5, false, 1);
+    simulation.index_cells();
+    const std::optional<Cell> store = simulation.herd_store(sharer, Cell{10, 5}, 6);
+    REQUIRE(store);
+    CHECK((store->x == 9 && store->y == 5));  // the fire, nearer the herd's middle than the pile
+    CHECK(simulation.herd_store(sharer, Cell{1, 5}, 6)->x == 3);  // the pile, nearer a middle the other way
+    sharer.mind[Sociability] = 7.0;
+    sharer.carried_fruit = 2;
+    sharer.cooked_meat = 1;
+    sharer.reward = 0;
+    for (int step = 0; step < 6 && sharer.cooked_meat; ++step) simulation.provision(sharer, *store);
+    CHECK(sharer.carried_fruit + sharer.cooked_meat == 0);
+    CHECK(std::abs(sharer.x - 9) + std::abs(sharer.y - 5) <= 1);  // beside the fire
+    CHECK(simulation.fruit_pile_at(sharer.x, sharer.y) == 2);
+    CHECK(simulation.pile_at(sharer.x, sharer.y, CookedMeatPile) == 1);
+    CHECK(sharer.reward == doctest::Approx(PROVISION_JOY * Simulation::sharing(sharer)));
+    CHECK(Simulation::shares_all(sharer));
+    Values valued{};
+    simulation.add_scruples(sharer, valued, Simulation::Situation{});
+    CHECK(valued[StoreFood] > 0);
+    CHECK(valued[Browse] < 0);
+    sharer.carried_fruit = 1;
+    const std::vector<int> options = simulation.sense(sharer).options;
+    CHECK(std::find(options.begin(), options.end(), EatCarried) == options.end());  // at its height, not from its own pack
+}
+
 TEST_CASE("scruples: the kinder value uprooting less, and the more tolerant striking a foe, as their traits rise") {
     Simulation simulation(Simulation::Settings{30, 30, 0, 3});
     Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);

@@ -259,6 +259,11 @@ inline double CONVICTION_LEVEL = 1.0;
 inline double EMPATHY_SCRUPLE = 1.0, TOLERANCE_SCRUPLE = 1.0;
 // Sociability: an animal values making an offer this much more, times its sociability.
 inline double SOCIABLE_TRADE = 0.25;
+// The sharing: the strongest of its patience, sociability and empathy, times SHARING_URGE, is added to the worth of
+// carrying food to its herd's store and of taking food up, and taken from eating fruit off a plant, a kill where it
+// lies or what it carries; any of the three at CONVICTION_LEVEL, it eats none of those, only from a pile. Food
+// brought to the store gladdens it, PROVISION_JOY times that strongest.
+inline double SHARING_URGE = 1.0, PROVISION_JOY = 0.5;
 inline bool swayed(double loyalty, double margin, double chance) {
     const double need = LOYALTY_MARGIN * loyalty;
     if (margin <= need || need >= 1.0) return false;
@@ -1536,6 +1541,7 @@ public:
         bool herd = true;
         int herd_near = 0;
         std::optional<Cell> herd_middle;
+        std::optional<Cell> store;  // where it would bring the food it carries for its herd
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         double spared = 0.0;  // the exposure kept off it by a shelter, a fire or a parent, which leaves it none
         int inside = 0;  // 2 resting in a shelter, 1 standing in one
@@ -1854,6 +1860,11 @@ public:
         return hunter.species == Species::Predator && (other.infant() || !other.womb.empty()) && convinced(hunter, Empathy);
     }
     void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
+    static double sharing(const Bitzkey& agent);  // the strongest of its patience, sociability and empathy
+    static bool shares_all(const Bitzkey& agent);  // any of the three at its height: food is for the herd's store
+    // The food piles, fires and shelters it sees, the one nearest its herd's middle; else that middle, to begin one.
+    std::optional<Cell> herd_store(const Bitzkey& agent, Cell middle, int sight) const;
+    void provision(Bitzkey& agent, Cell store);  // its food brought there and put down
     bool preys_on(const Bitzkey& hunter, const Bitzkey& other) const {
         if (spares(hunter, other)) return false;
         return is_prey(hunter, other) || (!convinced(hunter, Tolerance) && (drives_out(hunter, other) || grazer_assails(hunter, other)));

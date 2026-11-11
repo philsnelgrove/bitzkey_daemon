@@ -1969,5 +1969,13 @@
 "Fallow years": "休耕年数",
 "years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地が手入れされずに野に戻るまでの年数（骨肥料も失われる）。0なら戻らない",
 "Child call learning": "子の鳴き声学習",
-"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "親の鳴き声を聞いた子が、親が鳴いた場面でその声を出すこと、また聞いたときに親が次にしたことを学ぶ、自身の学習に対する割合。0で学ばない"
+"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "親の鳴き声を聞いた子が、親が鳴いた場面でその声を出すこと、また聞いたときに親が次にしたことを学ぶ、自身の学習に対する割合。0で学ばない",
+"STORE_FOOD": "食料を蓄える",
+"stored food for its herd": "群れのために食料を蓄えた",
+"carried food to its herd": "群れへ食料を運んだ",
+"had nothing to store": "蓄える物がなかった",
+"Sharing urge": "分かち合う衝動",
+"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "忍耐・社交性・共感のうち最も強いものを掛けた値。群れの貯蔵所へ食料を運ぶことと拾うことの価値に加え、植物の実・倒れた獲物・運んでいる物をその場で食べる価値から引く",
+"Provisioning joy": "蓄えの喜び",
+"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "群れの貯蔵所へ食料を運ぶ喜び（忍耐・社交性・共感のうち最も強いものを掛ける）"
 }

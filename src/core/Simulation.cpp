@@ -2657,6 +2657,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[LightFire] = (agent.has_tool(Club) || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && food_to_cook(agent, s) != HandFood::None;
+    if (view.middle && agent.carried_meat + agent.carried_fruit + agent.cooked_meat + agent.cooked_fruit > 0) s.store = herd_store(agent, *view.middle, sight);
+    available[StoreFood] = s.store.has_value();
+    if (shares_all(agent)) available[Browse] = available[Feast] = available[EatCarried] = false;  // its food for the herd's store
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
@@ -4566,6 +4569,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             move_toward(agent, s.herd_middle->x, s.herd_middle->y);
             agent.last_action = "herded";
             break;
+        case StoreFood:
+            provision(agent, *s.store);
+            break;
         case Revisit:
             move_toward(agent, s.revisit->x, s.revisit->y);
             agent.last_action = "revisited";
@@ -4799,6 +4805,65 @@ void Simulation::add_scruples(const Bitzkey& agent, Values& valued, const Situat
     }
     if (s.quarry && !is_prey(agent, *s.quarry)) valued[Hunt] -= tolerance;  // a foe, not food
     if (s.prey && !is_prey(agent, *s.prey)) valued[Attack] -= tolerance;
+    if (const double urge = SHARING_URGE * sharing(agent); urge > 0) {  // rather the herd's store than its own mouth
+        valued[StoreFood] += urge;
+        valued[TakeFruit] += urge;
+        valued[TakeMeat] += urge;
+        valued[Browse] -= urge;
+        valued[Feast] -= urge;
+        valued[EatCarried] -= urge;
+    }
+}
+
+double Simulation::sharing(const Bitzkey& agent) {
+    return std::max({agent.feeling(Patience), agent.feeling(Sociability), agent.feeling(Empathy)});
+}
+
+bool Simulation::shares_all(const Bitzkey& agent) {
+    return convinced(agent, Patience) || convinced(agent, Sociability) || convinced(agent, Empathy);
+}
+
+std::optional<Cell> Simulation::herd_store(const Bitzkey& agent, Cell middle, int sight) const {
+    std::optional<Cell> best;
+    int best_far = 0;
+    const Side side = tie_side(agent);
+    for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
+        const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
+        if (!in_bounds(x, y)) continue;
+        if (pile_at(x, y, MeatPile) <= 0 && pile_at(x, y, FruitPile) <= 0 && pile_at(x, y, CookedMeatPile) <= 0 &&
+            pile_at(x, y, CookedFruitPile) <= 0 && fire_at(x, y) <= turn_ && !shelter_at(x, y)) {
+            continue;
+        }
+        const int far = distance(x, y, middle.x, middle.y);
+        if (!best || far < best_far) {
+            best = Cell{x, y};
+            best_far = far;
+        }
+    }
+    return best ? best : std::optional<Cell>(middle);
+}
+
+void Simulation::provision(Bitzkey& agent, Cell store) {
+    const int reach = fire_at(store.x, store.y) > turn_ ? 1 : 0;  // beside a fire, else on the store itself
+    if (distance(store.x, store.y, agent.x, agent.y) > reach) move_toward(agent, store.x, store.y);
+    if (distance(store.x, store.y, agent.x, agent.y) > reach) {
+        agent.last_action = "carried food to its herd";
+        return;
+    }
+    if (agent.carried_meat + agent.carried_fruit + agent.cooked_meat + agent.cooked_fruit <= 0) {  // gone since it chose
+        agent.last_action = "had nothing to store";
+        return;
+    }
+    add_to_pile(agent.x, agent.y, true, agent.carried_meat);
+    add_to_pile(agent.x, agent.y, false, agent.carried_fruit);
+    add_to_pile(agent.x, agent.y, CookedMeatPile, agent.cooked_meat);
+    add_to_pile(agent.x, agent.y, CookedFruitPile, agent.cooked_fruit);
+    carrying[MeatDropped] += agent.carried_meat + agent.cooked_meat;
+    carrying[FruitDropped] += agent.carried_fruit + agent.cooked_fruit;
+    agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = 0;
+    agent.reward += PROVISION_JOY * sharing(agent);
+    agent.last_action = "stored food for its herd";
+    note_first("stored_food", agent.species, agent.identifier);
 }
 
 void Simulation::uproot(Bitzkey& agent, Bitzkey& plant) {

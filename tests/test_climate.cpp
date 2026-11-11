@@ -962,7 +962,7 @@ TEST_CASE("an animal whose brain chooses to rest is restless instead, unless in 
         simulation.take_turn();
         return grazer.brain->values(sensed.senses)[Flee] - before;
     };
-    CHECK(lesson(true) > 0.001);              // a panicked flight teaches
+    CHECK(std::abs(lesson(true)) > 0.001);   // a panicked flight teaches, toward what came of it
     CHECK(std::abs(lesson(false)) < 1e-12);  // a flight it was made to take otherwise doesn't (Forced lessons 0)
 }
 

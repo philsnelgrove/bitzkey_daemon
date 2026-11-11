@@ -299,9 +299,9 @@ TEST_CASE("a child's brain is made exactly as the Python version makes it from t
     const std::vector<double> found = {child.layers[0].row(3)[11], child.layers[0].row(44)[89], child.layers[1].biases[20],
                                        child.layers[2].row(5)[7], child.output_weights[23][44], child.output_biases[3]};
     // As the Python version's Brain.inherit makes them, to the last bit (its test pins the same numbers).
-    CHECK(found == std::vector<double>{-0.05294746696408315, 0.01177997114097852, 0.02362585888643703, -0.13231867986621473,
-                                       0.00041914453628770075, -0.0006880719386810275});  // the output layer held in hundredths
-    CHECK(rng.random() == 0.17952873324180496);  // one draw of the world's for the child
+    CHECK(found == std::vector<double>{0.23398379976194997, 0.061532824720554866, -0.034254710325811816, -0.04375847012520599,
+                                       -0.0014242008879608466, 0.0005058102581930441});  // the output layer held in hundredths
+    CHECK(rng.random() == 0.39061502613933574);  // one draw of the world's for the child
 }
 
 TEST_CASE("a brain that read its senses uncentred, made to read them centred, values everything just as before") {

@@ -1969,5 +1969,13 @@
 "Fallow years": "休耕年数",
 "years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地无人照料多少年后荒芜，连同其骨肥；0 表示永不",
 "Child call learning": "幼时学叫声",
-"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "幼崽听到父母呼叫时，按自身学习的这一比例学会在父母呼叫的情境下发出该叫声，并在听到时学父母随后的行为；0 表示不学"
+"share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none": "幼崽听到父母呼叫时，按自身学习的这一比例学会在父母呼叫的情境下发出该叫声，并在听到时学父母随后的行为；0 表示不学",
+"STORE_FOOD": "储存食物",
+"stored food for its herd": "为群体储存了食物",
+"carried food to its herd": "把食物带往群体",
+"had nothing to store": "无物可储",
+"Sharing urge": "分享冲动",
+"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "乘以其耐心、社交性与同理心中最强者，加到把食物带往群体储藏处和拾取食物的价值上，并从直接吃植物上的果实、原地的猎物或所携带的食物中扣除",
+"Provisioning joy": "供给之乐",
+"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "把食物带往群体储藏处的乐趣，乘以其耐心、社交性与同理心中最强者"
 }
