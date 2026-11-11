@@ -1209,6 +1209,35 @@ TEST_CASE("a plant on worked land bears twice the fruit, and twice again where b
     CHECK(simulation.morning_fruit(farmed) == ARABLE_FRUIT);
 }
 
+TEST_CASE("an axe fells a bare plant too, and the kind are loath to fell a farmed one") {
+    Simulation simulation(10, 40, 0, 1);
+    int temperate = -1;
+    for (int y = 0; y < 40; ++y) {
+        if (zone_temperature(y, 40) == Medium) temperate = y;
+    }
+    REQUIRE(temperate >= 0);
+    Bitzkey& feller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, temperate);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant), 6, temperate);
+    simulation.index_cells();
+    const auto offered = [&] {
+        const Simulation::Sensed sensed = simulation.sense(feller);
+        return std::find(sensed.options.begin(), sensed.options.end(), Cut) != sensed.options.end();
+    };
+    plant.fruit = 0;  // picked bare
+    CHECK_FALSE(offered());  // no axe
+    feller.weapon = BoneAxe;
+    CHECK(offered());  // bare, and still timber
+    feller.mind[Empathy] = 7.0;
+    CHECK(offered());  // a wild plant is fair game
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, temperate);
+    farmer.weapon = Club;
+    simulation.dig(farmer);
+    REQUIRE(simulation.arable_at(6, temperate));
+    CHECK_FALSE(offered());  // a farmed one, spared by the kindest
+    feller.mind[Empathy] = 3.0;
+    CHECK(offered());
+}
+
 TEST_CASE("no body is left without a recorded death, even when moving, striking and seeding starve") {
     const double go = GO_EFFORT, strike = STRIKE_EFFORT;
     const double seed_cost = SEED_COST, seed_hunger = SEED_HUNGER;

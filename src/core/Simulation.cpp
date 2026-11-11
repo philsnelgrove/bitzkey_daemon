@@ -2595,7 +2595,17 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[MakeWoodArmour] = known(MakeWoodArmour) && bare && agent.carried_wood > 0;
     available[TakeGear] = s.gear_pile.has_value();
     const bool axe = agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe);
-    available[Cut] = s.flora && axe;
+    if (axe) {  // a plant beside it to fell, bare or bearing, else the bearing one it sees
+        for (Bitzkey* other : neighbors) {
+            if (other->species == Species::Plant && other->alive()) {
+                s.timber = other;
+                break;
+            }
+        }
+        if (!s.timber) s.timber = s.flora;
+    }
+    // A farmed plant, on worked land, the kindest won't fell; a wild one is fair game.
+    available[Cut] = s.timber && !(arable_at(s.timber->x, s.timber->y) && convinced(agent, Empathy));
     available[MakeWagon] = known(MakeWagon) && axe && agent.wagon < 0 && agent.carried_stone >= WAGON_STONE && agent.carried_wood >= WAGON_WOOD &&
                            !sea(agent.x, agent.y);
     for (const auto [dx, dy] : {std::pair{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {  // a wagon no one drags, within a step
@@ -4617,7 +4627,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             shoot(agent, *s.practise_on, true);
             break;
         case Cut:
-            cut(agent, *s.flora);
+            cut(agent, *s.timber);
             break;
         case Dig:
             dig(agent);
@@ -4751,6 +4761,7 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
 void Simulation::add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const {
     const double empathy = EMPATHY_SCRUPLE * agent.feeling(Empathy), tolerance = TOLERANCE_SCRUPLE * agent.feeling(Tolerance);
     valued[Uproot] -= empathy;
+    if (s.timber && arable_at(s.timber->x, s.timber->y)) valued[Cut] -= empathy;  // a farmed plant; a wild one is fair game
     const auto tender = [](const Bitzkey* one) { return one && (one->infant() || !one->womb.empty()); };
     if (agent.species == Species::Predator) {
         if (tender(s.quarry)) valued[Hunt] -= empathy;
@@ -5409,6 +5420,7 @@ void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
         agent.last_action = "sought plants";
         return;
     }
+    if (arable_at(plant.x, plant.y)) agent.reward -= UPROOT_SORROW * (0.5 + agent.feeling(Empathy));  // sorry to fell a farmed one
     plant.health = 0;
     wear_weapon(agent);
     agent.last_action = "cut down a plant";

@@ -252,7 +252,8 @@ inline double LOYALTY_MARGIN = 0.5;
 // grazer won't uproot a plant, and a predator won't hunt, strike or feast on an infant or one carrying young.
 // Tolerance: it won't strike a foe nor drive one from its land, only defend itself and its own; it still hunts to eat.
 inline double CONVICTION_LEVEL = 1.0;
-// Scruples, short of conviction: the kinder value uprooting a plant EMPATHY_SCRUPLE less, times their empathy, and a
+// Scruples, short of conviction: the kinder value uprooting a plant, or felling one on worked land (a wild one is fair
+// game), EMPATHY_SCRUPLE less, times their empathy, and a
 // predator likewise hunting, striking or feasting on an infant or one carrying young; the more tolerant value striking
 // a foe or driving one out TOLERANCE_SCRUPLE less, times their tolerance, though not hunting to eat.
 inline double EMPATHY_SCRUPLE = 1.0, TOLERANCE_SCRUPLE = 1.0;
@@ -1515,6 +1516,7 @@ public:
         int others = 0;
         Bitzkey* defend_target = nullptr;
         Bitzkey* uprootable = nullptr;  // a plant beside a starving grazer, with food scarce
+        Bitzkey* timber = nullptr;  // a plant to fell with an axe: one beside it, bare or bearing, else the bearing one it sees
         bool tears = false;  // it may tear into that plant, so it may tear its fruit from it too
         bool for_herd = false;
         bool herd = true;
