@@ -461,6 +461,7 @@ Simulation::Simulation(Settings settings)
     fertilized_.assign(area, 0);
     road_work_.assign(area, 0);
     arable_.assign(area, 0);
+    tended_.assign(area, 0);
     fire_lighters_.assign(area, -1);
     cooked_on_.assign(area, -DAY_LENGTH - 1);
     grass_.assign(area, 0);
@@ -1051,6 +1052,7 @@ void Simulation::take_turn() {
         if (agent->died_turn && turn_ - *agent->died_turn >= FRESH_KILL_TURNS) agent->meat = std::max(0.0, agent->meat - agent->rot);
     }
     if (any_piles_) spoil_piles();
+    go_fallow();
     for (const auto& agent : agents_) {  // bodies rotted away, not eaten to the last portion, may feed a new plant
         if (agent->died_turn && turn_ - *agent->died_turn >= CORPSE_TURNS && agent->species != Species::Plant && agent->portions > 0 &&
             CORPSE_PLANT && rng().random() < CORPSE_PLANT) {
@@ -4760,6 +4762,7 @@ void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     agent.nourish((PLANT_MEAL + PLANT_MEAL_FOR_SIZE * plant.physique(Size)) * agent.browsing * plant_yield(plant));
     plant.fruit = fruit_left(plant) - 1;  // a fruit picked, the plant unhurt
     plant.picked_by = agent.identifier;
+    tend(plant.x, plant.y);
     agent.reward += HARVEST_JOY;
     agent.last_action = "browsed";
     deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);  // fruit picked without uprooting
@@ -4996,6 +4999,14 @@ void Simulation::feast(Bitzkey& agent, Bitzkey& corpse) {
     eat_portion(corpse);
 }
 
+void Simulation::go_fallow() {
+    if (FALLOW_YEARS <= 0) return;
+    const double untended = FALLOW_YEARS * YEAR_LENGTH;
+    for (std::size_t cell = 0; cell < arable_.size(); ++cell) {
+        if (arable_[cell] && turn_ - tended_[cell] >= untended) arable_[cell] = fertilized_[cell] = 0;
+    }
+}
+
 void Simulation::spoil_piles() {
     const double life = PILE_LASTS * CORPSE_TURNS;
     for (const PileKind kind : {MeatPile, FruitPile}) {
@@ -5098,6 +5109,7 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
     } else {
         plant->fruit = fruit_left(*plant) - 1;  // a fruit picked, the plant unhurt
         plant->picked_by = agent.identifier;
+        tend(plant->x, plant->y);
         agent.reward += HARVEST_JOY;
         deed_seen(agent, 0.0, nullptr, CultureDeed, -1, SowingCulture);
     }
@@ -5448,6 +5460,7 @@ void Simulation::dig(Bitzkey& agent) {
     agent.last_action = "dug";
     if (zone_temperature(agent.y, height_) == Medium || watered(agent.x, agent.y)) {  // only temperate land, or hot land near water, can be worked
         arable_[static_cast<std::size_t>(agent.y) * width_ + agent.x] = 1;
+        tend(agent.x, agent.y);
         note_first("tilled", agent.species, agent.identifier);
     }
     if (rng().random() >= DIG_CHANCE) return;
@@ -5469,6 +5482,7 @@ void Simulation::eat_seed(Bitzkey& agent) {
 void Simulation::plant_seed(Bitzkey& agent) {
     // A plant at home where it is sown, sprouting as any seed does.
     --agent.carried_seed;
+    tend(agent.x, agent.y);
     Dna dna = make_dna(rng(), static_cast<int>(Species::Plant));
     dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(zone_temperature(agent.y, height_)) << TEMPERATURE_SHIFT;
     dna = with_terrain(dna, Terrain::Terrestrial);
@@ -5509,6 +5523,7 @@ void Simulation::eat_marrow(Bitzkey& agent) {
 void Simulation::fertilize(Bitzkey& agent) {
     if (!crush_bone(agent)) return;
     fertilized_[static_cast<std::size_t>(agent.y) * width_ + agent.x] = 1;
+    tend(agent.x, agent.y);
     agent.reward += FERTILIZING_JOY * (0.5 + agent.feeling(Curiosity));
     agent.last_action = "fertilized the land";
     deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed);
@@ -5571,6 +5586,7 @@ void Simulation::cook(Bitzkey& agent, Situation& s) {
         case HandFood::Plant:  // picked, the plant unhurt
             s.flora->fruit = fruit_left(*s.flora) - 1;
             s.flora->picked_by = agent.identifier;
+            tend(s.flora->x, s.flora->y);
             agent.reward += HARVEST_JOY;
             ++carrying[FruitFromPlant];
             ++agent.carried_fruit;

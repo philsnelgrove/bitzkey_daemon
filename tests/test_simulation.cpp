@@ -1209,6 +1209,35 @@ TEST_CASE("a plant on worked land bears twice the fruit, and twice again where b
     CHECK(simulation.morning_fruit(farmed) == ARABLE_FRUIT);
 }
 
+TEST_CASE("worked land left untended goes wild, its bone with it") {
+    Simulation simulation(10, 40, 0, 1);
+    int temperate = -1;
+    for (int y = 0; y < 40; ++y) {
+        if (zone_temperature(y, 40) == Medium) temperate = y;
+    }
+    REQUIRE(temperate >= 0);
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, temperate);
+    simulation.index_cells();
+    farmer.weapon = Club;
+    simulation.dig(farmer);
+    farmer.carried_bone = 1;
+    simulation.fertilize(farmer);
+    REQUIRE(simulation.fertilized_at(6, temperate));
+    CHECK(simulation.tended_at(6, temperate) == simulation.turn());
+    simulation.go_fallow();
+    CHECK(simulation.arable_at(6, temperate));  // tended just now
+    const double years = FALLOW_YEARS;
+    FALLOW_YEARS = 0;
+    simulation.go_fallow();
+    CHECK(simulation.arable_at(6, temperate));  // never, at 0
+    simulation.advance();
+    FALLOW_YEARS = 1e-9;  // as if a year had passed untended
+    simulation.go_fallow();
+    FALLOW_YEARS = years;
+    CHECK_FALSE(simulation.arable_at(6, temperate));
+    CHECK_FALSE(simulation.fertilized_at(6, temperate));
+}
+
 TEST_CASE("an axe fells a bare plant too, and the kind are loath to fell a farmed one") {
     Simulation simulation(10, 40, 0, 1);
     int temperate = -1;

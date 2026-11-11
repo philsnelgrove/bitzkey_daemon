@@ -1965,5 +1965,7 @@
 "how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "調理した一口分がどれほどおいしく、山や運んだ生の一口分がどれほどまずいか（食欲を掛ける）",
 "found nothing carried": "運んでいた物が何もなかった",
 "had nothing to cook": "調理する物がなかった",
-"had nothing to drop": "置く物がなかった"
+"had nothing to drop": "置く物がなかった",
+"Fallow years": "休耕年数",
+"years worked land lies untended before it goes wild, its bone with it; 0, never": "耕地が手入れされずに野に戻るまでの年数（骨肥料も失われる）。0なら戻らない"
 }

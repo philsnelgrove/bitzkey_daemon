@@ -506,6 +506,10 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
     for (std::size_t cell = 0; cell < simulation.arable_.size(); ++cell) {
         if (simulation.arable_[cell]) arable.push_back(cell);
     }
+    json tended = json::array();  // each worked square and the turn it was last tended
+    for (std::size_t cell = 0; cell < simulation.arable_.size(); ++cell) {
+        if (simulation.arable_[cell]) tended.push_back({cell, simulation.tended_[cell]});
+    }
     json fights = json::array();  // each [taker, owner, possession, taken]
     for (const Simulation::Fight& fight : simulation.fights_) fights.push_back({fight.thief, fight.victim, fight.possession, fight.taken});
     json fertilized = json::array();  // each worked square fed bone
@@ -640,7 +644,7 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
         {"random", {{"mt", random.mt}, {"index", random.index}, {"gauss_next", optional_value(random.gauss_next)}}},
-        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"wagons", [&] {
+        {"grass", std::move(grass)}, {"piles", std::move(piles)}, {"arable", std::move(arable)}, {"tended", std::move(tended)}, {"fertilized", std::move(fertilized)}, {"fights", std::move(fights)}, {"roads", std::move(roads)}, {"materials", std::move(materials)}, {"fires", std::move(fires)}, {"shelters", std::move(shelters)}, {"wagons", [&] {
              json out = json::array();  // x, y, its hitcher or -1, and what it holds
              for (const auto& wagon : simulation.wagons_) out.push_back({wagon.x, wagon.y, wagon.hitched_to, wagon.goods});
              return out;
@@ -826,7 +830,11 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
             if (fire.size() > 4) world.cooked_on_[cell] = fire.at(4).get<int>();  // none in an older world
             world.any_fires_ = true;
         }
-        for (const json& cell : record.value("arable", json::array())) world.arable_[cell.get<std::size_t>()] = 1;  // none in an older world
+        for (const json& cell : record.value("arable", json::array())) {  // none in an older world
+            world.arable_[cell.get<std::size_t>()] = 1;
+            world.tended_[cell.get<std::size_t>()] = world.turn_;  // in an older world, tended as it is loaded
+        }
+        for (const json& cell : record.value("tended", json::array())) world.tended_[cell.at(0).get<std::size_t>()] = cell.at(1).get<int>();
         for (const json& fight : record.value("fights", json::array())) {  // none in an older world
             world.fights_.push_back({fight.at(0).get<int>(), fight.at(1).get<int>(), fight.at(2).get<int>(), fight.at(3).get<bool>()});
         }

@@ -663,6 +663,8 @@ inline double HARVEST_JOY = 0.1, REGROWTH_JOY = 0.5;
 // Farming: a plant on worked land bears ARABLE_FRUIT times as much fruit each morning, and, the land fed bone,
 // FERTILIZED_FRUIT times that again, the bone spent on it.
 inline int ARABLE_FRUIT = 2, FERTILIZED_FRUIT = 2;
+// Worked land no one tends (digs, sows, feeds bone or picks fruit on) for FALLOW_YEARS goes wild, its bone with it; 0, never.
+inline double FALLOW_YEARS = 1.0;
 // Bone crushed with a stone carried, a club or a stone axe, a bone it carries or one from a pile on its square: a
 // scavenger eats its marrow, a portion of meat as from a pile; or, on worked land, it is fed to the soil, which then
 // sprouts the next seed there in half PLANT_GESTATION, a pleasure as planting is (FERTILIZING_JOY, times curiosity).
@@ -1385,6 +1387,8 @@ public:
     const Insights& insights() const { return insights_; }
     const Census& census() const { return census_; }
     void restart_census();  // the colour graph begun afresh: those alive now its first snapshot
+    void go_fallow();  // worked land untended FALLOW_YEARS gone wild
+    int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
     Dna lineage(int identifier) const { return lineage_.at(static_cast<std::size_t>(identifier - lineage_first_)); }
@@ -2188,6 +2192,10 @@ private:
     bool stones_scattered_ = false;
     std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
+    std::vector<int> tended_;  // the turn each worked square was last tended
+    void tend(int x, int y) {
+        if (arable_at(x, y)) tended_[static_cast<std::size_t>(y) * width_ + x] = turn_;
+    }
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
     std::vector<Wagon> wagons_;  // every wagon made
     std::unordered_multimap<std::size_t, int> parked_;  // the wagons no one drags, by their squares
