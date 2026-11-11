@@ -1958,5 +1958,9 @@
 "Arable fruit": "Fruits sur terre arable",
 "times as much fruit a plant on worked land bears each morning": "combien de fois plus de fruits une plante sur une terre travaillée porte chaque matin",
 "Fertilized fruit": "Fruits fertilisés",
-"times as much again on worked land fed bone; the bone is spent": "combien de fois plus encore sur une terre travaillée nourrie d'os ; l'os est consommé"
+"times as much again on worked land fed bone; the bone is spent": "combien de fois plus encore sur une terre travaillée nourrie d'os ; l'os est consommé",
+"Carried spoilage": "Pourriture en route",
+"the chance each turn a raw portion carried goes off; cooked food keeps": "la probabilité à chaque tour qu'une portion crue portée se gâte ; la nourriture cuite se garde",
+"Taste joy": "Plaisir du goût",
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "combien une portion cuite est savoureuse, et combien une crue d'un tas ou portée ne l'est pas, fois son appétit"
 }

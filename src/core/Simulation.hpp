@@ -562,14 +562,18 @@ enum PileKind : int { MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAx
 inline int FIRE_TURNS = 24;  // a day, and another for each wood fed to it; a club lights one, a fire cooks what is carried, and cooked food never spoils
 inline double FIRE_PANIC = 0.25;  // the chance an animal panics, seeing a fire not its own or its herd's
 inline double FIRE_COMFORT = 0.3;  // the comfort of seeing a fire that is its own or its herd's, as an unfamiliar one frightens
-inline double COOKED_FOOD = 1.5;  // times as nourishing as raw
-// The taste for cooked food: each cooked portion eaten adds a fifth to its taste for it (cooked_known, 0 to 1), and is a
+inline double COOKED_FOOD = 2.0;  // times as nourishing as raw
+inline double CARRIED_SPOIL = 0.02;  // the chance each turn a raw portion carried goes off; cooked food keeps
+// The taste for cooked food: each cooked portion eaten adds a third to its taste for it (cooked_known, 0 to 1), and is a
 // delight (COOKED_JOY, times a half and the taste). Once it knows that taste, a raw portion, from a pile or carried, is
 // a letdown (RAW_DISTASTE times the taste), and cooking a pleasure (COOK_JOY, times a half and the taste). Cooked food,
 // and a fire cooked on within the day, are smelt SMELL_REACH times as far as it sees; cooked food smelt is food sought,
 // and in sight it is taken before raw.
-inline constexpr double COOKED_TASTE = 0.2;
-inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 0.5, SMELL_REACH = 2.0;
+inline constexpr double COOKED_TASTE = 1.0 / 3;
+inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 1.0, SMELL_REACH = 2.0;
+// A sense of taste, inborn: a cooked portion is tasty (TASTE_JOY, times its appetite), a raw portion, from a pile or
+// carried, as much the opposite, over and above the taste it learns.
+inline double TASTE_JOY = 1.0;
 inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls in, leaving its stone and wood in piles
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
 inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
@@ -1002,7 +1006,7 @@ struct Bitzkey {
     int trespass = 0;  // turns it has stood in another group's land without a break
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
     double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
-    double cooked_known = 0.0;  // its taste for cooked food, a fifth for each cooked portion eaten, to 1 (see COOKED_JOY)
+    double cooked_known = 0.0;  // its taste for cooked food, a third for each cooked portion eaten, to 1 (see COOKED_JOY)
     double meat_lean = 0.0;  // a grazer's lean toward meat from marrow eaten, 0 to 1; at 1 it turns omnivore
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};

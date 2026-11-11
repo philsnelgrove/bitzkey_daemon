@@ -1958,5 +1958,9 @@
 "Arable fruit": "Owoce na ziemi uprawnej",
 "times as much fruit a plant on worked land bears each morning": "ile razy więcej owoców roślina na uprawnej ziemi wydaje każdego ranka",
 "Fertilized fruit": "Owoce nawożone",
-"times as much again on worked land fed bone; the bone is spent": "ile razy więcej jeszcze na uprawnej ziemi nawożonej kością; kość się zużywa"
+"times as much again on worked land fed bone; the bone is spent": "ile razy więcej jeszcze na uprawnej ziemi nawożonej kością; kość się zużywa",
+"Carried spoilage": "Psucie w niesieniu",
+"the chance each turn a raw portion carried goes off; cooked food keeps": "szansa w każdej turze, że niesiona surowa porcja się zepsuje; gotowane się trzyma",
+"Taste joy": "Radość smaku",
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "jak smaczna jest gotowana porcja i jak niesmaczna surowa ze stosu lub niesiona, razy jego apetyt"
 }

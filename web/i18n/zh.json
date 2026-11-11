@@ -1958,5 +1958,9 @@
 "Arable fruit": "耕地果实",
 "times as much fruit a plant on worked land bears each morning": "耕地上的植物每天早晨结果的倍数",
 "Fertilized fruit": "施肥果实",
-"times as much again on worked land fed bone; the bone is spent": "在施了骨肥的耕地上再翻多少倍；骨肥随之耗尽"
+"times as much again on worked land fed bone; the bone is spent": "在施了骨肥的耕地上再翻多少倍；骨肥随之耗尽",
+"Carried spoilage": "携带腐坏",
+"the chance each turn a raw portion carried goes off; cooked food keeps": "每回合携带的一份生食变质的几率；熟食不坏",
+"Taste joy": "味觉之乐",
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "一份熟食有多美味，一份来自堆中或携带的生食有多难吃，乘以其食欲"
 }

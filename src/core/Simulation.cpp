@@ -977,6 +977,9 @@ void Simulation::take_turn() {
         const double burn = agent->burn * (hungrier ? 1 + (CLIMATE_HUNGER - 1) * share * std::min(1.0, steps) : 1.0);
         agent->hunger = std::min(100.0, agent->hunger + agent->digest(burn));  // meat lasts; hunger stops at full
         if (agent->cooldown) agent->cooldown -= 1;
+        if (agent->carried_meat + agent->carried_fruit > 0 && rng().random() < CARRIED_SPOIL) {  // raw food carried goes off
+            --(agent->carried_meat > 0 ? agent->carried_meat : agent->carried_fruit);
+        }
         if (agent->health < agent->max_health && agent->hunger < 65) agent->heal(0.005 * (in_own_land(*agent) ? 1 + LAND_HEALING : 1.0));
         // A tenth of its health a step, part steps in part; a plant takes one step in its stride, and is
         // hurt more and more as the weather turns toward a second, to full harm two away.
@@ -5178,10 +5181,12 @@ void Simulation::eat_carried(Bitzkey& agent) {
 }
 
 void Simulation::taste(Bitzkey& agent, bool cooked) {
+    const double tasty = TASTE_JOY * agent.feeling(Appetite);  // its sense of taste, the keener the hungrier its nature
     if (!cooked) {
-        agent.reward -= RAW_DISTASTE * agent.cooked_known;
+        agent.reward -= tasty + RAW_DISTASTE * agent.cooked_known;
         return;
     }
+    agent.reward += tasty;
     agent.cooked_known = std::min(1.0, agent.cooked_known + COOKED_TASTE);
     agent.reward += COOKED_JOY * (0.5 + agent.cooked_known);
     if (agent.cooked_known >= 1.0) note_first("loved_cooked", agent.species, agent.identifier);

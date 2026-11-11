@@ -1958,5 +1958,9 @@
 "Arable fruit": "Плоди на ріллі",
 "times as much fruit a plant on worked land bears each morning": "у скільки разів більше плодів рослина на обробленій землі дає щоранку",
 "Fertilized fruit": "Плоди з добривом",
-"times as much again on worked land fed bone; the bone is spent": "у скільки разів більше ще на обробленій землі, удобреній кісткою; кістка витрачається"
+"times as much again on worked land fed bone; the bone is spent": "у скільки разів більше ще на обробленій землі, удобреній кісткою; кістка витрачається",
+"Carried spoilage": "Псування в дорозі",
+"the chance each turn a raw portion carried goes off; cooked food keeps": "імовірність щоходу, що сира порція, яку несуть, зіпсується; варене зберігається",
+"Taste joy": "Радість смаку",
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "наскільки смачна варена порція і наскільки несмачна сира з купи чи принесена, помножено на апетит"
 }

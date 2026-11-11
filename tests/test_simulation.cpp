@@ -3207,17 +3207,18 @@ TEST_CASE("cooked food is a growing delight, raw a letdown once it is known, coo
     simulation.index_cells();
     eater.hunger = 90;
     eater.reward = 0;
-    simulation.taste(eater, false);  // raw, knowing nothing better
-    CHECK(eater.reward == 0);
+    const double tasty = TASTE_JOY * eater.feeling(Appetite);
+    simulation.taste(eater, false);  // raw, knowing nothing better: only untasty
+    CHECK(eater.reward == doctest::Approx(-tasty));
     eater.cooked_meat = 1;
     simulation.eat_carried(eater);  // a cooked portion eaten tastes
     CHECK(eater.cooked_known == doctest::Approx(COOKED_TASTE));
     eater.reward = 0;
     simulation.taste(eater, true);
-    CHECK(eater.reward == doctest::Approx(COOKED_JOY * (0.5 + 2 * COOKED_TASTE)));  // growing with the taste
+    CHECK(eater.reward == doctest::Approx(tasty + COOKED_JOY * (0.5 + 2 * COOKED_TASTE)));  // tasty, and growing with the taste
     eater.reward = 0;
     simulation.taste(eater, false);
-    CHECK(eater.reward == doctest::Approx(-RAW_DISTASTE * 2 * COOKED_TASTE));  // raw, now a letdown
+    CHECK(eater.reward == doctest::Approx(-tasty - RAW_DISTASTE * 2 * COOKED_TASTE));  // raw, untasty and now a letdown
 
     simulation.add_to_pile(6, 20, true);  // raw meat and cooked meat beside it: the cooked first
     simulation.add_to_pile(6, 20, CookedMeatPile);

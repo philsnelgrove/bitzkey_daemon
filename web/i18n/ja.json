@@ -1958,5 +1958,9 @@
 "Arable fruit": "耕地の実り",
 "times as much fruit a plant on worked land bears each morning": "耕された土地の植物が毎朝つける実の倍率",
 "Fertilized fruit": "肥料の実り",
-"times as much again on worked land fed bone; the bone is spent": "骨を施した耕地でさらに何倍になるか。骨は使い切られる"
+"times as much again on worked land fed bone; the bone is spent": "骨を施した耕地でさらに何倍になるか。骨は使い切られる",
+"Carried spoilage": "運搬中の腐敗",
+"the chance each turn a raw portion carried goes off; cooked food keeps": "運んでいる生の一口分が毎ターン傷む確率。調理したものは日持ちする",
+"Taste joy": "味覚の喜び",
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "調理した一口分がどれほどおいしく、山や運んだ生の一口分がどれほどまずいか（食欲を掛ける）"
 }
