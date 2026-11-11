@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Psucie w niesieniu",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "szansa w każdej turze, że niesiona surowa porcja się zepsuje; gotowane się trzyma",
 "Taste joy": "Radość smaku",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "jak smaczna jest gotowana porcja i jak niesmaczna surowa ze stosu lub niesiona, razy jego apetyt"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "jak smaczna jest gotowana porcja i jak niesmaczna surowa ze stosu lub niesiona, razy jego apetyt",
+"found nothing carried": "nie znalazł nic niesionego",
+"had nothing to cook": "nie miał czego ugotować",
+"had nothing to drop": "nie miał czego odłożyć"
 }

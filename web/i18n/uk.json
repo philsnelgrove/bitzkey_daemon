@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Псування в дорозі",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "імовірність щоходу, що сира порція, яку несуть, зіпсується; варене зберігається",
 "Taste joy": "Радість смаку",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "наскільки смачна варена порція і наскільки несмачна сира з купи чи принесена, помножено на апетит"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "наскільки смачна варена порція і наскільки несмачна сира з купи чи принесена, помножено на апетит",
+"found nothing carried": "не знайшов нічого при собі",
+"had nothing to cook": "не мав що зварити",
+"had nothing to drop": "не мав що покласти"
 }

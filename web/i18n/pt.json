@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Deterioração ao carregar",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "a probabilidade a cada turno de uma porção crua carregada se estragar; o cozinhado conserva-se",
 "Taste joy": "Prazer do sabor",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "quão saborosa é uma porção cozinhada, e quão insossa uma crua de uma pilha ou carregada, vezes o seu apetite"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "quão saborosa é uma porção cozinhada, e quão insossa uma crua de uma pilha ou carregada, vezes o seu apetite",
+"found nothing carried": "não achou nada carregado",
+"had nothing to cook": "não tinha nada para cozinhar",
+"had nothing to drop": "não tinha nada para largar"
 }

@@ -1962,5 +1962,8 @@
 "Carried spoilage": "運搬中の腐敗",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "運んでいる生の一口分が毎ターン傷む確率。調理したものは日持ちする",
 "Taste joy": "味覚の喜び",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "調理した一口分がどれほどおいしく、山や運んだ生の一口分がどれほどまずいか（食欲を掛ける）"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "調理した一口分がどれほどおいしく、山や運んだ生の一口分がどれほどまずいか（食欲を掛ける）",
+"found nothing carried": "運んでいた物が何もなかった",
+"had nothing to cook": "調理する物がなかった",
+"had nothing to drop": "置く物がなかった"
 }

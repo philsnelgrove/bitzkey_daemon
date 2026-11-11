@@ -2626,7 +2626,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[PlantSeed] = agent.carried_seed > 0 && arable_at(agent.x, agent.y);
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
-    available[EatCarried] = (agent.carried_meat + agent.cooked_meat && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit && FRUIT_PORTION * agent.browsing > 0);
+    available[EatCarried] = (agent.carried_meat + agent.cooked_meat > 0 && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit > 0 && FRUIT_PORTION * agent.browsing > 0);
     available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.any_tool() && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
@@ -2637,7 +2637,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[BuildRoad] = agent.has_tool(StoneAxe) && agent.carried_stone >= ROAD_STONES && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[LightFire] = (agent.has_tool(Club) || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
-    available[Cook] = beside_fire && agent.carried_meat + agent.carried_fruit > 0;
+    available[Cook] = beside_fire && food_to_cook(agent, s) != HandFood::None;
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
@@ -3989,7 +3989,7 @@ void Simulation::pass_good(Bitzkey& from, Bitzkey& to, int good) {
     if (cooked_from > 0) {
         --cooked_from;
         ++(meat ? to.cooked_meat : to.cooked_fruit);
-    } else {
+    } else if (raw_from > 0) {
         --raw_from;
         ++(meat ? to.carried_meat : to.carried_fruit);
     }
@@ -4567,23 +4567,29 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             take_fruit(agent, s);
             break;
         case DropMeat:
-            if (agent.carried_meat) {
+            if (agent.carried_meat > 0) {
                 --agent.carried_meat;
                 add_to_pile(agent.x, agent.y, true);
-            } else {
+            } else if (agent.cooked_meat > 0) {
                 --agent.cooked_meat;
                 add_to_pile(agent.x, agent.y, CookedMeatPile);
+            } else {  // gone since it chose: spoilt, eaten or passed on
+                agent.last_action = "had nothing to drop";
+                break;
             }
             ++carrying[MeatDropped];
             agent.last_action = "dropped meat";
             break;
         case DropFruit:
-            if (agent.carried_fruit) {
+            if (agent.carried_fruit > 0) {
                 --agent.carried_fruit;
                 add_to_pile(agent.x, agent.y, false);
-            } else {
+            } else if (agent.cooked_fruit > 0) {
                 --agent.cooked_fruit;
                 add_to_pile(agent.x, agent.y, CookedFruitPile);
+            } else {
+                agent.last_action = "had nothing to drop";
+                break;
             }
             ++carrying[FruitDropped];
             agent.last_action = "dropped fruit";
@@ -4675,7 +4681,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             feed_fire(agent, *s.fire);
             break;
         case Cook:
-            cook(agent, *s.fire);
+            cook(agent, s);
             break;
         case Hitch:
             hitch(agent, s.wagon_near);
@@ -5165,12 +5171,17 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
 }
 
 void Simulation::eat_carried(Bitzkey& agent) {
-    const double meat = agent.carried_meat + agent.cooked_meat ? MEAT_PORTION * agent.digestion * (agent.cooked_meat ? COOKED_FOOD : 1.0) : 0.0;
-    const double fruit = agent.carried_fruit + agent.cooked_fruit ? FRUIT_PORTION * agent.browsing * (agent.cooked_fruit ? COOKED_FOOD : 1.0) : 0.0;
-    const bool eats_meat = meat >= fruit;
+    const bool has_meat = agent.carried_meat + agent.cooked_meat > 0, has_fruit = agent.carried_fruit + agent.cooked_fruit > 0;
+    if (!has_meat && !has_fruit) {  // gone since it chose: spoilt, or passed on
+        agent.last_action = "found nothing carried";
+        return;
+    }
+    const double meat = has_meat ? MEAT_PORTION * agent.digestion * (agent.cooked_meat > 0 ? COOKED_FOOD : 1.0) : 0.0;
+    const double fruit = has_fruit ? FRUIT_PORTION * agent.browsing * (agent.cooked_fruit > 0 ? COOKED_FOOD : 1.0) : 0.0;
+    const bool eats_meat = has_meat && (!has_fruit || meat >= fruit);
     int& cooked = eats_meat ? agent.cooked_meat : agent.cooked_fruit;  // the cooked first
     taste(agent, cooked > 0);
-    if (cooked) --cooked;
+    if (cooked > 0) --cooked;
     else {
         --(eats_meat ? agent.carried_meat : agent.carried_fruit);
         if (!eats_meat) keep_seed(agent);
@@ -5524,7 +5535,60 @@ void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
     deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);  // keeping a fire is thought well of, as lighting one is
 }
 
+Simulation::HandFood Simulation::food_to_cook(const Bitzkey& agent, const Situation& s) const {
+    if (agent.carried_meat > 0 || agent.carried_fruit > 0) return HandFood::Carried;
+    if (agent.load() >= agent.capacity()) return HandFood::None;  // no room for what it would cook
+    const auto beside = [&](int x, int y) { return distance(x, y, agent.x, agent.y) <= 1; };
+    if (MEAT_PORTION * agent.digestion > 0) {
+        if (s.kill && beside(s.kill->x, s.kill->y) && fresh(*s.kill) && s.kill->meat > 0 && s.kill->portions > 0) return HandFood::Kill;
+        if (s.meat_pile && beside(s.meat_pile->x, s.meat_pile->y) && meat_pile_at(s.meat_pile->x, s.meat_pile->y) > 0) return HandFood::MeatPile;
+    }
+    if (FRUIT_PORTION * agent.browsing > 0) {
+        if (s.flora && s.flora->alive() && beside(s.flora->x, s.flora->y) && fruit_left(*s.flora) > 0) return HandFood::Plant;
+        if (s.fruit_pile && beside(s.fruit_pile->x, s.fruit_pile->y) && fruit_pile_at(s.fruit_pile->x, s.fruit_pile->y) > 0) return HandFood::FruitPile;
+    }
+    return HandFood::None;
+}
+
+void Simulation::cook(Bitzkey& agent, Situation& s) {
+    switch (food_to_cook(agent, s)) {
+        case HandFood::None:  // gone since it chose
+            agent.last_action = "had nothing to cook";
+            return;
+        case HandFood::Carried:
+            break;
+        case HandFood::Kill:
+            s.kill->meat -= s.kill->meat / s.kill->portions;
+            eat_portion(*s.kill);
+            ++carrying[MeatFromKill];
+            ++agent.carried_meat;
+            break;
+        case HandFood::MeatPile:
+            add_to_pile(s.meat_pile->x, s.meat_pile->y, true, -1);
+            ++carrying[MeatFromPile];
+            ++agent.carried_meat;
+            break;
+        case HandFood::Plant:  // picked, the plant unhurt
+            s.flora->fruit = fruit_left(*s.flora) - 1;
+            s.flora->picked_by = agent.identifier;
+            agent.reward += HARVEST_JOY;
+            ++carrying[FruitFromPlant];
+            ++agent.carried_fruit;
+            break;
+        case HandFood::FruitPile:
+            add_to_pile(s.fruit_pile->x, s.fruit_pile->y, false, -1);
+            ++carrying[FruitFromPile];
+            ++agent.carried_fruit;
+            break;
+    }
+    cook(agent, *s.fire);
+}
+
 void Simulation::cook(Bitzkey& agent, Cell fire) {
+    if (agent.carried_meat <= 0 && agent.carried_fruit <= 0) {
+        agent.last_action = "had nothing to cook";
+        return;
+    }
     const bool meat = agent.carried_meat > 0;
     --(meat ? agent.carried_meat : agent.carried_fruit);
     ++(meat ? agent.cooked_meat : agent.cooked_fruit);

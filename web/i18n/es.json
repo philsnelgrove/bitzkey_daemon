@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Descomposición al llevar",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "la probabilidad por turno de que una porción cruda llevada se eche a perder; lo cocinado se conserva",
 "Taste joy": "Gusto",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "cuán sabrosa es una porción cocinada, y cuán insípida una cruda de un montón o llevada, por su apetito"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "cuán sabrosa es una porción cocinada, y cuán insípida una cruda de un montón o llevada, por su apetito",
+"found nothing carried": "no halló nada que llevara",
+"had nothing to cook": "no tenía nada que cocinar",
+"had nothing to drop": "no tenía nada que soltar"
 }

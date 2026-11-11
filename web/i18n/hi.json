@@ -1962,5 +1962,8 @@
 "Carried spoilage": "ढोते हुए सड़ना",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "हर बारी में ढोए गए कच्चे हिस्से के खराब होने की संभावना; पका भोजन टिका रहता है",
 "Taste joy": "स्वाद का आनंद",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "पका हिस्सा कितना स्वादिष्ट है, और ढेर से या ढोया गया कच्चा हिस्सा कितना बेस्वाद, उसकी भूख के गुणा"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "पका हिस्सा कितना स्वादिष्ट है, और ढेर से या ढोया गया कच्चा हिस्सा कितना बेस्वाद, उसकी भूख के गुणा",
+"found nothing carried": "ढोया हुआ कुछ न मिला",
+"had nothing to cook": "पकाने को कुछ न था",
+"had nothing to drop": "रखने को कुछ न था"
 }

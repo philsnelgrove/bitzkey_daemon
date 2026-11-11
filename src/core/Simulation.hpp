@@ -570,7 +570,7 @@ inline double CARRIED_SPOIL = 0.02;  // the chance each turn a raw portion carri
 // and a fire cooked on within the day, are smelt SMELL_REACH times as far as it sees; cooked food smelt is food sought,
 // and in sight it is taken before raw.
 inline constexpr double COOKED_TASTE = 1.0 / 3;
-inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 1.0, SMELL_REACH = 2.0;
+inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 1.0, SMELL_REACH = 3.0;
 // A sense of taste, inborn: a cooked portion is tasty (TASTE_JOY, times its appetite), a raw portion, from a pile or
 // carried, as much the opposite, over and above the taste it learns.
 inline double TASTE_JOY = 1.0;
@@ -1767,6 +1767,11 @@ public:
     void light_fire(Bitzkey& agent);  // struck from two stones it carries, which it keeps, or of its club, spent
     void feed_fire(Bitzkey& agent, Cell fire);
     void cook(Bitzkey& agent, Cell fire);  // what it carries, raw, carried on cooked
+    // Raw food for its own gut to cook: what it carries, else, with room for it, a fresh kill, a meat pile, a bearing
+    // plant or a fruit pile beside it.
+    enum class HandFood { None, Carried, Kill, MeatPile, Plant, FruitPile };
+    HandFood food_to_cook(const Bitzkey& agent, const Situation& s) const;
+    void cook(Bitzkey& agent, Situation& s);  // that, taken up raw and cooked on the fire beside it
     void taste(Bitzkey& agent, bool cooked);  // the delight of a cooked portion, or the letdown of a raw one once it knows better
     double cooking_smell(const Bitzkey& agent, int sight) const;
     double food_about(const Bitzkey& agent) const;

@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Verderben beim Tragen",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "die Wahrscheinlichkeit je Runde, dass eine getragene rohe Portion verdirbt; Gekochtes hält sich",
 "Taste joy": "Geschmacksfreude",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "wie lecker eine gekochte Portion ist und wie unlecker eine rohe von einem Haufen oder getragen, mal seinem Appetit"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "wie lecker eine gekochte Portion ist und wie unlecker eine rohe von einem Haufen oder getragen, mal seinem Appetit",
+"found nothing carried": "fand nichts Getragenes",
+"had nothing to cook": "hatte nichts zu kochen",
+"had nothing to drop": "hatte nichts abzulegen"
 }

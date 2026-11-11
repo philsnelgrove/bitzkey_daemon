@@ -3426,6 +3426,35 @@ TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils"
     CHECK_FALSE(simulation.warmed_by_fire(lighter, lighter.climate.temperature));
 }
 
+TEST_CASE("beside a fire, an animal cooks food at hand without carrying it there") {
+    Simulation simulation = world();
+    Bitzkey& cook = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    cook.weapon = Club;
+    simulation.light_fire(cook);
+    simulation.add_to_pile(6, 5, false, 2);
+    simulation.index_cells();
+    Simulation::Sensed sensed = simulation.sense(cook);
+    REQUIRE(simulation.food_to_cook(cook, sensed.situation) == Simulation::HandFood::FruitPile);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Cook) != sensed.options.end());
+    simulation.cook(cook, sensed.situation);
+    CHECK(simulation.fruit_pile_at(6, 5) == 1);
+    CHECK(cook.carried_fruit == 0);
+    CHECK(cook.cooked_fruit == 1);
+}
+
+TEST_CASE("food gone between choosing and acting is never taken below nothing") {
+    Simulation simulation = world();
+    Bitzkey& eater = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    simulation.eat_carried(eater);
+    simulation.cook(eater, Cell{5, 5});
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.pass_good(eater, other, MeatGood);
+    CHECK(eater.carried_meat == 0);
+    CHECK(eater.carried_fruit == 0);
+    CHECK(eater.cooked_meat == 0);
+    CHECK(other.carried_meat == 0);
+}
+
 TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a stranger's does not") {
     Simulation simulation = world();
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

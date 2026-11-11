@@ -1962,5 +1962,8 @@
 "Carried spoilage": "קלקול בנשיאה",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "הסיכוי בכל תור שמנה נאה שנישאת תתקלקל; מזון מבושל נשמר",
 "Taste joy": "הנאת טעם",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "כמה טעימה מנה מבושלת, וכמה לא טעימה מנה נאה מערימה או נישאת, כפול התיאבון שלו"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "כמה טעימה מנה מבושלת, וכמה לא טעימה מנה נאה מערימה או נישאת, כפול התיאבון שלו",
+"found nothing carried": "לא מצא דבר שנשא",
+"had nothing to cook": "לא היה לו מה לבשל",
+"had nothing to drop": "לא היה לו מה להניח"
 }

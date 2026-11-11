@@ -1962,5 +1962,8 @@
 "Carried spoilage": "Pourriture en route",
 "the chance each turn a raw portion carried goes off; cooked food keeps": "la probabilité à chaque tour qu'une portion crue portée se gâte ; la nourriture cuite se garde",
 "Taste joy": "Plaisir du goût",
-"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "combien une portion cuite est savoureuse, et combien une crue d'un tas ou portée ne l'est pas, fois son appétit"
+"how tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite": "combien une portion cuite est savoureuse, et combien une crue d'un tas ou portée ne l'est pas, fois son appétit",
+"found nothing carried": "ne trouva rien de porté",
+"had nothing to cook": "n'avait rien à cuire",
+"had nothing to drop": "n'avait rien à déposer"
 }

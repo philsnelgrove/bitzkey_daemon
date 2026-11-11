@@ -336,8 +336,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->rank = record.value("rank", 0);  // a chief, or none, till the next count, in a world saved before ranks
     if (record.contains("desire")) agent->desire = record["desire"].get<std::array<double, 3>>();  // none, in a world saved before desire
     agent->tutored_turn = record.value("tutored_turn", -1);
-    agent->cooked_meat = record.value("cooked_meat", 0);
-    agent->cooked_fruit = record.value("cooked_fruit", 0);
+    agent->cooked_meat = std::max(0, record.value("cooked_meat", 0));  // none below nothing, as an old bug left some
+    agent->cooked_fruit = std::max(0, record.value("cooked_fruit", 0));
     agent->carried_stone = record.value("carried_stone", 0);
     agent->carried_bone = record.value("carried_bone", 0);
     agent->carried_wood = record.value("carried_wood", 0);
@@ -367,8 +367,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->expected = expected->get<Foresight>();
     }
     if (record.contains("last_tried") && record.at("last_tried").size() == agent->last_tried.size()) agent->last_tried = record.at("last_tried").get<std::array<int, ACTION_COUNT>>();
-    agent->carried_meat = record.value("carried_meat", 0);  // nothing in a world saved before carrying
-    agent->carried_fruit = record.value("carried_fruit", 0);
+    agent->carried_meat = std::max(0, record.value("carried_meat", 0));  // nothing in a world saved before carrying; none below nothing
+    agent->carried_fruit = std::max(0, record.value("carried_fruit", 0));
     agent->died_turn = optional_int(record.at("died_turn"));
     agent->assailant = optional_int(record.at("assailant"));
     agent->panicked = record.at("panicked").get<bool>();
@@ -804,8 +804,8 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         for (std::size_t index = 0; index < grass.size(); ++index) world.grass_[index] = grass[index].get<int>();
         for (const json& pile : record.value("piles", json::array())) {  // none in a world saved before piles
             const int x = pile.at(0).get<int>(), y = pile.at(1).get<int>();
-            world.add_to_pile(x, y, true, pile.at(2).get<int>());
-            world.add_to_pile(x, y, false, pile.at(3).get<int>());
+            world.add_to_pile(x, y, true, std::max(0, pile.at(2).get<int>()));  // none below nothing, as an old bug left some
+            world.add_to_pile(x, y, false, std::max(0, pile.at(3).get<int>()));
             if (pile.size() > 4) {  // dropped now, in a world saved before they spoiled
                 const std::size_t cell = static_cast<std::size_t>(y) * world.width_ + x;
                 world.pile_turns_[MeatPile][cell] = pile.at(4).get<int>();
