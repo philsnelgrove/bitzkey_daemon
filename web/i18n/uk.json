@@ -1974,8 +1974,10 @@
 "stored food for its herd": "запас їжу для свого стада",
 "carried food to its herd": "ніс їжу до свого стада",
 "had nothing to store": "не мав що запасти",
-"Sharing urge": "Потяг ділитися",
-"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "помножено на найсильнішу з його терплячості, товариськості й емпатії, додано до цінності приносити їжу до запасів стада й підбирати їжу та віднято від поїдання плодів з рослини, здобичі там, де лежить, чи того, що несе",
-"Provisioning joy": "Радість запасання",
-"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "задоволення приносити їжу до запасів стада, помножене на найсильнішу з його терплячості, товариськості й емпатії"
+"Share joy": "Радість ділитися",
+"pleasure of bringing food to its herd's store, times its generosity: the strongest of its patience, sociability and empathy, less the strongest of its dominance, aggression and appetite; the greedy are uneasy": "задоволення приносити їжу до запасів стада, помножене на щедрість: найсильніша з терплячості, товариськості й емпатії мінус найсильніша з домінантності, агресивності й апетиту; жадібним тривожно",
+"Selfish unease": "Егоїстичний неспокій",
+"unease at eating fruit off a plant, a kill where it lies or what it carries with a herd to share with, times its generosity; the greedy are gratified": "неспокій від поїдання плодів з рослини, здобичі там, де лежить, чи того, що несе, коли є стадо, з яким ділитися, помножений на щедрість; жадібні відчувають задоволення",
+"Kin sharing joy": "Радість ділитися з близькими",
+"pleasure of bringing food to its herd's store with a friend in sight there, times its kinship, whatever its generosity": "задоволення приносити їжу до запасів стада, коли там видно друга, помножене на спорідненість, хоч яка щедрість"
 }

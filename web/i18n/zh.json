@@ -1974,8 +1974,10 @@
 "stored food for its herd": "为群体储存了食物",
 "carried food to its herd": "把食物带往群体",
 "had nothing to store": "无物可储",
-"Sharing urge": "分享冲动",
-"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "乘以其耐心、社交性与同理心中最强者，加到把食物带往群体储藏处和拾取食物的价值上，并从直接吃植物上的果实、原地的猎物或所携带的食物中扣除",
-"Provisioning joy": "供给之乐",
-"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "把食物带往群体储藏处的乐趣，乘以其耐心、社交性与同理心中最强者"
+"Share joy": "分享之乐",
+"pleasure of bringing food to its herd's store, times its generosity: the strongest of its patience, sociability and empathy, less the strongest of its dominance, aggression and appetite; the greedy are uneasy": "把食物带往群体储藏处的乐趣，乘以其慷慨：耐心、社交性与同理心中最强者减去支配、攻击性与食欲中最强者；贪婪者会不安",
+"Selfish unease": "自私之不安",
+"unease at eating fruit off a plant, a kill where it lies or what it carries with a herd to share with, times its generosity; the greedy are gratified": "有群体可分享时直接吃植物上的果实、原地的猎物或所携带食物的不安，乘以其慷慨；贪婪者反觉满足",
+"Kin sharing joy": "与亲友分享之乐",
+"pleasure of bringing food to its herd's store with a friend in sight there, times its kinship, whatever its generosity": "在储藏处望见朋友时把食物带去的乐趣，乘以其亲缘感，与慷慨无关"
 }

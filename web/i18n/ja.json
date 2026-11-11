@@ -1974,8 +1974,10 @@
 "stored food for its herd": "群れのために食料を蓄えた",
 "carried food to its herd": "群れへ食料を運んだ",
 "had nothing to store": "蓄える物がなかった",
-"Sharing urge": "分かち合う衝動",
-"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "忍耐・社交性・共感のうち最も強いものを掛けた値。群れの貯蔵所へ食料を運ぶことと拾うことの価値に加え、植物の実・倒れた獲物・運んでいる物をその場で食べる価値から引く",
-"Provisioning joy": "蓄えの喜び",
-"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "群れの貯蔵所へ食料を運ぶ喜び（忍耐・社交性・共感のうち最も強いものを掛ける）"
+"Share joy": "分かち合う喜び",
+"pleasure of bringing food to its herd's store, times its generosity: the strongest of its patience, sociability and empathy, less the strongest of its dominance, aggression and appetite; the greedy are uneasy": "群れの貯蔵所へ食料を運ぶ喜び（寛大さを掛ける：忍耐・社交性・共感の最大から支配性・攻撃性・食欲の最大を引いたもの）。貪欲な者は落ち着かない",
+"Selfish unease": "利己の居心地悪さ",
+"unease at eating fruit off a plant, a kill where it lies or what it carries with a herd to share with, times its generosity; the greedy are gratified": "分け合う群れがいるのに植物の実・倒れた獲物・運んでいる物をその場で食べる居心地悪さ（寛大さを掛ける）。貪欲な者は満足する",
+"Kin sharing joy": "仲間と分かち合う喜び",
+"pleasure of bringing food to its herd's store with a friend in sight there, times its kinship, whatever its generosity": "そこに友が見えるとき群れの貯蔵所へ食料を運ぶ喜び（親族愛を掛ける。寛大さに関わらない）"
 }

@@ -259,11 +259,13 @@ inline double CONVICTION_LEVEL = 1.0;
 inline double EMPATHY_SCRUPLE = 1.0, TOLERANCE_SCRUPLE = 1.0;
 // Sociability: an animal values making an offer this much more, times its sociability.
 inline double SOCIABLE_TRADE = 0.25;
-// The sharing: the strongest of its patience, sociability and empathy, times SHARING_URGE, is added to the worth of
-// carrying food to its herd's store and of taking food up, and taken from eating fruit off a plant, a kill where it
-// lies or what it carries; any of the three at CONVICTION_LEVEL, it eats none of those, only from a pile. Food
-// brought to the store gladdens it, PROVISION_JOY times that strongest.
-inline double SHARING_URGE = 1.0, PROVISION_JOY = 0.5;
+// Its generosity: the strongest of its patience, sociability and empathy, less the strongest of its dominance,
+// aggression and appetite, from -1 to 1. Food brought to its herd's store gladdens it by SHARE_JOY times that, and
+// eating fruit off a plant, a kill where it lies or what it carries, with a herd to share with, by SELFISH_JOY times
+// less: the generous glad to share and uneasy at keeping, the greedy the other way about.
+inline double SHARE_JOY = 0.5, SELFISH_JOY = 0.1;
+// And with a friend in sight there, KIN_SHARE_JOY times its kinship besides, however greedy it is.
+inline double KIN_SHARE_JOY = 1.0;
 inline bool swayed(double loyalty, double margin, double chance) {
     const double need = LOYALTY_MARGIN * loyalty;
     if (margin <= need || need >= 1.0) return false;
@@ -1860,8 +1862,7 @@ public:
         return hunter.species == Species::Predator && (other.infant() || !other.womb.empty()) && convinced(hunter, Empathy);
     }
     void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
-    static double sharing(const Bitzkey& agent);  // the strongest of its patience, sociability and empathy
-    static bool shares_all(const Bitzkey& agent);  // any of the three at its height: food is for the herd's store
+    static double generosity(const Bitzkey& agent);  // the strongest of patience, sociability and empathy, less that of dominance, aggression and appetite
     // The food piles, fires and shelters it sees, the one nearest its herd's middle; else that middle, to begin one.
     std::optional<Cell> herd_store(const Bitzkey& agent, Cell middle, int sight) const;
     void provision(Bitzkey& agent, Cell store);  // its food brought there and put down

@@ -1204,7 +1204,7 @@ TEST_CASE("a child hearing its parent call copies the call and takes in what the
     FEEBLE_YOUTH = feeble_youth;
 }
 
-TEST_CASE("a sharer brings its food to the store nearest its herd's middle, gladly, and at its height eats none directly") {
+TEST_CASE("a sharer brings its food to the store nearest its herd's middle, glad as it is generous, the greedy uneasy") {
     Simulation simulation = world(20);
     Bitzkey& sharer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 9, 5);
@@ -1225,15 +1225,24 @@ TEST_CASE("a sharer brings its food to the store nearest its herd's middle, glad
     CHECK(std::abs(sharer.x - 9) + std::abs(sharer.y - 5) <= 1);  // beside the fire
     CHECK(simulation.fruit_pile_at(sharer.x, sharer.y) == 2);
     CHECK(simulation.pile_at(sharer.x, sharer.y, CookedMeatPile) == 1);
-    CHECK(sharer.reward == doctest::Approx(PROVISION_JOY * Simulation::sharing(sharer)));
-    CHECK(Simulation::shares_all(sharer));
-    Values valued{};
-    simulation.add_scruples(sharer, valued, Simulation::Situation{});
-    CHECK(valued[StoreFood] > 0);
-    CHECK(valued[Browse] < 0);
+    CHECK(Simulation::generosity(sharer) > 0);
+    CHECK(sharer.reward == doctest::Approx(SHARE_JOY * Simulation::generosity(sharer)));
+    for (const int trait : {Patience, Sociability, Empathy}) sharer.mind[trait] = 0.0;
+    sharer.mind[Appetite] = 7.0;  // the greedy
+    CHECK(Simulation::generosity(sharer) < 0);
     sharer.carried_fruit = 1;
-    const std::vector<int> options = simulation.sense(sharer).options;
-    CHECK(std::find(options.begin(), options.end(), EatCarried) == options.end());  // at its height, not from its own pack
+    sharer.reward = 0;
+    simulation.provision(sharer, *store);
+    CHECK(sharer.reward < 0);  // uneasy to give it up
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), sharer.x, sharer.y + 1);
+    simulation.index_cells();
+    sharer.known.push_back(Acquaintance{friend_.identifier, REGARD_STRONG, 0});
+    sharer.mind[Kinship] = 7.0;
+    sharer.carried_fruit = 1;
+    sharer.reward = 0;
+    simulation.provision(sharer, *store);
+    CHECK(sharer.reward == doctest::Approx(SHARE_JOY * Simulation::generosity(sharer) + KIN_SHARE_JOY * sharer.feeling(Kinship)));
+    CHECK(sharer.reward > 0);  // greedy, yet glad to share with a friend
 }
 
 TEST_CASE("scruples: the kinder value uprooting less, and the more tolerant striking a foe, as their traits rise") {

@@ -2659,7 +2659,6 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Cook] = beside_fire && food_to_cook(agent, s) != HandFood::None;
     if (view.middle && agent.carried_meat + agent.carried_fruit + agent.cooked_meat + agent.cooked_fruit > 0) s.store = herd_store(agent, *view.middle, sight);
     available[StoreFood] = s.store.has_value();
-    if (shares_all(agent)) available[Browse] = available[Feast] = available[EatCarried] = false;  // its food for the herd's store
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
@@ -4495,6 +4494,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Browse:
             browse(agent, *s.flora);
+            if (s.herd_middle && agent.last_action == "browsed") agent.reward -= SELFISH_JOY * generosity(agent);  // kept from its herd
             break;
         case Uproot:
             uproot(agent, *s.uprootable);
@@ -4504,6 +4504,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case Feast:
             feast(agent, *s.kill);
+            if (s.herd_middle && agent.last_action == "feasted") agent.reward -= SELFISH_JOY * generosity(agent);
             break;
         case Rest:
             if (s.frozen) {
@@ -4737,6 +4738,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case EatCarried:
             eat_carried(agent);
+            if (s.herd_middle && agent.last_action == "ate what it carried") agent.reward -= SELFISH_JOY * generosity(agent);
             break;
         case GoNorth:
         case GoSouth:
@@ -4805,22 +4807,11 @@ void Simulation::add_scruples(const Bitzkey& agent, Values& valued, const Situat
     }
     if (s.quarry && !is_prey(agent, *s.quarry)) valued[Hunt] -= tolerance;  // a foe, not food
     if (s.prey && !is_prey(agent, *s.prey)) valued[Attack] -= tolerance;
-    if (const double urge = SHARING_URGE * sharing(agent); urge > 0) {  // rather the herd's store than its own mouth
-        valued[StoreFood] += urge;
-        valued[TakeFruit] += urge;
-        valued[TakeMeat] += urge;
-        valued[Browse] -= urge;
-        valued[Feast] -= urge;
-        valued[EatCarried] -= urge;
-    }
 }
 
-double Simulation::sharing(const Bitzkey& agent) {
-    return std::max({agent.feeling(Patience), agent.feeling(Sociability), agent.feeling(Empathy)});
-}
-
-bool Simulation::shares_all(const Bitzkey& agent) {
-    return convinced(agent, Patience) || convinced(agent, Sociability) || convinced(agent, Empathy);
+double Simulation::generosity(const Bitzkey& agent) {
+    return std::max({agent.feeling(Patience), agent.feeling(Sociability), agent.feeling(Empathy)}) -
+           std::max({agent.feeling(Dominance), agent.feeling(Aggression), agent.feeling(Appetite)});
 }
 
 std::optional<Cell> Simulation::herd_store(const Bitzkey& agent, Cell middle, int sight) const {
@@ -4861,7 +4852,13 @@ void Simulation::provision(Bitzkey& agent, Cell store) {
     carrying[MeatDropped] += agent.carried_meat + agent.cooked_meat;
     carrying[FruitDropped] += agent.carried_fruit + agent.cooked_fruit;
     agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = 0;
-    agent.reward += PROVISION_JOY * sharing(agent);
+    agent.reward += SHARE_JOY * generosity(agent);  // glad to share, or, the greedy, uneasy
+    for (const Bitzkey* other : around(agent, agent.sight)) {  // a friend there to share with: glad by its kinship, greedy or not
+        if (other != &agent && other->alive() && is_friend(agent, *other)) {
+            agent.reward += KIN_SHARE_JOY * agent.feeling(Kinship);
+            break;
+        }
+    }
     agent.last_action = "stored food for its herd";
     note_first("stored_food", agent.species, agent.identifier);
 }

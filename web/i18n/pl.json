@@ -1974,8 +1974,10 @@
 "stored food for its herd": "zgromadził jedzenie dla stada",
 "carried food to its herd": "niósł jedzenie do stada",
 "had nothing to store": "nie miał czego zgromadzić",
-"Sharing urge": "Chęć dzielenia się",
-"times the strongest of its patience, sociability and empathy, added to the worth of bringing food to its herd's store and taking food up, and taken from eating fruit off a plant, a kill where it lies or what it carries": "razy najsilniejsza z jego cierpliwości, towarzyskości i empatii, dodana do wartości przynoszenia jedzenia do zapasów stada i podnoszenia jedzenia, a odjęta od jedzenia owoców z rośliny, zdobyczy tam, gdzie leży, lub tego, co niesie",
-"Provisioning joy": "Radość zaopatrywania",
-"pleasure of bringing food to its herd's store, times the strongest of its patience, sociability and empathy": "przyjemność przynoszenia jedzenia do zapasów stada, razy najsilniejsza z jego cierpliwości, towarzyskości i empatii"
+"Share joy": "Radość dzielenia się",
+"pleasure of bringing food to its herd's store, times its generosity: the strongest of its patience, sociability and empathy, less the strongest of its dominance, aggression and appetite; the greedy are uneasy": "przyjemność przynoszenia jedzenia do zapasów stada, razy jego hojność: najsilniejsza z cierpliwości, towarzyskości i empatii minus najsilniejsza z dominacji, agresji i apetytu; chciwi czują niepokój",
+"Selfish unease": "Niepokój samolubny",
+"unease at eating fruit off a plant, a kill where it lies or what it carries with a herd to share with, times its generosity; the greedy are gratified": "niepokój przy jedzeniu owoców z rośliny, zdobyczy tam, gdzie leży, lub tego, co niesie, gdy jest stado do dzielenia się, razy jego hojność; chciwi czują zadowolenie",
+"Kin sharing joy": "Radość dzielenia się z bliskimi",
+"pleasure of bringing food to its herd's store with a friend in sight there, times its kinship, whatever its generosity": "przyjemność przynoszenia jedzenia do zapasów stada, gdy widać tam przyjaciela, razy jego przywiązanie, bez względu na hojność"
 }
