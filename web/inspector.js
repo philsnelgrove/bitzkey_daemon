@@ -141,20 +141,19 @@ export function details(agent, { large = 0, behind = false, onFlag = null, onLea
   if (agent.terrain) chits.append(element('span', { class: 'terrain' }, upper(tr(agent.terrain))));
   const gear = { wields: agent.wields || 0, wears: agent.wears || 0, rank: agent.rank || 0, hide: agent.hide || 0,
                  herd: agent.herd_rgb || null, leader, wagon: !!agent.wagon };
-  if (behind) {  // its portrait three times as large, behind the words and lines, its ring in proportion
-    const portrait = portraitCanvas(look(agent), 3 * radius, Math.max(2, Math.round(3 * radius * 0.4)), agent.alive !== false || !known, gear);
-    portrait.classList.add('portrait-behind');
-    panel.append(portrait);
-    // its flag and leader clickable over the words: a spot laid on each, where the portrait drew it
-    for (const [spot, action, tip] of [[portrait.spots.flag, onFlag, 'Select its whole herd'], [portrait.spots.leader, onLeader, 'Select the one it follows']]) {
-      if (!spot || !action) continue;
-      panel.append(element('span', { class: 'portrait-spot', title: tip, onclick: action,
-        style: { left: `${spot.x - 12}px`, top: `${spot.y - 40}px`, width: `${spot.w}px`, height: `${spot.h}px` } }));
-    }
+  // Its portrait, drawn below in the social background's column when `behind`, else beside its name.
+  const below = behind ? portraitCanvas(look(agent), 14, 6, agent.alive !== false || !known, { ...gear, stars: false }) : null;
+  if (below) {  // its flag and leader clickable where it drew them
+    const inside = (spot, event) => spot && event.offsetX >= spot.x && event.offsetX <= spot.x + spot.w && event.offsetY >= spot.y && event.offsetY <= spot.y + spot.h;
+    below.addEventListener('click', event => {
+      if (inside(below.spots.flag, event) && onFlag) onFlag();
+      else if (inside(below.spots.leader, event) && onLeader) onLeader();
+    });
+    below.classList.add('portrait-below');
   }
   const title = agent.rank > 0 ? element('span', { class: 'details-rank' }, upper(tr(agent.rank_title))) : '';
   panel.append(element('div', { class: 'details-head' },
-    behind ? element('span', { style: { width: `${2 * (radius + 6)}px` } }) : portraitCanvas(look(agent), radius, Math.max(2, Math.round(radius / 4)), agent.alive !== false || !known, gear),
+    behind ? '' : portraitCanvas(look(agent), radius, Math.max(2, Math.round(radius / 4)), agent.alive !== false || !known, gear),
     element('div', { class: 'details-title' }, element('span', { class: 'details-name', 'data-no-translate': '' }, name), title, chits),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.
@@ -183,6 +182,7 @@ export function details(agent, { large = 0, behind = false, onFlag = null, onLea
   const social = temperament('SOCIAL', SOCIAL_TRAITS, MIND_TRAITS.length);
   social.append(hovering(row('mono small same', `${pad(tr('neurodiv.'), social.width)}${String(agent.neurodivergence).padStart(2)}`),
     () => traitPopup('neurodivergence', `${tr('value')} ${agent.neurodivergence} / 15`)));
+  if (below) social.append(below);
   panel.append(element('div', { class: 'trait-columns' }, temperament('MIND', MIND_TRAITS, 0), social));
   const body = element('div', { class: 'traits' }, element('div', { class: 'label' }, 'BODY'));
   const bodyWidth = Math.max(10, ...BODY_TRAITS.slice(1).map(name => columns(tr(name)) + 1));

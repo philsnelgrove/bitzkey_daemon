@@ -535,7 +535,7 @@ export function bitzkeyCanvas(look, radius, ringWidth = RING_WIDTH, alive = true
 
 // A Bitzkey as it looks on the map, on a canvas of its own with room around it: its gear, and a leader's crown and stars.
 export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = true,
-                               { wields = 0, wears = 0, rank = 0, hide = 0, herd = null, leader = null, wagon = false } = {}) {
+                               { wields = 0, wears = 0, rank = 0, hide = 0, herd = null, leader = null, wagon = false, stars = true } = {}) {
   const canvas = document.createElement('canvas');
   const side = 2 * Math.ceil(radius * 2.4 + ringWidth + 2) + (wagon ? 2 * Math.ceil(radius + ringWidth) : 0);
   const scale = window.devicePixelRatio || 1;
@@ -550,7 +550,7 @@ export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = tru
   drawBitzkey(ctx, look, cx, cy, radius, ringWidth, alive);
   canvas.spots = look.species ? drawMarks(ctx, cx, cy, reach, { hide, herd: alive ? herd : null, leader: alive ? leader : null }) : {};
   drawGear(ctx, wields, wears, cx, cy, radius);
-  if (alive && rank > 0) drawCrown(ctx, cx, cy, radius, rank);
+  if (alive && rank > 0) drawCrown(ctx, cx, cy, radius, stars ? rank : 0);  // no stars where its title is written beside it
   if (wagon) drawWagon(ctx, cx + reach + Math.max(8, reach * 0.75), cy + reach / 2, Math.max(10, reach));
   return canvas;
 }
