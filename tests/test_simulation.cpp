@@ -3984,6 +3984,26 @@ TEST_CASE("felling a plant gives a seed for each fruit it would bear, as many as
     CHECK(feller.carried_seed == std::min(fruit, feller.capacity()));
 }
 
+TEST_CASE("struck from afar, it answers: shoots back if it has arrows, else charges and strikes once there") {
+    Simulation simulation = world(30);
+    Bitzkey& archer = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    Bitzkey& target = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}, {"sight", 4}}), 9, 5);
+    simulation.index_cells();
+    target.assailant = archer.identifier;  // as if an arrow had struck it
+    auto sensed = simulation.sense(target);
+    REQUIRE(sensed.situation.defend_target == &archer);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), static_cast<int>(Defend)) != sensed.options.end());
+    simulation.act(target, Defend, sensed.situation);
+    CHECK(target.last_action == "charged");
+    CHECK(std::abs(target.x - archer.x) + std::abs(target.y - archer.y) < 4);  // closer
+    target.x = 9;
+    target.bow = true;
+    target.bow_uses = 5;
+    sensed = simulation.sense(target);
+    simulation.act(target, Defend, sensed.situation);
+    CHECK(target.bow_uses == 4);  // an arrow back
+}
+
 TEST_CASE("one who sees the caller it hears may read what it meant, by its intellect; unseen, or dull, it learns nothing of it") {
     const int gpu = USE_GPU;
     USE_GPU = 0;  // its lessons learnt at once, on the CPU

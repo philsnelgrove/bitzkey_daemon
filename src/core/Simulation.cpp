@@ -2549,6 +2549,15 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     s.defend_target = s.assailant ? s.assailant : herd_assailant;
+    if (!s.defend_target && (agent.assailant || agent.herd_assailant)) {  // struck from afar, as by an archer: one in sight to answer
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other->alive() && ((agent.assailant && other->identifier == *agent.assailant) ||
+                                   (agent.herd_assailant && other->identifier == *agent.herd_assailant))) {
+                s.defend_target = other;
+                break;
+            }
+        }
+    }
     const HerdView view = herd(agent);
     const double here = in_bounds(agent.x, agent.y) ? temperature(agent.y) : Medium;
     const double discomfort = agent.climate_steps(here);
@@ -4603,9 +4612,18 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             attack(agent, *s.prey);
             break;
         case Defend:
-            if (!(s.defend_target->alive() && distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) <= 1)) {
+            if (!s.defend_target->alive()) {
                 agent.last_action = "missed";
                 break;
+            }
+            if (distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1) {  // out of reach: shot back at, else charged
+                if (agent.bow_uses > 0) {
+                    shoot(agent, *s.defend_target, false);
+                    break;
+                }
+                move_toward(agent, s.defend_target->x, s.defend_target->y);
+                agent.last_action = "charged";
+                if (distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1) break;  // and struck, once there
             }
             defend(agent, *s.defend_target, s.for_herd);
             break;
@@ -6318,7 +6336,10 @@ void Simulation::struck(Bitzkey& victim, const Bitzkey& striker) {
         herd_near += herd_mate(victim, *other);
         if (herd_mate(*other, victim) || follows(*other, victim)) {  // its herd, and its followers
             other->alarm = striker.identifier;
-            if (distance(other->x, other->y, striker.x, striker.y) <= 1) other->herd_assailant = striker.identifier;
+            // beside the striker, or the blow came from afar, as an arrow does: the herd may answer it
+            if (distance(other->x, other->y, striker.x, striker.y) <= 1 || distance(victim.x, victim.y, striker.x, striker.y) > 1) {
+                other->herd_assailant = striker.identifier;
+            }
         }
     }
     const double unhurt = PANIC[0], dying = PANIC[1];
