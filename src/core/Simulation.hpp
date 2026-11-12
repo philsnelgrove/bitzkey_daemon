@@ -581,6 +581,11 @@ inline double COOKED_JOY = 1.0, RAW_DISTASTE = 0.5, COOK_JOY = 1.0, SMELL_REACH 
 // A sense of taste, inborn: a cooked portion is tasty (TASTE_JOY, times its appetite), a raw portion, from a pile or
 // carried, as much the opposite, over and above the taste it learns.
 inline double TASTE_JOY = 1.0;
+// Gluttony, 0..1: a half, plus half its appetite, less half its kinship. A meal eaten while less than GLUTTONY_HUNGER
+// hungry is an unease of GLUTTONY_UNEASE times what it lacks of gluttony, fading from the whole of it when it is not
+// hungry at all to none at GLUTTONY_HUNGER: none to the wholly gluttonous.
+inline double GLUTTONY_UNEASE = 1.0;
+inline constexpr double GLUTTONY_HUNGER = 50.0;
 inline int SITE_TURNS = 100;  // an unfinished shelter left this long falls in, leaving its stone and wood in piles
 inline int SHELTER_UNITS = 7;  // of stone or wood, any mix, to finish a shelter; until then each takes a space of the square
 inline constexpr int FIRE_REACH = 2;  // squares off, a fire shelters an animal from the cold
@@ -1884,6 +1889,8 @@ public:
         return hunter.species == Species::Predator && (other.infant() || !other.womb.empty()) && convinced(hunter, Empathy);
     }
     void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
+    static double gluttony(const Bitzkey& agent);  // a half, plus half its appetite, less half its kinship, 0..1
+    static double gluttony_unease(const Bitzkey& agent, double hunger_before);  // for a meal begun that hungry
     static double generosity(const Bitzkey& agent);  // the strongest of patience, sociability and empathy, less that of dominance, aggression and appetite
     // The food piles, fires and shelters it sees, the one nearest its herd's middle; else that middle, to begin one.
     std::optional<Cell> herd_store(const Bitzkey& agent, Cell middle, int sight) const;

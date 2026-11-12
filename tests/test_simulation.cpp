@@ -3945,6 +3945,24 @@ TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it 
     CHECK(Simulation::value_of(maker, WagonGood) == 1);
 }
 
+TEST_CASE("gluttony rises with appetite and falls with kinship; a meal eaten less than half hungry is an unease by what it lacks of it, the more the fuller") {
+    Simulation simulation = world();
+    Bitzkey& agent = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+    agent.mind[Appetite] = 7.0;
+    agent.mind[Kinship] = 0.0;
+    CHECK(Simulation::gluttony(agent) == doctest::Approx(1.0));
+    CHECK(Simulation::gluttony_unease(agent, 0.0) == doctest::Approx(0.0));  // the wholly gluttonous feel none
+    agent.mind[Appetite] = 0.0;
+    agent.mind[Kinship] = 7.0;
+    CHECK(Simulation::gluttony(agent) == doctest::Approx(0.0));
+    CHECK(Simulation::gluttony_unease(agent, 0.0) == doctest::Approx(GLUTTONY_UNEASE));
+    CHECK(Simulation::gluttony_unease(agent, GLUTTONY_HUNGER / 2) == doctest::Approx(GLUTTONY_UNEASE / 2));  // fading as it hungers
+    CHECK(Simulation::gluttony_unease(agent, GLUTTONY_HUNGER) == doctest::Approx(0.0));  // hungry enough, none
+    agent.mind[Appetite] = 3.5;
+    agent.mind[Kinship] = 3.5;
+    CHECK(Simulation::gluttony_unease(agent, 0.0) == doctest::Approx(0.5 * GLUTTONY_UNEASE));
+}
+
 TEST_CASE("crafting takes from piles at hand, work begun on the square and friends' packs; a bow or wagon can be worked on in parts") {
     Simulation simulation = world(30);
     const auto knows = [](Bitzkey& agent, int action) {

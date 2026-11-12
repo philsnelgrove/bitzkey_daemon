@@ -4414,6 +4414,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     for (double& desire : agent.desire) desire *= DESIRE_FADE;
     const double had = possessions(agent, agent);
     const int ready_before = ready_sets(agent);
+    const double hunger_before = agent.hunger;
     const Fight* fight = action != Flee ? fight_of(agent.identifier) : nullptr;
     Bitzkey* opponent = fight ? find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief) : nullptr;
     if (opponent && opponent->alive()) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
@@ -4427,6 +4428,10 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     const std::string_view did = agent.last_action;
     if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged" || did == "ate from a pile" || did == "ate what it carried") {
         agent.food_memory = Place{agent.x, agent.y, turn_};
+    }
+    if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged" || did == "ate from a pile" || did == "ate what it carried" ||
+        did == "ate a seed" || did == "ate marrow") {
+        agent.reward -= gluttony_unease(agent, hunger_before);  // a meal it had no need of, felt as the less gluttonous feel it
     }
     if (!agent.alive()) return;
     if (READY_JOY > 0) {  // glad to hold all that a thing it knows needs, and as sorry to break the set, but by using or giving it
@@ -4812,6 +4817,15 @@ void Simulation::add_scruples(const Bitzkey& agent, Values& valued, const Situat
     }
     if (s.quarry && !is_prey(agent, *s.quarry)) valued[Hunt] -= tolerance;  // a foe, not food
     if (s.prey && !is_prey(agent, *s.prey)) valued[Attack] -= tolerance;
+}
+
+double Simulation::gluttony(const Bitzkey& agent) {
+    return std::clamp(0.5 + 0.5 * agent.feeling(Appetite) - 0.5 * agent.feeling(Kinship), 0.0, 1.0);
+}
+
+double Simulation::gluttony_unease(const Bitzkey& agent, double hunger_before) {
+    const double sated = std::clamp(1.0 - hunger_before / GLUTTONY_HUNGER, 0.0, 1.0);  // 1 not hungry at all, 0 at GLUTTONY_HUNGER
+    return GLUTTONY_UNEASE * (1.0 - gluttony(agent)) * sated;
 }
 
 double Simulation::generosity(const Bitzkey& agent) {
