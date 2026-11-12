@@ -124,6 +124,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .insights table { width: 100%; border-collapse: collapse; }
 .insights td { padding: 0; height: 17px; font-size: 12px; color: var(--muted); }
 .insights td.num { font: 13px var(--mono); color: rgb(231, 236, 222); white-space: pre; text-align: left; }
+.insights td.topic { color: var(--text); padding-top: 8px; height: 21px; }  /* a topic's name over its actions */
 .insights th { font: 12px var(--sans); color: var(--muted); text-align: left; padding-bottom: 4px; }
 .insights .block-title { font-size: 12px; color: var(--text); margin: 10px 0 4px; }
 .insights .group { display: flex; justify-content: space-between; font-size: 12px; color: var(--soft); height: 18px; }

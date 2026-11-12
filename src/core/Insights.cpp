@@ -13,6 +13,121 @@
 namespace bitzkey {
 
 namespace {
+struct ActionAbout {
+    Action action;
+    int topic;  // its place in ACTION_TOPICS
+    const char* about;
+};
+// Every action once: its topic, and what it is.
+constexpr std::array<ActionAbout, ACTION_COUNT> ABOUT = {{
+    {Eat, 0, "Eat the grass where it stands."},
+    {Forage, 0, "Go toward the nearest grass it sees, to eat."},
+    {Browse, 0, "Pick fruit from a plant beside it, leaving the plant unhurt."},
+    {Uproot, 0, "Pull up a plant beside it and eat it whole, killing it."},
+    {Scavenge, 0, "Go to a body and eat from it."},
+    {Feast, 0, "Eat its fill from a fresh kill."},
+    {Rest, 1, "Rest, to recover stamina."},
+    {Court, 3, "Court a mate nearby."},
+    {Breed, 3, "Mate with a willing partner beside it."},
+    {Hunt, 2, "Chase down prey and strike it. For grazers, which eat no meat, it is solely military: a charge at a foe."},
+    {Attack, 2, "Strike an animal beside it: prey, a foe, or a trespasser in its land."},
+    {Defend, 2, "Strike back at one attacking it or a member of its herd."},
+    {Flee, 1, "Run from a hunter or other danger."},
+    {Herd, 1, "Move toward the middle of its herd."},
+    {GoNorth, 1, "Travel north, its full pace."},
+    {GoSouth, 1, "Travel south, its full pace."},
+    {GoEast, 1, "Travel east, its full pace."},
+    {GoWest, 1, "Travel west, its full pace."},
+    {WalkNorth, 1, "Walk one step north."},
+    {WalkSouth, 1, "Walk one step south."},
+    {WalkEast, 1, "Walk one step east."},
+    {WalkWest, 1, "Walk one step west."},
+    {Revisit, 0, "Go back to a place it remembers finding food."},
+    {FeedYoung, 3, "Feed its infants in sight, at no cost to itself."},
+    {Teach, 3, "Teach a younger one beside it what it knows."},
+    {TakeMeat, 0, "Pick up meat to carry."},
+    {TakeFruit, 0, "Pick up fruit to carry."},
+    {DropMeat, 0, "Put down the meat it carries."},
+    {DropFruit, 0, "Put down the fruit it carries."},
+    {EatPile, 0, "Eat from a pile of food on the ground."},
+    {EatCarried, 0, "Eat food it is carrying."},
+    {TakeStone, 4, "Pick up a stone, for tools and fire."},
+    {TakeBone, 4, "Pick up a bone, for tools and armour."},
+    {TakeWood, 4, "Pick up wood, for tools, fire and building."},
+    {DropStone, 4, "Put down the stone it carries."},
+    {DropBone, 4, "Put down the bone it carries."},
+    {DropWood, 4, "Put down the wood it carries."},
+    {Dress, 4, "Dress a body: cut it up into meat and bone."},
+    {MakeBoneAxe, 5, "Make a bone axe, a weapon."},
+    {MakeBoneArmour, 5, "Make armour of bone."},
+    {MakeClub, 5, "Make a wooden club, a weapon."},
+    {MakeWoodArmour, 5, "Make armour of wood."},
+    {MakeStoneAxe, 5, "Make a stone axe, the finest weapon."},
+    {MakeBow, 5, "Make a bow of two wood and a hide, with a stone axe; or add the parts it carries to a bow begun where it stands."},
+    {MakeWagon, 5, "Make a wagon of two stones and three wood, with an axe; or add the parts it carries to a wagon begun where it stands."},
+    {TakeGear, 5, "Take a weapon or armour from a pile on the ground."},
+    {DropWeapon, 5, "Put down its weapon."},
+    {DropArmour, 5, "Take off its armour and put it down."},
+    {Cut, 4, "Cut down a plant for wood."},
+    {Dig, 7, "Work the land, and sometimes dig up a stone."},
+    {LightFire, 6, "Light a fire, for warmth and cooking."},
+    {FeedFire, 6, "Add wood to a fire to keep it burning."},
+    {Cook, 6, "Cook meat on a fire."},
+    {Construct, 6, "Build part of a shelter."},
+    {EatSeed, 0, "Eat a seed."},
+    {PlantSeed, 7, "Plant a seed, to grow a new plant."},
+    {BuildRoad, 6, "Lay road, quicker and easier to travel."},
+    {EatMarrow, 0, "Crack bones for their marrow: a grazer's first taste of meat."},
+    {Fertilize, 7, "Enrich the land so more grass grows."},
+    {Skin, 4, "Skin a body for its hide, to wear as armour."},
+    {Demand, 3, "Demand a better possession from another, which may give it up or fight for it."},
+    {Steal, 3, "Steal a better possession from another, which may fight to get it back."},
+    {Give, 3, "Give a possession to a friend."},
+    {Offer, 3, "Offer something of its own for something another has; the other weighs the deal and may accept or refuse."},
+    {Shoot, 2, "Shoot an arrow from its bow at prey or a foe it sees."},
+    {Practise, 2, "Shoot an arrow at a plant, for practice: it harms nothing, but the archer grows more skilled."},
+    {Tutor, 3, "Give one of its kind beside it a lesson in a craft it has mastered, or in archery."},
+    {Hitch, 1, "Hitch itself to a wagon beside it, which then follows it, holding more and sheltering it."},
+    {Unhitch, 1, "Leave the wagon it drags where it stands, with what it can no longer carry."},
+    {StoreFood, 0, "Carry the food it holds to its herd's store, the pile, fire or shelter nearest the herd's middle, and put it down."},
+    {CraftArrows, 5, "Make arrows from a wood at hand, filling its own bow again, or the bow of one beside it."},
+}};
+constexpr bool each_action_once() {
+    for (int action = 0; action < ACTION_COUNT; ++action) {
+        int found = 0;
+        for (const ActionAbout& about : ABOUT) found += about.action == action;
+        if (found != 1) return false;
+    }
+    return true;
+}
+static_assert(each_action_once(), "every action needs its topic and tooltip in ABOUT, once");
+}  // namespace
+
+const char* action_about(int action) {
+    for (const ActionAbout& about : ABOUT) {
+        if (about.action == action) return about.about;
+    }
+    return "";
+}
+
+const std::vector<std::pair<int, std::vector<int>>>& actions_by_topic() {
+    static const std::vector<std::pair<int, std::vector<int>>> topics = [] {
+        std::vector<std::pair<int, std::vector<int>>> found;
+        for (int topic = 0; topic < static_cast<int>(ACTION_TOPICS.size()); ++topic) {
+            std::vector<int> actions;
+            for (const ActionAbout& about : ABOUT) {
+                if (about.topic == topic) actions.push_back(about.action);
+            }
+            std::sort(actions.begin(), actions.end(), [](int a, int b) { return ACTIONS[static_cast<std::size_t>(a)] < ACTIONS[static_cast<std::size_t>(b)]; });
+            found.emplace_back(topic, std::move(actions));
+        }
+        return found;
+    }();
+    return topics;
+}
+
+
+namespace {
 constexpr int GROUPS = 1 + INSIGHT_TRAIT_COUNT;  // the whole species, then one per trait
 constexpr int LEVELS = 3;
 constexpr std::size_t KEYS = 4 * GROUPS * LEVELS * ACTION_COUNT;
@@ -406,7 +521,7 @@ constexpr std::array<std::string_view, 4> SPECIES_ORDER = {"plant", "grazer", "o
 constexpr std::array<std::string_view, ACTION_COUNT> SHORT_ACTIONS = {
     "eat", "forage", "browse", "uproot", "scaven", "feast", "rest", "court", "breed", "hunt", "attack", "defend", "flee", "herd",
     "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "revisit", "feed", "teach", "take M", "take F", "drop M", "drop F", "pile", "carried",
-    "take S", "take B", "take W", "drop S", "drop B", "drop W", "dress", "mk baxe", "mk barm", "mk club", "mk warm", "mk saxe", "mk bow", "mk wagn", "gear", "drop wp", "drop ar", "cut", "dig", "light", "stoke", "cook", "build", "eat sd", "plant", "road", "marrow", "fert", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store"};
+    "take S", "take B", "take W", "drop S", "drop B", "drop W", "dress", "mk baxe", "mk barm", "mk club", "mk warm", "mk saxe", "mk bow", "mk wagn", "gear", "drop wp", "drop ar", "cut", "dig", "light", "stoke", "cook", "build", "eat sd", "plant", "road", "marrow", "fert", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store", "arrows"};
 constexpr int CELL = 7;        // characters to a column of figures
 constexpr int SITUATION = 42;  // characters to the situations' column
 

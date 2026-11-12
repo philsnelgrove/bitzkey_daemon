@@ -23,6 +23,9 @@ using namespace bitzkey;
 
 namespace {
 
+// The tests were written before the dark dimmed sight: they see as in their own hours unless one says otherwise.
+const bool unhindered_sight = (OFF_HOURS_SIGHT = 1.0, true);
+
 Simulation world(int size = 12, int seed = 3) {
     Simulation simulation(Simulation::Settings{size, size, 0, static_cast<std::uint64_t>(seed)});
     simulation.clear_grass();
@@ -3943,6 +3946,84 @@ TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it 
     simulation.hitch(maker, 0);
     CHECK(maker.carried_stone == alone + 2);  // and taken up again
     CHECK(Simulation::value_of(maker, WagonGood) == 1);
+}
+
+TEST_CASE("arrows: a wood at hand restores a bow to its full uses, its own or another's beside it, empty or not, a craft toward mastering the bow") {
+    Simulation simulation = world(30);
+    Bitzkey& archer = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    archer.crafts = 1 << (MakeBow - MakeBoneAxe);
+    archer.bow = true;
+    archer.bow_uses = 3;
+    archer.carried_wood = 1;
+    simulation.index_cells();
+    simulation.craft_arrows(archer, archer);
+    CHECK(archer.bow_uses == BOW_USES);
+    CHECK(archer.carried_wood == 0);
+    CHECK(archer.craft_tries[MakeBow - MakeBoneAxe] == 1);  // a step toward mastery
+    CHECK(archer.reward > 0);                               // a craft's joy
+    CHECK(archer.last_action == "crafted arrows");
+    Bitzkey& fletcher = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 10, 10);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 11, 10);
+    fletcher.crafts = 1 << (MakeBow - MakeBoneAxe);
+    simulation.add_to_pile(10, 11, WoodPile, 1);  // a wood at hand, not carried
+    friend_.bow = true;
+    friend_.bow_uses = 2;
+    simulation.index_cells();
+    const double regard = simulation.regard_for(friend_, fletcher);
+    simulation.craft_arrows(fletcher, friend_);
+    CHECK(friend_.bow_uses == BOW_USES);
+    CHECK(simulation.pile_at(10, 11, WoodPile) == 0);
+    CHECK(simulation.regard_for(friend_, fletcher) > regard);  // a gift
+    friend_.bow_uses = 0;  // its arrows spent, the bow kept, empty
+    simulation.add_to_pile(10, 11, WoodPile, 1);
+    simulation.craft_arrows(fletcher, friend_);
+    CHECK(friend_.bow_uses == BOW_USES);
+    friend_.bow = false;  // no bow at all: nothing to make arrows for
+    friend_.bow_uses = 0;
+    simulation.add_to_pile(10, 11, WoodPile, 1);
+    simulation.craft_arrows(fletcher, friend_);
+    CHECK(friend_.bow_uses == 0);
+    CHECK(fletcher.last_action == "had nothing to craft");
+}
+
+TEST_CASE("each pack-mate alongside the prey adds to the blow, up to three; each sees less out of its own hours") {
+    struct Restore {
+        double was = OFF_HOURS_SIGHT;
+        ~Restore() { OFF_HOURS_SIGHT = was; }
+    } restore;
+    OFF_HOURS_SIGHT = 0.5;  // the rule as it stands, here alone
+    const auto blow_with = [](int mates) {
+        Simulation simulation = world(30);
+        const Dna dna = encode_dna(Species::Predator, {{"empathy", 7}, {"patience", 7}, {"sight", 1}});
+        Bitzkey& hunter = simulation.add_agent(dna, 10, 10);
+        Bitzkey& prey = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 10, 11);
+        const std::array<std::pair<int, int>, 4> beside{{{11, 11}, {9, 11}, {10, 12}, {11, 12}}};
+        for (int mate = 0; mate < mates; ++mate) simulation.add_agent(dna, beside[static_cast<std::size_t>(mate)].first, beside[static_cast<std::size_t>(mate)].second);
+        simulation.index_cells();
+        const double health = prey.health;
+        simulation.attack(hunter, prey, "hunting");
+        return health - prey.health;
+    };
+    const double alone = blow_with(0);
+    REQUIRE(alone > 0);
+    CHECK(blow_with(1) == doctest::Approx(alone * (1 + PACK_BONUS)));
+    CHECK(blow_with(2) == doctest::Approx(alone * (1 + 2 * PACK_BONUS)));
+    CHECK(blow_with(4) == doctest::Approx(alone * (1 + PACK_MATES * PACK_BONUS)));  // three at most
+    Simulation simulation = world(30);
+    int dark = 0;
+    while (!simulation.night(dark)) ++dark;
+    int light = 0;
+    while (simulation.night(light)) ++light;
+    Bitzkey& day = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 4}}), dark, 5);
+    REQUIRE_FALSE(day.nocturnal);
+    CHECK(simulation.sight_now(day) == std::max(1, static_cast<int>(py_round(day.sight * OFF_HOURS_SIGHT))));
+    CHECK(simulation.sight_now(day) < day.sight);
+    day.x = light;
+    CHECK(simulation.sight_now(day) == day.sight);
+    day.nocturnal = true;
+    CHECK(simulation.sight_now(day) < day.sight);  // the nocturnal, dazzled by day
+    day.x = dark;
+    CHECK(simulation.sight_now(day) == day.sight);  // and at home in the dark
 }
 
 TEST_CASE("gluttony rises with appetite and falls with kinship; a meal eaten less than half hungry is an unease by what it lacks of it, the more the fuller") {

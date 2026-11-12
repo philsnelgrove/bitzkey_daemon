@@ -143,6 +143,9 @@ std::string_view kept_text(std::string_view text);
 inline int CORPSE_FERTILITY = 2;
 inline constexpr int FIRE_STONES = 2;  // carried stones that strike a fire, and are kept
 inline int WATERED_REACH = 7;  // steps from water within which hot land grows grass and can be tilled
+// An animal awake out of its own hours, in the dark if active by day or in the light if active by night (at its dusk and
+// dawn), sees OFF_HOURS_SIGHT as far as in its own, at least a step. Calls carry as far either way.
+inline double OFF_HOURS_SIGHT = 0.5;
 inline int CORPSE_TURNS = 90;  // under four days
 inline double CORPSE_PLANT = 0.1;  // chance an animal's body that rots away entirely leaves the seed of a new plant where it lay
 inline double BREED_RESERVE = 0;
@@ -369,7 +372,7 @@ inline double ALERT_JOY = 0.1;        // pleasure of alerting its herd: to a hun
 inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunter is within this many steps
 // Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
 // one, and costs its caller this much hunger, as any call does, the alert among them.
-inline int CALL_REACH = 8;
+inline int CALL_REACH = 16;
 inline double CALL_COST = 0.05;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
 // next turn, it got away (a hunter was in sight and it was not struck) or, hungry (half or more), it ate, the caller
@@ -441,7 +444,7 @@ inline double SHARED_BOND = 0.2;
 // re-learns from one of them, in turn, as from a replay.
 inline int DIARY_ENTRIES = 8;
 inline double DIARY_FADING = 0.999;
-constexpr int MAX_CALL_REACH = 20;  // the most Call reach may be
+constexpr int MAX_CALL_REACH = 45;  // the farthest a call may carry: the largest caller's at the most Call reach
 inline double PREDATOR_LEARNING = 1.0;  // a predator's brain learns this many times as fast, from its own choices and replays;
                                          // an omnivore's gets half the bonus
 // Food that takes a kill is harder to learn than grass: a choice to hunt, attack or feast is learnt from
@@ -500,7 +503,8 @@ inline bool solitary(Species species) {
 }
 inline double HERD_SAFETY = 0.6;
 inline double HERD_DEFEND_JOY = 0.5;
-inline double PACK_BONUS = 0.5;
+inline double PACK_BONUS = 0.5;  // for each herd-mate alongside the prey, up to PACK_MATES
+constexpr int PACK_MATES = 3;
 // Pack tactics: an animal senses how many of its pack are already beside the one it would strike, prey it would strike
 // or is after, else its opponent in a fight, else a rival it would take from (prey flanked), and any blow struck
 // alongside one is a pleasure (JOINED_HUNT_JOY, times a half and its herd instinct), as it is harder (PACK_BONUS).
@@ -677,6 +681,10 @@ inline double WEAPON_FORCE = 2.0, STONE_FORCE = 1.5, ARMOUR_FORCE = 2.0;
 // archer the more skilled, and think the better of it, by ARCHERY_REGARD of a deed.
 inline constexpr int BOW_WOOD = 2;
 inline int BOW_USES = 20;
+// Arrows: one who knows the bow makes a bow's worth of arrows from a wood at hand (see at_hand), for its own bow not yet
+// full, else for the bow of one beside it it holds no foe: the bow shoots BOW_USES times again; a bow whose arrows
+// are spent is kept, empty, for more. It is a craft (CRAFT_JOY)
+// and a step toward mastering the bow; one given arrows thinks the better of their maker, as of a gift.
 inline double ARCHERY_JOY = 1.0, ARCHERY_REGARD = 0.1, ARCHERY_LEARNING = 0.05;
 inline constexpr double ARCHERY_LEAST = 0.2;  // the chance of a hit at the archer's feet, unsteady and unskilled
 constexpr int CRAFT_COUNT = 7;  // the crafts, in the order of their actions from MakeBoneAxe
@@ -1049,7 +1057,8 @@ struct Bitzkey {
     std::array<int, CRAFT_COUNT> craft_tries{};  // how often it has tried each
     std::array<int, CRAFT_COUNT> craft_source{};  // how it came to know each: 0 not recorded, 1 discovered, 2 taught by a parent, 3 by an elder, 4 watched, 5 tutored
     std::array<int, CRAFT_COUNT> craft_chain{};  // how many teachers in a line each came down through, the last its own; 0 for one it found alone
-    int bow_uses = 0;      // shots left in the bow it carries; 0 for none
+    bool bow = false;      // whether it carries a bow, kept when its arrows are spent, awaiting more
+    int bow_uses = 0;      // shots left in it
     double archery = 0.0;  // its skill at hitting with a bow, 0..1, from its shots
     std::array<double, 3> desire{};  // its desire for a weapon, armour and a bow (GearDesire), 0..1, from seeing each pay off
     int tutored_turn = -1;  // the turn it last had a lesson from a tutor; -1 never
@@ -1563,6 +1572,7 @@ public:
         int herd_near = 0;
         std::optional<Cell> herd_middle;
         std::optional<Cell> store;  // where it would bring the food it carries for its herd
+        Bitzkey* fletch_for = nullptr;  // whose bow it would make arrows for: its own, else one beside it
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         double spared = 0.0;  // the exposure kept off it by a shelter, a fire or a parent, which leaves it none
         int inside = 0;  // 2 resting in a shelter, 1 standing in one
@@ -1715,7 +1725,8 @@ public:
     bool can_finish(const Bitzkey& agent, int action) const;  // a bow or wagon, with the tool and the set at hand
     bool can_add(const Bitzkey& agent, int craft) const;  // carries a part the work on its square still lacks
     void add_to_work(Bitzkey& agent, int action);
-    void use_parts(Bitzkey& agent, int craft);  // spent in that order, friends who gave sharing in it
+    void use_parts(Bitzkey& agent, int craft, const Parts* exactly = nullptr);  // spent in that order, friends who gave sharing in it
+    void craft_arrows(Bitzkey& agent, Bitzkey& archer);  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken
@@ -1889,6 +1900,7 @@ public:
         return hunter.species == Species::Predator && (other.infant() || !other.womb.empty()) && convinced(hunter, Empathy);
     }
     void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
+    int sight_now(const Bitzkey& agent) const;  // its sight, less out of its own hours (OFF_HOURS_SIGHT)
     static double gluttony(const Bitzkey& agent);  // a half, plus half its appetite, less half its kinship, 0..1
     static double gluttony_unease(const Bitzkey& agent, double hunger_before);  // for a meal begun that hungry
     static double generosity(const Bitzkey& agent);  // the strongest of patience, sociability and empathy, less that of dominance, aggression and appetite

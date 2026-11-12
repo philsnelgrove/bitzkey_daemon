@@ -31,6 +31,13 @@ Level band(double value);
 std::string_view level_name(Level level);
 std::string group_label(Species species, std::optional<int> trait = std::nullopt, Level level = Level::Low);
 
+// The insights panel lists the actions by topic, alphabetically within each; each has a tooltip saying what it is.
+constexpr std::array<std::string_view, 8> ACTION_TOPICS = {"FOOD", "MOVING", "HUNTING AND FIGHTING", "FAMILY AND SOCIETY",
+                                                          "MATERIALS", "CRAFTING AND GEAR", "FIRE AND BUILDING", "FARMING"};
+const char* action_about(int action);  // what it is, for a tooltip
+// Each topic, by its place in ACTION_TOPICS, with its actions alphabetically by name.
+const std::vector<std::pair<int, std::vector<int>>>& actions_by_topic();
+
 // Recent decisions, discounted each turn: how often each kind of animal chose an action when it
 // was possible.
 class Insights {

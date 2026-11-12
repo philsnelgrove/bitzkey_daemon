@@ -511,9 +511,11 @@ Json exemplars(const Simulation& simulation, const std::vector<int>& choices) {
 Json insights(const Simulation& simulation) {
     const Insights& insights = simulation.insights();
     Json result;
-    Json behaviour = Json::array();
-    for (int action = 0; action < ACTION_COUNT; ++action) {
-        Json row = {{"action", std::string(ACTIONS[static_cast<std::size_t>(action)])}};
+    Json behaviour = Json::array();  // by topic, alphabetically within each
+    for (const auto& [topic, actions] : actions_by_topic())
+    for (const int action : actions) {
+        Json row = {{"action", std::string(ACTIONS[static_cast<std::size_t>(action)])},
+                    {"topic", std::string(ACTION_TOPICS[static_cast<std::size_t>(topic)])}, {"about", action_about(action)}};
         Json shares = Json::array();
         for (const Species species : ANIMALS) {
             const auto rate = insights.rate(action, species);
@@ -586,11 +588,13 @@ Json insights(const Simulation& simulation) {
     }
     result["temperament"] = temperament;
 
-    Json keenest = Json::array();
-    for (int action = 0; action < ACTION_COUNT; ++action) {
+    Json keenest = Json::array();  // by topic, alphabetically within each
+    for (const auto& [topic, actions] : actions_by_topic())
+    for (const int action : actions) {
         const auto groups = insights.extremes(action, 1, false);
         if (groups.empty()) continue;
         keenest.push_back({{"action", std::string(ACTIONS[static_cast<std::size_t>(action)])},
+                           {"topic", std::string(ACTION_TOPICS[static_cast<std::size_t>(topic)])}, {"about", action_about(action)},
                            {"label", groups[0].label},
                            {"share", py_percent(groups[0].share, 4)}});
     }

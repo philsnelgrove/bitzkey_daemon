@@ -2424,7 +2424,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         s.kin += other->species == agent.species;
         s.others += other->species != agent.species && other->species != Species::Plant;
     }
-    const int sight = agent.sight;
+    const int sight = sight_now(agent);
     const bool grazes = agent.species != Species::Predator;
     s.grass_here = grazes && grass_at(agent.x, agent.y) > 0;
     if (grazes) s.grass = nearest_grass(agent, sight);
@@ -2452,7 +2452,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 break;
             }
         }
-        if (!s.gear_pile && agent.bow_uses == 0) {  // a bow, carried apart from all else
+        if (!s.gear_pile && !agent.bow) {  // a bow, carried apart from all else
             if (const auto pile = nearest_pile(agent, sight, BowPile)) {
                 s.gear_pile = pile;
                 s.gear_kind = BowPile;
@@ -2663,6 +2663,15 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Cook] = beside_fire && food_to_cook(agent, s) != HandFood::None;
     if (view.middle && agent.carried_meat + agent.carried_fruit + agent.cooked_meat + agent.cooked_fruit > 0) s.store = herd_store(agent, *view.middle, sight);
     available[StoreFood] = s.store.has_value();
+    if (known(MakeBow)) {  // arrows: for its own bow, else a bow beside it, with a wood at hand
+        const auto worn = [](const Bitzkey& archer) { return archer.bow && archer.bow_uses < BOW_USES; };  // empty, or not full
+        if (worn(agent)) s.fletch_for = &agent;
+        for (Bitzkey* other : neighbors) {
+            if (s.fletch_for) break;
+            if (other != &agent && other->alive() && other->species != Species::Plant && worn(*other) && !is_foe(agent, *other)) s.fletch_for = other;
+        }
+        available[CraftArrows] = s.fletch_for && at_hand(agent, -1, neighbors).wood > 0;
+    }
     if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
@@ -3873,7 +3882,7 @@ const Simulation::Fight* Simulation::fight_of(int identifier) const {
 int Simulation::value_of(const Bitzkey& agent, int possession) {
     if (possession == HidePossession) return agent.hide;
     if (possession == WeaponPossession) return agent.weapon == StoneAxe ? 2 : agent.weapon ? 1 : 0;
-    if (possession == BowPossession) return agent.bow_uses > 0 ? 1 : 0;
+    if (possession == BowPossession) return agent.bow ? 1 : 0;
     if (possession == WagonGood) return agent.wagon >= 0 ? 1 : 0;
     return agent.armour ? 1 : 0;
 }
@@ -3899,8 +3908,10 @@ void Simulation::hand_over(Bitzkey& from, Bitzkey& to, int possession) {
     };
     const bool had_weapon = to.wielding(), had_armour = to.wearing();
     if (possession == BowPossession) {
-        if (to.bow_uses > 0) drop_gear(to.x, to.y, BowPile, BOW_USES - to.bow_uses);
+        if (to.bow) drop_gear(to.x, to.y, BowPile, BOW_USES - to.bow_uses);
+        to.bow = true;
         to.bow_uses = from.bow_uses;
+        from.bow = false;
         from.bow_uses = 0;
     } else if (possession == HidePossession) {  // the one worn, to the taker's pack: each wears its best (see arrange)
         to.spare_hides.push_back({from.hide, from.hide_armour});
@@ -4117,12 +4128,12 @@ double hides_worth(const Bitzkey& agent) {  // worn and carried
 }  // namespace
 
 double Simulation::possessions(const Bitzkey& agent) {
-    return hides_worth(agent) + tools_worth(agent) + (agent.armour ? 0.5 : 0.0) + (agent.bow_uses > 0 ? 0.5 : 0.0) + (agent.wagon >= 0 ? 1.0 : 0.0);
+    return hides_worth(agent) + tools_worth(agent) + (agent.armour ? 0.5 : 0.0) + (agent.bow ? 0.5 : 0.0) + (agent.wagon >= 0 ? 1.0 : 0.0);
 }
 
 double Simulation::possessions(const Bitzkey& agent, const Bitzkey& judge) {
     return hides_worth(agent) + (1 + judge.desire[WeaponDesire]) * tools_worth(agent) +
-           (1 + judge.desire[ArmourDesire]) * (agent.armour ? 0.5 : 0.0) + (1 + judge.desire[BowDesire]) * (agent.bow_uses > 0 ? 0.5 : 0.0) +
+           (1 + judge.desire[ArmourDesire]) * (agent.armour ? 0.5 : 0.0) + (1 + judge.desire[BowDesire]) * (agent.bow ? 0.5 : 0.0) +
            (agent.wagon >= 0 ? 1.0 : 0.0);
 }
 
@@ -4376,7 +4387,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     if (in_bounds(agent.x, agent.y)) {  // and what it wielded and wore
         if (agent.weapon) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + agent.weapon - BoneAxe), agent.weapon_uses);
         if (agent.armour) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneArmourPile + agent.armour - BoneArmour), agent.armour_uses);
-        if (agent.bow_uses > 0) drop_gear(agent.x, agent.y, BowPile, BOW_USES - agent.bow_uses);  // as worn as it was
+        if (agent.bow) drop_gear(agent.x, agent.y, BowPile, BOW_USES - agent.bow_uses);  // as worn as it was, empty or not
         for (const Bitzkey::SpareTool& tool : agent.spare_tools) drop_gear(agent.x, agent.y, static_cast<PileKind>(BoneAxePile + tool.kind - BoneAxe), tool.uses);
     }
     agent.spare_tools.clear();
@@ -4393,6 +4404,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     }
     agent.weapon = NoWeapon;
     agent.armour = NoArmour;
+    agent.bow = false;
     agent.bow_uses = 0;
     agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = agent.carried_stone = agent.carried_bone = agent.carried_wood = 0;
     if (agent.species != Species::Plant && in_bounds(agent.x, agent.y)) {
@@ -4437,7 +4449,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (READY_JOY > 0) {  // glad to hold all that a thing it knows needs, and as sorry to break the set, but by using or giving it
         const int ready_now = ready_sets(agent);
         agent.reward += ready_worth(agent, ready_now & ~ready_before);
-        const bool spent = (action >= MakeBoneAxe && action <= MakeWagon) || action == Construct || action == BuildRoad || action == Give || action == Offer;
+        const bool spent = (action >= MakeBoneAxe && action <= MakeWagon) || action == CraftArrows || action == Construct || action == BuildRoad || action == Give || action == Offer;
         if (!spent) agent.reward -= ready_worth(agent, ready_before & ~ready_now);
     }
     if (const double gained = possessions(agent, agent) - had; gained > 0) agent.reward += ENVY_JOY * envy_of(agent) * gained;  // the envious, glad of better
@@ -4581,6 +4593,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             break;
         case StoreFood:
             provision(agent, *s.store);
+            break;
+        case CraftArrows:
+            craft_arrows(agent, *s.fletch_for);
             break;
         case Revisit:
             move_toward(agent, s.revisit->x, s.revisit->y);
@@ -5874,6 +5889,7 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
         case MakeBoneArmour: agent.armour = BoneArmour; agent.armour_uses = 0; break;
         case MakeWoodArmour: agent.armour = WoodArmour; agent.armour_uses = 0; break;
         case MakeBow:  // two wood and a hide, with the stone axe it keeps
+            agent.bow = true;
             agent.bow_uses = BOW_USES;
             note_first("made_a_bow", agent.species, agent.identifier);
             break;
@@ -5931,7 +5947,7 @@ bool Simulation::has_set(const Bitzkey& agent, int craft, const std::vector<Bitz
 }
 
 bool Simulation::can_finish(const Bitzkey& agent, int action) const {
-    if (action == MakeBow ? !agent.has_tool(StoneAxe) || agent.bow_uses != 0
+    if (action == MakeBow ? !agent.has_tool(StoneAxe) || agent.bow
                           : !(agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe)) || agent.wagon >= 0 || sea(agent.x, agent.y)) {
         return false;
     }
@@ -5974,10 +5990,10 @@ void Simulation::add_to_work(Bitzkey& agent, int action) {
     agent.last_action = "worked on a craft";
 }
 
-void Simulation::use_parts(Bitzkey& agent, int craft) {
+void Simulation::use_parts(Bitzkey& agent, int craft, const Parts* exactly) {
     const std::vector<Bitzkey*> near = nearby(agent, 1);
-    Parts need = NEEDS[static_cast<std::size_t>(craft)];
-    if (craft == STONE_AXE_CRAFT) (at_hand(agent, craft, near).bone > 0 ? need.bone : need.wood) = 1;
+    Parts need = exactly ? *exactly : NEEDS[static_cast<std::size_t>(craft)];
+    if (craft == STONE_AXE_CRAFT && !exactly) (at_hand(agent, craft, near).bone > 0 ? need.bone : need.wood) = 1;
     const int total = need.stone + need.bone + need.wood + need.hide;
     Work& work = works_[cell_index(agent.x, agent.y)];
     std::vector<std::pair<Bitzkey*, int>> helpers;  // friends who gave, and how much
@@ -6025,12 +6041,33 @@ void Simulation::use_parts(Bitzkey& agent, int craft) {
     for (auto& [helper, gave] : helpers) {
         if (gave <= 0) continue;
         helper->reward += SHARE_JOY * generosity(*helper) * gave / total;
-        if (helper->crafts >> craft & 1) {  // a hand in the making, a try at it
+        if (craft >= 0 && (helper->crafts >> craft & 1)) {  // a hand in the making, a try at it
             int& tries = helper->craft_tries[static_cast<std::size_t>(craft)];
             tries = std::min(CRAFT_TRIES, tries + 1);
         }
-        note_first("helped_craft", helper->species, helper->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
+        if (craft >= 0) note_first("helped_craft", helper->species, helper->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
     }
+}
+
+void Simulation::craft_arrows(Bitzkey& agent, Bitzkey& archer) {
+    if (!archer.bow || at_hand(agent, -1, nearby(agent, 1)).wood <= 0) {  // the bow or the wood gone since it chose
+        agent.last_action = "had nothing to craft";
+        return;
+    }
+    constexpr int bow = MakeBow - MakeBoneAxe;
+    const Parts wood{0, 0, 1, 0};
+    use_parts(agent, -1, &wood);
+    archer.bow_uses = BOW_USES;
+    int& tries = agent.craft_tries[static_cast<std::size_t>(bow)];
+    tries = std::min(CRAFT_TRIES, tries + 1);  // a step toward mastering the bow
+    agent.reward += CRAFT_JOY * (0.5 + agent.feeling(Curiosity));
+    if (&archer != &agent) {
+        note_deed(archer, agent, 1.0, 1.0, PlainDeed, true);  // a gift, a kindness
+        note_first("made_arrows_for_another", agent.species, agent.identifier);
+    }
+    note_first("made_arrows", agent.species, agent.identifier);
+    agent.last_action = "crafted arrows";
+    deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, bow, CraftCulture);
 }
 
 void Simulation::rot_works() {
@@ -6062,7 +6099,10 @@ void Simulation::take_gear(Bitzkey& agent, Situation& s) {
         case BoneAxePile: agent.spare_tools.push_back({BoneAxe, uses}); break;  // to hand if the best (see arrange)
         case ClubPile: agent.spare_tools.push_back({Club, uses}); break;
         case StoneAxePile: agent.spare_tools.push_back({StoneAxe, uses}); break;
-        case BowPile: agent.bow_uses = std::max(1, BOW_USES - uses); break;
+        case BowPile:  // empty, perhaps, awaiting arrows
+            agent.bow = true;
+            agent.bow_uses = std::max(0, BOW_USES - uses);
+            break;
         case BoneArmourPile: agent.armour = BoneArmour; agent.armour_uses = uses; break;
         default: agent.armour = WoodArmour; agent.armour_uses = uses;
     }
@@ -6099,12 +6139,13 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     gear_witnessed(agent, victim);
     wear_weapon(agent);
     wear_armour(victim);
+    int mates = 0;  // herd-mates alongside the prey, up to PACK_MATES
     for (const Bitzkey* other : around(victim, 1)) {
-        if (other != &agent && herd_mate(agent, *other)) {
-            blow *= 1 + PACK_BONUS * agent.herd_instinct() * land_herd(agent);  // hunting as a pack, the more so in its own land
-            agent.reward += JOINED_HUNT_JOY * (0.5 + agent.herd_instinct());  // and glad of it
-            break;
-        }
+        if (other != &agent && herd_mate(agent, *other) && ++mates >= PACK_MATES) break;
+    }
+    if (mates > 0) {
+        blow *= 1 + PACK_BONUS * mates * agent.herd_instinct() * land_herd(agent);  // hunting as a pack, the more so in its own land
+        agent.reward += JOINED_HUNT_JOY * (0.5 + agent.herd_instinct());  // and glad of it
     }
     blow *= land_guard(victim, agent);  // and harder to bring down in its own land
     victim.health -= blow;
@@ -6154,6 +6195,11 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     }
     exhausted(agent);
     if (agent.species == Species::Predator && agent.alive() && blow > std::max(0.0, sting)) agent.reward += ATTACK_JOY;  // a blow that went its way
+}
+
+int Simulation::sight_now(const Bitzkey& agent) const {
+    if (agent.nocturnal == night(agent.x)) return agent.sight;  // in its own hours
+    return std::max(1, static_cast<int>(py_round(agent.sight * OFF_HOURS_SIGHT)));
 }
 
 void Simulation::exhausted(Bitzkey& agent) {

@@ -216,7 +216,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"last_action", std::string(agent.last_action)}, {"brain", numbers.brain(agent.brain)},
         {"generation", agent.generation}, {"children", agent.children}, {"mother", agent.mother}, {"father", agent.father}, {"taught_by", agent.taught_by},
         {"carried_meat", agent.carried_meat}, {"carried_fruit", agent.carried_fruit},
-        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery}, {"desire", agent.desire}, {"wagon", agent.wagon}, {"tutored_turn", agent.tutored_turn},
+        {"weapon", agent.weapon}, {"armour", agent.armour}, {"weapon_uses", agent.weapon_uses}, {"armour_uses", agent.armour_uses}, {"bow", agent.bow}, {"bow_uses", agent.bow_uses}, {"archery", agent.archery}, {"desire", agent.desire}, {"wagon", agent.wagon}, {"tutored_turn", agent.tutored_turn},
         {"infant_taught", agent.infant_taught}, {"crafts", agent.crafts}, {"craft_tries", agent.craft_tries}, {"craft_source", agent.craft_source}, {"craft_chain", agent.craft_chain},
         {"cooked_meat", agent.cooked_meat}, {"cooked_fruit", agent.cooked_fruit},
         {"carried_stone", agent.carried_stone}, {"carried_bone", agent.carried_bone}, {"carried_seed", agent.carried_seed}, {"boredom", agent.boredom}, {"shelter_known", agent.shelter_known}, {"road_known", agent.road_known}, {"cooked_known", agent.cooked_known}, {"plenty", agent.plenty}, {"plenty_known", agent.plenty_known}, {"hide", agent.hide}, {"hide_armour", agent.hide_armour}, {"spare_tools", [&] { json out = json::array(); for (const auto& tool : agent.spare_tools) out.push_back(json::array({tool.kind, tool.uses})); return out; }()}, {"spare_hides", [&] { json out = json::array(); for (const auto& hide : agent.spare_hides) out.push_back(json::array({hide.kind, hide.armour})); return out; }()}, {"skinned", agent.skinned}, {"thefts", agent.thefts}, {"mark", agent.mark}, {"realm", agent.realm}, {"standout", agent.standout}, {"follows", agent.follows}, {"followers", agent.followers}, {"leader", agent.leader}, {"rank", agent.rank}, {"emperor", agent.emperor}, {"trespass", agent.trespass}, {"meat_lean", agent.meat_lean}, {"expected", agent.expects ? json(agent.expected) : json(nullptr)}, {"last_tried", agent.last_tried}, {"carried_wood", agent.carried_wood},
@@ -330,6 +330,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     per_craft("craft_source", agent->craft_source);
     per_craft("craft_chain", agent->craft_chain);
     agent->bow_uses = record.value("bow_uses", 0);
+    agent->bow = record.value("bow", agent->bow_uses > 0);  // before empty bows were kept, a bow was its shots
     agent->archery = record.value("archery", 0.0);
     agent->wagon = record.value("wagon", -1);
     agent->emperor = record.value("emperor", false);

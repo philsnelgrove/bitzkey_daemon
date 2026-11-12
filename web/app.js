@@ -1133,8 +1133,11 @@ function insightsPanel(data) {
     panel.append(element('h3', {}, title), element('div', { class: 'sub' }, note));
     panel.append(element('table', {}, element('tr', {}, element('th', {}, ''), heads.map(head => head.cloneNode(true))), rows));
   };
-  table('BEHAVIOUR', '% of chances taken, recent turns',
-    data.behaviour.map(row => element('tr', {}, element('td', {}, upper(row.action)), row.shares.map(share => element('td', { class: 'num' }, share)))));
+  const topicRow = topic => element('tr', {}, element('td', { class: 'topic', colspan: String(heads.length + 1) }, topic));
+  table('BEHAVIOUR', '% of chances taken, recent turns',  // by topic, alphabetically within each, each action's tooltip saying what it is
+    data.behaviour.flatMap((row, index) => [
+      ...(index === 0 || data.behaviour[index - 1].topic !== row.topic ? [topicRow(row.topic)] : []),
+      element('tr', { title: row.about }, element('td', {}, upper(row.action)), row.shares.map(share => element('td', { class: 'num' }, share)))]));
   for (const block of data.blocks) {
     panel.append(element('div', { class: 'block-title' }, block.title));
     if (!block.groups.length) panel.append(element('div', { class: 'faint' }, 'not enough chances yet'));
@@ -1148,12 +1151,13 @@ function insightsPanel(data) {
         value === null ? '   -' : value.value)))));
   panel.append(element('h3', {}, 'KEENEST BY ACTION'), element('div', { class: 'sub' }, 'the group most likely to take each chance'));
   if (!data.keenest.length) panel.append(element('div', { class: 'faint' }, 'not enough chances yet'));
-  for (const row of data.keenest) {
-    panel.append(element('div', { class: 'group' },
+  data.keenest.forEach((row, index) => {
+    if (index === 0 || data.keenest[index - 1].topic !== row.topic) panel.append(element('div', { class: 'block-title' }, row.topic));
+    panel.append(element('div', { class: 'group', title: row.about },
       element('span', { style: { color: 'var(--muted)', width: '76px', flex: 'none' } }, upper(row.action)),
       element('span', { style: { flex: '1', fontFamily: 'var(--sans)', color: 'var(--soft)', overflow: 'hidden', textOverflow: 'ellipsis' } }, row.label),
       element('span', {}, row.share)));
-  }
+  });
   return panel;
 }
 

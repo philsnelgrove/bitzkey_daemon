@@ -4,11 +4,11 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 467 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 468 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
-1. [World](#1-world) (17 rules)
+1. [World](#1-world) (18 rules)
 2. [Bodies](#2-bodies) (36 rules)
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (25 rules)
@@ -42,85 +42,91 @@ Steps from water within which hot land grows grass and can be tilled; 0: none.
 
 Default **7**; from 0 to 20, in steps of 1.
 
-#### 1.2.2 Corpse turns (`CORPSE_TURNS`)
+### 1.3 Off-hours sight (`OFF_HOURS_SIGHT`)
+
+How far an animal awake out of its own hours sees, in the dark if active by day, in the light if active by night, as a share of its sight; calls carry as far as ever.
+
+Default **0.5**; from 0.1 to 1, in steps of 0.05.
+
+#### 1.3.1 Corpse turns (`CORPSE_TURNS`)
 
 Turns a corpse lasts while its meat rots away.
 
 Default **90**; from 1 to 1500, in steps of 5.
 
-#### 1.2.3 Corpse plant (`CORPSE_PLANT`)
+#### 1.3.2 Corpse plant (`CORPSE_PLANT`)
 
 Chance an animal's body that rots away entirely leaves the seed of a new plant.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-### 1.3 Square space (`CELL_SPACE`)
+### 1.4 Square space (`CELL_SPACE`)
 
 Spaces in a square; a Bitzkey takes 1 + its size, and none is born, moves or spawns into a square without room.
 
 Default **10**; from 1 to 80, in steps of 1.
 
-### 1.4 Spawn spread (`SPAWN_SPREAD`)
+### 1.5 Spawn spread (`SPAWN_SPREAD`)
 
 A starting group appears within this many cells of its centre.
 
 Default **2**; from 0 to 4, in steps of 1.
 
-### 1.5 Think on the GPU (`USE_GPU`)
+### 1.6 Think on the GPU (`USE_GPU`)
 
 C++ only: 1 thinks and learns on every GPU found, in floats; 0 on the CPU, exactly.
 
 Default **0**; from 0 to 1, in steps of 1.
 
-#### 1.5.1 Spawn at home (`SPAWN_AT_HOME`)
+#### 1.6.1 Spawn at home (`SPAWN_AT_HOME`)
 
 1: starting and imported groups appear where their home temperature is usual; 0: anywhere.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 1.6 Day length (`DAY_LENGTH`)
+### 1.7 Day length (`DAY_LENGTH`)
 
 Turns in a day; night covers half the map and moves round it once a day.
 
 Default **24**; from 2 to 100, in steps of 1.
 
-#### 1.6.1 Sleep (`SLEEP`)
+#### 1.7.1 Sleep (`SLEEP`)
 
 1: an animal rests through its night (the dark if diurnal, the light if nocturnal) unless startled awake; 0: never forced to.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 1.7 Biome groups (`BIOME_GROUPS`)
+### 1.8 Biome groups (`BIOME_GROUPS`)
 
 A world started with any Bitzkeys has this many groups of each species native to every biome, each stretch of land or sea in a climate zone, on top of its population; 0: none.
 
 Default **1**; from 0 to 10, in steps of 1.
 
-### 1.8 Biome size (`BIOME_SIZE`)
+### 1.9 Biome size (`BIOME_SIZE`)
 
 The fewest squares a stretch of land or sea in a climate zone needs to count as a biome.
 
 Default **25**; from 1 to 1000, in steps of 5.
 
-### 1.9 Graph turns (`GRAPH_TURNS`)
+### 1.10 Graph turns (`GRAPH_TURNS`)
 
 Turns of the past the graph and death report cover; deaths and genomes older than that are forgotten.
 
 Default **250000**; from 1000 to 2000000, in steps of 1000.
 
-### 1.10 Grazer group (`GRAZER_SPAWN_GROUP`)
+### 1.11 Grazer group (`GRAZER_SPAWN_GROUP`)
 
 Grazers in each group a new world starts with (other species start in groups of 3 to 5).
 
 Default **30**; from 1 to 500, in steps of 5.
 
-#### 1.10.1 Hunters apart (`HUNTERS_APART`)
+#### 1.11.1 Hunters apart (`HUNTERS_APART`)
 
 Squares a new world's hunters start from its grazers, at the least, where there is room; 0: anywhere.
 
 Default **15**; from 0 to 60, in steps of 1.
 
-#### 1.10.2 Plant head start (`PREGROWTH_TURNS`)
+#### 1.11.2 Plant head start (`PREGROWTH_TURNS`)
 
 Turns a new world's plants grow alone, uncounted, before its animals spawn; 0: none.
 
@@ -1250,7 +1256,7 @@ Default **6**; from 1 to 20, in steps of 1.
 
 Steps a call carries, times a half and its caller's size (as a share of its range): the larger, the further.
 
-Default **8**; from 1 to 10, in steps of 1.
+Default **16**; from 1 to 30, in steps of 1.
 
 #### 6.24.1 Call cost (`CALL_COST`)
 
@@ -1822,31 +1828,25 @@ Squares to each stone scattered, once in a world's life.
 
 Default **100**; from 10 to 1000, in steps of 10.
 
-#### 7.5.1 Bow uses (`BOW_USES`)
-
-Shots a bow makes before it is spent.
-
-Default **20**; from 1 to 100, in steps of 1.
-
-#### 7.5.2 Archery joy (`ARCHERY_JOY`)
+#### 7.5.1 Archery joy (`ARCHERY_JOY`)
 
 Joy of a hit with a bow, in practice too, the more for the skilled.
 
 Default **1**; from 0 to 5, in steps of 0.05.
 
-#### 7.5.3 Archery regard (`ARCHERY_REGARD`)
+#### 7.5.2 Archery regard (`ARCHERY_REGARD`)
 
 Respect of all who see a hit with a bow, of a deed's weight, in skill and liking.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 7.5.4 Archery learning (`ARCHERY_LEARNING`)
+#### 7.5.3 Archery learning (`ARCHERY_LEARNING`)
 
 Share of the skill left to learn that each shot with a bow teaches.
 
 Default **0.05**; from 0 to 0.5, in steps of 0.01.
 
-#### 7.5.5 Least armour (`ARMOUR_LEAST`)
+#### 7.5.4 Least armour (`ARMOUR_LEAST`)
 
 The armour worn armour counts from, at the least.
 
@@ -2098,145 +2098,151 @@ Chance that digging finds a stone.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-### 7.16 Fire feeding joy (`FIRE_FEED_JOY`)
+### 7.16 Bow uses (`BOW_USES`)
+
+Shots a bow makes before it is spent.
+
+Default **20**; from 1 to 100, in steps of 1.
+
+### 7.17 Fire feeding joy (`FIRE_FEED_JOY`)
 
 The satisfaction of feeding a fire, so that it burns on.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.17 Seed food (`SEED_FOOD`)
+### 7.18 Seed food (`SEED_FOOD`)
 
 How much of a fruit's portion a seed feeds.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-#### 7.17.1 Planting joy (`PLANTING_JOY`)
+#### 7.18.1 Planting joy (`PLANTING_JOY`)
 
 The gladness of planting a seed; more if curious.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.18 Harvest joy (`HARVEST_JOY`)
+### 7.19 Harvest joy (`HARVEST_JOY`)
 
 The gladness of picking a fruit from a plant without uprooting it.
 
 Default **0.1**; from 0 to 5, in steps of 0.05.
 
-#### 7.18.1 Regrowth joy (`REGROWTH_JOY`)
+#### 7.19.1 Regrowth joy (`REGROWTH_JOY`)
 
 The gladness of seeing a plant it last picked bear fruit again.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
-### 7.19 Arable fruit (`ARABLE_FRUIT`)
+### 7.20 Arable fruit (`ARABLE_FRUIT`)
 
 Times as much fruit a plant on worked land bears each morning.
 
 Default **2**; from 1 to 5, in steps of 1.
 
-#### 7.19.1 Fertilized fruit (`FERTILIZED_FRUIT`)
+#### 7.20.1 Fertilized fruit (`FERTILIZED_FRUIT`)
 
 Times as much again on worked land fed bone; the bone is spent.
 
 Default **2**; from 1 to 5, in steps of 1.
 
-### 7.20 Fallow years (`FALLOW_YEARS`)
+### 7.21 Fallow years (`FALLOW_YEARS`)
 
 Years worked land lies untended before it goes wild, its bone with it; 0, never.
 
 Default **1**; from 0 to 10, in steps of 0.25.
 
-### 7.21 Cooked delight (`COOKED_JOY`)
+### 7.22 Cooked delight (`COOKED_JOY`)
 
 Pleasure of eating a cooked portion, times a half and its taste for cooked food.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 7.21.1 Raw distaste (`RAW_DISTASTE`)
+#### 7.22.1 Raw distaste (`RAW_DISTASTE`)
 
 Letdown of eating a raw portion once it knows the taste of cooked, times that taste.
 
 Default **0.5**; from 0 to 5, in steps of 0.1.
 
-#### 7.21.2 Cooking joy (`COOK_JOY`)
+#### 7.22.2 Cooking joy (`COOK_JOY`)
 
 Pleasure of cooking a portion, times a half and its taste for cooked food.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 7.21.3 Smell reach (`SMELL_REACH`)
+#### 7.22.3 Smell reach (`SMELL_REACH`)
 
 How many times as far as it sees an animal smells cooked food and a fire cooked on.
 
 Default **3**; from 1 to 4, in steps of 0.1.
 
-### 7.22 Taste joy (`TASTE_JOY`)
+### 7.23 Taste joy (`TASTE_JOY`)
 
 How tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.23 Grass meal (`GRASS_MEAL`)
+### 7.24 Grass meal (`GRASS_MEAL`)
 
 Hunger a tuft of grass sates.
 
 Default **18**; from 0 to 200, in steps of 1.
 
-#### 7.23.1 Grazer on grass (`GRAZING.grazer`)
+#### 7.24.1 Grazer on grass (`GRAZING.grazer`)
 
 Share of the food in grass a grazer gets.
 
 Default **1.25**; from 0 to 3, in steps of 0.05.
 
-#### 7.23.2 Omnivore on grass (`GRAZING.omnivore`)
+#### 7.24.2 Omnivore on grass (`GRAZING.omnivore`)
 
 Share of the food in grass an omnivore gets.
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-#### 7.23.3 Grazer on plants (`BROWSING.grazer`)
+#### 7.24.3 Grazer on plants (`BROWSING.grazer`)
 
 Share of the food in plants a grazer gets.
 
 Default **1.25**; from 0 to 3, in steps of 0.05.
 
-#### 7.23.4 Omnivore on plants (`BROWSING.omnivore`)
+#### 7.24.4 Omnivore on plants (`BROWSING.omnivore`)
 
 Share of the food in plants an omnivore gets.
 
 Default **0.75**; from 0 to 3, in steps of 0.05.
 
-### 7.24 Uproot hunger (`UPROOT_HUNGER`)
+### 7.25 Uproot hunger (`UPROOT_HUNGER`)
 
 A grazer this hungry, with food scarce, may uproot a plant.
 
 Default **80**; from 0 to 100, in steps of 1.
 
-#### 7.24.1 Uproot meals (`UPROOT_MEALS`)
+#### 7.25.1 Uproot meals (`UPROOT_MEALS`)
 
 Share of a feast on a body of the plant's size an uprooting grazer eats.
 
 Default **0.5**; from 0 to 10, in steps of 0.05.
 
-#### 7.24.2 Uproot bite (`UPROOT_BITE`)
+#### 7.25.2 Uproot bite (`UPROOT_BITE`)
 
 Health a plant loses to being uprooted.
 
 Default **45**; from 0 to 200, in steps of 1.
 
-### 7.25 Uproot sorrow (`UPROOT_SORROW`)
+### 7.26 Uproot sorrow (`UPROOT_SORROW`)
 
 A grazer's sorrow at tearing into a plant, times a half plus its empathy.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
-### 7.26 Carrion meat (`CARRION_MEAT`)
+### 7.27 Carrion meat (`CARRION_MEAT`)
 
 Meat a well-fed corpse leaves.
 
 Default **30**; from 0 to 200, in steps of 5.
 
-#### 7.26.1 Carrion meat for size (`CARRION_MEAT_FOR_SIZE`)
+#### 7.27.1 Carrion meat for size (`CARRION_MEAT_FOR_SIZE`)
 
 More meat, up to this for the largest.
 
@@ -2330,7 +2336,7 @@ Default **0.25**; from 0 to 1, in steps of 0.05.
 
 ### 8.6 Pack bonus (`PACK_BONUS`)
 
-Extra force at prey that a herd-mate is also alongside.
+Extra force at prey for each herd-mate also alongside it, up to three.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
