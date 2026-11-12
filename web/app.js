@@ -5,7 +5,7 @@
 import { startLanguages, tr } from './i18n.js';
 import { api, binary, element, dialog, copyText, download, remembered, remember, pad3, pad5, plural, upper } from './common.js';
 import { drawBitzkey, drawReticle, zoneColour, seaColour, mapDotRadii, dotRadius, bitzkeyCanvas, portraitCanvas, iconCanvas, css, pyRound,
-         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, drawCrown, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
+         GRASS, SEA_GRASS, NIGHT, GRID, TEXTURE_FROM, GROUND_VARIANTS, GROUNDS, groundTile, grassTuft, drawPile, drawMaterials, drawGear, drawCrown, drawMarks, MAP_MARKS_RADIUS, EXPORTING, RING_WIDTH, SPECIES, settings, heat } from './draw.js';
 import { details, look } from './inspector.js';
 import { openGraph } from './graph.js';
 import { openSetup, openCatalog, openRules } from './setup.js';
@@ -298,11 +298,19 @@ function parseFrame(view) {
     const groups = view.getUint32(offset, true);
     offset += 4;
     for (let index = 0; index < groups; ++index, offset += 12) {
-      lands.groups.set(view.getInt32(offset, true), { members: view.getUint32(offset + 4, true), species: view.getUint8(offset + 8) });
+      lands.groups.set(view.getInt32(offset, true), { members: view.getUint32(offset + 4, true), species: view.getUint8(offset + 8),
+                                                      colour: [9, 10, 11].map(at => view.getUint8(offset + at)) });  // its flag's colour
     }
     for (const agent of agents) {
       agent.realm = view.getInt32(offset, true);
       offset += 4;
+    }
+    if (offset + 8 * agents.length <= view.byteLength) {  // from a daemon new enough: the hide each wears, and whom each follows
+      for (const agent of agents) {
+        agent.hide = view.getUint8(offset);
+        agent.follows = view.getInt32(offset + 4, true);
+        offset += 8;
+      }
     }
   }
   return { width, height, turn, temperatures, grass, agents, living, piles, lands };
@@ -595,6 +603,11 @@ function drawMap() {
     drawn += 1;
     const radius = dotRadius(agent.size, largest, smallest);
     drawBitzkey(ctx, agent, px, py, radius, RING_WIDTH, agent.alive, agent.opacity);
+    if (agent.species) {  // its hide; near enough, its herd's flag and the one it follows
+      const near = radius >= MAP_MARKS_RADIUS && agent.alive;
+      const leader = near && agent.follows >= 0 && agent.follows !== agent.identifier ? frame.living.get(agent.follows) : null;
+      drawMarks(ctx, px, py, radius, { hide: agent.hide || 0, herd: near ? frame.lands.groups.get(agent.realm)?.colour ?? null : null, leader });
+    }
     drawGear(ctx, agent.wields, agent.wears, px, py, radius);
     if (agent.alive && agent.leader) drawCrown(ctx, px, py, radius, agent.rank);  // recognised a leader, a star for each rank
     if (agent.identifier === app.selectedId || (agent.alive && app.selection.has(agent.identifier))) {
@@ -694,6 +707,36 @@ const HOMES = ['hot', 'medium', 'cold', 'very cold'];
 
 function select(identifier) {
   selectAll(new Set([identifier]));
+}
+
+// Its whole herd (colour group) picked on the map, it still in the inspector.
+function selectHerd(identifier, realm) {
+  if (realm === undefined || realm < 0) return;
+  selectAll(app.frame.agents.filter(agent => agent.alive && agent.realm === realm).map(agent => agent.identifier));
+  app.selectedId = identifier;
+  app.showInsights = false;
+  drawSidebar();
+}
+
+// The look of the one a Bitzkey follows, as the daemon sends it, to draw small.
+function leaderLook(found) {
+  const leader = found.leader_look;
+  return leader ? { dot: leader.dot_rgb, ring: leader.ring_rgb, social: leader.social_rgb, species: leader.species_index } : null;
+}
+
+// A portrait whose herd flag selects the herd and whose leader selects that leader, on a click there.
+function clickableMarks(canvas, found) {
+  const inside = (spot, event) => spot && event.offsetX >= spot.x && event.offsetX <= spot.x + spot.w && event.offsetY >= spot.y && event.offsetY <= spot.y + spot.h;
+  canvas.addEventListener('click', event => {
+    if (inside(canvas.spots.flag, event)) {
+      event.stopPropagation();
+      selectHerd(found.identifier, found.realm);
+    } else if (inside(canvas.spots.leader, event)) {
+      event.stopPropagation();
+      select(found.leader_look.identifier);
+    }
+  });
+  return canvas;
 }
 
 // Tab: the next living Bitzkey by identifier after the one selected, Shift+Tab the one before, round to the first
@@ -1070,8 +1113,8 @@ function drawExemplars() {
       }
       const radius = Math.max(4, Math.min(16, Math.floor(card.clientHeight / 5)));
       body.replaceChildren(
-        portraitCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius, RING_WIDTH, true,
-          { wields: found.wields, wears: found.wears, rank: found.rank }),
+        clickableMarks(portraitCanvas({ dot: found.dot_rgb, ring: found.ring_rgb, social: found.social_rgb, species: found.species_index }, radius, RING_WIDTH, true,
+          { wields: found.wields, wears: found.wears, rank: found.rank, hide: found.hide, herd: found.herd_rgb, leader: leaderLook(found) }), found),
         element('div', { class: 'card-text' },
           element('span', { class: 'card-name' }, `#${pad3(found.identifier)}`,
             found.rank > 0 ? element('span', { class: 'card-title' }, `  ${upper(tr(found.rank_title))}`) : ''),
@@ -1118,7 +1161,8 @@ async function drawSidebar() {
   holder.replaceChildren(
     element('div', { class: 'heading-row' }, element('div', { class: 'heading' }, 'SELECTED BITZKEY'),
       agent.alive !== false ? element('button', { onclick: () => inspectBrains(identifier) }, 'INSPECT BRAINS') : null),
-    details(agent, { behind: true }),
+    details(agent, { behind: true, onFlag: () => selectHerd(agent.identifier, agent.realm), onLeader: () => select(agent.leader_look.identifier),
+                     leader: leaderLook(agent) }),
     element('div', { class: 'faint keys', style: { marginTop: '14px' } }, 'C  copy as JSON      A  export      K  catalog'),
     element('div', { class: 'sidebar-buttons' },
       element('button', { class: listed ? 'lit' : '', onclick: toggleExport }, listed ? 'REMOVE FROM EXPORT' : 'ADD TO EXPORT'),

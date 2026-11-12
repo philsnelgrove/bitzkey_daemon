@@ -3,7 +3,7 @@
 
 import { element, pad3, upper } from './common.js';
 import { tr } from './i18n.js';
-import { bitzkeyCanvas, portraitCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css, shownColour } from './draw.js';
+import { bitzkeyCanvas, portraitCanvas, iconCanvas, dotRadius, DOT_RADIUS_LARGEST, ICON_MIN_RADIUS, TEMPERATURES, TEMPERATURE_COLOURS, MIND_TRAITS, SOCIAL_TRAITS, BODY_TRAITS, css, shownColour } from './draw.js';
 
 const SHORT = ['hot', 'medium', 'cold', 'v. cold'];
 
@@ -127,10 +127,11 @@ function wordPopup(part, hex, rgb) {
 
 const row = (cls, text) => element('div', { class: cls, 'data-no-translate': '' }, text);
 
-export function details(agent, { large = 0, behind = false } = {}) {
+export function details(agent, { large = 0, behind = false, onFlag = null, onLeader = null, leader = null } = {}) {
   const known = agent.known;
-  // At twice the size it has on the map, beside its name, its colours and its terrain
-  const radius = large || 2 * dotRadius(agent.body[1], DOT_RADIUS_LARGEST);
+  // At twice the size it has on the map, beside its name, its colours and its terrain: never so small that it loses its
+  // social background and icon, its ring in proportion
+  const radius = large || 2 * dotRadius(agent.body[1], DOT_RADIUS_LARGEST, ICON_MIN_RADIUS);
   const panel = element('div', { class: 'details' });
   const name = `#${pad3(agent.identifier)}  ${upper(tr(agent.species))}${agent.nocturnal === undefined ? '' : '  ' + upper(tr(agent.nocturnal ? 'nocturnal' : 'diurnal'))}`;
   const chits = element('div', { class: 'mono small swatches', 'data-no-translate': '' }, ...[['MIND', agent.dot, agent.dot_rgb], ['BODY', agent.ring, agent.ring_rgb],
@@ -138,15 +139,22 @@ export function details(agent, { large = 0, behind = false } = {}) {
     hovering(element('span', { class: 'chit' }, element('i', { class: 'swatch', style: { background: rgb ? css(shownColour(rgb)) : 'none' } }), tr(label)),
       () => wordPopup(part, hex, rgb))));
   if (agent.terrain) chits.append(element('span', { class: 'terrain' }, upper(tr(agent.terrain))));
-  const gear = { wields: agent.wields || 0, wears: agent.wears || 0, rank: agent.rank || 0 };
-  if (behind) {  // its portrait three times as large, behind the words and lines
-    const portrait = portraitCanvas(look(agent), 3 * radius, 12, agent.alive !== false || !known, gear);
+  const gear = { wields: agent.wields || 0, wears: agent.wears || 0, rank: agent.rank || 0, hide: agent.hide || 0,
+                 herd: agent.herd_rgb || null, leader, wagon: !!agent.wagon };
+  if (behind) {  // its portrait three times as large, behind the words and lines, its ring in proportion
+    const portrait = portraitCanvas(look(agent), 3 * radius, Math.max(2, Math.round(3 * radius * 0.4)), agent.alive !== false || !known, gear);
     portrait.classList.add('portrait-behind');
     panel.append(portrait);
+    // its flag and leader clickable over the words: a spot laid on each, where the portrait drew it
+    for (const [spot, action, tip] of [[portrait.spots.flag, onFlag, 'Select its whole herd'], [portrait.spots.leader, onLeader, 'Select the one it follows']]) {
+      if (!spot || !action) continue;
+      panel.append(element('span', { class: 'portrait-spot', title: tip, onclick: action,
+        style: { left: `${spot.x - 12}px`, top: `${spot.y - 40}px`, width: `${spot.w}px`, height: `${spot.h}px` } }));
+    }
   }
   const title = agent.rank > 0 ? element('span', { class: 'details-rank' }, upper(tr(agent.rank_title))) : '';
   panel.append(element('div', { class: 'details-head' },
-    behind ? element('span', { style: { width: `${2 * (radius + 6)}px` } }) : portraitCanvas(look(agent), radius, large ? Math.round(large / 4) : 4, agent.alive !== false || !known, gear),
+    behind ? element('span', { style: { width: `${2 * (radius + 6)}px` } }) : portraitCanvas(look(agent), radius, Math.max(2, Math.round(radius / 4)), agent.alive !== false || !known, gear),
     element('div', { class: 'details-title' }, element('span', { class: 'details-name', 'data-no-translate': '' }, name), title, chits),
     iconCanvas(agent.species_index, 9, 'rgb(220,229,211)')));
   // Temperament: the mind's traits beside the social background's, inborn and now; the body beneath.

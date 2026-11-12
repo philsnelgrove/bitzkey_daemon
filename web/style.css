@@ -100,6 +100,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .details { position: relative; }
 .details > *:not(.portrait-behind) { position: relative; z-index: 1; }
 .portrait-behind { position: absolute; left: -12px; top: -40px; z-index: 0; pointer-events: none; }
+.portrait-spot { position: absolute; z-index: 2; cursor: pointer; }  /* its herd's flag and its leader, clickable over the words */
 .details-rank, .card-title { color: rgb(236, 190, 60); font-size: 12px; }
 .details-rank { margin-left: 8px; }
 .details-head .details-name { flex: 1; font-size: 15px; color: rgb(238, 238, 220); }

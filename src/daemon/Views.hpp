@@ -36,6 +36,9 @@ std::string gzipped(const std::string& data);
 // A Bitzkey as the inspector shows it. `known` is false for a genome alone (in the catalog, or the
 // designer): its state is not shown. `here` is the temperature where it stands.
 Json inspect(const Bitzkey& agent, bool known = true, std::optional<double> here = std::nullopt);
+// What its portrait shows beside it: the hide it wears, its herd (colour group) and that herd's colour, the one it
+// follows (its look, to draw small), and whether it drags a wagon.
+Json portrait_marks(const Simulation& simulation, const Bitzkey& agent);
 // One genome's facts, as the designer lists them.
 Json design(Dna dna);
 

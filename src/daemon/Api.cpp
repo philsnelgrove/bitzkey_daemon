@@ -352,7 +352,9 @@ void install_routes(httplib::Server& server, World& world, const std::filesystem
         Simulation& simulation = world.simulation();
         for (const auto& agent : simulation.agents()) {
             if (agent->identifier == identifier) {
-                reply(response, inspect(*agent, true, simulation.temperature(agent->y)));
+                Json found = inspect(*agent, true, simulation.temperature(agent->y));
+                found.update(portrait_marks(simulation, *agent));
+                reply(response, found);
                 return;
             }
         }

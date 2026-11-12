@@ -346,14 +346,38 @@ std::string frame(const Simulation& simulation) {
         put<std::int32_t>(out, identifier);
         put<std::uint32_t>(out, static_cast<std::uint32_t>(realm.members));
         put<std::uint8_t>(out, static_cast<std::uint8_t>(realm.species));
-        for (int pad = 0; pad < 3; ++pad) put<std::uint8_t>(out, 0);
+        const Rgb colour = color_from_word(realm.ring);  // its colour, for its members' flags (once three empty bytes)
+        for (const int channel : {colour.r, colour.g, colour.b}) put<std::uint8_t>(out, static_cast<std::uint8_t>(channel));
     }
     for (const auto& agent : agents) put<std::int32_t>(out, agent->realm);
+    for (const auto& agent : agents) {  // the hide each wears and the one each follows, for their marks on the map
+        put<std::uint8_t>(out, static_cast<std::uint8_t>(std::clamp(agent->hide, 0, 3)));
+        for (int pad = 0; pad < 3; ++pad) put<std::uint8_t>(out, 0);
+        put<std::int32_t>(out, agent->follows);
+    }
     return out;
 }
 
 // ---------------------------------------------------------------------------------------------
 // The inspector
+
+Json portrait_marks(const Simulation& simulation, const Bitzkey& agent) {
+    Json marks = {{"hide", agent.hide}, {"realm", agent.realm}, {"herd_rgb", nullptr}, {"leader_look", nullptr}, {"wagon", agent.wagon >= 0}};
+    if (agent.species == Species::Plant || !agent.alive()) return marks;
+    if (const auto realm = simulation.realms().find(agent.realm); agent.realm >= 0 && realm != simulation.realms().end()) {
+        marks["herd_rgb"] = rgb(color_from_word(realm->second.ring));
+    }
+    if (agent.follows >= 0 && agent.follows != agent.identifier) {
+        for (const auto& other : simulation.agents()) {
+            if (other->identifier != agent.follows || !other->alive()) continue;
+            marks["leader_look"] = {{"identifier", other->identifier}, {"species_index", static_cast<int>(other->species)},
+                                    {"dot_rgb", rgb(color_from_word(mind_word(other->dna)))}, {"ring_rgb", rgb(color_from_word(body_word(other->dna)))},
+                                    {"social_rgb", rgb(color_from_word(social_word(other->dna)))}};
+            break;
+        }
+    }
+    return marks;
+}
 
 Json inspect(const Bitzkey& agent, bool known, std::optional<double> here) {
     Json result = {
@@ -497,6 +521,7 @@ Json exemplars(const Simulation& simulation, const std::vector<int>& choices) {
             card["ring_rgb"] = rgb(color_from_word(body_word(best->dna)));
             card["social_rgb"] = rgb(color_from_word(social_word(best->dna)));
             card["said"] = exemplar_text(*best, stat);
+            card.update(portrait_marks(simulation, *best));
         } else {
             card["said"] = "none alive";
         }

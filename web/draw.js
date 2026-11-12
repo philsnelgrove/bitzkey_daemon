@@ -322,13 +322,29 @@ export function drawMaterials(ctx, stone, bone, wood, cx, cy, half) {
 export function drawCrown(ctx, x, y, radius, rank = 1) {
   const half = Math.max(3, radius * 0.75), high = Math.max(3, radius * 0.75);
   const foot = y - radius - RING_WIDTH - 1;  // its band just clear of the ring
-  ctx.fillStyle = 'rgb(236, 190, 60)';
-  ctx.beginPath();
-  ctx.moveTo(x - half, foot);
-  for (const [px, py] of [[x + half, foot], [x + half, foot - high], [x + half / 2, foot - high / 2], [x, foot - high],
-                         [x - half / 2, foot - high / 2], [x - half, foot - high]]) ctx.lineTo(px, py);
-  ctx.closePath();
-  ctx.fill();
+  // Shaded gold: an outline, the body in a deeper gold, its left lit, a bright band along its foot with a jewel.
+  const points = grow => [[x - half - grow, foot + grow], [x + half + grow, foot + grow], [x + half + grow, foot - high - grow],
+    [x + half / 2, foot - high / 2 - grow], [x, foot - high - grow], [x - half / 2, foot - high / 2 - grow], [x - half - grow, foot - high - grow]];
+  const fill = (corners, colour) => {
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    corners.forEach(([px, py], index) => (index ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  fill(points(1), 'rgb(92,64,14)');
+  fill(points(0), 'rgb(206,152,36)');
+  fill([[x - half, foot], [x, foot], [x, foot - high], [x - half / 2, foot - high / 2], [x - half, foot - high]], 'rgb(246,204,82)');  // the lit side
+  const band = Math.max(1, high / 4);
+  ctx.fillStyle = 'rgb(252,226,128)';
+  ctx.fillRect(x - half, foot - band, 2 * half + 1, band + 1);
+  for (const [cx, cy, r, colour] of [[x - half, foot - high, half / 5, 'rgb(255,240,170)'], [x, foot - high, half / 5, 'rgb(255,240,170)'],
+                                    [x + half, foot - high, half / 5, 'rgb(255,240,170)'], [x, foot - band / 2, half / 4, 'rgb(196,40,52)']]) {
+    ctx.fillStyle = colour;  // its points' pearls, and a jewel
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(1, r), 0, 2 * Math.PI);
+    ctx.fill();
+  }
   const stars = Math.max(0, Math.min(7, rank)), outer = Math.max(2, radius / 3), inner = Math.max(1, outer * 0.4);
   const cy = foot - high - outer - 2, step = 2 * outer + Math.max(1, outer / 2);
   ctx.fillStyle = 'rgb(250, 228, 140)';
@@ -359,7 +375,7 @@ export function drawGear(ctx, wields, wears, x, y, radius) {
     ctx.fill();
   }
   if (!wields) return;
-  const cx = x + radius, cy = y - radius * 0.6;
+  const cx = x + radius, cy = y + radius * 0.6;  // at its lower right, the upper right its herd's flag's
   const colour = wields === 2 ? 'rgb(122,80,44)' : wields === 1 ? 'rgb(236,226,205)' : 'rgb(136,138,142)';
   // A point along the tool's handle, from its foot (-1) to its tip (1), and across it.
   const at = (along, across) => [cx + (along + across) * size, cy + (across - along) * size];
@@ -518,9 +534,10 @@ export function bitzkeyCanvas(look, radius, ringWidth = RING_WIDTH, alive = true
 }
 
 // A Bitzkey as it looks on the map, on a canvas of its own with room around it: its gear, and a leader's crown and stars.
-export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = true, { wields = 0, wears = 0, rank = 0 } = {}) {
+export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = true,
+                               { wields = 0, wears = 0, rank = 0, hide = 0, herd = null, leader = null, wagon = false } = {}) {
   const canvas = document.createElement('canvas');
-  const side = 2 * Math.ceil(radius * 2.4 + ringWidth + 2);
+  const side = 2 * Math.ceil(radius * 2.4 + ringWidth + 2) + (wagon ? 2 * Math.ceil(radius + ringWidth) : 0);
   const scale = window.devicePixelRatio || 1;
   canvas.width = Math.ceil(side * scale);
   canvas.height = Math.ceil(side * scale);
@@ -528,10 +545,13 @@ export function portraitCanvas(look, radius, ringWidth = RING_WIDTH, alive = tru
   canvas.style.height = `${side}px`;
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
-  const cx = side / 2, cy = side / 2 + radius * 0.6;  // lower, leaving room above for its crown
+  const cx = wagon ? Math.ceil(radius * 2.4 + ringWidth + 2) : side / 2, cy = side / 2 + radius * 0.6;  // lower, leaving room above for its crown
+  const reach = radius + ringWidth;
   drawBitzkey(ctx, look, cx, cy, radius, ringWidth, alive);
+  canvas.spots = look.species ? drawMarks(ctx, cx, cy, reach, { hide, herd: alive ? herd : null, leader: alive ? leader : null }) : {};
   drawGear(ctx, wields, wears, cx, cy, radius);
   if (alive && rank > 0) drawCrown(ctx, cx, cy, radius, rank);
+  if (wagon) drawWagon(ctx, cx + reach + Math.max(8, reach * 0.75), cy + reach / 2, Math.max(10, reach));
   return canvas;
 }
 
@@ -546,4 +566,107 @@ export function iconCanvas(species, half, colour) {
   ctx.scale(scale, scale);
   drawIcon(ctx, species, side / 2, side / 2, half, colour);
   return canvas;
+}
+
+// Marks drawn about a Bitzkey, as the desktop draws them: the hide it wears below it, its herd's flag at its upper
+// right, the one it follows small at its upper left, and a wagon beside the panel's portrait. A dot on the map this big
+// shows its flag and leader.
+export const MAP_MARKS_RADIUS = 6;
+const DARK_EDGE = 'rgb(24,30,30)';
+const PELTS = [[0, 0, 0], [201, 176, 128], [139, 98, 62], [118, 120, 128]];  // by the species a hide came from
+
+function shape(ctx, points, colour) {
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  points.forEach(([px, py], index) => (index ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.closePath();
+  ctx.fill();
+}
+
+export function drawHide(ctx, hide, x, y, radius) {
+  if (!hide) return;
+  const pelt = PELTS[Math.max(1, Math.min(3, hide))], edge = pelt.map(channel => Math.round(channel * 0.6));
+  const w = Math.max(3, radius / 2), h = Math.max(2, radius * 3 / 8), cy = y + radius + h / 3;
+  const outline = grow => [[x - w / 2 - grow, cy - h - grow], [x - w / 4, cy - h / 2], [x + w / 4, cy - h / 2], [x + w / 2 + grow, cy - h - grow],
+    [x + w / 2 - w / 6, cy], [x + w / 2 + grow, cy + h + grow], [x + w / 4, cy + h / 2], [x - w / 4, cy + h / 2], [x - w / 2 - grow, cy + h + grow],
+    [x - w / 2 + w / 6, cy]];
+  shape(ctx, outline(1), css(edge));
+  shape(ctx, outline(0), css(pelt));
+  if (hide === 3) {  // a predator's, striped
+    ctx.strokeStyle = css(edge);
+    ctx.lineWidth = Math.max(1, w / 10);
+    for (const dx of [-w / 4, 0, w / 4]) {
+      ctx.beginPath();
+      ctx.moveTo(x + dx, cy - h / 2);
+      ctx.lineTo(x + dx, cy + h / 2);
+      ctx.stroke();
+    }
+  }
+}
+
+export function flagBox(x, y, radius) {
+  const size = Math.max(4, radius * 0.6);
+  return { x: x + radius - size / 4, y: y - radius - size, w: size * 1.5, h: size * 1.5 };
+}
+
+export function drawFlag(ctx, colour, x, y, radius) {
+  const box = flagBox(x, y, radius), pole = box.x + 1, top = box.y, foot = box.y + box.h, size = box.h * 2 / 3;
+  ctx.lineCap = 'butt';
+  for (const [stroke, width] of [[DARK_EDGE, Math.max(2, size / 4)], ['rgb(222,214,196)', Math.max(1, size / 8)]]) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(pole, top);
+    ctx.lineTo(pole, foot);
+    ctx.stroke();
+  }
+  shape(ctx, [[pole - 1, top - 1], [pole + size + 2, top + size / 3], [pole - 1, top + size * 2 / 3 + 1]], DARK_EDGE);
+  shape(ctx, [[pole, top], [pole + size, top + size / 3], [pole, top + size * 2 / 3]], css(colour));
+  shape(ctx, [[pole, top], [pole + size, top + size / 3], [pole, top + size / 3]], css(colour.map(channel => Math.round(channel + (255 - channel) * 0.3))));
+}
+
+export function drawWagon(ctx, x, y, size) {
+  const w = Math.max(8, size), h = Math.max(4, size * 0.4), left = x - w / 2, top = y - h / 2 - size / 8, r = Math.max(2, size / 5);
+  ctx.fillStyle = DARK_EDGE;
+  ctx.fillRect(left - 1, top - 1, w + 2, h + 2);
+  ctx.fillStyle = 'rgb(150,104,62)';
+  ctx.fillRect(left, top, w, h);
+  ctx.strokeStyle = 'rgb(96,64,38)';
+  ctx.lineWidth = 1;
+  for (const plank of [1, 2]) {
+    ctx.beginPath();
+    ctx.moveTo(left + 1, top + plank * h / 3);
+    ctx.lineTo(left + w - 2, top + plank * h / 3);
+    ctx.stroke();
+  }
+  for (const wx of [left + w / 4, left + w * 3 / 4]) {
+    for (const [colour, reach] of [[DARK_EDGE, r + 1], ['rgb(70,54,40)', r], ['rgb(196,176,140)', Math.max(1, r / 3)]]) {
+      ctx.fillStyle = colour;
+      ctx.beginPath();
+      ctx.arc(wx, top + h + r / 2, reach, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+  ctx.lineWidth = Math.max(1, size / 10);
+  ctx.beginPath();
+  ctx.moveTo(left + w, top + h / 2);
+  ctx.lineTo(left + w + size / 3, top + h / 2 - size / 6);
+  ctx.stroke();
+}
+
+// The marks about one drawn at (x, y): its hide, its herd's flag and the one it follows; returns where the flag and the
+// leader were drawn, to click.
+export function drawMarks(ctx, x, y, reach, { hide = 0, herd = null, leader = null } = {}) {
+  const spots = {};
+  drawHide(ctx, hide, x, y, reach);
+  if (herd) {
+    drawFlag(ctx, herd, x, y, reach);
+    spots.flag = flagBox(x, y, reach);
+  }
+  if (leader) {  // the one it follows, small, at its upper left
+    const small = Math.max(3, reach * 0.4), lx = x - reach + small / 2, ly = y - reach + small / 2;
+    drawBitzkey(ctx, leader, lx, ly, small, Math.max(1, small / 3), true);
+    spots.leader = { x: lx - small - 2, y: ly - small - 2, w: 2 * small + 4, h: 2 * small + 4 };
+  }
+  return spots;
 }
