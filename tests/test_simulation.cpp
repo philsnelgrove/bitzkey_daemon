@@ -3945,6 +3945,81 @@ TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it 
     CHECK(Simulation::value_of(maker, WagonGood) == 1);
 }
 
+TEST_CASE("crafting takes from piles at hand, work begun on the square and friends' packs; a bow or wagon can be worked on in parts") {
+    Simulation simulation = world(30);
+    const auto knows = [](Bitzkey& agent, int action) {
+        agent.crafts |= 1 << (action - MakeBoneAxe);
+        agent.craft_tries[action - MakeBoneAxe] = CRAFT_TRIES;
+    };
+    // From a pile beside it.
+    Bitzkey& archer = simulation.add_agent(encode_dna(Species::Predator, {{"size", 1}}), 5, 5);
+    archer.weapon = StoneAxe;
+    archer.hide = static_cast<int>(Species::Grazer);
+    knows(archer, MakeBow);
+    simulation.add_to_pile(6, 5, WoodPile, BOW_WOOD);
+    simulation.index_cells();
+    CHECK(simulation.can_finish(archer, MakeBow));
+    simulation.make_gear(archer, MakeBow);
+    CHECK(archer.bow_uses == BOW_USES);
+    CHECK(simulation.pile_at(6, 5, WoodPile) == 0);
+    // Worked on in parts: two without the tool put in wood and a hide; one with a stone axe and nothing else finishes it.
+    Bitzkey& first = simulation.add_agent(encode_dna(Species::Predator, {{"size", 1}}), 10, 10);
+    Bitzkey& second = simulation.add_agent(encode_dna(Species::Predator, {{"size", 1}}), 10, 10);
+    Bitzkey& finisher = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 10, 10);
+    for (Bitzkey* one : {&first, &second, &finisher}) knows(*one, MakeBow);
+    first.carried_wood = 1;
+    second.carried_wood = 3;
+    second.spare_hides.push_back({static_cast<int>(Species::Grazer), 0.1});
+    finisher.weapon = StoneAxe;
+    simulation.index_cells();
+    CHECK_FALSE(simulation.can_finish(first, MakeBow));
+    CHECK(simulation.can_add(first, MakeBow - MakeBoneAxe));
+    simulation.make_gear(first, MakeBow);
+    CHECK(first.carried_wood == 0);
+    CHECK(first.last_action == "worked on a craft");
+    CHECK(simulation.work_at(10, 10).craft == MakeBow - MakeBoneAxe);
+    simulation.make_gear(second, MakeBow);
+    CHECK(second.carried_wood == 2);  // only what the work lacked
+    CHECK(second.spare_hides.empty());
+    CHECK(simulation.work_at(10, 10).wood == BOW_WOOD);
+    CHECK(simulation.work_at(10, 10).hide == 1);
+    CHECK_FALSE(simulation.can_add(second, MakeBow - MakeBoneAxe));  // nothing more it needs
+    second.carried_wood = 0;
+    CHECK(simulation.can_finish(finisher, MakeBow));
+    simulation.make_gear(finisher, MakeBow);
+    CHECK(finisher.bow_uses == BOW_USES);
+    CHECK(simulation.work_at(10, 10).craft == -1);  // finished
+    // From a friend's pack beside it, who shares in the making.
+    Bitzkey& wright = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 15, 15);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 16, 15);
+    wright.weapon = BoneAxe;
+    knows(wright, MakeWagon);
+    friend_.crafts = 1 << (MakeWagon - MakeBoneAxe);
+    friend_.carried_stone = WAGON_STONE;
+    friend_.carried_wood = WAGON_WOOD;
+    simulation.index_cells();
+    CHECK_FALSE(simulation.can_finish(wright, MakeWagon));  // a stranger's pack is not at hand
+    wright.known.push_back(Acquaintance{friend_.identifier, REGARD_STRONG, 0});
+    CHECK(simulation.can_finish(wright, MakeWagon));
+    simulation.make_gear(wright, MakeWagon);
+    CHECK(simulation.wagons().size() == 1);
+    CHECK(friend_.carried_stone + friend_.carried_wood == 0);
+    CHECK(friend_.craft_tries[MakeWagon - MakeBoneAxe] == 1);  // a hand in it
+    CHECK(friend_.reward == doctest::Approx(SHARE_JOY * Simulation::generosity(friend_)));
+    // Left untouched, work falls apart into piles.
+    Bitzkey& idler = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 20, 20);
+    knows(idler, MakeWagon);
+    idler.carried_stone = 1;
+    simulation.make_gear(idler, MakeWagon);
+    CHECK(simulation.work_at(20, 20).stone == 1);
+    const int site_turns = SITE_TURNS;
+    SITE_TURNS = 0;
+    simulation.rot_works();
+    SITE_TURNS = site_turns;
+    CHECK(simulation.work_at(20, 20).craft == -1);
+    CHECK(simulation.pile_at(20, 20, StonePile) == 1);
+}
+
 TEST_CASE("tools and hides are carried beside those in hand and worn; the best is used, and any serves for crafting") {
     Simulation simulation = world();
     Bitzkey& agent = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);

@@ -606,6 +606,18 @@ enum GearDesire { WeaponDesire, ArmourDesire, BowDesire };
 // SHELTER_UNITS more of its load, shelters it as a shelter does, and makes each step WAGON_DRAG more tiring.
 constexpr int WAGON_STONE = 2, WAGON_WOOD = 3;
 inline double WAGON_DRAG = 0.5;
+// Crafting at hand: a craft takes its materials from the pack first, then the work begun on its square, then piles on
+// its square and those beside it, then the packs of friends within a step, each of whom shares in the making (a try
+// at the craft, if it knows it, and the sharing's joy or unease, SHARE_JOY times its generosity by its share). One who
+// knows a bow or a wagon but lacks a part or the tool puts what it carries of one into work on its square (BUILD_THRILL
+// by its share of the parts, times curiosity), for any who knows the craft to finish; work left SITE_TURNS untouched
+// falls apart, its stone, bone and wood in piles there, its hide lost.
+struct Parts {
+    int stone = 0, bone = 0, wood = 0, hide = 0;
+};
+struct Work {
+    int craft = -1, stone = 0, bone = 0, wood = 0, hide = 0, turn = 0;  // craft -1: none begun
+};
 inline double READY_JOY = 0.3;  // for each part of a set it holds for what it knows how to make (half plus mostly patience)
 inline double BUILD_THRILL = 1.0;  // each stage of a shelter, k of SHELTER_UNITS, thrills BUILD_THRILL * k / SHELTER_UNITS; finishing it, twice BUILD_THRILL (times curiosity, plus SHELTER_LONGING times its shelter memory)
 // A finished shelter keeps the weather off whoever stands in it, hot or cold. Resting inside is a comfort
@@ -1690,7 +1702,15 @@ public:
     void dress(Bitzkey& agent, Bitzkey& corpse);  // all that is left of a body made into bone, a pile where it lay
     void take_gear(Bitzkey& agent, Situation& s);  // wielded or worn at once
     void discover(Bitzkey& agent);  // perhaps, a craft whose materials it holds
-    void make_gear(Bitzkey& agent, int action);    // from what it carries, wielded or worn at once
+    void make_gear(Bitzkey& agent, int action);    // from what it has at hand, wielded or worn at once; else work on a bow or wagon
+    Parts at_hand(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const;  // its pack, the work, piles about, friends' packs
+    bool has_set(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const;  // all the craft needs, at hand
+    bool can_finish(const Bitzkey& agent, int action) const;  // a bow or wagon, with the tool and the set at hand
+    bool can_add(const Bitzkey& agent, int craft) const;  // carries a part the work on its square still lacks
+    void add_to_work(Bitzkey& agent, int action);
+    void use_parts(Bitzkey& agent, int craft);  // spent in that order, friends who gave sharing in it
+    void rot_works();  // work left SITE_TURNS falls apart
+    const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken
     static void wear_weapon(Bitzkey& agent);       // a use of what it wields, which may break it
     static void wield_best(Bitzkey& agent);        // in hand the best tool it carries that it may wield
@@ -2215,6 +2235,7 @@ private:
         if (arable_at(x, y)) tended_[static_cast<std::size_t>(y) * width_ + x] = turn_;
     }
     std::vector<int> sites_, shelters_;  // each square's units of an unfinished shelter, and whether one stands
+    std::vector<Work> works_;  // each square's bow or wagon begun
     std::vector<Wagon> wagons_;  // every wagon made
     std::unordered_multimap<std::size_t, int> parked_;  // the wagons no one drags, by their squares
     std::vector<int> roads_, road_work_;  // whether each square is road, and turns laid on an unfinished one
