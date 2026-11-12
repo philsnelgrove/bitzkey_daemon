@@ -3984,6 +3984,36 @@ TEST_CASE("felling a plant gives a seed for each fruit it would bear, as many as
     CHECK(feller.carried_seed == std::min(fruit, feller.capacity()));
 }
 
+TEST_CASE("the call it made is pictured too, so foresight learns what follows a call; what it meant is read from its brain") {
+    const int gpu = USE_GPU;
+    USE_GPU = 0;  // its lessons learnt at once, on the CPU
+    Simulation simulation = world(30);
+    USE_GPU = gpu;
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);
+    simulation.index_cells();
+    REQUIRE(caller.brain);
+    caller.mind[Intellect] = 7.0;  // one that learns
+    caller.last_senses = simulation.sense(caller).senses;
+    caller.has_last_senses = true;
+    caller.last_choice = Rest;
+    caller.last_call = FirstCall;
+    const Senses called = imagining(caller.last_senses, imagined_call(FirstCall));
+    const int thing = py_mod(simulation.turn(), FORESEEN);
+    const double before = caller.brain->values(called)[FORESIGHT + thing];
+    Foresight change{};
+    change.fill(before < 0.5 ? 1.0 : -1.0);
+    simulation.foresee(caller, change);
+    const double after = caller.brain->values(called)[FORESIGHT + thing];
+    CHECK(std::abs(after - change[0]) < std::abs(before - change[0]));  // learnt toward what followed the call
+    const CallIntent intent = call_intent(*caller.brain, caller.last_senses, FirstCall);
+    const Values valued = caller.brain->values(caller.last_senses);
+    CHECK(intent.margin == doctest::Approx(valued[call_output(FirstCall)] - valued[call_output(Silent)]));
+    for (std::size_t index = 0; index < intent.drivers.size(); ++index) {
+        CHECK(intent.drivers[index].second > 0);  // each raised the call over silence, the largest first
+        if (index) CHECK(intent.drivers[index - 1].second >= intent.drivers[index].second);
+    }
+}
+
 TEST_CASE("arrows: a wood at hand restores a bow to its full uses, its own or another's beside it, empty or not, a craft toward mastering the bow") {
     Simulation simulation = world(30);
     Bitzkey& archer = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 5, 5);

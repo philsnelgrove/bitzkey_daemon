@@ -255,6 +255,9 @@ constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 
 constexpr int SenseImagined = SenseNocturnal + 1;
 constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
+// A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
+constexpr int imagined_call(int call) { return ACTION_COUNT + call; }
+static_assert(ACTION_COUNT + CALL_OPTIONS <= 1 << IMAGINED_BITS);
 constexpr int INPUT_SIZE = SenseImagined + IMAGINED_BITS;
 // The senses as a brain reads them: each that runs 0..1 centred, read as -1..1, so that a lesson moves a neuron's weights
 // both ways (senses never below 0 push all its weights the same way, lesson after lesson, until the neuron jams at its

@@ -236,6 +236,15 @@ Json Probe::animal(Simulation& world, int identifier) const {
     result["plenty"] = agent->plenty;
     result["plenty_known"] = agent->plenty_known;
     result["surprise"] = agent->surprise;
+    if (agent->brain && agent->has_last_senses && agent->last_call > Silent) {  // what it made of its last call
+        world.sync_brains();
+        const CallIntent intent = call_intent(*agent->brain, agent->last_senses, agent->last_call);
+        Json drivers = Json::array();
+        for (const auto& [sense, raised] : intent.drivers) drivers.push_back({{"sense", std::string(SENSES[static_cast<std::size_t>(sense)])}, {"raised", raised}});
+        result["call_intent"] = {{"call", agent->last_call == AlertCall ? std::string("alert") : "call_" + std::to_string(agent->last_call - FirstCall + 1)},
+                                 {"over_silence", intent.margin}, {"drivers", drivers},
+                                 {"expects", {{"hunger", intent.expects[0]}, {"health", intent.expects[1]}, {"stamina", intent.expects[2]}, {"food", intent.expects[3]}}}};
+    }
     result["gear"] = {{"weapon", WEAPON_NAMES[static_cast<std::size_t>(agent->weapon)]}, {"weapon_uses", agent->weapon_uses},
                       {"bow", agent->bow}, {"bow_uses", agent->bow_uses}, {"archery", agent->archery},
                       {"desire", {{"weapon", agent->desire[WeaponDesire]}, {"armour", agent->desire[ArmourDesire]}, {"bow", agent->desire[BowDesire]}}},
@@ -750,6 +759,66 @@ Json Probe::insights(Simulation& world) const {
         result[std::string(species_name(species))] = actions;
     }
     return {{"turn", world.turn()}, {"insights", result}};
+}
+
+Json Probe::call_meanings(Simulation& world) const {
+    // What each call means to those who make it: over up to MEANING_SAMPLE of each kind whose last call it was, the
+    // senses that most raised it over silence, on average, and what they foresaw it would do beside keeping quiet.
+    constexpr std::size_t MEANING_SAMPLE = 300;
+    world.sync_brains();
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        Json calls = Json::object();
+        std::map<int, std::map<int, double>> by_call;  // each call's mean raise by sense, for what sets it apart
+        for (int call = AlertCall; call < CALL_OPTIONS; ++call) {
+            std::map<int, double> raised;
+            std::array<double, 4> expects{};
+            double margin = 0;
+            std::size_t callers = 0;
+            for (const Bitzkey* agent : world.living()) {
+                if (callers >= MEANING_SAMPLE) break;
+                if (agent->species != species || !agent->brain || !agent->has_last_senses || agent->last_call != call) continue;
+                const CallIntent intent = call_intent(*agent->brain, agent->last_senses, call, 12);
+                for (const auto& [sense, by] : intent.drivers) raised[sense] += by;
+                for (std::size_t thing = 0; thing < expects.size(); ++thing) expects[thing] += intent.expects[thing];
+                margin += intent.margin;
+                ++callers;
+            }
+            if (!callers) continue;
+            std::vector<std::pair<int, double>> ranked(raised.begin(), raised.end());
+            std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+            Json drivers = Json::array();
+            for (std::size_t index = 0; index < std::min<std::size_t>(8, ranked.size()); ++index) {
+                drivers.push_back({{"sense", std::string(SENSES[static_cast<std::size_t>(ranked[index].first)])}, {"raised", ranked[index].second / callers}});
+            }
+            const double n = static_cast<double>(callers);
+            for (const auto& [sense, by] : raised) by_call[call][sense] = by / n;
+            calls[call == AlertCall ? std::string("alert") : "call_" + std::to_string(call - FirstCall + 1)] = {
+                {"callers", callers}, {"over_silence", margin / n}, {"drivers", drivers},
+                {"expects", {{"hunger", expects[0] / n}, {"health", expects[1] / n}, {"stamina", expects[2] / n}, {"food", expects[3] / n}}}};
+        }
+        // What sets each call apart: the senses that raise it more than they raise its kind's other calls, on average.
+        for (const auto& [call, raised] : by_call) {
+            std::vector<std::pair<int, double>> apart;
+            for (const auto& [sense, by] : raised) {
+                double others = 0;
+                for (const auto& [other, its] : by_call) {
+                    if (other == call) continue;
+                    if (const auto found = its.find(sense); found != its.end()) others += found->second;
+                }
+                const double mean = by_call.size() > 1 ? others / static_cast<double>(by_call.size() - 1) : 0.0;
+                if (by - mean > 0) apart.emplace_back(sense, by - mean);
+            }
+            std::sort(apart.begin(), apart.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+            Json distinctive = Json::array();
+            for (std::size_t index = 0; index < std::min<std::size_t>(6, apart.size()); ++index) {
+                distinctive.push_back({{"sense", std::string(SENSES[static_cast<std::size_t>(apart[index].first)])}, {"beyond_other_calls", apart[index].second}});
+            }
+            calls[call == AlertCall ? std::string("alert") : "call_" + std::to_string(call - FirstCall + 1)]["distinctive"] = distinctive;
+        }
+        result[std::string(species_name(species))] = calls;
+    }
+    return {{"turn", world.turn()}, {"sample", MEANING_SAMPLE}, {"meanings", result}};
 }
 
 Json Probe::calls(Simulation& world) const {
@@ -2136,6 +2205,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/calls", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return calls(world); }));
+    }));
+    server.Get(prefix + "/call_meanings", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return call_meanings(world); }));
     }));
     server.Get(prefix + R"(/brain/(\d+))", answered([=, this](const httplib::Request& request, httplib::Response& response) {
         const int identifier = number_in(request.matches);

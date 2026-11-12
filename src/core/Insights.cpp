@@ -103,6 +103,30 @@ constexpr bool each_action_once() {
 static_assert(each_action_once(), "every action needs its topic and tooltip in ABOUT, once");
 }  // namespace
 
+CallIntent call_intent(const Brain& brain, const Senses& senses, int call, std::size_t drivers) {
+    CallIntent intent;
+    intent.call = call;
+    const auto margin = [&](const Senses& sensed) {
+        const Values values = brain.values(sensed);
+        return values[call_output(call)] - values[call_output(Silent)];
+    };
+    intent.margin = margin(senses);
+    Senses without = senses;
+    for (int sense = 0; sense < SenseImagined; ++sense) {  // each sense it had, taken away: how much the call fell
+        if (senses[static_cast<std::size_t>(sense)] == 0.0) continue;
+        without[static_cast<std::size_t>(sense)] = 0.0;
+        const double raised = intent.margin - margin(without);
+        without[static_cast<std::size_t>(sense)] = senses[static_cast<std::size_t>(sense)];
+        if (raised > 0) intent.drivers.emplace_back(sense, raised);
+    }
+    std::sort(intent.drivers.begin(), intent.drivers.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+    if (intent.drivers.size() > drivers) intent.drivers.resize(drivers);
+    const Values calling = brain.values(imagining(senses, imagined_call(call)));
+    const Values quiet = brain.values(imagining(senses, imagined_call(Silent)));
+    for (int thing = 0; thing < FORESEEN; ++thing) intent.expects[static_cast<std::size_t>(thing)] = calling[FORESIGHT + thing] - quiet[FORESIGHT + thing];
+    return intent;
+}
+
 const char* action_about(int action) {
     for (const ActionAbout& about : ABOUT) {
         if (about.action == action) return about.about;

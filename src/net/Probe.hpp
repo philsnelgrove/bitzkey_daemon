@@ -101,6 +101,7 @@ public:
     // Whether calls carry meaning, from each animal's last choice: how often each call is made with a hunter in sight
     // and without; and how hearing one changes what listeners do, fleeing a hunter in sight or moving with none.
     Json calls(Simulation& world) const;
+    Json call_meanings(Simulation& world) const;  // what each call means to its makers, read from their brains
     Json brain(Simulation& world, int identifier, bool weights) const;
     // A value this far from nothing has run away; a neuron this near either end of tanh has jammed there.
     static constexpr double RUNAWAY_VALUE = 50;

@@ -1746,6 +1746,10 @@ void Simulation::foresee(Bitzkey& agent, const Foresight& change) {
     const Senses pictured = imagining(agent.last_senses, agent.last_choice);  // what it did, as if it had pictured it
     if (gpu_) queue_lesson(agent, pictured, FORESIGHT + thing, change[thing], rate, false, 0.0);
     else learning_brain(agent).learn(pictured, FORESIGHT + thing, change[thing], rate);
+    if (agent.last_call < 0) return;  // and what it called, or its silence, as if it had pictured that: what follows a call
+    const Senses called = imagining(agent.last_senses, imagined_call(agent.last_call));
+    if (gpu_) queue_lesson(agent, called, FORESIGHT + thing, change[thing], rate, false, 0.0);
+    else learning_brain(agent).learn(called, FORESIGHT + thing, change[thing], rate);
 }
 
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,

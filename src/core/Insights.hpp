@@ -38,6 +38,17 @@ const char* action_about(int action);  // what it is, for a tooltip
 // Each topic, by its place in ACTION_TOPICS, with its actions alphabetically by name.
 const std::vector<std::pair<int, std::vector<int>>>& actions_by_topic();
 
+// What a brain made of a call it chose, read from it: how far above silence it valued the call (how deliberate), the
+// senses that most raised it over silence (each removed in turn, what the call lost), and what it foresaw the call
+// would do to its hunger, health, stamina and food beside keeping quiet (none until it has learnt to picture calls).
+struct CallIntent {
+    int call = Silent;
+    double margin = 0.0;
+    std::vector<std::pair<int, double>> drivers;  // sense, and how much it raised the call over silence, the largest first
+    std::array<double, 4> expects{};               // foresight's change by calling, beside silence
+};
+CallIntent call_intent(const class Brain& brain, const Senses& senses, int call, std::size_t drivers = 6);
+
 // Recent decisions, discounted each turn: how often each kind of animal chose an action when it
 // was possible.
 class Insights {
