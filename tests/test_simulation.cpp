@@ -3984,6 +3984,39 @@ TEST_CASE("felling a plant gives a seed for each fruit it would bear, as many as
     CHECK(feller.carried_seed == std::min(fruit, feller.capacity()));
 }
 
+TEST_CASE("one who sees the caller it hears may read what it meant, by its intellect; unseen, or dull, it learns nothing of it") {
+    const int gpu = USE_GPU;
+    USE_GPU = 0;  // its lessons learnt at once, on the CPU
+    Simulation simulation = world(30);
+    USE_GPU = gpu;
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 10, 10);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}, {"sight", 4}}), 12, 10);
+    simulation.index_cells();
+    caller.last_senses = simulation.sense(caller).senses;
+    caller.has_last_senses = true;
+    caller.last_call = FirstCall;
+    caller.last_choice = Hunt;
+    listener.last_senses = simulation.sense(listener).senses;
+    listener.has_last_senses = true;
+    listener.heard_from = caller.identifier;
+    listener.heard_turn = simulation.turn();
+    const auto call_value = [&] { return listener.brain->values(caller.last_senses)[call_output(FirstCall)]; };
+    const double before = call_value();
+    listener.mind[Intellect] = 0.0;  // none of it, however plainly seen
+    simulation.read_body_language(listener, 1.0, before + 5.0, 0.05);
+    CHECK(call_value() == doctest::Approx(before));
+    const double chance = BODY_LANGUAGE;
+    BODY_LANGUAGE = 1.0;  // read whenever seen, at any intellect
+    listener.mind[Intellect] = 7.0;
+    listener.x = 25;  // out of sight: only heard
+    simulation.read_body_language(listener, 1.0, before + 5.0, 0.05);
+    CHECK(call_value() == doctest::Approx(before));
+    listener.x = 12;  // seen
+    simulation.read_body_language(listener, 1.0, before + 5.0, 0.05);
+    BODY_LANGUAGE = chance;
+    CHECK(call_value() > before);  // learnt to make the call where the caller made it
+}
+
 TEST_CASE("the call it made is pictured too, so foresight learns what follows a call; what it meant is read from its brain") {
     const int gpu = USE_GPU;
     USE_GPU = 0;  // its lessons learnt at once, on the CPU

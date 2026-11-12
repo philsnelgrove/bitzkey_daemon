@@ -2008,5 +2008,7 @@
 "had nothing to plant": "植えるものがなかった",
 "Plant a seed, or else a whole fruit, which feeds the ground as fertilizing does, to grow a new plant.": "種を植える。なければ果実を丸ごと植える（施肥のように土を肥やす）。新しい植物を育てるため。",
 "had nothing to light a fire with": "火をおこす道具がなかった",
-"LAST CALL": "最後の鳴き声"
+"LAST CALL": "最後の鳴き声",
+"Body language": "ボディランゲージ",
+"chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none": "聞こえた同種の鳴き手が見えるとき、知性1点ごとにその意図を理解する確率：鳴き手が鳴いた状況でその鳴き声を出すこと、聞いたら鳴き手がその後したことを学ぶ。0で無し"
 }

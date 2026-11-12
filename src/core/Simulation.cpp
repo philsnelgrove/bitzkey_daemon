@@ -1696,6 +1696,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
         }
     }
     if (rate > 0) learn_from_parent(agent, target, call_target, rate);
+    if (rate > 0) read_body_language(agent, target, call_target, rate);
     if (replay && DIARY_ENTRIES > 0 && !agent.diary.empty() && rate > 0) {  // one diary entry, in turn
         const Bitzkey::Memory& memory = agent.diary[static_cast<std::size_t>(turn_) % agent.diary.size()].memory;
         if (gpu_) queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
@@ -2348,6 +2349,23 @@ void Simulation::learn_from_parent(Bitzkey& child, double target, double call_ta
     };
     if (parent->last_call >= FirstCall) lesson(parent->last_senses, call_output(parent->last_call), call_target);
     lesson(child.last_senses, parent->last_choice, target);
+}
+
+void Simulation::read_body_language(Bitzkey& listener, double target, double call_target, double rate) {
+    if (BODY_LANGUAGE <= 0 || listener.heard_turn != turn_ || listener.heard_from < 0) return;
+    if (CHILD_CALL_LEARNING > 0 && listener.infant() && (listener.heard_from == listener.mother || listener.heard_from == listener.father)) {
+        return;  // its parent's call, learnt as a child learns it
+    }
+    const Bitzkey* caller = find_agent(listener.heard_from);
+    if (!caller || !caller->alive() || !caller->has_last_senses || caller->last_call < FirstCall) return;
+    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener)) return;  // heard, but not seen
+    if (whim(~listener.identifier, turn_) >= BODY_LANGUAGE * listener.mind[Intellect]) return;  // seen, but not read
+    const auto lesson = [&](const Senses& senses, int output, double value) {
+        if (gpu_) queue_lesson(listener, senses, output, value, rate, false, 0.0);
+        else listener.own_brain().learn(senses, output, value, rate);
+    };
+    lesson(caller->last_senses, call_output(caller->last_call), call_target);
+    lesson(listener.last_senses, caller->last_choice, target);
 }
 
 void Simulation::learn_witnessed() {

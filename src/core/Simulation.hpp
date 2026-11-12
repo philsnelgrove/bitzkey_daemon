@@ -660,6 +660,10 @@ inline double WATCH_LEARNING = 0.25;
 // A child that hears its parent call learns, at this share of its own learning, to make that call where the parent
 // made it, and, hearing it, what the parent then did; 0, not at all.
 inline double CHILD_CALL_LEARNING = 1.0;
+// Body language: one that sees the caller of its kind it hears may read what it meant, a chance of BODY_LANGUAGE for
+// each point of its intellect (none at 0): it learns, as a child its parent's call, to make that call where the caller
+// made it and, hearing it, what the caller then did. Unseen, or not read, a call is only what its own turns teach it.
+inline double BODY_LANGUAGE = 0.1;
 inline double ELDER_COMFORT = 0.5;
 inline int ELDER_REACH = 3;
 inline double FOLLOW_SAFETY = 0.5;
@@ -1429,6 +1433,7 @@ public:
     // A child hearing its parent call: the call, in the parent's situation, valued as its own best call, to copy;
     // and what the parent then did, in its own senses holding the call, valued as its own turn, to take in.
     void learn_from_parent(Bitzkey& child, double target, double call_target, double rate);
+    void read_body_language(Bitzkey& listener, double target, double call_target, double rate);  // see BODY_LANGUAGE
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
