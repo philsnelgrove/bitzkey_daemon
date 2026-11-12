@@ -141,7 +141,7 @@ void remove_stale_histories();
 std::string_view kept_text(std::string_view text);
 
 inline int CORPSE_FERTILITY = 2;
-inline constexpr int FIRE_STONES = 2;  // carried stones that strike a fire, and are kept
+inline constexpr int FIRE_STONES = 2;  // carried stones that strike a fire, and are kept; else a club and a wood rubbed together, the wood spent
 inline int WATERED_REACH = 7;  // steps from water within which hot land grows grass and can be tilled
 // An animal awake out of its own hours, in the dark if active by day or in the light if active by night (at its dusk and
 // dawn), sees OFF_HOURS_SIGHT as far as in its own, at least a step. Calls carry as far either way.

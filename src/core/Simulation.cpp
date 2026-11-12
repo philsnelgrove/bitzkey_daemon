@@ -2646,7 +2646,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[Unhitch] = agent.wagon >= 0;
     available[Dig] = agent.any_tool() && !sea(agent.x, agent.y);
     available[EatSeed] = agent.carried_seed > 0 && agent.browsing > 0;
-    available[PlantSeed] = agent.carried_seed > 0 && arable_at(agent.x, agent.y);
+    available[PlantSeed] = agent.carried_seed + agent.carried_fruit > 0 && arable_at(agent.x, agent.y);  // a seed, else a whole fruit
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
     available[EatCarried] = (agent.carried_meat + agent.cooked_meat > 0 && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit > 0 && FRUIT_PORTION * agent.browsing > 0);
@@ -2658,7 +2658,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[EatMarrow] = can_crush(agent) && agent.scavenger() > 0 && MEAT_PORTION * agent.digestion > 0;
     available[Fertilize] = can_crush(agent) && arable_at(agent.x, agent.y) && !fertilized_at(agent.x, agent.y);
     available[BuildRoad] = agent.has_tool(StoneAxe) && agent.carried_stone >= ROAD_STONES && !road_at(agent.x, agent.y) && !shelter_at(agent.x, agent.y) && !site_at(agent.x, agent.y) && !sea(agent.x, agent.y);
-    available[LightFire] = (agent.has_tool(Club) || agent.carried_stone >= FIRE_STONES) && !sea(agent.x, agent.y);
+    available[LightFire] = (agent.carried_stone >= FIRE_STONES || (agent.has_tool(Club) && agent.carried_wood > 0)) && !sea(agent.x, agent.y);
     available[FeedFire] = beside_fire && agent.carried_wood > 0;
     available[Cook] = beside_fire && food_to_cook(agent, s) != HandFood::None;
     if (view.middle && agent.carried_meat + agent.carried_fruit + agent.cooked_meat + agent.cooked_fruit > 0) s.store = herd_store(agent, *view.middle, sight);
@@ -5562,6 +5562,7 @@ void Simulation::cut(Bitzkey& agent, Bitzkey& plant) {
         return;
     }
     if (arable_at(plant.x, plant.y)) agent.reward -= UPROOT_SORROW * (0.5 + agent.feeling(Empathy));  // sorry to fell a farmed one
+    for (int seed = fruit_capacity(plant); seed > 0; --seed) keep_seed(agent);  // its seeds, a seed for each fruit it would bear, as many as it can carry
     plant.health = 0;
     wear_weapon(agent);
     agent.last_action = "cut down a plant";
@@ -5593,15 +5594,26 @@ void Simulation::eat_seed(Bitzkey& agent) {
 }
 
 void Simulation::plant_seed(Bitzkey& agent) {
-    // A plant at home where it is sown, sprouting as any seed does.
-    --agent.carried_seed;
+    // A plant at home where it is sown, sprouting as any seed does: from a seed it carries, else a whole fruit, whose
+    // flesh feeds the ground as crushed bone does.
+    const bool fruit = agent.carried_seed <= 0;
+    if (fruit && agent.carried_fruit <= 0) {  // eaten or dropped since it chose
+        agent.last_action = "had nothing to plant";
+        return;
+    }
+    if (fruit) {
+        --agent.carried_fruit;
+        fertilized_[cell_index(agent.x, agent.y)] = 1;
+    } else {
+        --agent.carried_seed;
+    }
     tend(agent.x, agent.y);
     Dna dna = make_dna(rng(), static_cast<int>(Species::Plant));
     dna.bits = (dna.bits & ~(std::uint64_t{0x3} << TEMPERATURE_SHIFT)) | static_cast<std::uint64_t>(zone_temperature(agent.y, height_)) << TEMPERATURE_SHIFT;
     dna = with_terrain(dna, Terrain::Terrestrial);
     (acting_ ? acting_->sown : seeds_).push_back({agent.x, agent.y, dna, 0, turn_, agent.identifier});
     agent.reward += PLANTING_JOY * (0.5 + agent.feeling(Curiosity));
-    agent.last_action = "planted a seed";
+    agent.last_action = fruit ? "planted a fruit" : "planted a seed";
     deed_seen(agent, CRAFT_DEED, nullptr, SkillDeed, -1, SowingCulture);
     note_first("planted", agent.species, agent.identifier);
 }
@@ -5644,11 +5656,17 @@ void Simulation::fertilize(Bitzkey& agent) {
 }
 
 void Simulation::light_fire(Bitzkey& agent) {
+    if (agent.carried_stone < FIRE_STONES) {  // else two sticks rubbed together: a club, kept, and a wood, spent
+        if (!agent.has_tool(Club) || agent.carried_wood <= 0) {  // what it had to light it with gone since it chose
+            agent.last_action = "had nothing to light a fire with";
+            return;
+        }
+        --agent.carried_wood;
+    }
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     fires_[cell] = turn_ + FIRE_TURNS;
     fire_lighters_[cell] = agent.identifier;
     any_fires_ = true;
-    if (agent.carried_stone < FIRE_STONES) spend_tool(agent, Club);  // struck from two stones, kept; else of a club, spent
     agent.last_action = "lit a fire";
     agent.reward += FIRE_JOY;
     deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);

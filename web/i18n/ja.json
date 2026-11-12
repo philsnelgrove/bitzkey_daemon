@@ -2003,5 +2003,9 @@
 "MATERIALS": "素材",
 "CRAFTING AND GEAR": "工作と道具",
 "FIRE AND BUILDING": "火と建築",
-"FARMING": "農耕"
+"FARMING": "農耕",
+"planted a fruit": "果実を植えた",
+"had nothing to plant": "植えるものがなかった",
+"Plant a seed, or else a whole fruit, which feeds the ground as fertilizing does, to grow a new plant.": "種を植える。なければ果実を丸ごと植える（施肥のように土を肥やす）。新しい植物を育てるため。",
+"had nothing to light a fire with": "火をおこす道具がなかった"
 }

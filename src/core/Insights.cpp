@@ -75,7 +75,7 @@ constexpr std::array<ActionAbout, ACTION_COUNT> ABOUT = {{
     {Cook, 6, "Cook meat on a fire."},
     {Construct, 6, "Build part of a shelter."},
     {EatSeed, 0, "Eat a seed."},
-    {PlantSeed, 7, "Plant a seed, to grow a new plant."},
+    {PlantSeed, 7, "Plant a seed, or else a whole fruit, which feeds the ground as fertilizing does, to grow a new plant."},
     {BuildRoad, 6, "Lay road, quicker and easier to travel."},
     {EatMarrow, 0, "Crack bones for their marrow: a grazer's first taste of meat."},
     {Fertilize, 7, "Enrich the land so more grass grows."},

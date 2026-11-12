@@ -1212,6 +1212,7 @@ TEST_CASE("a sharer brings its food to the store nearest its herd's middle, glad
     Bitzkey& sharer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 9, 5);
     lighter.weapon = Club;
+    ++lighter.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(lighter);
     simulation.add_to_pile(3, 5, false, 1);
     simulation.index_cells();
@@ -2850,6 +2851,7 @@ TEST_CASE("a deed seen counts for a share, a blow only against one's own kind, a
     watcher.known[0].regard = regard_before;
     const double reward = doer.reward;
     doer.weapon = Club;
+    ++doer.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(doer);
     CHECK(doer.reward == doctest::Approx(reward + FIRE_JOY));
     CHECK(watcher.known[0].regard == doctest::Approx(regard_before + REGARD_LEARNING * WITNESS_SHARE * (FIRE_DEED - regard_before)));
@@ -3493,7 +3495,7 @@ TEST_CASE("an axe's cut fells a plant for its wood, and digging finds a stone") 
     CHECK(digger.weapon_uses == 1);
 }
 
-TEST_CASE("two stones strike a fire and are kept; a club lights one and is spent") {
+TEST_CASE("two stones strike a fire and are kept; a club and a wood rubbed together light one, the wood spent") {
     Simulation simulation = world();
     Bitzkey& striker = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     simulation.index_cells();
@@ -3516,8 +3518,9 @@ TEST_CASE("a fire lasts a day, fed for longer, and cooks food that never spoils"
     Simulation simulation = world();
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     lighter.weapon = Club;
+    ++lighter.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(lighter);
-    CHECK(lighter.weapon == NoWeapon);
+    CHECK(lighter.weapon == Club);  // kept, the wood spent
     CHECK(simulation.fire_at(5, 5) == simulation.turn() + FIRE_TURNS);
     lighter.carried_wood = 1;
     simulation.feed_fire(lighter, Cell{5, 5});
@@ -3535,6 +3538,7 @@ TEST_CASE("beside a fire, an animal cooks food at hand without carrying it there
     Simulation simulation = world();
     Bitzkey& cook = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     cook.weapon = Club;
+    ++cook.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(cook);
     simulation.add_to_pile(6, 5, false, 2);
     simulation.index_cells();
@@ -3565,6 +3569,7 @@ TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a strang
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
     Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Predator, {{"size", 3}}), 20, 20);
     lighter.weapon = Club;
+    ++lighter.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(lighter);
     Simulation::Situation without, seen;
     seen.fire = Cell{5, 5};
@@ -3579,6 +3584,7 @@ TEST_CASE("feeding a fire pays, a friend's fire welcomes, and a fire shared bond
     simulation.index_cells();
     lighter.weapon = Club;
     lighter.carried_wood = 1;
+    ++lighter.carried_wood;  // the second stick, rubbed against its club
     simulation.light_fire(lighter);
     lighter.reward = 0;
     simulation.feed_fire(lighter, Cell{5, 5});
@@ -3946,6 +3952,36 @@ TEST_CASE("a wagon is made of two stones and three wood with an axe; hitched it 
     simulation.hitch(maker, 0);
     CHECK(maker.carried_stone == alone + 2);  // and taken up again
     CHECK(Simulation::value_of(maker, WagonGood) == 1);
+}
+
+TEST_CASE("a whole fruit may be planted, and feeds the ground as if fertilized; a seed is planted first") {
+    Simulation simulation = world(30);
+    Bitzkey& farmer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    farmer.carried_fruit = 1;
+    farmer.carried_seed = 1;
+    simulation.plant_seed(farmer);
+    CHECK(farmer.carried_seed == 0);
+    CHECK(farmer.carried_fruit == 1);  // the seed first
+    CHECK_FALSE(simulation.fertilized_at(5, 5));
+    farmer.x = 7;
+    simulation.plant_seed(farmer);
+    CHECK(farmer.carried_fruit == 0);
+    CHECK(farmer.last_action == "planted a fruit");
+    CHECK(simulation.fertilized_at(7, 5));
+    simulation.plant_seed(farmer);
+    CHECK(farmer.last_action == "had nothing to plant");
+}
+
+TEST_CASE("felling a plant gives a seed for each fruit it would bear, as many as its feller can carry") {
+    Simulation simulation = world(30);
+    Bitzkey& feller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 7}}), 5, 5);
+    Bitzkey& plant = simulation.add_agent(encode_dna(Species::Plant), 6, 5);
+    feller.weapon = StoneAxe;
+    simulation.index_cells();
+    const int fruit = Simulation::fruit_capacity(plant);
+    simulation.cut(feller, plant);
+    CHECK_FALSE(plant.alive());
+    CHECK(feller.carried_seed == std::min(fruit, feller.capacity()));
 }
 
 TEST_CASE("arrows: a wood at hand restores a bow to its full uses, its own or another's beside it, empty or not, a craft toward mastering the bow") {

@@ -2003,5 +2003,9 @@
 "MATERIALS": "МАТЕРІАЛИ",
 "CRAFTING AND GEAR": "РЕМЕСЛО Й СПОРЯДЖЕННЯ",
 "FIRE AND BUILDING": "ВОГОНЬ І БУДІВНИЦТВО",
-"FARMING": "ЗЕМЛЕРОБСТВО"
+"FARMING": "ЗЕМЛЕРОБСТВО",
+"planted a fruit": "посадив плід",
+"had nothing to plant": "не мав що садити",
+"Plant a seed, or else a whole fruit, which feeds the ground as fertilizing does, to grow a new plant.": "Посадити насінину, а як нема, цілий плід, що живить землю, як добриво, щоб виросла нова рослина.",
+"had nothing to light a fire with": "не мав чим розпалити вогонь"
 }
