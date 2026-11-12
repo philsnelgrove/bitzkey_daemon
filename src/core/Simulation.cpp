@@ -1977,10 +1977,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         if (agent.last_choice == Rest && !agent.last_forced) rewards[index] -= RESTING_UNEASE * plans[index].situation.exposure;
         changes[index] = what_changed(agent, agent.last_senses, plans[index].senses);
         if (agent.expects && FORESIGHT_LEARNING > 0) {  // what came, against what it imagined
-            agent.surprise = 0.0;
+            agent.surprise = agent.change_size = 0.0;
             for (int thing = 0; thing < FORESEEN; ++thing) {
                 agent.surprise += std::abs(changes[index][thing] - std::clamp(agent.expected[thing], -1.0, 1.0)) / FORESEEN;
+                agent.change_size += std::abs(changes[index][thing]) / FORESEEN;
             }
+            agent.surprised_turn = turn_;
             rewards[index] += SURPRISE_JOY * (0.5 + agent.feeling(Curiosity)) * agent.surprise;
         }
         const std::vector<int>& options = plans[index].options;

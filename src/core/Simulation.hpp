@@ -1035,6 +1035,8 @@ struct Bitzkey {
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
+    double change_size = 0.0;  // and how far that turn changed things, the surprise had it foreseen no change
+    int surprised_turn = -1;  // the turn they were last measured, for the probe; not saved
     std::array<int, ACTION_COUNT> last_tried{};  // the turn after it last chose each action; 0 for never
     int carried_seed = 0;  // kept from raw fruit it ate, up to its capacity, and no weight to it
     int weapon = NoWeapon, armour = NoArmour;  // what it wields and wears

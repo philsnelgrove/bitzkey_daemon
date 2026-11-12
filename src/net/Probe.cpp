@@ -1900,6 +1900,11 @@ Json Probe::minds(Simulation& world) const {
         std::size_t thinking = 0, runaway = 0, neurons = 0, jammed = 0;
         double depth = 0, width = 0;
         std::array<double, 3> surprise{}, surprised{};  // by the third of its lifespan it is in: foresight learnt falls with age
+        struct Fresh {
+            int age, generation;
+            double surprise, change;
+        };
+        std::vector<Fresh> fresh;  // only those whose surprise was measured this turn or the last
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->brain) continue;
             ++thinking;
@@ -1909,6 +1914,7 @@ Json Probe::minds(Simulation& world) const {
             const auto third = static_cast<std::size_t>(std::clamp(3.0 * agent->age / agent->lifespan, 0.0, 2.0));
             surprise[third] += agent->surprise;
             surprised[third] += 1;
+            if (agent->surprised_turn >= world.turn() - 1) fresh.push_back({agent->age, agent->generation, agent->surprise, agent->change_size});
             const Values values = agent->brain->values(agent->last_senses);
             double reach = 0;
             for (const double value : values) reach = std::max(reach, std::abs(value));
@@ -1923,12 +1929,41 @@ Json Probe::minds(Simulation& world) const {
             }
         }
         std::sort(reaches.begin(), reaches.end());
+        // Fresh surprise, by the third of the living by age (few live a third of their lifespan) and of the generations alive, each with how much changed:
+        // relative is surprise over change, below 1 the better it foresaw than expecting nothing to change.
+        const auto summary = [](const std::vector<const Fresh*>& group) {
+            double sum = 0, change = 0;
+            for (const Fresh* one : group) {
+                sum += one->surprise;
+                change += one->change;
+            }
+            const double n = std::max<double>(1, static_cast<double>(group.size()));
+            return Json{{"n", group.size()}, {"surprise", sum / n}, {"change", change / n}, {"relative", change > 0 ? sum / change : 0.0}};
+        };
+        std::array<std::vector<const Fresh*>, 3> by_age, by_generation;
+        std::sort(fresh.begin(), fresh.end(), [](const Fresh& a, const Fresh& b) { return a.age < b.age; });
+        for (std::size_t place = 0; place < fresh.size(); ++place) by_age[std::min<std::size_t>(2, 3 * place / fresh.size())].push_back(&fresh[place]);
+        std::vector<const Fresh*> by_birth;
+        for (const Fresh& one : fresh) by_birth.push_back(&one);
+        std::stable_sort(by_birth.begin(), by_birth.end(), [](const Fresh* a, const Fresh* b) { return a->generation < b->generation; });
+        for (std::size_t place = 0; place < by_birth.size(); ++place) by_generation[std::min<std::size_t>(2, 3 * place / by_birth.size())].push_back(by_birth[place]);
+        Json fresh_age = Json::array(), fresh_generation = Json::array();
+        for (std::size_t third = 0; third < 3; ++third) {
+            fresh_age.push_back(summary(by_age[third]));
+            Json aged = summary(by_age[third]);
+            if (!by_age[third].empty()) aged["ages"] = {by_age[third].front()->age, by_age[third].back()->age};
+            fresh_age.back() = aged;
+            Json group = summary(by_generation[third]);
+            if (!by_generation[third].empty()) group["generations"] = {by_generation[third].front()->generation, by_generation[third].back()->generation};
+            fresh_generation.push_back(group);
+        }
         const auto at = [&](double share) { return reaches.empty() ? 0.0 : reaches[static_cast<std::size_t>(share * static_cast<double>(reaches.size() - 1))]; };
         const double count = std::max<double>(1, static_cast<double>(thinking));
         result[std::string(species_name(species))] = {{"thinking", thinking}, {"valued", reaches.size()}, {"depth", depth / count},
                                                       {"width", width / count}, {"value_median", at(0.5)}, {"value_p90", at(0.9)},
                                                       {"value_max", at(1.0)}, {"runaway", runaway}, {"neurons", neurons}, {"jammed", jammed},
-                                                      {"surprise_by_age", {surprise[0] / std::max(1.0, surprised[0]), surprise[1] / std::max(1.0, surprised[1]), surprise[2] / std::max(1.0, surprised[2])}}};
+                                                      {"surprise_by_age", {surprise[0] / std::max(1.0, surprised[0]), surprise[1] / std::max(1.0, surprised[1]), surprise[2] / std::max(1.0, surprised[2])}},
+                                                      {"surprise_fresh", {{"by_age", fresh_age}, {"by_generation", fresh_generation}}}};
     }
     return {{"turn", world.turn()}, {"runaway_value", RUNAWAY_VALUE}, {"jammed_at", JAMMED}, {"minds", result}};
 }
