@@ -2495,11 +2495,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     // An envious one wants the best-provided mate too.
     const auto appeal = [&](const Bitzkey& other) { return other.mind[Dominance] + TRAIT_MAX * envy_of(agent) * possessions(other); };
     for (Bitzkey* other : around(agent, MATE_REACH)) {  // close enough to breed with: the most dominant, the first found on a tie
-        if (compatible(agent, *other) && other->can_breed() && (!s.mate || appeal(*other) > appeal(*s.mate))) {
+        if (other->species == agent.species && other->can_breed() && compatible(agent, *other) && (!s.mate || appeal(*other) > appeal(*s.mate))) {
             s.mate = other;
         }
     }
-    s.nurseries = free_cells_near(agent);
+    if (s.mate) s.nurseries = free_cells_near(agent);  // room for young matters only with a mate
     std::vector<Bitzkey*> prey, threats;
     for (Bitzkey* other : neighbors) {
         if (preys_on(agent, *other)) prey.push_back(other);
@@ -3130,56 +3130,44 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         const int furthest = std::min(MAX_CALL_REACH, static_cast<int>(std::ceil(CALL_REACH * 1.5)));  // the largest caller's
         // Those who called, in the order they lie about it: from this turn's index of callers when there is one (see
         // index_callers), else found among all about it; either way the same callers in the same order.
-        thread_local std::vector<const Heard*> heard;  // each core's own, kept from one listener to the next
-        thread_local std::vector<Heard> found;
-        heard.clear();
-        found.clear();
-        if (callers_turn_ == turn_) {
-            for (const Offset& offset : nearby_offsets(furthest)) {
-                const int x = agent.x + offset.dx, y = agent.y + offset.dy;
-                if (!in_bounds(x, y)) continue;
-                const std::size_t cell = cell_index(x, y);
-                for (int at = caller_start_[cell]; at < caller_start_[cell + 1]; ++at) {
-                    if (callers_[static_cast<std::size_t>(at)].who != &agent) heard.push_back(&callers_[static_cast<std::size_t>(at)]);
-                }
-            }
-        } else {
-            for (Bitzkey* other : around(agent, furthest)) {
-                if (other->call >= FirstCall && other->call_turn == turn_ - 1) found.push_back({other, call_reach(*other)});
-            }
-            for (const Heard& one : found) heard.push_back(&one);
-        }
-        for (const Heard* one : heard) {
-            const Bitzkey* other = one->who;
-            const int reach = one->reach;
+        // Each caller in turn, as it is met: the loudest of all, of each call and of its own kind (each the first
+        // heard at its loudness).
+        double kin_loudest = 0.0;  // the loudest of its own kind, to credit should the call help
+        const auto hear = [&](const Bitzkey* other, int reach) {
             const int away = distance(other->x, other->y, agent.x, agent.y);
-            if (away > reach) continue;
+            if (away > reach) return;
             const double loudness = 1 - static_cast<double>(away) / (reach + 1);
+            if (other->species == agent.species && loudness > kin_loudest) {
+                kin_loudest = loudness;
+                s.heard_from = other->identifier;
+                s.heard_call = other->call;
+            }
             if (loudness > loudest_of_all) {
                 loudest_of_all = loudness;
                 caller = other;
             }
             double& louder = loudest[static_cast<std::size_t>(other->call - FirstCall)];
-            if (loudness <= louder) continue;
+            if (loudness <= louder) return;
             louder = loudness;
             senses[heard_sense(other->call, HeardLoudness)] = loudness;
             senses[heard_sense(other->call, HeardEast)] =
                 std::clamp(static_cast<double>(py_mod(other->x - agent.x + width_ / 2, width_) - width_ / 2) / reach, -1.0, 1.0);
             senses[heard_sense(other->call, HeardSouth)] = std::clamp(static_cast<double>(other->y - agent.y) / reach, -1.0, 1.0);
             senses[heard_sense(other->call, HeardKin)] = other->species == agent.species;
-        }
-        double kin_loudest = 0.0;  // the loudest of its own kind, to credit should the call help
-        for (const Heard* one : heard) {
-            const Bitzkey* other = one->who;
-            if (other->species != agent.species) continue;
-            const int reach = one->reach;
-            const int away = distance(other->x, other->y, agent.x, agent.y);
-            if (away > reach) continue;
-            const double loudness = 1 - static_cast<double>(away) / (reach + 1);
-            if (loudness > kin_loudest) {
-                kin_loudest = loudness;
-                s.heard_from = other->identifier;
-                s.heard_call = other->call;
+        };
+        if (callers_turn_ == turn_) {
+            for (const Offset& offset : nearby_offsets(furthest)) {
+                const int x = agent.x + offset.dx, y = agent.y + offset.dy;
+                if (!in_bounds(x, y)) continue;
+                const std::size_t cell = cell_index(x, y);
+                for (int at = caller_start_[cell]; at < caller_start_[cell + 1]; ++at) {
+                    const Heard& one = callers_[static_cast<std::size_t>(at)];
+                    if (one.who != &agent) hear(one.who, one.reach);
+                }
+            }
+        } else {
+            for (Bitzkey* other : around(agent, furthest)) {
+                if (other->call >= FirstCall && other->call_turn == turn_ - 1) hear(other, call_reach(*other));
             }
         }
     }
