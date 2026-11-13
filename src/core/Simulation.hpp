@@ -2166,6 +2166,15 @@ private:
     void free_the_dead();
     std::vector<std::unique_ptr<Bitzkey>> departed_;  // removed corpses, kept until the cells are re-indexed
     std::vector<std::vector<Bitzkey*>> cells_;
+    // Last turn's callers, square by square (see index_callers), for the turn they were indexed in.
+    struct Heard {
+        const Bitzkey* who;
+        int reach;  // how far its call carries
+    };
+    std::vector<Heard> callers_;
+    std::vector<int> caller_start_;  // each square's first in callers_, and one past the last square's
+    int callers_turn_ = -1;
+    void index_callers();
     std::vector<std::vector<Bitzkey*>> carrion_;
     std::size_t carrion_count_ = 0;
     std::vector<std::vector<Bitzkey*>> kills_;  // fresh kills, by cell
@@ -2244,6 +2253,15 @@ private:
         double acting = 0;
     };
     static thread_local ActingTile* acting_;  // the tile this core is acting for, if any
+    // Deeds seen while a stretch of the turn is batched, taken in by their witnesses together, each on its own core.
+    struct SeenDeed { const Bitzkey* doer; double deed; const Bitzkey* target; DeedKind kind; int craft; Culture culture; };
+    struct NotedFirst { std::size_t order; std::string event; Species species; int who; std::string craft; };
+    std::vector<SeenDeed> seen_deeds_;
+    bool batching_deeds_ = false;
+    static thread_local std::vector<NotedFirst>* noting_firsts_;  // firsts noted while witnessing, kept for their turn
+    static thread_local std::size_t noting_order_;
+    void witness_deeds();
+    void witness_deed(Bitzkey& other, const SeenDeed& seen);
     // The stream of chance: the acting tile's, else the world's own.
     PyRandom& rng() { return acting_ ? acting_->rng : random_; }
     // The turn's choices acted out tile by tile, on every core: returns false, having done nothing, when the world is

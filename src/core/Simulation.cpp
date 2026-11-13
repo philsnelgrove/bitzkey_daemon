@@ -931,6 +931,7 @@ void Simulation::take_turn() {
     }
     std::vector<Bitzkey*> order = living();
     std::vector<Bitzkey*> thinkers;
+    batching_deeds_ = true;  // the deeds seen in upkeep, taken in together at its end
     plants_ = static_cast<int>(std::count_if(order.begin(), order.end(),
                                              [](const Bitzkey* agent) { return agent->species == Species::Plant; }));
     population_ = static_cast<int>(order.size()) - plants_;
@@ -1039,6 +1040,7 @@ void Simulation::take_turn() {
         if (agent->hunger >= 80) experience(*agent, Starving);
         thinkers.push_back(agent);
     }
+    witness_deeds();
     timings.upkeep += lap(clock);
     think_all(thinkers);
     clock = std::chrono::steady_clock::now();
@@ -1097,6 +1099,10 @@ void Simulation::take_census() {
 }
 
 void Simulation::note_first(std::string_view event, Species species, int who, std::string_view craft) {
+    if (noting_firsts_) {  // witnessing side by side: kept, to be written in the order seen
+        noting_firsts_->push_back({noting_order_, std::string(event), species, who, std::string(craft)});
+        return;
+    }
     static std::mutex writing;  // animals act side by side
     const std::lock_guard lock(writing);
     const std::string_view kind = species_name(species);
@@ -1400,6 +1406,22 @@ bool Simulation::heat(const Bitzkey& agent) const {
 
 int call_reach(const Bitzkey& caller) {
     return std::min(MAX_CALL_REACH, std::max(1, static_cast<int>(py_round(CALL_REACH * (0.5 + caller.physique(Size))))));
+}
+
+void Simulation::index_callers() {
+    // Each square's callers of last turn, in the order its list holds them, each with how far its call carries: so
+    // each listener, sensing, looks at those who called alone, rather than at all about it.
+    const std::size_t area = cells_.size();
+    caller_start_.assign(area + 1, 0);
+    callers_.clear();
+    for (std::size_t cell = 0; cell < area; ++cell) {
+        caller_start_[cell] = static_cast<int>(callers_.size());
+        for (Bitzkey* other : cells_[cell]) {
+            if (other->alive() && other->call >= FirstCall && other->call_turn == turn_ - 1) callers_.push_back({other, call_reach(*other)});
+        }
+    }
+    caller_start_[area] = static_cast<int>(callers_.size());
+    callers_turn_ = turn_;
 }
 
 int gestation(int size) {
@@ -1902,6 +1924,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // Every hunter first surveys its territory, so that all then sense the same world whatever their
     // order; then all sense it, on every core at once, each writing only to itself.
     std::for_each(std::execution::par, agents.begin(), agents.end(), [this](Bitzkey* agent) { survey(*agent); });
+    index_callers();  // who called last turn, where, and how far, for all to hear
     std::vector<Sensed> plans(agents.size());
     std::vector<std::size_t> indices(agents.size());
     std::iota(indices.begin(), indices.end(), std::size_t{0});
@@ -2232,6 +2255,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         sync(breeding);
     }
     timings.choose += lap(clock);
+    batching_deeds_ = true;  // the deeds seen in acting, taken in together once all have acted
     const bool tiled = act_in_tiles(agents, choices, plans);
     if (tiled) clock = std::chrono::steady_clock::now();
     for (std::size_t index = 0; !tiled && index < agents.size(); ++index) {  // each in turn, in the world as those before it left it
@@ -2243,6 +2267,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         timings.act += took;
     }
     settle_fights();  // after every turn, however it was acted
+    witness_deeds();
     conceive();  // before any parent learns again, which would copy the brain the young are made from
     const double conceiving = lap(clock);
     timings.actions[Breed] += conceiving;
@@ -3047,9 +3072,30 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         std::array<double, CALL_COUNT> loudest{};
         double loudest_of_all = 0.0;
         const int furthest = std::min(MAX_CALL_REACH, static_cast<int>(std::ceil(CALL_REACH * 1.5)));  // the largest caller's
-        for (const Bitzkey* other : around(agent, furthest)) {
-            if (other->call < FirstCall || other->call_turn != turn_ - 1) continue;
-            const int reach = call_reach(*other);
+        // Those who called, in the order they lie about it: from this turn's index of callers when there is one (see
+        // index_callers), else found among all about it; either way the same callers in the same order.
+        thread_local std::vector<const Heard*> heard;  // each core's own, kept from one listener to the next
+        thread_local std::vector<Heard> found;
+        heard.clear();
+        found.clear();
+        if (callers_turn_ == turn_) {
+            for (const Offset& offset : nearby_offsets(furthest)) {
+                const int x = agent.x + offset.dx, y = agent.y + offset.dy;
+                if (!in_bounds(x, y)) continue;
+                const std::size_t cell = cell_index(x, y);
+                for (int at = caller_start_[cell]; at < caller_start_[cell + 1]; ++at) {
+                    if (callers_[static_cast<std::size_t>(at)].who != &agent) heard.push_back(&callers_[static_cast<std::size_t>(at)]);
+                }
+            }
+        } else {
+            for (Bitzkey* other : around(agent, furthest)) {
+                if (other->call >= FirstCall && other->call_turn == turn_ - 1) found.push_back({other, call_reach(*other)});
+            }
+            for (const Heard& one : found) heard.push_back(&one);
+        }
+        for (const Heard* one : heard) {
+            const Bitzkey* other = one->who;
+            const int reach = one->reach;
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away > reach) continue;
             const double loudness = 1 - static_cast<double>(away) / (reach + 1);
@@ -3067,9 +3113,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[heard_sense(other->call, HeardKin)] = other->species == agent.species;
         }
         double kin_loudest = 0.0;  // the loudest of its own kind, to credit should the call help
-        for (const Bitzkey* other : around(agent, furthest)) {
-            if (other == &agent || other->species != agent.species || other->call < FirstCall || other->call_turn != turn_ - 1) continue;
-            const int reach = call_reach(*other);
+        for (const Heard* one : heard) {
+            const Bitzkey* other = one->who;
+            if (other->species != agent.species) continue;
+            const int reach = one->reach;
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away > reach) continue;
             const double loudness = 1 - static_cast<double>(away) / (reach + 1);
@@ -3224,10 +3271,13 @@ void Simulation::note_place(Bitzkey& agent, const Senses& senses) {
 namespace {
 
 template <typename Memory>
-double impact(const Memory& one) { return std::max({std::abs(one.regard), one.danger, one.skill}); }
+double impact(const Memory& one) { return std::max(std::max(std::abs(one.regard), one.danger), one.skill); }  // not max({...}): a vector scan, slow for three
 
 template <typename Memory>
-bool least_impact(const Memory& a, const Memory& b) { return impact(a) != impact(b) ? impact(a) < impact(b) : a.last < b.last; }
+bool least_impact(const Memory& a, const Memory& b) {
+    const double first = impact(a), second = impact(b);
+    return first != second ? first < second : a.last < b.last;
+}
 
 template <typename Memory>
 void note_reputation(Memory& one, DeedKind kind, double rate) {
@@ -3368,54 +3418,116 @@ void Simulation::deed_seen(const Bitzkey& doer, double deed, const Bitzkey* targ
         acting_->deeds_seen.emplace_back(&doer, deed, target, kind, craft, culture);
         return;
     }
+    const SeenDeed seen{&doer, deed, target, kind, craft, culture};
+    if (batching_deeds_) {
+        seen_deeds_.push_back(seen);
+        return;
+    }
     for (Bitzkey* other : around(doer, doer.sight)) {
         if (other == &doer || other == target || !other->alive() || !other->brain) continue;
         if (distance(other->x, other->y, doer.x, doer.y) > other->sight) continue;
-        // Eavesdropping: how one it holds a friend treats another, well or ill, colours its own view of that other, as
-        // much as it regards the friend. Nothing is told; it is seen.
-        if (target && EAVESDROP_SHARE > 0 && target->alive() && target->species != Species::Plant) {
-            const double treated = kind == VictoryDeed || kind == TheftDeed ? -1.0 : kind == CultureDeed || kind == GarbDeed || kind == LieDeed || kind == MarkDeed ? 0.0
-                                   : deed > 0 ? 1.0 : deed < 0 ? -1.0 : 0.0;
-            const double trust = regard_for(*other, doer);
-            if (treated != 0 && trust > 0) note_deed(*other, *target, treated, EAVESDROP_SHARE * trust, PlainDeed, true);
+        witness_deed(*other, seen);
+    }
+}
+
+thread_local std::vector<Simulation::NotedFirst>* Simulation::noting_firsts_ = nullptr;
+thread_local std::size_t Simulation::noting_order_ = 0;
+
+void Simulation::witness_deeds() {
+    // Each deed's witnesses found side by side, then each witness takes in what it saw in the order done, on its own core:
+    // a witness changes only itself. Firsts it notes are kept and written in the order the deeds were done.
+    batching_deeds_ = false;
+    if (seen_deeds_.empty()) return;
+    std::vector<std::vector<Bitzkey*>> seers(seen_deeds_.size());
+    std::vector<std::size_t> order(seen_deeds_.size());
+    std::iota(order.begin(), order.end(), std::size_t{0});
+    std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t index) {
+        const SeenDeed& seen = seen_deeds_[index];
+        for (Bitzkey* other : around(*seen.doer, seen.doer->sight)) {
+            if (other == seen.doer || other == seen.target || !other->alive() || !other->brain) continue;
+            if (distance(other->x, other->y, seen.doer->x, seen.doer->y) > other->sight) continue;
+            seers[index].push_back(other);
         }
-        if (culture != NoCulture || kind == VictoryDeed) culture_seen(*other, doer, kind == VictoryDeed ? VictoryCulture : culture);
-        if (kind == CultureDeed) continue;
-        if (kind == TitleDeed) {  // a titled leader, esteemed by all who see it and hold it no foe
-            if (!is_foe(*other, doer)) note_deed(*other, doer, 1.0, deed, PlainDeed, true);
-            continue;
+    });
+    std::vector<std::pair<Bitzkey*, std::size_t>> pairs;  // (witness, deed), by witness and then the order done
+    for (std::size_t index = 0; index < seers.size(); ++index) {
+        for (Bitzkey* other : seers[index]) pairs.emplace_back(other, index);
+    }
+    std::stable_sort(pairs.begin(), pairs.end(), [](const auto& a, const auto& b) { return a.first->identifier < b.first->identifier; });
+    std::vector<std::pair<std::size_t, std::size_t>> runs;
+    for (std::size_t start = 0; start < pairs.size();) {
+        std::size_t end = start + 1;
+        while (end < pairs.size() && pairs[end].first == pairs[start].first) ++end;
+        runs.emplace_back(start, end);
+        start = end;
+    }
+    std::vector<std::vector<NotedFirst>> firsts(runs.size());
+    std::vector<std::size_t> each(runs.size());
+    std::iota(each.begin(), each.end(), std::size_t{0});
+    std::for_each(std::execution::par, each.begin(), each.end(), [&](std::size_t run) {
+        noting_firsts_ = &firsts[run];
+        for (std::size_t at = runs[run].first; at < runs[run].second; ++at) {
+            noting_order_ = pairs[at].second;
+            witness_deed(*pairs[at].first, seen_deeds_[pairs[at].second]);
         }
-        if (kind == GarbDeed || kind == LieDeed) {
-            garb_seen(*other, doer, deed, kind == LieDeed);
-            continue;
+        noting_firsts_ = nullptr;
+    });
+    std::vector<NotedFirst> noted;
+    for (auto& some : firsts) std::move(some.begin(), some.end(), std::back_inserter(noted));
+    std::stable_sort(noted.begin(), noted.end(), [](const NotedFirst& a, const NotedFirst& b) { return a.order < b.order; });
+    for (const NotedFirst& first : noted) note_first(first.event, first.species, first.who, first.craft);
+    seen_deeds_.clear();
+}
+
+void Simulation::witness_deed(Bitzkey& other, const SeenDeed& seen) {
+    const auto& [doer_ptr, deed, target, kind, craft, culture] = seen;
+    const Bitzkey& doer = *doer_ptr;
+    // Eavesdropping: how one it holds a friend treats another, well or ill, colours its own view of that other, as
+    // much as it regards the friend. Nothing is told; it is seen.
+    if (target && EAVESDROP_SHARE > 0 && target->alive() && target->species != Species::Plant) {
+        const double treated = kind == VictoryDeed || kind == TheftDeed ? -1.0 : kind == CultureDeed || kind == GarbDeed || kind == LieDeed || kind == MarkDeed ? 0.0
+                               : deed > 0 ? 1.0 : deed < 0 ? -1.0 : 0.0;
+        if (treated != 0) {  // its trust in the doer, looked up only when there is something to colour
+            const double trust = regard_for(other, doer);
+            if (trust > 0) note_deed(other, *target, treated, EAVESDROP_SHARE * trust, PlainDeed, true);
         }
-        if (kind == MarkDeed) {
-            mark_seen(*other, doer, deed);
-            continue;
-        }
-        if (kind == VictoryDeed) {  // for a friend's, against a foe's, and the more over a foe
-            if (is_friend(*other, doer)) note_deed(*other, doer, 1.0, VICTORY_REGARD, PlainDeed, true);
-            else if (is_foe(*other, doer)) note_deed(*other, doer, -1.0, VICTORY_REGARD, PlainDeed, true);
-            if (target && is_foe(*other, *target)) note_deed(*other, doer, 1.0, FOE_DEFEAT_REGARD, PlainDeed, true);
-            continue;
-        }
-        if (kind == CowardDeed) {
-            if (is_friend(*other, doer) || is_foe(*other, doer)) note_deed(*other, doer, -1.0, COWARD_DISREGARD, PlainDeed, true);
-            continue;
-        }
-        if (kind == TheftDeed) {  // a wrong, unless done to a foe
-            note_deed(*other, doer, target && is_foe(*other, *target) ? 1.0 : -1.0, THEFT_DISREGARD, PlainDeed, true);
-            continue;
-        }
-        const bool wronged = deed >= 0 || !target || other->species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
-        note_deed(*other, doer, deed, WITNESS_SHARE, kind, wronged);
-        if (kind == SkillDeed && SKILL_WITNESS > WITNESS_SHARE) note_deed(*other, doer, 0.0, SKILL_WITNESS - WITNESS_SHARE, kind, false);  // the rest, on skill alone
-        if (craft >= 0 && !(other->crafts >> craft & 1) && same_kind(*other, doer) && !is_foe(*other, doer) &&
-            rng().random() < WATCH_LEARNING) {  // a craft watched done by one of its kind it holds no foe, learnt from the watching
-            other->crafts |= 1 << craft;
-            other->craft_source[static_cast<std::size_t>(craft)] = 4;
-            note_first("watched", other->species, other->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
-        }
+    }
+    if (culture != NoCulture || kind == VictoryDeed) culture_seen(other, doer, kind == VictoryDeed ? VictoryCulture : culture);
+    if (kind == CultureDeed) return;
+    if (kind == TitleDeed) {  // a titled leader, esteemed by all who see it and hold it no foe
+        if (!is_foe(other, doer)) note_deed(other, doer, 1.0, deed, PlainDeed, true);
+        return;
+    }
+    if (kind == GarbDeed || kind == LieDeed) {
+        garb_seen(other, doer, deed, kind == LieDeed);
+        return;
+    }
+    if (kind == MarkDeed) {
+        mark_seen(other, doer, deed);
+        return;
+    }
+    if (kind == VictoryDeed) {  // for a friend's, against a foe's, and the more over a foe
+        if (is_friend(other, doer)) note_deed(other, doer, 1.0, VICTORY_REGARD, PlainDeed, true);
+        else if (is_foe(other, doer)) note_deed(other, doer, -1.0, VICTORY_REGARD, PlainDeed, true);
+        if (target && is_foe(other, *target)) note_deed(other, doer, 1.0, FOE_DEFEAT_REGARD, PlainDeed, true);
+        return;
+    }
+    if (kind == CowardDeed) {
+        if (is_friend(other, doer) || is_foe(other, doer)) note_deed(other, doer, -1.0, COWARD_DISREGARD, PlainDeed, true);
+        return;
+    }
+    if (kind == TheftDeed) {  // a wrong, unless done to a foe
+        note_deed(other, doer, target && is_foe(other, *target) ? 1.0 : -1.0, THEFT_DISREGARD, PlainDeed, true);
+        return;
+    }
+    const bool wronged = deed >= 0 || !target || other.species == target->species;  // a hunt is no wrong to a stranger, yet shows its danger
+    note_deed(other, doer, deed, WITNESS_SHARE, kind, wronged);
+    if (kind == SkillDeed && SKILL_WITNESS > WITNESS_SHARE) note_deed(other, doer, 0.0, SKILL_WITNESS - WITNESS_SHARE, kind, false);  // the rest, on skill alone
+    if (craft >= 0 && !(other.crafts >> craft & 1) && same_kind(other, doer) && !is_foe(other, doer) &&
+        whim(other.identifier * 31 + seen.doer->identifier * 7 + craft, turn_) < WATCH_LEARNING) {  // a craft watched done by one of its kind it holds no foe, learnt from the watching
+        other.crafts |= 1 << craft;
+        other.craft_source[static_cast<std::size_t>(craft)] = 4;
+        note_first("watched", other.species, other.identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
     }
 }
 
