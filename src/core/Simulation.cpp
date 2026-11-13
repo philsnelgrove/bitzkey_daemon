@@ -7,6 +7,7 @@
 #include <execution>
 #include <numeric>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <limits>
 #include <mutex>
@@ -14,6 +15,7 @@
 #include <type_traits>
 #include <random>
 #include <stdexcept>
+#include <thread>
 #include <tuple>
 
 #include "core/PyFormat.hpp"
@@ -958,9 +960,15 @@ void Simulation::take_turn() {
             if (found && found->alive() && distance(found->x, found->y, agent.x, agent.y) <= SHELTER_REACH) ahead[place].shelter[kept++] = found;
         }
     });
-    for (std::size_t place = 0; place < order.size(); ++place) {
+    const double before = lap(clock);
+    timings.ahead += before;
+    timings.upkeep += before;
+    // Each in its turn: one by one, or tile by tile on every core (see in_tiles). In tiles, a birth waits until all
+    // are through (the world's list of animals grows only then), and the thinkers are gathered in the turn's order.
+    std::vector<char> bearing(order.size(), 0), thinks(order.size(), 0);
+    const auto keep = [&](std::size_t place) {
         Bitzkey* agent = order[place];
-        if (!agent->alive()) continue;
+        if (!agent->alive()) return;
         const double full = agent->max_health, share_before = std::max(0.0, agent->health) / full;
         agent->age += 1;
         agent->grow();
@@ -982,6 +990,8 @@ void Simulation::take_turn() {
         const double burn = agent->burn * (hungrier ? 1 + (CLIMATE_HUNGER - 1) * share * std::min(1.0, steps) : 1.0);
         agent->hunger = std::min(100.0, agent->hunger + agent->digest(burn));  // meat lasts; hunger stops at full
         if (agent->cooldown) agent->cooldown -= 1;
+        // A wagon two had hitched at once, before one alone could: it is the last one's, and the other's no longer.
+        if (agent->wagon >= 0 && wagons_[static_cast<std::size_t>(agent->wagon)].hitched_to != agent->identifier) agent->wagon = -1;
         if (agent->carried_meat + agent->carried_fruit > 0 && rng().random() < CARRIED_SPOIL) {  // raw food carried goes off
             --(agent->carried_meat > 0 ? agent->carried_meat : agent->carried_fruit);
         }
@@ -1002,17 +1012,17 @@ void Simulation::take_turn() {
         if (starving) agent->health -= STARVING_DAMAGE * (1 + SIZE_STARVING * agent->physique(Size)) * agent->max_health;  // it wastes away, the larger the faster
         if (agent->health <= 0) {  // starving, and hungrier out of its temperature, it died of exposure
             die(*agent, starving && !hungrier ? "starved" : exposure(*agent, here));
-            continue;
+            return;
         }
         if (dies_of_age(*agent)) {
             die(*agent, "old age");
-            continue;
+            return;
         }
         if (plant) {
             agent->hunger = std::max(0.0, agent->hunger - 1.5);
             if (steps >= 0.5) {  // nearer another temperature than its own, a plant neither grows nor seeds
                 agent->last_action = "withering";
-                continue;
+                return;
             }
             agent->health = std::min(agent->max_health, agent->health + agent->max_health * PLANT_REGROWTH);
             if (agent->fruit >= 0 && dawn(agent->x)) {  // fruit each morning, until full
@@ -1020,23 +1030,30 @@ void Simulation::take_turn() {
                 agent->fruit += grown;
                 if (agent->fruit >= fruit_capacity(*agent)) agent->fruit = -1;
                 if (agent->picked_by >= 0 && REGROWTH_JOY > 0) {  // its last picker, seeing it bear again, is glad of it
-                    Bitzkey* picker = find_agent(agent->picked_by);
-                    if (picker && picker->alive() && distance(picker->x, picker->y, agent->x, agent->y) <= picker->sight) {
-                        picker->reward += REGROWTH_JOY * grown;  // the gladder the more it bears
-                        note_first("regrowth_joy", picker->species, picker->identifier);
-                    }
+                    const auto glad = [this, agent, grown, picked_by = agent->picked_by] {  // as far off as the picker sees
+                        Bitzkey* picker = find_agent(picked_by);
+                        if (picker && picker->alive() && distance(picker->x, picker->y, agent->x, agent->y) <= picker->sight) {
+                            picker->reward += REGROWTH_JOY * grown;  // the gladder the more it bears
+                            note_first("regrowth_joy", picker->species, picker->identifier);
+                        }
+                    };
+                    if (!later(glad)) glad();
                 }
                 agent->picked_by = -1;
             }
             agent->last_action = "photosynthesized";
             seed_plant(*agent);
-            continue;
+            return;
         }
         agent->in_heat = ahead[place].in_heat;
         if (agent->due_turn && *agent->due_turn <= turn_) {
-            const auto bearing = std::chrono::steady_clock::now();
-            give_birth(*agent);
-            timings.births += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - bearing).count();
+            if (acting_) {
+                bearing[place] = 1;
+            } else {
+                const auto began = std::chrono::steady_clock::now();
+                give_birth(*agent);
+                timings.births += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - began).count();
+            }
         }
         agent->seen_success *= SOCIAL_MEMORY;
         agent->seen_failure *= std::pow(SOCIAL_MEMORY, 1 + RESILIENCE * (2 * agent->feeling(Resilience) - 1));  // got over sooner
@@ -1044,10 +1061,26 @@ void Simulation::take_turn() {
         nurse(*agent);
         trespass(*agent);
         if (agent->hunger >= 80) experience(*agent, Starving);
-        thinkers.push_back(agent);
+        thinks[place] = 1;
+    };
+    // In tiles, none touches further than it nurses, shelters, is warmed or shaded from, and none moves.
+    const int near = std::max({NURSING_REACH, SHELTER_REACH, FIRE_REACH, LIGHT_RADIUS, 2});
+    if (!in_tiles(order, near, 0, keep)) {
+        for (std::size_t place = 0; place < order.size(); ++place) keep(place);
     }
-    witness_deeds();
+    for (std::size_t place = 0; place < order.size(); ++place) {
+        if (bearing[place] && order[place]->alive()) {
+            const auto began = std::chrono::steady_clock::now();
+            give_birth(*order[place]);
+            timings.births += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - began).count();
+        }
+        if (thinks[place]) thinkers.push_back(order[place]);
+    }
     timings.upkeep += lap(clock);
+    witness_deeds();
+    const double seen = lap(clock);
+    timings.upkeep_seen += seen;
+    timings.upkeep += seen;
     think_all(thinkers);
     clock = std::chrono::steady_clock::now();
 
@@ -1105,6 +1138,10 @@ void Simulation::take_census() {
 }
 
 void Simulation::note_first(std::string_view event, Species species, int who, std::string_view craft) {
+    if (ActingTile* tile = acting_) {  // acting side by side: kept, to be written in the tiles' order
+        tile->firsts.push_back({0, std::string(event), species, who, std::string(craft)});
+        return;
+    }
     if (noting_firsts_) {  // witnessing side by side: kept, to be written in the order seen
         noting_firsts_->push_back({noting_order_, std::string(event), species, who, std::string(craft)});
         return;
@@ -1470,14 +1507,17 @@ void Simulation::seed_plant(Bitzkey& plant) {
     const Offset offset = SIGHT_OFFSETS[static_cast<std::size_t>(rng().randrange(seed_offsets(reach)))];
     if (plant.y + offset.dy < 0 || plant.y + offset.dy >= height_) return;  // off the top or bottom of the map: the seed is lost
     const Cell cell{py_mod(plant.x + offset.dx, width_), plant.y + offset.dy};
-    if (!room_for_seedling(cell)) return;
-    const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, rng(), std::nullopt, mind_mutation_, body_mutation_, has_sea()));
-    if (!suits(decode_terrain(dna), cell)) return;  // fallen in the sea, or on the land, where it can't grow
-    plant.hunger += SEED_COST;
-    plant.children += 1;
-    plant.last_action = "seeded";
-    if (!plant.alive()) die(plant, "seeded to death");  // it spent the last of its food on the seed
-    seeds_.push_back({cell.x, cell.y, dna, plant.generation + 1, turn_});  // it lies PLANT_GESTATION turns before it can sprout
+    const auto fall = [this, &plant, cell] {  // where it falls may lie beyond the plant's tile
+        if (!plant.alive() || !room_for_seedling(cell)) return;
+        const Dna dna = evolved(plant.dna, cross(plant.dna, plant.dna, rng(), std::nullopt, mind_mutation_, body_mutation_, has_sea()));
+        if (!suits(decode_terrain(dna), cell)) return;  // fallen in the sea, or on the land, where it can't grow
+        plant.hunger += SEED_COST;
+        plant.children += 1;
+        plant.last_action = "seeded";
+        if (!plant.alive()) die(plant, "seeded to death");  // it spent the last of its food on the seed
+        seeds_.push_back({cell.x, cell.y, dna, plant.generation + 1, turn_});  // it lies PLANT_GESTATION turns before it can sprout
+    };
+    if (!later(fall)) fall();
 }
 
 void Simulation::nurse(Bitzkey& agent) {
@@ -1824,6 +1864,7 @@ void Simulation::learn_queued() {
     lessons_.clear();
     lesson_senses_.clear();
     agent_lesson_senses_.clear();
+    tile_lesson_senses_.clear();
 }
 
 void Simulation::attach(Bitzkey& agent) {
@@ -2301,7 +2342,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     timings.choose += lap(clock);
     batching_deeds_ = true;  // the deeds seen in acting, taken in together once all have acted
     const bool tiled = act_in_tiles(agents, choices, plans);
-    if (tiled) clock = std::chrono::steady_clock::now();
+    if (tiled) timings.act += lap(clock);  // as long as the turn waited for them
     for (std::size_t index = 0; !tiled && index < agents.size(); ++index) {  // each in turn, in the world as those before it left it
         if (!agents[index]->alive()) continue;
         act(*agents[index], choices[index], plans[index].situation);
@@ -2338,49 +2379,114 @@ thread_local std::deque<Senses>* Simulation::queue_senses_ = nullptr;
 thread_local std::vector<gpu::BrainEngine::Lesson>* Simulation::queue_lessons_ = nullptr;
 
 bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans) {
-    // The map parted into tiles, coloured as a chessboard of four colours, the tiles of a colour acting all at once, a
-    // colour at a time. A tile is wider than what an animal acting may touch (as far as it goes, and a little more for
-    // a blow and those beside it) and what it may look at (as far as it sees), together, so no two tiles acting at once
-    // touch, or look at, the same squares or animals. Within a tile, its animals act in the turn's order, by the
-    // tile's own stream of chance, drawn from the world's in the tiles' order. What reaches further (the herds' seeing
-    // a death, alarms, parents' grief, conceptions, the deaths' records) is noted and done when all have acted.
-    if (gpu_ || agents.empty()) return false;
+    // An animal acting touches, and looks at, nothing further than `reach` from its tile: as far as it goes, and a little
+    // more for a blow and those beside it.
+    if (agents.empty()) return false;
     int fastest = 0;
     for (const Bitzkey* agent : agents) fastest = std::max(fastest, agent->pace());
-    const int touches = fastest + HUNT_STEPS + 3, looks = std::max({MAX_SIGHT, FORAGE_RADIUS, ALARM_REACH});
-    const int side = touches + looks + 1;
+    const int stride = fastest + HUNT_STEPS;
+    // What those about to court or breed go by from further than a tile reaches, counted now, on every core.
+    std::vector<std::size_t> suitors;
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        if (choices[index] == Breed || choices[index] == Court) suitors.push_back(index);
+    }
+    std::for_each(std::execution::par, suitors.begin(), suitors.end(), [&](std::size_t index) {
+        Bitzkey& agent = *agents[index];
+        int crowd = 0;
+        for (const Bitzkey* other : around(agent, agent.sight)) crowd += other->species != Species::Plant && same_kind(agent, *other);
+        agent.crowd_seen = crowd;
+        agent.food_seen = food_supply(agent);
+    });
+    return in_tiles(agents, stride + 3, stride, [&](std::size_t index) {
+        if (!agents[index]->alive()) return;
+        ActingTile* const tile = acting_;
+        act(*agents[index], choices[index], plans[index].situation);
+        const double took = lap(tile->clock);
+        tile->took[static_cast<std::size_t>(choices[index])] += took;
+        tile->taken[static_cast<std::size_t>(choices[index])] += 1;
+    });
+}
+
+bool Simulation::in_tiles(const std::vector<Bitzkey*>& agents, int reach, int stride, const std::function<void(std::size_t)>& each) {
+    // The map parted into tiles, coloured as a chessboard of four colours, the tiles of a colour at work all at once, a
+    // colour at a time. None touches, or looks at, anything further than `reach` from its tile, and a tile is wider
+    // than twice that, so no two tiles at work at once touch the same squares or animals. Within a tile, its animals
+    // take their turns in the turn's order, by the tile's own stream of chance, drawn from the world's in the tiles'
+    // order. Whatever reaches further (what is seen, heard or shot from afar, alarms, a far caller answered, deaths'
+    // records, conceptions, the lists the whole world shares) is noted and done when all are through, in the tiles'
+    // order; and one too far to look at is taken as it stood when the tiles began (see in_reach). So a world unfolds
+    // the same on one core as on many.
+    if (agents.empty()) return false;
+    auto timer = std::chrono::steady_clock::now();
+    std::array<double, 3>& spent = timings.tiles[stride > 0 ? 1 : 0];
+    const int side = std::max(2 * reach + 1, 12);
     int columns = width_ / side;
     columns -= columns % 2;  // even, so the colours alternate round the east-west wrap
     const int rows = height_ / side;
     if (columns < 2 || rows < 1) return false;
     const int tile_width = width_ / columns, tile_height = height_ / rows;
     std::vector<ActingTile> tiles(static_cast<std::size_t>(columns * rows));
-    for (ActingTile& tile : tiles) tile.rng.seed(random_.getrandbits(64));
+    for (int column = 0; column < columns; ++column) {
+        for (int row = 0; row < rows; ++row) {
+            ActingTile& tile = tiles[static_cast<std::size_t>(column * rows + row)];
+            tile.seed = random_.getrandbits(64);
+            tile.left = column * tile_width;
+            tile.top = row * tile_height;
+            tile.wide = column == columns - 1 ? width_ - tile.left : tile_width;
+            tile.tall = row == rows - 1 ? height_ - tile.top : tile_height;
+            tile.reach = reach;
+            tile.stride = stride;
+            tile.world_wide = width_;
+        }
+    }
+    std::for_each(std::execution::par, agents_.begin(), agents_.end(), [](const std::unique_ptr<Bitzkey>& agent) {
+        agent->was_x = agent->x;  // where each stands as the tiles begin, the dead and the plants too
+        agent->was_y = agent->y;
+        agent->was_alive = agent->alive();
+    });
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& agent = *agents[index];
         const int column = std::min(columns - 1, py_mod(agent.x, width_) / tile_width);
         const int row = std::min(rows - 1, std::max(0, agent.y) / tile_height);
         tiles[static_cast<std::size_t>(column * rows + row)].members.push_back(index);
     }
+    spent[0] += lap(timer);
+    const auto run = [&](ActingTile* tile) {
+        acting_ = tile;
+        queue_senses_ = &tile->lesson_senses;
+        queue_lessons_ = &tile->lessons;
+        tile->clock = std::chrono::steady_clock::now();
+        for (const std::size_t index : tile->members) {
+            tile->actor = agents[index];
+            tile->answering = -1;
+            each(index);
+        }
+        tile->actor = nullptr;
+        acting_ = nullptr;
+        queue_senses_ = nullptr;
+        queue_lessons_ = nullptr;
+    };
     for (int colour = 0; colour < 4; ++colour) {
         std::vector<ActingTile*> now;
         for (int column = colour % 2; column < columns; column += 2) {
-            for (int row = colour / 2; row < rows; row += 2) now.push_back(&tiles[static_cast<std::size_t>(column * rows + row)]);
-        }
-        std::for_each(std::execution::par, now.begin(), now.end(), [&](ActingTile* tile) {
-            acting_ = tile;
-            auto clock = std::chrono::steady_clock::now();
-            for (const std::size_t index : tile->members) {
-                if (!agents[index]->alive()) continue;
-                act(*agents[index], choices[index], plans[index].situation);
-                const double took = lap(clock);
-                tile->took[static_cast<std::size_t>(choices[index])] += took;
-                tile->taken[static_cast<std::size_t>(choices[index])] += 1;
-                tile->acting += took;
+            for (int row = colour / 2; row < rows; row += 2) {
+                ActingTile& tile = tiles[static_cast<std::size_t>(column * rows + row)];
+                if (!tile.members.empty()) now.push_back(&tile);
             }
-            acting_ = nullptr;
-        });
+        }
+        if (tiles_one_by_one) {
+            std::for_each(now.begin(), now.end(), run);
+        } else {
+#ifdef BITZKEY_TILE_THREADS  // a thread to a tile, which a thread sanitizer can follow where it can't the pool's
+            std::vector<std::thread> threads;
+            for (ActingTile* tile : now) threads.emplace_back(run, tile);
+            for (std::thread& thread : threads) thread.join();
+#else
+            std::for_each(std::execution::par, now.begin(), now.end(), run);
+#endif
+        }
     }
+    spent[1] += lap(timer);
     // What reached beyond the tiles, in the tiles' order.
     for (ActingTile& tile : tiles) {
         for (const ActingTile::DeathNote& death : tile.deaths) record_death(*death.agent, death.cause, death.killer, death.killer_species, death.activity);
@@ -2392,10 +2498,42 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
             timings.actions[action] += tile.took[action];
             timings.taken[action] += tile.taken[action];
         }
-        timings.act += tile.acting;
+        if (tile.fire_lit) any_fires_ = true;
+        if (gpu_) {
+            for (const gpu::BrainEngine::Handle handle : tile.detached) gpu_->detach(handle);
+        }
+        if (!tile.lessons.empty()) {  // the senses stay where the lessons point, in the deque moved whole
+            lessons_.insert(lessons_.end(), tile.lessons.begin(), tile.lessons.end());
+            tile_lesson_senses_.push_back(std::move(tile.lesson_senses));
+        }
     }
     for (ActingTile& tile : tiles) {
-        for (const auto& [actor, outcome] : tile.witnessed) witness(*actor, outcome);
+        for (const NotedFirst& first : tile.firsts) note_first(first.event, first.species, first.who, first.craft);
+    }
+    for (ActingTile& tile : tiles) {
+        for (ActingTile::Later& far : tile.later) {
+            if (far.answer < 0) {
+                far.deed();
+                continue;
+            }
+            ActingTile::Answer& answer = tile.answers[static_cast<std::size_t>(far.answer)];
+            const double mine = answer.listener->reward, theirs = answer.caller->reward;
+            far.deed();
+            answer.mine += answer.listener->reward - mine;
+            answer.theirs += answer.caller->reward - theirs;
+        }
+        for (const ActingTile::Answer& answer : tile.answers) {
+            if (answer.listener->alive() && answer.caller->alive()) answered(*answer.listener, *answer.caller, answer.mine, answer.theirs);
+        }
+    }
+    {  // each one's witnesses found on every core (none moves, lives or dies while they are), then taken in order
+        std::vector<std::pair<const Bitzkey*, double>> shown;
+        for (ActingTile& tile : tiles) shown.insert(shown.end(), tile.witnessed.begin(), tile.witnessed.end());
+        std::vector<std::vector<std::pair<Bitzkey*, double>>> seen(shown.size());
+        std::vector<std::size_t> each_shown(shown.size());
+        std::iota(each_shown.begin(), each_shown.end(), std::size_t{0});
+        std::for_each(std::execution::par, each_shown.begin(), each_shown.end(), [&](std::size_t index) { seen[index] = witnesses_of(*shown[index].first); });
+        for (std::size_t index = 0; index < shown.size(); ++index) witnessed_by(*shown[index].first, shown[index].second, seen[index]);
     }
     for (ActingTile& tile : tiles) {
         seeds_.insert(seeds_.end(), tile.sown.begin(), tile.sown.end());
@@ -2404,7 +2542,10 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
         for (const auto& [agent, about] : tile.alerts) alert(*agent, *about);
     }
     for (ActingTile& tile : tiles) {
-        for (const auto& [doer, deed, target, kind, craft, culture] : tile.deeds_seen) deed_seen(*doer, deed, target, kind, craft, culture);
+        for (const auto& [doer, deed, target, kind, craft, culture] : tile.deeds_seen) {
+            if (batching_deeds_) seen_deeds_.push_back({doer, deed, target, kind, craft, culture});
+            else deed_seen(*doer, deed, target, kind, craft, culture);
+        }
     }
     for (ActingTile& tile : tiles) fights_.insert(fights_.end(), tile.fights_begun.begin(), tile.fights_begun.end());
     for (ActingTile& tile : tiles) {
@@ -2413,7 +2554,50 @@ bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::ve
     for (ActingTile& tile : tiles) {
         teachings_.insert(teachings_.end(), tile.teaching.begin(), tile.teaching.end());
     }
+    spent[2] += lap(timer);
     return true;
+}
+
+void Simulation::breach(int x, int y) const {
+    const long long count = ++claim_breaches;
+    if (count > 20) return;
+    const ActingTile* tile = acting_;
+    std::fprintf(stderr, "claim breach %lld: square %d,%d by animal %d at %d,%d (action %s), tile %d,%d %dx%d reach %d\n", count, x, y,
+                 tile->actor ? tile->actor->identifier : -1, tile->actor ? tile->actor->x : -1, tile->actor ? tile->actor->y : -1,
+                 tile->actor ? std::string(tile->actor->last_action).c_str() : "", tile->left, tile->top, tile->wide, tile->tall, tile->reach);
+}
+
+std::uint64_t Simulation::digest() const {
+    std::uint64_t hash = 1469598103934665603ull;
+    const auto mix = [&](std::uint64_t value) {
+        hash ^= value;
+        hash *= 1099511628211ull;
+    };
+    const auto real = [&](double value) {
+        std::uint64_t bits;
+        std::memcpy(&bits, &value, sizeof bits);
+        mix(bits);
+    };
+    for (const auto& agent : agents_) {
+        mix(static_cast<std::uint64_t>(agent->identifier));
+        mix(static_cast<std::uint64_t>(agent->x) << 32 | static_cast<std::uint32_t>(agent->y));
+        real(agent->health);
+        real(agent->hunger);
+        real(agent->stamina);
+        real(agent->reward);
+        mix(static_cast<std::uint64_t>(agent->age));
+        mix(static_cast<std::uint64_t>(agent->carried_meat + 3 * agent->carried_fruit + 7 * agent->carried_stone + 11 * agent->carried_bone + 13 * agent->carried_wood));
+        mix(static_cast<std::uint64_t>(agent->crafts));
+        mix(agent->known.size());
+        for (const double trait : agent->mind) real(trait);
+    }
+    for (const int tufts : grass_) mix(static_cast<std::uint64_t>(tufts));
+    for (const auto& piles : piles_) {
+        for (const int pile : piles) mix(static_cast<std::uint64_t>(pile));
+    }
+    mix(wagons_.size());
+    mix(fights_.size());
+    return hash;
 }
 
 void Simulation::learn_from_parent(Bitzkey& child, double target, double call_target, double rate) {
@@ -3357,7 +3541,11 @@ void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed, do
 double Simulation::regard_for(const Bitzkey& agent, const Bitzkey& other) const {
     // While it fights to take from another, those who see the fight hold it a foe, or a friend if its victim is theirs.
     if (const Fight* fight = fight_of(other.identifier); fight && fight->thief == other.identifier && agent.identifier != fight->victim) {
-        if (const Bitzkey* victim = find_agent(fight->victim); victim && victim->alive() && distance(victim->x, victim->y, agent.x, agent.y) <= agent.sight) {
+        // (one too far to look at while others act, as it stood and was when acting began)
+        const Bitzkey* victim = find_agent(fight->victim);
+        const bool near = victim && in_reach(*victim);
+        if (victim && (near ? victim->alive() : victim->was_alive) &&
+            distance(near ? victim->x : victim->was_x, near ? victim->y : victim->was_y, agent.x, agent.y) <= agent.sight) {
             return raw_regard_for(agent, *victim) <= -foe_level(agent) ? 1.0 : -1.0;
         }
     }
@@ -3433,13 +3621,16 @@ void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
     ++regard_counts[KinBlows];
     if (regard <= -REGARD_STRONG) ++regard_counts[KinBlowsEnemy];
     if (regard >= REGARD_STRONG) ++regard_counts[KinBlowsFriend];
-    for (const Bitzkey* other : around(agent, agent.sight)) {
-        if (other == &agent || other->species != agent.species || !other->alive()) continue;
-        const double seen = regard_for(agent, *other);
-        ++regard_counts[KinInSight];
-        if (seen <= -REGARD_STRONG) ++regard_counts[EnemiesInSight];
-        if (seen >= REGARD_STRONG) ++regard_counts[FriendsInSight];
-    }
+    const auto census = [this, &agent] {
+        for (const Bitzkey* other : around(agent, agent.sight)) {
+            if (other == &agent || other->species != agent.species || !other->alive()) continue;
+            const double seen = regard_for(agent, *other);
+            ++regard_counts[KinInSight];
+            if (seen <= -REGARD_STRONG) ++regard_counts[EnemiesInSight];
+            if (seen >= REGARD_STRONG) ++regard_counts[FriendsInSight];
+        }
+    };
+    if (!later(census)) census();
 }
 
 bool Simulation::family(const Bitzkey& one, const Bitzkey& other) {
@@ -3532,6 +3723,11 @@ void Simulation::witness_deeds() {
 void Simulation::witness_deed(Bitzkey& other, const SeenDeed& seen) {
     const auto& [doer_ptr, deed, target, kind, craft, culture] = seen;
     const Bitzkey& doer = *doer_ptr;
+    if (kind == TrespassDeed) {  // one of the land's own, in its own land, thinks the worse of it (see trespass)
+        const LandClaims* land = claims_at(doer.x, doer.y);
+        if (land && other.realm != doer.realm && claims(*land, other.realm) && in_own_land(other)) note_deed(other, doer, -1.0, deed, PlainDeed, true);
+        return;
+    }
     // Eavesdropping: how one it holds a friend treats another, well or ill, colours its own view of that other, as
     // much as it regards the friend. Nothing is told; it is seen.
     if (target && EAVESDROP_SHARE > 0 && target->alive() && target->species != Species::Plant) {
@@ -3705,6 +3901,10 @@ void Simulation::trespass(Bitzkey& agent) {
     if (TRESPASS_REGARD <= 0) return;
     const LandClaims& land = *claims_at(agent.x, agent.y);
     const double weight = std::min(1.0, TRESPASS_REGARD * std::pow(1 + TRESPASS_GROWTH, agent.trespass - 1));  // compounding
+    if (ActingTile* tile = acting_) {  // its witnesses lie beyond its tile: seen with the turn's other deeds, on every core
+        tile->deeds_seen.emplace_back(&agent, weight, nullptr, TrespassDeed, -1, NoCulture);
+        return;
+    }
     for (Bitzkey* other : around(agent, agent.sight)) {  // witnesses within both's sight, as of any deed
         if (other == &agent || !other->alive() || !other->brain || other->realm == agent.realm || !claims(land, other->realm)) continue;
         if (distance(other->x, other->y, agent.x, agent.y) > other->sight || !in_own_land(*other)) continue;
@@ -3810,6 +4010,13 @@ double Simulation::hit_chance(const Bitzkey& archer, int away) {
 }
 
 void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
+    // An arrow flies, and is seen, further than a tile reaches: loosed once all have acted, if its archer still lives.
+    if (later([this, &archer, &target, practice] {
+            if (archer.alive()) shoot(archer, target, practice);
+        })) {
+        archer.last_action = "lost sight of its mark";  // unless it looses
+        return;
+    }
     const int away = distance(target.x, target.y, archer.x, archer.y);
     if (archer.bow_uses <= 0 || !target.alive() || away > archer.sight) {
         archer.last_action = "lost sight of its mark";
@@ -3860,6 +4067,9 @@ void Simulation::shoot(Bitzkey& archer, Bitzkey& target, bool practice) {
 bool Simulation::leader_in_sight(const Bitzkey& agent) const {
     if (agent.follows < 0) return false;
     const Bitzkey* leader = find_agent(agent.follows);
+    if (leader && !in_reach(*leader)) {  // too far to look at while others act: as it stood, and was, when acting began
+        return leader->was_alive && leader->leader && distance(leader->was_x, leader->was_y, agent.x, agent.y) <= agent.sight;
+    }
     return leader && leader->alive() && leader->leader && distance(leader->x, leader->y, agent.x, agent.y) <= agent.sight;
 }
 
@@ -4165,9 +4375,12 @@ void Simulation::give(Bitzkey& agent, Bitzkey& friend_, int possession) {
         const bool kin = agent.mother == friend_.identifier || agent.father == friend_.identifier ||
                          friend_.mother == agent.identifier || friend_.father == agent.identifier ||
                          (agent.mother >= 0 && (agent.mother == friend_.mother || agent.father == friend_.father));
-        const std::lock_guard lock(*gifts_writing_);
-        gifts_.push_back({turn_, agent.identifier, friend_.identifier, possession, worth, agent.species, kin, agent.realm, friend_.realm});
-        if (gifts_.size() > GIFT_LOG) gifts_.pop_front();
+        const auto logged = [this, gift = Gift{turn_, agent.identifier, friend_.identifier, possession, worth, agent.species, kin, agent.realm, friend_.realm}] {
+            const std::lock_guard lock(*gifts_writing_);
+            gifts_.push_back(gift);
+            if (gifts_.size() > GIFT_LOG) gifts_.pop_front();
+        };
+        if (!later(logged)) logged();
     }
     note_deed(friend_, agent, 1.0, 1.0, PlainDeed, true);  // a gift, a kindness
     agent.reward += GIVE_JOY * (0.5 + std::max(agent.feeling(Empathy), agent.feeling(Sociability)));
@@ -4253,9 +4466,12 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
         agent.last_action = "traded";
         note_first("traded", agent.species, agent.identifier);
     }
-    const std::lock_guard lock(*gifts_writing_);
-    trades_.push_back(trade);
-    if (trades_.size() > GIFT_LOG) trades_.pop_front();
+    const auto logged = [this, trade] {
+        const std::lock_guard lock(*gifts_writing_);
+        trades_.push_back(trade);
+        if (trades_.size() > GIFT_LOG) trades_.pop_front();
+    };
+    if (!later(logged)) logged();
 }
 
 void Simulation::begin_fight(const Fight& fight) {
@@ -4264,8 +4480,9 @@ void Simulation::begin_fight(const Fight& fight) {
 }
 
 void Simulation::brawl(Bitzkey& agent, Bitzkey& opponent) {
-    if (distance(opponent.x, opponent.y, agent.x, agent.y) > 1) {
-        move_toward(agent, opponent.x, opponent.y);
+    const Cell at = spot(opponent);  // where it stood when acting began, if too far to look at now
+    if (distance(at.x, at.y, agent.x, agent.y) > 1 || !in_reach(opponent)) {
+        move_toward(agent, at.x, at.y);
         agent.last_action = "closed in";
         return;
     }
@@ -4332,6 +4549,7 @@ double Simulation::possessions(const Bitzkey& agent, const Bitzkey& judge) {
 
 void Simulation::gear_seen(const Bitzkey& user, int kind) {
     if (GEAR_DESIRE <= 0) return;
+    if (later([this, &user, kind] { gear_seen(user, kind); })) return;  // as far as it is seen, further than its tile
     for (Bitzkey* other : around(user, user.sight)) {  // friend or foe, any kind, that has it in sight
         if (!other->alive() || other->species == Species::Plant || distance(other->x, other->y, user.x, user.y) > other->sight) continue;
         double& desire = other->desire[static_cast<std::size_t>(kind)];
@@ -4381,7 +4599,10 @@ void Simulation::answered(Bitzkey& listener, Bitzkey& caller, double mine, doubl
     listener.reward += COMMUNICATION_JOY * mine;
     caller.reward += COMMUNICATION_JOY * theirs;
     if (listener.answer_call >= FirstCall && caller.species != Species::Plant) {
-        ++call_payoffs_[static_cast<std::size_t>(caller.species)][static_cast<std::size_t>(listener.answer_call - FirstCall)][2];
+        const auto count = [this, kind = static_cast<std::size_t>(caller.species), call = static_cast<std::size_t>(listener.answer_call - FirstCall)] {
+            ++call_payoffs_[kind][call][2];
+        };
+        if (!later(count)) count();
     }
     note_first("call_understood", caller.species, caller.identifier);
 }
@@ -4539,9 +4760,12 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
         // A hunter that kills where few others of its prey are left in its sight is uneasy for it.
         Bitzkey* hunter = find_agent(killer->identifier);
         if (hunter && hunter->alive() && hunter->brain) {
-            int left = 0;
-            for (const Bitzkey* other : around(*hunter, hunter->sight)) left += other != &agent && other->alive() && is_prey(*hunter, *other);
-            hunter->reward -= HUNTER_RESTRAINT * std::max(0.0, 1.0 - static_cast<double>(left) / PREY_PLENTY);
+            const auto restraint = [this, hunter, &agent] {
+                int left = 0;
+                for (const Bitzkey* other : around(*hunter, hunter->sight)) left += other != &agent && other->alive() && is_prey(*hunter, *other);
+                hunter->reward -= HUNTER_RESTRAINT * std::max(0.0, 1.0 - static_cast<double>(left) / PREY_PLENTY);
+            };
+            if (!later(restraint)) restraint();
         }
     }
     // Its herd sees a sudden death fail; a slow one (old age, starving or the cold or heat) is not its last choice's
@@ -4553,7 +4777,8 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
     agent.memories.clear();
     agent.diary.clear();
     if (gpu_ && agent.gpu >= 0) {
-        gpu_->detach(agent.gpu);
+        if (tile) tile->detached.push_back(agent.gpu);  // the GPUs are told once all have acted
+        else gpu_->detach(agent.gpu);
         agent.gpu = -1;
     }
     for (Bitzkey::Young& young : agent.womb) {  // the young it carried die with it
@@ -4592,7 +4817,8 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
             wagon.x = agent.x;
             wagon.y = agent.y;
         }
-        parked_.emplace(cell_index(wagon.x, wagon.y), agent.wagon);
+        const auto park = [this, cell = cell_index(wagon.x, wagon.y), which = agent.wagon] { parked_.emplace(cell, which); };
+        if (!later(park)) park();
         agent.wagon = -1;
     }
     agent.weapon = NoWeapon;
@@ -4622,13 +4848,25 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     const double hunger_before = agent.hunger;
     const Fight* fight = action != Flee ? fight_of(agent.identifier) : nullptr;
     Bitzkey* opponent = fight ? find_agent(fight->thief == agent.identifier ? fight->victim : fight->thief) : nullptr;
-    if (opponent && opponent->alive()) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
+    if (opponent && (!in_reach(*opponent) || opponent->alive())) brawl(agent, *opponent);  // in a fight, it fights, unless it flees
     else {
         Bitzkey* caller = agent.answer_to >= 0 && turn_ - agent.answer_turn <= DAY_LENGTH ? find_agent(agent.answer_to) : nullptr;
-        if (caller && !caller->alive()) caller = nullptr;
-        const double caller_had = caller ? caller->reward : 0.0, had_reward = agent.reward;
+        // A caller too far off to look at while others act is judged once all have, by what this one's far deeds did.
+        ActingTile* const tile = acting_;
+        const bool far = caller && !in_reach(*caller);
+        if (caller && !far && !caller->alive()) caller = nullptr;
+        const double caller_had = caller && !far ? caller->reward : 0.0, had_reward = agent.reward;
+        if (far) {
+            tile->answering = static_cast<int>(tile->answers.size());
+            tile->answers.push_back({&agent, caller, 0.0, 0.0});
+        }
         perform(agent, action, s);
-        if (caller) answered(agent, *caller, agent.reward - had_reward, caller->reward - caller_had);
+        if (far) {
+            tile->answers[static_cast<std::size_t>(tile->answering)].mine = agent.reward - had_reward;
+            tile->answering = -1;
+        } else if (caller) {
+            answered(agent, *caller, agent.reward - had_reward, caller->reward - caller_had);
+        }
     }
     const std::string_view did = agent.last_action;
     if (did == "ate" || did == "browsed" || did == "uprooted" || did == "feasted" || did == "scavenged" || did == "ate from a pile" || did == "ate what it carried") {
@@ -4741,7 +4979,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             const bool near = distance(seen.x, seen.y, agent.x, agent.y) <= MAX_SIGHT;
             move_toward(agent, seen.x, seen.y);
             agent.last_action = "courted";
-            if (near && suitor.alive() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH && may_breed(agent, suitor)) {
+            if (near && in_reach(suitor) && suitor.alive() && distance(suitor.x, suitor.y, agent.x, agent.y) <= MATE_REACH && may_breed(agent, suitor)) {
                 agent.reward += mating_joy(agent, COURT_JOY);  // courted into reach, to breed
             }
             break;
@@ -4758,22 +4996,32 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         }
         case Hunt: {
             Bitzkey& quarry = *s.quarry;
-            move_toward(agent, quarry.x, quarry.y, agent.pace() + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
+            const Cell at = spot(quarry);  // where it stood when acting began, if too far to look at now
+            move_toward(agent, at.x, at.y, agent.pace() + (agent.species == Species::Predator ? HUNT_STEPS : 0));  // predators chase further
             agent.last_action = "hunted";
-            if (quarry.alive() && distance(quarry.x, quarry.y, agent.x, agent.y) <= 1) {
+            if (in_reach(quarry) && quarry.alive() && distance(quarry.x, quarry.y, agent.x, agent.y) <= 1) {
                 attack(agent, quarry, "hunting");
                 if (agent.alive()) agent.last_action = "pounced";
             }
             break;
         }
         case Attack:
-            if (!(s.prey->alive() && distance(s.prey->x, s.prey->y, agent.x, agent.y) <= 1)) {
+            if (!(in_reach(*s.prey) && s.prey->alive() && distance(s.prey->x, s.prey->y, agent.x, agent.y) <= 1)) {
                 agent.last_action = "missed";  // it fell or got away first
                 break;
             }
             attack(agent, *s.prey);
             break;
         case Defend:
+            if (!in_reach(*s.defend_target)) {  // too far to look at while others act: shot at once all have, or charged where it stood
+                if (agent.bow_uses > 0) {
+                    shoot(agent, *s.defend_target, false);
+                } else {
+                    move_toward(agent, s.defend_target->was_x, s.defend_target->was_y);
+                    agent.last_action = "charged";
+                }
+                break;
+            }
             if (!s.defend_target->alive()) {
                 agent.last_action = "missed";
                 break;
@@ -5001,7 +5249,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             if (s.hunter && garb_of(agent.hide) > 0) deed_seen(agent, 0.0, nullptr, LieDeed);  // a warrior's garb, running from a fight
             // Cowardice: fleeing a fight it is in, or the blows of one of its own kind, not a hunter's.
             if (fight_of(agent.identifier) || (s.assailant && same_kind(agent, *s.assailant))) deed_seen(agent, 0.0, nullptr, CowardDeed);
-            if (s.hunter) move_away(agent, *s.hunter);
+            if (s.hunter) move_away(agent, spot(*s.hunter));
             else move_toward(agent, std::clamp(2 * agent.x - s.fire->x, 0, width_ - 1), std::clamp(2 * agent.y - s.fire->y, 0, height_ - 1));
             agent.last_action = s.panic ? "panicked" : "fled";
             break;
@@ -5010,7 +5258,7 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
 
 void Simulation::browse(Bitzkey& agent, Bitzkey& plant) {
     move_toward(agent, plant.x, plant.y);
-    if (!plant.alive() || distance(plant.x, plant.y, agent.x, agent.y) > 1 || fruit_left(plant) <= 0) {
+    if (distance(plant.x, plant.y, agent.x, agent.y) > 1 || !plant.alive() || fruit_left(plant) <= 0) {
         agent.last_action = "sought plants";
         return;
     }
@@ -5092,12 +5340,15 @@ void Simulation::provision(Bitzkey& agent, Cell store) {
     carrying[FruitDropped] += agent.carried_fruit + agent.cooked_fruit;
     agent.carried_meat = agent.carried_fruit = agent.cooked_meat = agent.cooked_fruit = 0;
     agent.reward += SHARE_JOY * generosity(agent);  // glad to share, or, the greedy, uneasy
-    for (const Bitzkey* other : around(agent, agent.sight)) {  // a friend there to share with: glad by its kinship, greedy or not
-        if (other != &agent && other->alive() && is_friend(agent, *other)) {
-            agent.reward += KIN_SHARE_JOY * agent.feeling(Kinship);
-            break;
+    const auto shared = [this, &agent] {  // a friend there to share with: glad by its kinship, greedy or not
+        for (const Bitzkey* other : around(agent, agent.sight)) {
+            if (other != &agent && other->alive() && is_friend(agent, *other)) {
+                agent.reward += KIN_SHARE_JOY * agent.feeling(Kinship);
+                break;
+            }
         }
-    }
+    };
+    if (!later(shared)) shared();
     agent.last_action = "stored food for its herd";
     note_first("stored_food", agent.species, agent.identifier);
 }
@@ -5424,7 +5675,7 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
     }
     if (!s.tears) move_toward(agent, plant->x, plant->y);
     // As browsing or uprooting wound a plant, its fruit carried off rather than eaten.
-    if (!plant->alive() || far(plant->x, plant->y) > 1 || (!s.tears && fruit_left(*plant) <= 0)) {
+    if (far(plant->x, plant->y) > 1 || !plant->alive() || (!s.tears && fruit_left(*plant) <= 0)) {
         agent.last_action = "sought plants";
         return;
     }
@@ -5572,7 +5823,11 @@ bool Simulation::food_in_sight(const Bitzkey& agent) const {
 }
 
 void Simulation::last_bite(Bitzkey& agent) {
-    if (LAST_BITE > 0 && !food_in_sight(agent)) agent.reward -= LAST_BITE;
+    if (LAST_BITE <= 0) return;
+    const auto look = [this, &agent] {
+        if (!food_in_sight(agent)) agent.reward -= LAST_BITE;
+    };
+    if (!later(look)) look();
 }
 
 double Simulation::cooking_smell(const Bitzkey& agent, int sight) const {
@@ -5849,13 +6104,16 @@ void Simulation::eat_marrow(Bitzkey& agent) {
     if (agent.species != Species::Grazer || MARROW_LEAN <= 0) return;
     agent.meat_lean = std::min(1.0, agent.meat_lean + MARROW_LEAN);
     if (agent.meat_lean < 1.0 - 1e-9) return;
-    constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
-    agent.dna.bits = (agent.dna.bits & ~(std::uint64_t{0x3} << shift)) | (static_cast<std::uint64_t>(Species::Omnivore) << shift);
-    agent.body[SpeciesTrait] = static_cast<int>(Species::Omnivore);
-    agent.species = Species::Omnivore;
-    agent.meat_lean = 0.0;
-    agent.derive();
-    note_first("gave_in_to_meat", Species::Grazer, agent.identifier);
+    const auto turned = [this, &agent] {  // what it is, others far off may be looking at: changed once all have acted
+        constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
+        agent.dna.bits = (agent.dna.bits & ~(std::uint64_t{0x3} << shift)) | (static_cast<std::uint64_t>(Species::Omnivore) << shift);
+        agent.body[SpeciesTrait] = static_cast<int>(Species::Omnivore);
+        agent.species = Species::Omnivore;
+        agent.meat_lean = 0.0;
+        agent.derive();
+        note_first("gave_in_to_meat", Species::Grazer, agent.identifier);
+    };
+    if (!later(turned)) turned();
 }
 
 void Simulation::fertilize(Bitzkey& agent) {
@@ -5879,7 +6137,8 @@ void Simulation::light_fire(Bitzkey& agent) {
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     fires_[cell] = turn_ + FIRE_TURNS;
     fire_lighters_[cell] = agent.identifier;
-    any_fires_ = true;
+    if (ActingTile* tile = acting_) tile->fire_lit = true;
+    else any_fires_ = true;
     agent.last_action = "lit a fire";
     agent.reward += FIRE_JOY;
     deed_seen(agent, FIRE_DEED, nullptr, SkillDeed);
@@ -6028,12 +6287,16 @@ std::array<int*, 7> wagon_load(Bitzkey& agent) {  // as a wagon's goods: stone, 
 void Simulation::hitch(Bitzkey& agent, int wagon) {
     if (wagon < 0 || agent.wagon >= 0) return;
     Wagon& it = wagons_[static_cast<std::size_t>(wagon)];
-    for (auto parked = parked_.begin(); parked != parked_.end(); ++parked) {
-        if (parked->second == wagon) {
-            parked_.erase(parked);
-            break;
+    if (it.hitched_to >= 0) return;  // another beside it hitched it first: a wagon has one to drag it
+    const auto taken = [this, wagon] {
+        for (auto parked = parked_.begin(); parked != parked_.end(); ++parked) {
+            if (parked->second == wagon) {
+                parked_.erase(parked);
+                break;
+            }
         }
-    }
+    };
+    if (!later(taken)) taken();
     it.hitched_to = agent.identifier;
     it.x = agent.x;
     it.y = agent.y;
@@ -6052,7 +6315,8 @@ void Simulation::unhitch(Bitzkey& agent) {
     it.hitched_to = -1;
     it.x = agent.x;
     it.y = agent.y;
-    parked_.emplace(cell_index(agent.x, agent.y), agent.wagon);
+    const auto park = [this, cell = cell_index(agent.x, agent.y), which = agent.wagon] { parked_.emplace(cell, which); };
+    if (!later(park)) park();
     agent.wagon = -1;
     const std::array<int*, 7> load = wagon_load(agent);
     for (std::size_t good = 0; good < load.size(); ++good) {
@@ -6139,10 +6403,15 @@ void Simulation::make_gear(Bitzkey& agent, int action) {
             note_first("made_a_bow", agent.species, agent.identifier);
             break;
         case MakeWagon:  // two stones and three wood, with an axe it keeps; left where it stands, for any to hitch
-            wagons_.push_back({agent.x, agent.y});
-            parked_.emplace(cell_index(agent.x, agent.y), static_cast<int>(wagons_.size()) - 1);
+        {
+            const auto made = [this, x = agent.x, y = agent.y] {
+                wagons_.push_back({x, y});
+                parked_.emplace(cell_index(x, y), static_cast<int>(wagons_.size()) - 1);
+            };
+            if (!later(made)) made();  // the list of wagons grows only when all have acted
             note_first("made_a_wagon", agent.species, agent.identifier);
             break;
+        }
         default:  // a stone axe, of a stone and a bone, or wood if there is no bone at hand
             agent.spare_tools.push_back({StoneAxe, 0});
     }
@@ -6728,6 +6997,11 @@ double Simulation::room() const {
 }
 
 int Simulation::crowding(const Bitzkey& agent, const Bitzkey& partner, bool own_kind) const {
+    if (acting_ && own_kind) {  // as far as it sees is further than its tile: as counted when acting began, less its partner
+        const bool counted = &partner != &agent && partner.species != Species::Plant && same_kind(agent, partner) &&
+                             distance(partner.was_x, partner.was_y, agent.was_x, agent.was_y) <= agent.sight;
+        return agent.crowd_seen - (counted ? 1 : 0);
+    }
     int count = 0;
     for (const Bitzkey* other : around(agent, agent.sight)) {  // within its sight
         count += other->species != Species::Plant && other != &partner && (!own_kind || same_kind(agent, *other));
@@ -6951,7 +7225,7 @@ void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
     effort(agent, cells);
 }
 
-void Simulation::move_away(Bitzkey& agent, const Bitzkey& threat) {
+void Simulation::move_away(Bitzkey& agent, Cell threat) {
     int cells = 0;
     for (int taken = 0, pace = agent.pace(); taken < pace; ++taken) {
         const Side side = tie_side(agent);  // straight in line with it, either way
@@ -6997,6 +7271,11 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
         acting_->witnessed.emplace_back(&actor, outcome);
         return;
     }
+    witnessed_by(actor, outcome, witnesses_of(actor));
+}
+
+std::vector<std::pair<Bitzkey*, double>> Simulation::witnesses_of(const Bitzkey& actor) const {
+    std::vector<std::pair<Bitzkey*, double>> seen;
     for (const Offset& offset : nearby_offsets(MAX_SIGHT)) {  // as nearby() would list them, in the same order
         const auto* list = cell_if(actor.x + offset.dx, actor.y + offset.dy);
         if (!list) continue;
@@ -7005,14 +7284,20 @@ void Simulation::witness(const Bitzkey& actor, double outcome) {
                 distance(observer->x, observer->y, actor.x, actor.y) > observer->sight) {
                 continue;
             }
-            const double heed = observer->feeling(Empathy) * observer->intelligence() *
-                                (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1));  // the trusting take in more
-            const double heft = outcome <= -DEATH_PENALTY ? FATAL_LESSON : 1.0;  // a death seen teaches hard
-            witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * heft * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
-            observer->reward += SOCIAL_MOOD * heed * outcome;
-            if (outcome > 0) observer->seen_success = 1.0;
-            else observer->seen_failure = 1.0;
+            seen.emplace_back(observer, observer->feeling(Empathy) * observer->intelligence() *
+                                            (1 + TRUST_HEED * (2 * observer->feeling(Trust) - 1)));  // the trusting take in more
         }
+    }
+    return seen;
+}
+
+void Simulation::witnessed_by(const Bitzkey& actor, double outcome, const std::vector<std::pair<Bitzkey*, double>>& seen) {
+    for (const auto& [observer, heed] : seen) {
+        const double heft = outcome <= -DEATH_PENALTY ? FATAL_LESSON : 1.0;  // a death seen teaches hard
+        witnessed_.push_back({observer, actor.last_senses, actor.last_choice, outcome, LEARNING_RATE * heed * SOCIAL_LEARNING * heft * lesson_weight(actor.last_choice, outcome)});  // learnt at the end
+        observer->reward += SOCIAL_MOOD * heed * outcome;
+        if (outcome > 0) observer->seen_success = 1.0;
+        else observer->seen_failure = 1.0;
     }
 }
 
@@ -7106,6 +7391,7 @@ double Simulation::food_supply(const Bitzkey& agent) const {
     // those that graze, as well as they digest them, and prey for hunters. Grass is judged by what
     // will grow back over GRASS_OUTLOOK turns where it grows now, and a share of what stands now, so a
     // crowd can't breed on a stock it is about to eat.
+    if (acting_) return agent.food_seen;  // as it was when acting began
     double food = 0.0;
     if (agent.grazing != 0.0) {
         double cells = 0.0;

@@ -4856,3 +4856,24 @@ TEST_CASE("a tutor gives one of its kind beside it a lesson: a recipe it lacks, 
     CHECK(lesson(stranger) == -1);  // not of its kind
 }
 
+
+TEST_CASE("a world parted into tiles unfolds the same side by side as one tile at a time, none touching beyond its tile's reach") {
+    const auto unfold = [](bool one_by_one) {
+        Simulation::tiles_one_by_one = one_by_one;
+        Simulation simulation(120, 60, 900, std::optional<std::uint64_t>(11));
+        std::vector<std::uint64_t> digests;
+        for (int turn = 0; turn < 120; ++turn) {
+            simulation.advance();
+            digests.push_back(simulation.digest());
+        }
+        return digests;
+    };
+    Simulation::guard_claims = true;
+    Simulation::claim_breaches = 0;
+    const std::vector<std::uint64_t> side_by_side = unfold(false), again = unfold(false), one_by_one = unfold(true);
+    Simulation::guard_claims = false;
+    Simulation::tiles_one_by_one = false;
+    CHECK(side_by_side == one_by_one);
+    CHECK(side_by_side == again);
+    CHECK(Simulation::claim_breaches.load() == 0);
+}

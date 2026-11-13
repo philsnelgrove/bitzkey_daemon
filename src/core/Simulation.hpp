@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <map>
 #include <cstdint>
@@ -413,7 +414,7 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed, TitleDeed };  // CultureDeed: seen for its culture alone
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed, TitleDeed, TrespassDeed };  // CultureDeed: seen for its culture alone
 // Cultures: what each species esteems, seen done by one of its own kind, over and above the deed's own worth, by
 // CULTURE_REGARD, twice it from family (parent, child or sibling) and, for a predator, from its pack. Predators esteem
 // victories; omnivores, crafting and building (shelters and roads); grazers, sowing and fruit picked from a plant
@@ -1004,6 +1005,10 @@ struct Bitzkey {
     int identifier;
     Dna dna;
     int x, y;
+    int was_x = 0, was_y = 0;  // where it stood when the turn's acting began (see Simulation::in_reach)
+    bool was_alive = true;     // and whether it lived then
+    int crowd_seen = 0;        // its own kind in its sight then, and the food about it per mouth: what one about to
+    double food_seen = 0.0;    // court or breed goes by, while the animals act in tiles
     bool wet = false;  // in the sea, as the world keeps it while it moves
     double hunger = 0.0;
     double health = 100.0;
@@ -1377,6 +1382,7 @@ public:
     int meat_pile_at(int x, int y) const { return pile_at(x, y, MeatPile); }  // portions lying there
     int fruit_pile_at(int x, int y) const { return pile_at(x, y, FruitPile); }
     void add_to_pile(int x, int y, PileKind kind, int portions = 1) {
+        claim(x, y);
         const std::size_t cell = static_cast<std::size_t>(y) * width_ + x;
         piles_[kind][cell] += portions;
         if (portions > 0 && kind < BoneAxePile) pile_turns_[kind][cell] = turn_;  // a gear pile keeps its wear there instead
@@ -1423,7 +1429,7 @@ public:
     // The biomes, each its squares, in the order they are first met row by row (see BIOME_GROUPS); those smaller
     // than BIOME_SIZE left out.
     std::vector<std::vector<Cell>> biomes() const;
-    int& grass_cell(int x, int y) { return grass_[static_cast<std::size_t>(y) * width_ + x]; }
+    int& grass_cell(int x, int y) { claim(x, y); return grass_[static_cast<std::size_t>(y) * width_ + x]; }
     void clear_grass() { std::fill(grass_.begin(), grass_.end(), 0); }
     std::size_t grass_tufts() const;
     const Insights& insights() const { return insights_; }
@@ -1660,6 +1666,9 @@ public:
         // Finer parts: indexing the cells, births, the deeds witnessed after acting, conceiving, learning what was
         // witnessed, teaching, and letting go of the turn's working memory.
         double index = 0, births = 0, witnessing = 0, conceiving = 0, witnessed_learning = 0, teaching = 0, cleanup = 0;
+        // The tiles (see in_tiles), for upkeep [0] and for acting [1]: laying them out, working them, and what reached beyond them.
+        std::array<std::array<double, 3>, 2> tiles{};
+        double ahead = 0, upkeep_seen = 0;  // upkeep: what is worked out beforehand, and its deeds witnessed
     };
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do
@@ -1796,7 +1805,15 @@ public:
         int radius_;
         const Bitzkey* except_;
     };
-    Around around(const Bitzkey& agent, int radius) const { return Around(*this, {agent.x, agent.y}, radius, &agent); }
+    Around around(const Bitzkey& agent, int radius) const {
+        if (guard_claims && acting_) {  // the whole of what it looks over, by its corners
+            claim(agent.x - radius, agent.y);
+            claim(agent.x + radius, agent.y);
+            claim(agent.x, agent.y - radius);
+            claim(agent.x, agent.y + radius);
+        }
+        return Around(*this, {agent.x, agent.y}, radius, &agent);
+    }
     // The Bitzkey of this identifier, living or dead, while the world still holds it; agents_ stays in the order
     // they were made, so it is found by halving.
     Bitzkey* find_agent(int identifier) const;
@@ -2074,6 +2091,9 @@ public:
     // as if they had made its last choice themselves, feel it, and sense it for a while; how much
     // they take it in is their empathy times their intellect.
     void witness(const Bitzkey& actor, double outcome);
+    // Those of its herd who see it, each with how much it heeds what it sees; and what they take from it.
+    std::vector<std::pair<Bitzkey*, double>> witnesses_of(const Bitzkey& actor) const;
+    void witnessed_by(const Bitzkey& actor, double outcome, const std::vector<std::pair<Bitzkey*, double>>& seen);
     // Whether an animal counts another, alive or not, as one of its herd (or pack).
     bool society(const Bitzkey& observer, const Bitzkey& actor) const;
 
@@ -2129,11 +2149,11 @@ private:
     Seen look_around(const Bitzkey& agent, int sight, int prey_sight = -1) const;
     void move(Bitzkey& agent, int x, int y);
     void move_toward(Bitzkey& agent, int x, int y, int steps = -1);  // its own steps, unless given
-    void move_away(Bitzkey& agent, const Bitzkey& threat);
+    void move_away(Bitzkey& agent, Cell threat);
     bool in_bounds(int x, int y) const { return 0 <= x && x < width_ && 0 <= y && y < height_; }
     // A row kept on the map: the top and bottom edges are barriers, though east and west wrap round.
     int within(int y) const { return std::max(0, std::min(height_ - 1, y)); }
-    std::vector<Bitzkey*>& cell_at(int x, int y) { return cells_[static_cast<std::size_t>(y) * width_ + x]; }
+    std::vector<Bitzkey*>& cell_at(int x, int y) { claim(x, y); return cells_[static_cast<std::size_t>(y) * width_ + x]; }
     const std::vector<Bitzkey*>* cell_if(int x, int y) const {
         return in_bounds(x, y) ? &cells_[static_cast<std::size_t>(y) * width_ + x] : nullptr;
     }
@@ -2229,6 +2249,7 @@ private:
         bool born_hunter;  // a predator of other parents, bringing eating to hunting and uprooting to feasting
     };
     std::vector<Conception> conceptions_;
+    struct NotedFirst { std::size_t order; std::string event; Species species; int who; std::string craft; };
     // A tile of the map, its animals acting on a core of its own (see act_in_tiles): its own stream of chance, and what
     // they do that reaches beyond it, kept to be done once every tile has acted.
     struct ActingTile {
@@ -2255,11 +2276,78 @@ private:
         std::array<double, ACTION_COUNT> took{};
         std::array<long long, ACTION_COUNT> taken{};
         double acting = 0;
+        std::chrono::steady_clock::time_point clock;  // for timing what its animals do
+        // Its ground: the columns from `left` (wrapping east) and the rows from `top`. Its animals touch nothing
+        // further than `reach` squares beyond it, so tiles acting at once, twice that and more apart, never meet.
+        int left = 0, top = 0, wide = 0, tall = 0, reach = 0, stride = 0, world_wide = 0;
+        std::uint64_t seed = 0;  // of its stream of chance, drawn only if one of its animals needs it
+        bool seeded = false;
+        // How far a square lies beyond its ground, east or west the shorter way round, and north or south.
+        int beyond(int x, int y) const {
+            const int along = ((x - left) % world_wide + world_wide) % world_wide;
+            const int dx = along < wide ? 0 : std::min(along - (wide - 1), world_wide - along);
+            const int dy = y < top ? top - y : y >= top + tall ? y - (top + tall - 1) : 0;
+            return std::max(dx, dy);
+        }
+        // What one of its animals did that reaches beyond its ground, to be done once every tile has acted, in the
+        // tiles' order; and the call it was answering, if its caller stood too far off to be judged at once.
+        struct Later {
+            Bitzkey* actor;
+            int answer;  // its place in `answers`, or -1
+            std::function<void()> deed;
+        };
+        struct Answer {
+            Bitzkey* listener;
+            Bitzkey* caller;
+            double mine;  // what the listener's act was worth to it, so far
+            double theirs;
+        };
+        std::vector<Later> later;
+        std::vector<Answer> answers;
+        int answering = -1;  // the answer its acting animal's far deeds count toward
+        Bitzkey* actor = nullptr;  // the animal now acting
+        std::vector<NotedFirst> firsts;
+        std::vector<gpu::BrainEngine::Handle> detached;  // the brains of its dead, to leave the GPUs
+        std::deque<Senses> lesson_senses;  // lessons queued for the GPUs as its animals acted
+        std::vector<gpu::BrainEngine::Lesson> lessons;
+        bool fire_lit = false;
     };
     static thread_local ActingTile* acting_;  // the tile this core is acting for, if any
+    // Whether another may be looked at and touched as it now is, by the animal acting: always, when the animals act one
+    // by one; when they act in tiles, only one near enough that no other tile's animals can be touching it. One too far
+    // is taken as it stood when acting began (was_x, was_y), and what is done to it kept for later (see later()).
+    bool in_reach(const Bitzkey& other) const {
+        const ActingTile* tile = acting_;
+        if (!tile) return true;
+        if (tile->beyond(other.was_x, other.was_y) > tile->reach + tile->stride) return false;  // it may be acting in another tile
+        return tile->beyond(other.x, other.y) <= tile->reach;
+    }
+    Cell spot(const Bitzkey& other) const { return in_reach(other) ? Cell{other.x, other.y} : Cell{other.was_x, other.was_y}; }
+    // A deed reaching beyond the acting animal's tile, kept to be done when all have acted: true if kept (the caller
+    // then leaves it), false if the animals are acting one by one and it is to be done now.
+    template <class Deed>
+    bool later(Deed&& deed) {
+        ActingTile* tile = acting_;
+        if (!tile) return false;
+        tile->later.push_back({tile->actor, tile->answering, std::forward<Deed>(deed)});
+        return true;
+    }
+    // A check, for the tests: every square an acting animal touches lies within its tile's reach. Counted, not stopped.
+    void claim(int x, int y) const {
+        if (!guard_claims) return;
+        const ActingTile* tile = acting_;
+        if (tile && tile->beyond(x, y) > tile->reach) breach(x, y);
+    }
+    void breach(int x, int y) const;
+public:
+    static inline bool guard_claims = false;      // count touches beyond a tile's reach (and say where, the first few)
+    static inline bool tiles_one_by_one = false;  // act the tiles one at a time, in their order: what side by side must equal
+    static inline std::atomic<long long> claim_breaches{0};
+    // A number that differs if anything about the world's animals, plants, grass or piles does: to compare two runs.
+    std::uint64_t digest() const;
+private:
     // Deeds seen while a stretch of the turn is batched, taken in by their witnesses together, each on its own core.
     struct SeenDeed { const Bitzkey* doer; double deed; const Bitzkey* target; DeedKind kind; int craft; Culture culture; };
-    struct NotedFirst { std::size_t order; std::string event; Species species; int who; std::string craft; };
     std::vector<SeenDeed> seen_deeds_;
     bool batching_deeds_ = false;
     static thread_local std::vector<NotedFirst>* noting_firsts_;  // firsts noted while witnessing, kept for their turn
@@ -2267,10 +2355,22 @@ private:
     void witness_deeds();
     void witness_deed(Bitzkey& other, const SeenDeed& seen);
     // The stream of chance: the acting tile's, else the world's own.
-    PyRandom& rng() { return acting_ ? acting_->rng : random_; }
+    PyRandom& rng() {
+        ActingTile* tile = acting_;
+        if (!tile) return random_;
+        if (!tile->seeded) {
+            tile->rng.seed(tile->seed);
+            tile->seeded = true;
+        }
+        return tile->rng;
+    }
     // The turn's choices acted out tile by tile, on every core: returns false, having done nothing, when the world is
-    // too small to part, or thinks on the GPUs, to be acted out one by one instead.
+    // too small to part, to be acted out one by one instead.
     bool act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans);
+    // `each` called for every one of these (by its place among them), tile by tile on every core, those of a tile in
+    // their order; then what they did that reached beyond their tiles, in the tiles' order. `reach`: how far beyond its
+    // tile one may touch; `stride`: how far one may go. False, having done nothing, when the world is too small to part.
+    bool in_tiles(const std::vector<Bitzkey*>& agents, int reach, int stride, const std::function<void(std::size_t)>& each);
     // A death written down: its record and tally, the counts, and the parents' grief.
     void record_death(Bitzkey& agent, std::string_view cause, int killer, Species killer_species, std::string_view activity);
     std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
@@ -2317,6 +2417,7 @@ private:
     // What each animal's lessons sensed, when the lessons are queued on every core at once (see think_all): each core
     // queues into the animal's own, and the queues are joined in the animals' order.
     std::vector<std::deque<Senses>> agent_lesson_senses_;
+    std::deque<std::deque<Senses>> tile_lesson_senses_;  // and those queued as the tiles acted
     static thread_local std::deque<Senses>* queue_senses_;
     static thread_local std::vector<gpu::BrainEngine::Lesson>* queue_lessons_;
     void queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
