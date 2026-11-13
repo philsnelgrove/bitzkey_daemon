@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <execution>
+#include <numeric>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -696,19 +697,28 @@ private:
         for (const Upload& upload : gpu.uploads) floats += upload.weights.size() + upload.traces.size();
         ensure(gpu, gpu.staging, floats * sizeof(float), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
         auto* data = static_cast<float*>(gpu.staging.mapped);
+        std::vector<std::size_t> at(gpu.uploads.size() + 1, 0);  // where each brain's weights go, in floats
+        for (std::size_t index = 0; index < gpu.uploads.size(); ++index) {
+            at[index + 1] = at[index] + 2 * gpu.uploads[index].weights.size();
+        }
+        std::vector<std::size_t> each(gpu.uploads.size());
+        std::iota(each.begin(), each.end(), std::size_t{0});
+        std::for_each(std::execution::par, each.begin(), each.end(), [&](std::size_t index) {  // copied in on every core
+            const Upload& upload = gpu.uploads[index];
+            const std::size_t floats = upload.weights.size();
+            std::memcpy(data + at[index], upload.weights.data(), floats * sizeof(float));
+            std::memcpy(data + at[index] + floats, upload.traces.data(), floats * sizeof(float));
+        });
         begin(gpu);
-        VkDeviceSize offset = 0;
-        for (const Upload& upload : gpu.uploads) {
+        for (std::size_t index = 0; index < gpu.uploads.size(); ++index) {
+            const Upload& upload = gpu.uploads[index];
             const Pool& pool = gpu.pools.at(upload.shape);
             const VkDeviceSize bytes = pool.slot_floats * sizeof(float);
-            std::memcpy(data, upload.weights.data(), bytes);
-            std::memcpy(data + pool.slot_floats, upload.traces.data(), bytes);
-            data += 2 * pool.slot_floats;
+            const VkDeviceSize offset = at[index] * sizeof(float);
             const VkBufferCopy weights{offset, upload.slot * bytes, bytes};
             const VkBufferCopy traces{offset + bytes, upload.slot * bytes, bytes};
             vk_.vkCmdCopyBuffer(gpu.cmd, gpu.staging.buffer, pool.weights.buffer, 1, &weights);
             vk_.vkCmdCopyBuffer(gpu.cmd, gpu.staging.buffer, pool.traces.buffer, 1, &traces);
-            offset += 2 * bytes;
         }
         submit_and_wait(gpu);
         gpu.uploads.clear();

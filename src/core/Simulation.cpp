@@ -1804,6 +1804,11 @@ void Simulation::foresee(Bitzkey& agent, const Foresight& change) {
 
 void Simulation::queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
                               double decay, int steps) {
+    if (queue_senses_) {  // on its own core, into the animal's own queue
+        queue_senses_->push_back(senses);
+        queue_lessons_->push_back({agent.gpu, &queue_senses_->back(), action, target, rate, traced, decay, steps});
+        return;
+    }
     lesson_senses_.push_back(senses);
     lessons_.push_back({agent.gpu, &lesson_senses_.back(), action, target, rate, traced, decay, steps});
 }
@@ -1818,6 +1823,7 @@ void Simulation::learn_queued() {
     }
     lessons_.clear();
     lesson_senses_.clear();
+    agent_lesson_senses_.clear();
 }
 
 void Simulation::attach(Bitzkey& agent) {
@@ -2056,7 +2062,18 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         if (taught(index) && FORESIGHT_LEARNING > 0) foresee(*agents[index], changes[index]);
         rein_in(*agents[index], plans[index].senses, values[index]);
     };
-    if (gpu_) std::for_each(indices.begin(), indices.end(), teach);  // queued for the GPUs, in order
+    if (gpu_) {  // queued for the GPUs: each animal's lessons on its own core, then joined in the animals' order
+        agent_lesson_senses_.assign(agents.size(), {});
+        std::vector<std::vector<gpu::BrainEngine::Lesson>> batches(agents.size());
+        std::for_each(std::execution::par, indices.begin(), indices.end(), [&](std::size_t index) {
+            queue_senses_ = &agent_lesson_senses_[index];
+            queue_lessons_ = &batches[index];
+            teach(index);
+            queue_senses_ = nullptr;
+            queue_lessons_ = nullptr;
+        });
+        for (const auto& batch : batches) lessons_.insert(lessons_.end(), batch.begin(), batch.end());
+    }
     else std::for_each(std::execution::par, indices.begin(), indices.end(), teach);
     for (std::size_t index = 0; index < agents.size(); ++index) {
         if (taught(index) && rewards[index] > 0) experience(*agents[index], Lesson);  // a choice that turned out well
@@ -2317,6 +2334,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
 }
 
 thread_local Simulation::ActingTile* Simulation::acting_ = nullptr;
+thread_local std::deque<Senses>* Simulation::queue_senses_ = nullptr;
+thread_local std::vector<gpu::BrainEngine::Lesson>* Simulation::queue_lessons_ = nullptr;
 
 bool Simulation::act_in_tiles(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, std::vector<Sensed>& plans) {
     // The map parted into tiles, coloured as a chessboard of four colours, the tiles of a colour acting all at once, a

@@ -2313,6 +2313,11 @@ private:
     std::vector<std::pair<Bitzkey*, Bitzkey*>> teachings_;  // (elder, student) this turn
     std::deque<Senses> lesson_senses_;  // what each queued lesson sensed, kept still while it waits
     std::vector<gpu::BrainEngine::Lesson> lessons_;  // lessons for the GPUs, learnt in one batch
+    // What each animal's lessons sensed, when the lessons are queued on every core at once (see think_all): each core
+    // queues into the animal's own, and the queues are joined in the animals' order.
+    std::vector<std::deque<Senses>> agent_lesson_senses_;
+    static thread_local std::deque<Senses>* queue_senses_;
+    static thread_local std::vector<gpu::BrainEngine::Lesson>* queue_lessons_;
     void queue_lesson(const Bitzkey& agent, const Senses& senses, int action, double target, double rate, bool traced,
                       double decay, int steps = 0);
     void learn_queued();
