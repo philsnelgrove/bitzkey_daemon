@@ -1729,6 +1729,7 @@ public:
     void discover(Bitzkey& agent);  // perhaps, a craft whose materials it holds
     void make_gear(Bitzkey& agent, int action);    // from what it has at hand, wielded or worn at once; else work on a bow or wagon
     Parts at_hand(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const;  // its pack, the work, piles about, friends' packs
+    static bool enough(const Parts& parts, int craft);  // whether these parts make the craft
     bool has_set(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const;  // all the craft needs, at hand
     bool can_finish(const Bitzkey& agent, int action) const;  // a bow or wagon, with the tool and the set at hand
     bool can_add(const Bitzkey& agent, int craft) const;  // carries a part the work on its square still lacks

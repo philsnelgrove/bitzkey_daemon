@@ -6096,8 +6096,22 @@ void Simulation::discover(Bitzkey& agent) {
     if (agent.crafts == (1 << CRAFT_COUNT) - 1) return;  // nothing left to find
     const std::vector<Bitzkey*> near = nearby(agent, 1);
     const bool axe = agent.has_tool(BoneAxe) || agent.has_tool(StoneAxe);
+    // What is at hand, counted once: it differs between crafts only by work begun on its square for that craft. Only
+    // crafts it does not know can be found, so the rest are not counted (the draws below are the same either way).
+    const Parts about = at_hand(agent, -2, near);  // -2: no craft's work, begun or none
+    const Work& work = works_[cell_index(agent.x, agent.y)];
     std::array<bool, CRAFT_COUNT> holds{};  // all a craft needs at hand, as the crafts' actions run
-    for (int craft = 0; craft < CRAFT_COUNT; ++craft) holds[craft] = has_set(agent, craft, near);
+    for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
+        if (agent.crafts >> craft & 1) continue;
+        Parts parts = about;
+        if (work.craft == craft) {
+            parts.stone += work.stone;
+            parts.bone += work.bone;
+            parts.wood += work.wood;
+            parts.hide += work.hide;
+        }
+        holds[craft] = enough(parts, craft);
+    }
     holds[MakeBow - MakeBoneAxe] = holds[MakeBow - MakeBoneAxe] && agent.has_tool(StoneAxe);
     holds[MakeWagon - MakeBoneAxe] = holds[MakeWagon - MakeBoneAxe] && axe;
     for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
@@ -6174,7 +6188,8 @@ Parts Simulation::at_hand(const Bitzkey& agent, int craft, const std::vector<Bit
         parts.wood += pile_at(x, y, WoodPile);
     }
     for (const Bitzkey* other : near) {
-        if (other != &agent && other->alive() && other->species != Species::Plant && is_friend(agent, *other)) {
+        if ((other->carried_stone != 0 || other->carried_bone != 0 || other->carried_wood != 0) && other != &agent && other->alive() &&
+            other->species != Species::Plant && is_friend(agent, *other)) {  // empty packs first: weighing a friend costs most
             parts.stone += other->carried_stone;
             parts.bone += other->carried_bone;
             parts.wood += other->carried_wood;
@@ -6183,10 +6198,14 @@ Parts Simulation::at_hand(const Bitzkey& agent, int craft, const std::vector<Bit
     return parts;
 }
 
-bool Simulation::has_set(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const {
-    const Parts parts = at_hand(agent, craft, near), need = NEEDS[static_cast<std::size_t>(craft)];
+bool Simulation::enough(const Parts& parts, int craft) {
+    const Parts need = NEEDS[static_cast<std::size_t>(craft)];
     if (craft == STONE_AXE_CRAFT && parts.bone + parts.wood < 1) return false;
     return parts.stone >= need.stone && parts.bone >= need.bone && parts.wood >= need.wood && parts.hide >= need.hide;
+}
+
+bool Simulation::has_set(const Bitzkey& agent, int craft, const std::vector<Bitzkey*>& near) const {
+    return enough(at_hand(agent, craft, near), craft);
 }
 
 bool Simulation::can_finish(const Bitzkey& agent, int action) const {
