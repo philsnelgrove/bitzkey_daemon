@@ -1657,6 +1657,9 @@ public:
         std::array<double, ACTION_COUNT> actions{};
         std::array<long long, ACTION_COUNT> taken{};
         double witnessed = 0;
+        // Finer parts: indexing the cells, births, the deeds witnessed after acting, conceiving, learning what was
+        // witnessed, teaching, and letting go of the turn's working memory.
+        double index = 0, births = 0, witnessing = 0, conceiving = 0, witnessed_learning = 0, teaching = 0, cleanup = 0;
     };
     Timings timings;
     const std::string& gpu_status() const { return gpu_status_; }  // which GPUs think, or why none do

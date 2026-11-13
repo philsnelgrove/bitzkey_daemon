@@ -919,7 +919,9 @@ void Simulation::take_turn() {
     auto clock = std::chrono::steady_clock::now();
     ++turn_;
     update_climate();
+    const auto indexing = std::chrono::steady_clock::now();
     index_cells();
+    timings.index += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - indexing).count();
     if (turn_ % std::max(1, LAND_TURNS) == 0) {
         count_lands();
         count_welcomes();
@@ -1031,7 +1033,11 @@ void Simulation::take_turn() {
             continue;
         }
         agent->in_heat = ahead[place].in_heat;
-        if (agent->due_turn && *agent->due_turn <= turn_) give_birth(*agent);
+        if (agent->due_turn && *agent->due_turn <= turn_) {
+            const auto bearing = std::chrono::steady_clock::now();
+            give_birth(*agent);
+            timings.births += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - bearing).count();
+        }
         agent->seen_success *= SOCIAL_MEMORY;
         agent->seen_failure *= std::pow(SOCIAL_MEMORY, 1 + RESILIENCE * (2 * agent->feeling(Resilience) - 1));  // got over sooner
         settle(*agent);
@@ -1205,18 +1211,39 @@ void Simulation::index_bands() {
 
 void Simulation::index_cells() {
     {  // how well each is regarded by the living who know it
-        std::unordered_map<int, std::pair<double, int>> held;
-        for (const auto& one : agents_) {
-            if (!one->alive()) continue;
-            for (const Acquaintance& known : one->known) {
-                auto& [sum, count] = held[known.identifier];
-                sum += known.regard;
-                ++count;
+        // Where each acquaintance stands in agents_ (kept in identifier order), found on every core at once; then the
+        // regards summed in the order they are held, one by one, as a tally by identifier would sum them.
+        std::vector<std::size_t> starts(agents_.size() + 1, 0);
+        for (std::size_t at = 0; at < agents_.size(); ++at) {
+            starts[at + 1] = starts[at] + (agents_[at]->alive() ? agents_[at]->known.size() : 0);
+        }
+        std::vector<std::ptrdiff_t> places(starts.back());  // of each acquaintance, or -1 for one no longer held
+        std::vector<std::size_t> each(agents_.size());
+        std::iota(each.begin(), each.end(), std::size_t{0});
+        std::for_each(std::execution::par, each.begin(), each.end(), [&](std::size_t at) {
+            const Bitzkey& one = *agents_[at];
+            if (!one.alive()) return;
+            for (std::size_t k = 0; k < one.known.size(); ++k) {
+                const int wanted = one.known[k].identifier;
+                const auto found = std::lower_bound(agents_.begin(), agents_.end(), wanted,
+                                                    [](const std::unique_ptr<Bitzkey>& agent, int id) { return agent->identifier < id; });
+                places[starts[at] + k] = found != agents_.end() && (*found)->identifier == wanted ? found - agents_.begin() : -1;
+            }
+        });
+        std::vector<double> sums(agents_.size(), 0.0);
+        std::vector<int> counts(agents_.size(), 0);
+        for (std::size_t at = 0; at < agents_.size(); ++at) {
+            const Bitzkey& one = *agents_[at];
+            if (!one.alive()) continue;
+            for (std::size_t k = 0; k < one.known.size(); ++k) {
+                const std::ptrdiff_t place = places[starts[at] + k];
+                if (place < 0) continue;
+                sums[static_cast<std::size_t>(place)] += one.known[k].regard;
+                ++counts[static_cast<std::size_t>(place)];
             }
         }
-        for (const auto& one : agents_) {
-            const auto found = held.find(one->identifier);
-            one->regarded = found == held.end() ? 0.0 : found->second.first / found->second.second;
+        for (std::size_t at = 0; at < agents_.size(); ++at) {
+            agents_[at]->regarded = counts[at] ? sums[at] / counts[at] : 0.0;
         }
     }
     {  // each species' cuts for envy, taking and giving, at those levels of its living, ranked
@@ -2268,15 +2295,25 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     }
     settle_fights();  // after every turn, however it was acted
     witness_deeds();
+    const double witnessing = lap(clock);
+    timings.witnessing += witnessing;
+    timings.act += witnessing;
     conceive();  // before any parent learns again, which would copy the brain the young are made from
     const double conceiving = lap(clock);
+    timings.conceiving += conceiving;
     timings.actions[Breed] += conceiving;
     timings.act += conceiving;
     learn_witnessed();
+    const double witnessed_learning = lap(clock);
     teach_all();
-    const double witnessed = lap(clock);
-    timings.witnessed += witnessed;
-    timings.act += witnessed;
+    const double teaching = lap(clock);
+    timings.witnessed_learning += witnessed_learning;
+    timings.teaching += teaching;
+    timings.witnessed += witnessed_learning + teaching;
+    timings.act += witnessed_learning + teaching;
+    std::vector<Sensed>().swap(plans);  // the turn's working memory, let go here so its cost is seen
+    decltype(imagined)().swap(imagined);
+    timings.cleanup += lap(clock);
 }
 
 thread_local Simulation::ActingTile* Simulation::acting_ = nullptr;
@@ -3438,7 +3475,9 @@ void Simulation::witness_deeds() {
     // a witness changes only itself. Firsts it notes are kept and written in the order the deeds were done.
     batching_deeds_ = false;
     if (seen_deeds_.empty()) return;
-    std::vector<std::vector<Bitzkey*>> seers(seen_deeds_.size());
+    // Each witness with its place in agents_ (kept in identifier order), so the pairs are laid out by witness, in
+    // identifier order, by counting, and within a witness in the order the deeds were done.
+    std::vector<std::vector<std::pair<Bitzkey*, std::size_t>>> seers(seen_deeds_.size());
     std::vector<std::size_t> order(seen_deeds_.size());
     std::iota(order.begin(), order.end(), std::size_t{0});
     std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t index) {
@@ -3446,20 +3485,24 @@ void Simulation::witness_deeds() {
         for (Bitzkey* other : around(*seen.doer, seen.doer->sight)) {
             if (other == seen.doer || other == seen.target || !other->alive() || !other->brain) continue;
             if (distance(other->x, other->y, seen.doer->x, seen.doer->y) > other->sight) continue;
-            seers[index].push_back(other);
+            const auto found = std::lower_bound(agents_.begin(), agents_.end(), other->identifier,
+                                                [](const std::unique_ptr<Bitzkey>& agent, int id) { return agent->identifier < id; });
+            seers[index].emplace_back(other, static_cast<std::size_t>(found - agents_.begin()));
         }
     });
-    std::vector<std::pair<Bitzkey*, std::size_t>> pairs;  // (witness, deed), by witness and then the order done
-    for (std::size_t index = 0; index < seers.size(); ++index) {
-        for (Bitzkey* other : seers[index]) pairs.emplace_back(other, index);
+    std::vector<std::size_t> counts(agents_.size() + 1, 0);
+    for (const auto& some : seers) {
+        for (const auto& [other, place] : some) ++counts[place + 1];
     }
-    std::stable_sort(pairs.begin(), pairs.end(), [](const auto& a, const auto& b) { return a.first->identifier < b.first->identifier; });
-    std::vector<std::pair<std::size_t, std::size_t>> runs;
-    for (std::size_t start = 0; start < pairs.size();) {
-        std::size_t end = start + 1;
-        while (end < pairs.size() && pairs[end].first == pairs[start].first) ++end;
-        runs.emplace_back(start, end);
-        start = end;
+    for (std::size_t place = 0; place < agents_.size(); ++place) counts[place + 1] += counts[place];  // now each witness's first pair
+    std::vector<std::pair<std::size_t, std::size_t>> runs;  // each witness's pairs, [from, to)
+    for (std::size_t place = 0; place < agents_.size(); ++place) {
+        if (counts[place + 1] > counts[place]) runs.emplace_back(counts[place], counts[place + 1]);
+    }
+    std::vector<std::pair<Bitzkey*, std::size_t>> pairs(counts.back());  // (witness, deed), by witness and then the order done
+    std::vector<std::size_t> next(counts.begin(), counts.end() - 1);
+    for (std::size_t index = 0; index < seers.size(); ++index) {
+        for (const auto& [other, place] : seers[index]) pairs[next[place]++] = {other, index};
     }
     std::vector<std::vector<NotedFirst>> firsts(runs.size());
     std::vector<std::size_t> each(runs.size());
@@ -5165,12 +5208,20 @@ void Simulation::teach(Bitzkey& elder, Bitzkey& student) {
 
 void Simulation::teach_all() {
     // Last in the turn: a student's brain leaves the GPUs only once the lessons queued for it are learnt.
+    // Every elder's brain comes back from the GPUs in one fetch, as each has learnt since any earlier look this turn.
+    std::vector<Bitzkey*> elders;
+    for (const auto& [elder, student] : teachings_) {
+        if (elder->alive() && student->alive() && elder->synced != -1) {
+            elder->synced = -1;
+            elders.push_back(elder);
+        }
+    }
+    sync(elders);
     for (const auto& [elder, student] : teachings_) {
         const bool first = first_chance(*elder, *student);
         if (!elder->alive() || !student->alive() || (!first && student->taught_by >= 0)) continue;  // a student is the first teacher's
         Bitzkey* const taught[] = {elder};
-        elder->synced = -1;  // it has learnt since any earlier look this turn
-        sync(taught);
+        if (elder->synced != turn_) sync(taught);  // taught itself this turn, it has a brain not yet fetched
         // Its elder's brain, cut to the student's own, as its inborn intellect makes it; what it knew is gone.
         student->brain = std::make_shared<Brain>(elder->brain->resized(student->brain->depth(), student->brain->width()));
         if (first) student->infant_taught = true;

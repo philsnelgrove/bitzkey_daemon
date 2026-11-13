@@ -32,7 +32,18 @@ FetchContent_Declare(httplib
 set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
 set(HTTPLIB_USE_ZLIB_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
 set(HTTPLIB_USE_BROTLI_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(nlohmann_json doctest vulkan_headers httplib)
+# mimalloc, replacing the system allocator for new and delete: the brains' weight vectors are large, and a system heap
+# searches its free lists for each one, under one lock, while every core makes and frees them at once.
+set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
+set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(MI_OVERRIDE OFF CACHE BOOL "" FORCE)
+# Initialised with the C runtime, not before it: its early hook would run thread-local constructors too soon.
+set(MI_WIN_USE_FLS ON CACHE BOOL "" FORCE)
+FetchContent_Declare(mimalloc
+    URL https://github.com/microsoft/mimalloc/archive/refs/tags/v2.2.4.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(nlohmann_json doctest vulkan_headers httplib mimalloc)
 
 find_package(Threads REQUIRED)
 
@@ -59,8 +70,8 @@ add_library(bitzkey_core STATIC
     src/core/GpuBrains.cpp
     src/core/WorldFile.cpp
 )
-target_include_directories(bitzkey_core PUBLIC src)
-target_link_libraries(bitzkey_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads PRIVATE Vulkan::Headers ${CMAKE_DL_LIBS})
+target_include_directories(bitzkey_core PUBLIC src ${mimalloc_SOURCE_DIR}/include)
+target_link_libraries(bitzkey_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads mimalloc-static PRIVATE Vulkan::Headers ${CMAKE_DL_LIBS})
 if(NOT MSVC)
     # Parallel algorithms (std::execution::par) need Intel's TBB with GCC; without it they run in order.
     find_package(TBB QUIET)
@@ -93,6 +104,7 @@ target_link_libraries(bitzkey_net PUBLIC bitzkey_core httplib::httplib)
 find_package(ZLIB QUIET)  # gzipped frames for the web page, when there is zlib to make them with
 
 add_executable(bitzkey_daemon
+    src/core/Memory.cpp
     src/daemon/main.cpp
     src/daemon/Config.cpp
     src/daemon/World.cpp
@@ -107,6 +119,7 @@ target_link_libraries(bitzkey_daemon PRIVATE bitzkey_net)
 
 # Unit tests: the core's, from bitzkey-cpp, and the daemon's own.
 add_executable(bitzkey_tests
+    src/core/Memory.cpp
     tests/test_main.cpp
     tests/test_random.cpp
     tests/test_genome.cpp
