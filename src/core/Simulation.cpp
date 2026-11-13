@@ -2607,8 +2607,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     // Only from a hunter close by, unless the herd raised the alarm.
     available[Flee] = s.hunter && (alarmed || distance(s.hunter->x, s.hunter->y, agent.x, agent.y) <=
                                                   flee_range(agent, view.close));
-    available[Defend] = s.defend_target != nullptr &&  // a grazer only when strong enough
-                        (agent.species != Species::Grazer || agent.trait(Strength) > GRAZER_DEFENCE_STRENGTH);
+    available[Defend] = s.defend_target != nullptr &&  // a grazer only when strong enough, or with arrows to shoot
+                        (agent.species != Species::Grazer || agent.trait(Strength) > GRAZER_DEFENCE_STRENGTH || agent.bow_uses > 0);
     // The more fearful it is, the closer it keeps to the herd's middle, but not where the middle is
     // further from its home temperature than here.
     const double spread = agent.infant() ? 1.0 : HERD_SPREAD * (1 - agent.fearfulness());  // an infant wants to be right among them
@@ -4616,11 +4616,14 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
                 agent.last_action = "missed";
                 break;
             }
-            if (distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1) {  // out of reach: shot back at, else charged
-                if (agent.bow_uses > 0) {
+            {
+                const bool strikes = agent.species != Species::Grazer || agent.trait(Strength) > GRAZER_DEFENCE_STRENGTH;
+                if (agent.bow_uses > 0 && (!strikes || distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1)) {  // shot at: out of reach, or too weak to strike
                     shoot(agent, *s.defend_target, false);
                     break;
                 }
+            }
+            if (distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1) {  // out of reach, with no arrows: charged
                 move_toward(agent, s.defend_target->x, s.defend_target->y);
                 agent.last_action = "charged";
                 if (distance(s.defend_target->x, s.defend_target->y, agent.x, agent.y) > 1) break;  // and struck, once there

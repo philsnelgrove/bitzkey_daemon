@@ -4002,6 +4002,17 @@ TEST_CASE("struck from afar, it answers: shoots back if it has arrows, else char
     sensed = simulation.sense(target);
     simulation.act(target, Defend, sensed.situation);
     CHECK(target.bow_uses == 4);  // an arrow back
+    Bitzkey& weak = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}, {"strength", 0}}), 6, 5);  // too weak to strike back
+    simulation.index_cells();
+    weak.assailant = archer.identifier;
+    sensed = simulation.sense(weak);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), static_cast<int>(Defend)) == sensed.options.end());
+    weak.bow = true;
+    weak.bow_uses = 3;  // but any with arrows may answer, however weak, close by too
+    sensed = simulation.sense(weak);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), static_cast<int>(Defend)) != sensed.options.end());
+    simulation.act(weak, Defend, sensed.situation);
+    CHECK(weak.bow_uses == 2);
 }
 
 TEST_CASE("one who sees the caller it hears may read what it meant, by its intellect; unseen, or dull, it learns nothing of it") {

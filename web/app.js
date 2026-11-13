@@ -1182,11 +1182,6 @@ function insightsPanel(data) {
     data.behaviour.flatMap((row, index) => [
       ...(index === 0 || data.behaviour[index - 1].topic !== row.topic ? [topicRow(row.topic)] : []),
       element('tr', { title: row.about }, element('td', {}, upper(row.action)), row.shares.map(share => element('td', { class: 'num' }, share)))]));
-  for (const block of data.blocks) {
-    panel.append(element('div', { class: 'block-title' }, block.title));
-    if (!block.groups.length) panel.append(element('div', { class: 'faint' }, 'not enough chances yet'));
-    for (const group of block.groups) panel.append(element('div', { class: 'group' }, element('span', {}, group.label), element('span', {}, group.share)));
-  }
   table('LIFE', 'averages of the living',
     data.life.map(row => element('tr', {}, element('td', {}, row.label), row.values.map(value => element('td', { class: 'num' }, String(value).padStart(4))))));
   table('TEMPERAMENT', 'average now; green above inborn, amber below',

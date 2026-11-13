@@ -551,17 +551,6 @@ Json insights(const Simulation& simulation) {
     }
     result["behaviour"] = behaviour;
 
-    const auto extremes = [](const std::vector<Insights::Extreme>& groups) {
-        Json list = Json::array();
-        for (const auto& group : groups) list.push_back({{"label", group.label}, {"share", py_percent(group.share, 4)}});
-        return list;
-    };
-    result["blocks"] = Json::array({
-        {{"title", "LEAST KEEN TO BREED"}, {"groups", extremes(insights.extremes(Breed, 3, true))}},
-        {{"title", "KEENEST TO BREED"}, {"groups", extremes(insights.extremes(Breed, 2, false))}},
-        {{"title", "LEAST KEEN TO FIGHT"}, {"groups", extremes(insights.extremes(Attack, 2, true))}},
-    });
-
     std::array<std::vector<const Bitzkey*>, 3> members;
     for (const Bitzkey* agent : simulation.living()) {
         for (std::size_t index = 0; index < ANIMALS.size(); ++index) {
