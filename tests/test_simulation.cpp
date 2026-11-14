@@ -3577,6 +3577,36 @@ TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a strang
     CHECK(simulation.comfort(stranger, seen) == doctest::Approx(simulation.comfort(stranger, without)));
 }
 
+TEST_CASE("a call that keeps to its caller's habits pleases; one that breaks them, or the same call everywhere, does not") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    Senses one{}, other{};
+    one.fill(1.0);  // two situations as unlike as can be
+    const auto say = [&](int call, const Senses& senses) {
+        caller.call = FirstCall + call;
+        caller.sounds = {-1, -1};
+        Simulation::keep_habit(caller, senses);
+        return caller.habit_pull;
+    };
+    for (int time = 0; time < 3; ++time) {
+        say(0, one);
+        say(1, other);
+    }
+    CHECK(say(0, one) > 0.1);    // its call for the like situation
+    CHECK(say(1, one) < -0.05);  // the other's call, there
+    CHECK(caller.habits.size() == 8);
+    Bitzkey& parrot = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 6, 5);
+    for (int time = 0; time < 6; ++time) {
+        parrot.call = FirstCall + 2;
+        Simulation::keep_habit(parrot, time % 2 ? one : other);
+    }
+    CHECK(parrot.habit_pull == doctest::Approx(0.0));  // one call for everything tells nothing: no pleasure in it
+    caller.call = Silent;
+    Simulation::keep_habit(caller, one);
+    CHECK(caller.habit_pull == 0.0);  // silence is no habit
+    CHECK(caller.habits.size() == 8);
+}
+
 TEST_CASE("a call may run to three sounds, heard in order, each sound heard as if alone, and learnt whole") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);

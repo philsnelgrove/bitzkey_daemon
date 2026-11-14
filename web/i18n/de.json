@@ -2020,5 +2020,7 @@
 "the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "die meisten Laute, die ein Ruf in Folge haben kann: 1 nur einzelne Laute, 3 auch Paare und Dreier",
 "Call empathy": "Ruf-Mitgefühl",
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "wie viel ein Rufer, nach seinem Mitgefühl, daraus lernt, ob es Artgenossen, die seinen Ruf hörten, dann besser oder schlechter erging als erwartet, Verwandten am meisten; 0 für nichts",
-"hunger each sound of a call costs its caller, the alert among them": "Hunger, den jeder Laut eines Rufs den Rufer kostet, der Warnruf eingeschlossen"
+"hunger each sound of a call costs its caller, the alert among them": "Hunger, den jeder Laut eines Rufs den Rufer kostet, der Warnruf eingeschlossen",
+"Call habit": "Rufgewohnheit",
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "Freude an einem Ruf, der den Rufen gleicht, die es dort machte, wo es am ähnlichsten empfand, mehr als seinen Rufen überhaupt; welcher Ruf wozu gehört, bestimmt es selbst; 0 für keine"
 }

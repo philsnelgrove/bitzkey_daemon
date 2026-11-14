@@ -1025,6 +1025,8 @@ Json Probe::language(Simulation& world) const {
             long long made = 0;
             std::array<long long, FEATURES.size()> with{};
         };
+        double habit_pull = 0.0;  // how well calls kept to their callers' habits, beyond chance (Call habit)
+        long long habit_calls = 0;
         std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
         std::array<long long, MAX_SOUNDS> lengths{};
         for (const Bitzkey* agent : world.living()) {
@@ -1051,6 +1053,10 @@ Json Probe::language(Simulation& world) const {
                     ++length;
                 }
                 ++lengths[static_cast<std::size_t>(length - 1)];
+                if (static_cast<int>(agent->habits.size()) > HABIT_NEIGHBOURS) {
+                    habit_pull += agent->habit_pull;
+                    ++habit_calls;
+                }
                 Said& said = utterances[key];
                 ++said.made;
                 for (std::size_t at = 0; at < FEATURES.size(); ++at) said.with[at] += feature[at];
@@ -1197,7 +1203,7 @@ Json Probe::language(Simulation& world) const {
         result[std::string(species_name(species))] = {
             {"choices", choices}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
-            {"first_sound_holds", holds},
+            {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"conventions", {{"neighbour_pairs", pairs}, {"neighbours_same", ratio(static_cast<double>(same), static_cast<double>(pairs))},
                              {"parent_young_pairs", kin_pairs}, {"parent_young_same", ratio(static_cast<double>(kin_same), static_cast<double>(kin_pairs))},
                              {"same_by_chance", made > 0 ? Json(same_by_chance) : Json(nullptr)}}},

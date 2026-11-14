@@ -382,6 +382,13 @@ inline int CALL_LENGTH = 3;
 // (its kin wholly, a friend by its regard, any other a little), the mean of them, times its empathy and this, is added to
 // what the call itself teaches it, a turn late, as the listeners' turn comes after. Its action's lesson is untouched. 0 for none.
 inline double CALL_EMPATHY = 1.0;
+// Habit: each animal remembers its last CALL_HABITS calls, each with what it sensed as it made it. Calling, it is pleased
+// (CALL_HABIT times how far) when its call matches those it made where it sensed most alike (the HABIT_NEIGHBOURS nearest,
+// by its own senses) more than it matches its calls at large: the same call for like situations, different ones for unlike.
+// Which call goes with what is never given; only being consistent with itself pays. It teaches the call alone. 0 for none.
+inline double CALL_HABIT = 0.5;
+constexpr int CALL_HABITS = 12;
+constexpr int HABIT_NEIGHBOURS = 3;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
 // next turn, it got away (a hunter was in sight and it was not struck) or, hungry (half or more), it ate, the caller
 // takes joy in it (CALL_PAYOFF, times a half and its empathy or sociability, the greater; for three helped a turn at
@@ -1113,6 +1120,13 @@ struct Bitzkey {
     std::array<int, MAX_SOUNDS> call_outputs{-1, -1, -1};
     double held_call_target = 0.0;
     bool call_held = false;
+    // Its last calls (see CALL_HABIT): what it sensed, each sense held in a byte, and the call, sound by sound (-1 none).
+    struct CallHabit {
+        std::array<std::int8_t, INPUT_SIZE> senses{};
+        std::array<std::int8_t, MAX_SOUNDS> said{};
+    };
+    std::vector<CallHabit> habits;
+    double habit_pull = 0.0;  // how well its last call kept to its habits, beyond chance, -1..1
     double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
     int call_listeners = 0;    // and how many they were
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
@@ -1462,6 +1476,7 @@ public:
     void read_body_language(Bitzkey& listener, double target, double call_target, double rate);  // see BODY_LANGUAGE
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
+    static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     void credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets);  // see CALL_EMPATHY
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent

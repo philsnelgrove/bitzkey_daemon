@@ -57,6 +57,44 @@ std::optional<int> optional_int(const json& value) {
 }
 
 // The numbers part, as it is written.
+// Bytes as base64 text, and back, for what is kept a byte at a time.
+std::string to_base64(const std::int8_t* data, std::size_t size) {
+    static constexpr char DIGITS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string text;
+    for (std::size_t at = 0; at < size; at += 3) {
+        std::uint32_t chunk = static_cast<std::uint8_t>(data[at]) << 16;
+        if (at + 1 < size) chunk |= static_cast<std::uint8_t>(data[at + 1]) << 8;
+        if (at + 2 < size) chunk |= static_cast<std::uint8_t>(data[at + 2]);
+        text += DIGITS[chunk >> 18 & 63];
+        text += DIGITS[chunk >> 12 & 63];
+        text += at + 1 < size ? DIGITS[chunk >> 6 & 63] : '=';
+        text += at + 2 < size ? DIGITS[chunk & 63] : '=';
+    }
+    return text;
+}
+
+std::string from_base64(const std::string& text) {
+    std::string bytes;
+    std::uint32_t chunk = 0;
+    int bits = 0;
+    for (const char digit : text) {
+        int value;
+        if (digit >= 'A' && digit <= 'Z') value = digit - 'A';
+        else if (digit >= 'a' && digit <= 'z') value = digit - 'a' + 26;
+        else if (digit >= '0' && digit <= '9') value = digit - '0' + 52;
+        else if (digit == '+') value = 62;
+        else if (digit == '/') value = 63;
+        else continue;
+        chunk = chunk << 6 | static_cast<std::uint32_t>(value);
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            bytes += static_cast<char>(chunk >> bits & 0xFF);
+        }
+    }
+    return bytes;
+}
+
 struct Numbers {
     std::vector<double> values;
 
@@ -251,6 +289,14 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     for (const Senses& senses : agent.past) past.push_back(numbers.senses(senses));
     record["past"] = std::move(past);
     record["last_sounds"] = agent.last_sounds;
+    if (!agent.habits.empty()) {  // its last calls (Call habit): what it sensed, a byte a sense in base64, and the call
+        json habits = json::array();
+        for (const Bitzkey::CallHabit& habit : agent.habits) {
+            habits.push_back({to_base64(habit.senses.data(), habit.senses.size()), habit.said[0], habit.said[1], habit.said[2]});
+        }
+        record["habits"] = std::move(habits);
+        record["habit_pull"] = agent.habit_pull;
+    }
     record["chosen"] = {agent.chosen_value, agent.chosen_turn, agent.call_heeded};
     if (agent.call_held) {  // its call's lesson, held till its listeners' turn is judged: by the outputs' names
         json outputs = json::array();
@@ -449,6 +495,17 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->struck_turn = record.value("struck_turn", -1);
     agent->last_call = record.value("last_call", -1);
     if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();
+    if (record.contains("habits") && numbers.sense_from.empty()) {  // kept only while its senses are the same
+        for (const json& entry : record["habits"]) {
+            const std::string bytes = from_base64(entry.at(0).get<std::string>());
+            if (bytes.size() != static_cast<std::size_t>(INPUT_SIZE)) continue;
+            Bitzkey::CallHabit habit;
+            std::memcpy(habit.senses.data(), bytes.data(), bytes.size());
+            for (std::size_t place = 0; place < MAX_SOUNDS; ++place) habit.said[place] = static_cast<std::int8_t>(entry.at(place + 1).get<int>());
+            agent->habits.push_back(habit);
+        }
+        agent->habit_pull = record.value("habit_pull", 0.0);
+    }
     if (record.contains("chosen")) {  // what it expected of its last choice, and whose call it heard as it chose
         agent->chosen_value = record["chosen"].at(0).get<double>();
         agent->chosen_turn = record["chosen"].at(1).get<int>();

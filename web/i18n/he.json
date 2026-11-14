@@ -2020,5 +2020,7 @@
 "the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "מספר הצלילים המרבי בקריאה, לפי הסדר: 1 צלילים בודדים בלבד, 3 גם זוגות ושלשות",
 "Call empathy": "אמפתיה בקריאה",
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "כמה הקורא לומד, לפי האמפתיה שלו, מכך שבני מינו ששמעו את קריאתו הצליחו יותר או פחות מהצפוי, קרובים יותר מכולם; 0 לכלום",
-"hunger each sound of a call costs its caller, the alert among them": "רעב שכל צליל בקריאה עולה לקורא, האזהרה בכללם"
+"hunger each sound of a call costs its caller, the alert among them": "רעב שכל צליל בקריאה עולה לקורא, האזהרה בכללם",
+"Call habit": "הרגל קריאה",
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "הנאה מקריאה התואמת את אלה שקרא במצבים הדומים ביותר בעיניו, יותר מקריאותיו בכלל; איזו קריאה הולכת עם מה, נתון לו; 0 לכלום"
 }

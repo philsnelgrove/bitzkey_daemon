@@ -2020,5 +2020,7 @@
 "the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "o máximo de sons que um chamado pode ter, em ordem: 1 só sons isolados, 3 também pares e trios",
 "Call empathy": "Empatia do chamado",
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "quanto quem chama aprende, pela sua empatia, se os da sua espécie que ouviram o chamado se saíram melhor ou pior do que esperavam, os parentes mais; 0 para nada",
-"hunger each sound of a call costs its caller, the alert among them": "fome que cada som de um chamado custa a quem chama, o alerta incluído"
+"hunger each sound of a call costs its caller, the alert among them": "fome que cada som de um chamado custa a quem chama, o alerta incluído",
+"Call habit": "Hábito de chamado",
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "prazer de um chamado que combina com os que fez onde sentiu mais parecido, mais do que com seus chamados em geral; qual chamado vai com o quê é seu; 0 para nenhum"
 }

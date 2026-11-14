@@ -1810,6 +1810,44 @@ std::array<int, MAX_SOUNDS> Simulation::utterance_outputs(const Bitzkey& agent) 
     return outputs;
 }
 
+void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
+    agent.habit_pull = 0.0;
+    if (agent.call < FirstCall) return;
+    Bitzkey::CallHabit now;
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) {  // as its brain reads it, -1 to 2, in sixtieths
+        const double read = read_sense(sense, senses[static_cast<std::size_t>(sense)]);
+        now.senses[static_cast<std::size_t>(sense)] = static_cast<std::int8_t>(std::clamp(std::lround(read * 60.0), -127L, 127L));
+    }
+    now.said = {static_cast<std::int8_t>(agent.call - FirstCall), static_cast<std::int8_t>(agent.sounds[0]), static_cast<std::int8_t>(agent.sounds[1])};
+    if (CALL_HABIT > 0 && static_cast<int>(agent.habits.size()) >= HABIT_NEIGHBOURS) {
+        const auto norm = [](const std::array<std::int8_t, INPUT_SIZE>& at) {
+            long long sum = 0;
+            for (const std::int8_t value : at) sum += static_cast<long long>(value) * value;
+            return std::sqrt(static_cast<double>(sum));
+        };
+        const double mine = norm(now.senses);
+        std::vector<std::pair<double, double>> alike;  // how alike each past situation, and how far its call matches, 0..1
+        double at_large = 0.0;
+        for (const Bitzkey::CallHabit& habit : agent.habits) {
+            long long dot = 0;
+            for (std::size_t sense = 0; sense < now.senses.size(); ++sense) dot += static_cast<long long>(now.senses[sense]) * habit.senses[sense];
+            const double theirs = norm(habit.senses);
+            int same = 0;
+            for (std::size_t place = 0; place < now.said.size(); ++place) same += now.said[place] == habit.said[place];
+            const double match = same / static_cast<double>(MAX_SOUNDS);
+            alike.emplace_back(mine > 0 && theirs > 0 ? static_cast<double>(dot) / (mine * theirs) : 0.0, match);
+            at_large += match;
+        }
+        at_large /= static_cast<double>(alike.size());
+        std::stable_sort(alike.begin(), alike.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        double nearest = 0.0;
+        for (int at = 0; at < HABIT_NEIGHBOURS; ++at) nearest += alike[static_cast<std::size_t>(at)].second;
+        agent.habit_pull = nearest / HABIT_NEIGHBOURS - at_large;
+    }
+    agent.habits.push_back(now);
+    if (static_cast<int>(agent.habits.size()) > CALL_HABITS) agent.habits.erase(agent.habits.begin());
+}
+
 int Simulation::sounds_made(const Bitzkey& agent) {
     if (agent.call < FirstCall) return 0;
     int made = 1;
@@ -2164,7 +2202,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         targets[index] = limited_value(rewards[index] + discount(agent) * best);  // held within the Value limit
         double best_call = values[index][call_output(Silent)];
         for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
-        call_targets[index] = limited_value(rewards[index] + discount(agent) * best_call);
+        call_targets[index] = limited_value(rewards[index] + discount(agent) * best_call + CALL_HABIT * agent.habit_pull);
     }
     credit_callers(agents, targets);  // what each one's call did to those who heard it, before any learns
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
@@ -2388,6 +2426,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
         }
+        keep_habit(agent, plans[index].senses);  // how its call kept to its habits, and the call remembered
         // What its memory now holds, written as it chose, unless its brain wasn't asked (asleep or spent, it keeps what
         // it held); and the senses it chose by before, while each choice since wrote its memory, to learn back in time.
         if (agent.has_last_senses && agent.last_wrote && MEMORY_STEPS > 0) {

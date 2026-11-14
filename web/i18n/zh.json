@@ -2020,5 +2020,7 @@
 "the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "一声叫唤按顺序最多可含的音：1 仅单音，3 也可两音和三音",
 "Call empathy": "叫声共情",
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "呼叫者按其共情从听到叫声的同类随后是否比预期更好或更糟中学到多少，亲属最重；0 为不学",
-"hunger each sound of a call costs its caller, the alert among them": "叫声中每个音让呼叫者付出的饥饿，警报也算"
+"hunger each sound of a call costs its caller, the alert among them": "叫声中每个音让呼叫者付出的饥饿，警报也算",
+"Call habit": "叫声习惯",
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "叫声与它在感觉最相似处所发叫声相合（多于平常叫声）时的愉悦；哪种叫声配什么由它自己定；0 为无"
 }

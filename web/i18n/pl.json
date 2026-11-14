@@ -2020,5 +2020,7 @@
 "the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "najwięcej dźwięków w zawołaniu, po kolei: 1 tylko pojedyncze, 3 także pary i trójki",
 "Call empathy": "Empatia zawołania",
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "ile wołający uczy się, wedle swej empatii, z tego, czy ci z jego gatunku, którzy usłyszeli zawołanie, mieli się lepiej czy gorzej, niż oczekiwali, krewni najbardziej; 0 wcale",
-"hunger each sound of a call costs its caller, the alert among them": "głód, jaki kosztuje wołającego każdy dźwięk zawołania, ostrzeżenie też"
+"hunger each sound of a call costs its caller, the alert among them": "głód, jaki kosztuje wołającego każdy dźwięk zawołania, ostrzeżenie też",
+"Call habit": "Nawyk zawołania",
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "przyjemność z zawołania zgodnego z tymi, które wydał tam, gdzie czuł najpodobniej, bardziej niż z jego zawołaniami w ogóle; które zawołanie do czego, to jego sprawa; 0 wcale"
 }
