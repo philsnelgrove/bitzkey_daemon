@@ -5106,17 +5106,30 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case TakeWood:
             take_material(agent, *s.wood_pile, WoodPile, agent.carried_wood);
             break;
+        // A friend crafting beside it may have used what it carried since it chose: then it has nothing to drop.
         case DropStone:
+            if (agent.carried_stone <= 0) {
+                agent.last_action = "had nothing to drop";
+                break;
+            }
             --agent.carried_stone;
             add_to_pile(agent.x, agent.y, StonePile);
             agent.last_action = "dropped stone";
             break;
         case DropBone:
+            if (agent.carried_bone <= 0) {
+                agent.last_action = "had nothing to drop";
+                break;
+            }
             --agent.carried_bone;
             add_to_pile(agent.x, agent.y, BonePile);
             agent.last_action = "dropped bone";
             break;
         case DropWood:
+            if (agent.carried_wood <= 0) {
+                agent.last_action = "had nothing to drop";
+                break;
+            }
             --agent.carried_wood;
             add_to_pile(agent.x, agent.y, WoodPile);
             agent.last_action = "dropped wood";
@@ -5925,10 +5938,14 @@ bool Simulation::fire_friendly(const Bitzkey& agent, Cell fire) const {
 }
 
 void Simulation::construct(Bitzkey& agent) {
+    if (agent.carried_stone <= 0 && agent.carried_wood <= 0) {  // a friend crafting beside it used them since it chose
+        agent.last_action = "had nothing to build with";
+        return;
+    }
     deed_seen(agent, 0.0, nullptr, CultureDeed, -1, CraftCulture);
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
-    if (agent.carried_stone) site_stone_[cell] += 1;
-    --(agent.carried_stone ? agent.carried_stone : agent.carried_wood);
+    if (agent.carried_stone > 0) site_stone_[cell] += 1;
+    --(agent.carried_stone > 0 ? agent.carried_stone : agent.carried_wood);
     wear_weapon(agent);
     site_turns_[cell] = turn_;
     agent.last_action = "built";
@@ -5948,6 +5965,10 @@ void Simulation::construct(Bitzkey& agent) {
 }
 
 void Simulation::build_road(Bitzkey& agent) {
+    if (agent.carried_stone < ROAD_STONES) {  // a friend crafting beside it used them since it chose
+        agent.last_action = "had nothing to build with";
+        return;
+    }
     const std::size_t cell = static_cast<std::size_t>(agent.y) * width_ + agent.x;
     wear_weapon(agent);
     deed_seen(agent, 0.0, nullptr, CultureDeed, -1, CraftCulture);
@@ -6146,6 +6167,10 @@ void Simulation::light_fire(Bitzkey& agent) {
 }
 
 void Simulation::feed_fire(Bitzkey& agent, Cell fire) {
+    if (agent.carried_wood <= 0) {  // a friend crafting beside it used it since it chose
+        agent.last_action = "had nothing to feed the fire with";
+        return;
+    }
     --agent.carried_wood;
     fires_[static_cast<std::size_t>(fire.y) * width_ + fire.x] += FIRE_TURNS;
     agent.last_action = "fed a fire";

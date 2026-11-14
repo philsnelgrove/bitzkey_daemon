@@ -2011,5 +2011,9 @@
 "LAST CALL": "ULTIMO RICHIAMO",
 "Body language": "Linguaggio del corpo",
 "chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none": "probabilità, per ogni punto d'intelletto, che chi vede il richiamante della sua specie che sente capisca cosa intendeva: impara a fare quel richiamo dove l'altro l'ha fatto e, sentendolo, ciò che l'altro ha fatto poi; 0 per nessuna",
-"charged": "ha caricato"
+"charged": "ha caricato",
+"CORES": "CORE",
+"processor cores the simulation works on; a world unfolds the same on any number": "core del processore su cui lavora la simulazione; un mondo si svolge allo stesso modo con qualsiasi numero",
+"had nothing to build with": "non aveva nulla con cui costruire",
+"had nothing to feed the fire with": "non aveva nulla per alimentare il fuoco"
 }

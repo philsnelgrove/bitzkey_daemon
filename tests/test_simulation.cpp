@@ -3577,6 +3577,26 @@ TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a strang
     CHECK(simulation.comfort(stranger, seen) == doctest::Approx(simulation.comfort(stranger, without)));
 }
 
+TEST_CASE("what a friend's craft used since one chose is not spent again: no pack goes below nothing") {
+    Simulation simulation = world();
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    simulation.index_cells();
+    animal.weapon = Club;
+    simulation.light_fire(animal);  // nothing to light it with: no fire
+    animal.carried_wood = 0;
+    simulation.feed_fire(animal, Cell{5, 5});
+    CHECK(animal.carried_wood == 0);
+    CHECK(animal.last_action == "had nothing to feed the fire with");
+    simulation.construct(animal);
+    CHECK(animal.carried_stone == 0);
+    CHECK(animal.carried_wood == 0);
+    CHECK(animal.last_action == "had nothing to build with");
+    animal.weapon = StoneAxe;
+    simulation.build_road(animal);
+    CHECK(animal.carried_stone == 0);
+    CHECK(animal.last_action == "had nothing to build with");
+}
+
 TEST_CASE("feeding a fire pays, a friend's fire welcomes, and a fire shared bonds") {
     Simulation simulation = world();
     Bitzkey& lighter = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
@@ -3768,6 +3788,7 @@ TEST_CASE("a road takes three turns with a stone axe, clears its square, joins s
     walker.road_known = 1.0;  // one who knows roads longs to lay them, whatever its curiosity
     walker.weapon = StoneAxe;
     walker.mind[Curiosity] = 0.0;
+    walker.carried_stone = ROAD_STONES;  // what a road needs, carried
     go(walker, 9, 9);
     walker.reward = 0;
     simulation.build_road(walker);

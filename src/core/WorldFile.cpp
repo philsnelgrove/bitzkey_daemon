@@ -339,9 +339,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->tutored_turn = record.value("tutored_turn", -1);
     agent->cooked_meat = std::max(0, record.value("cooked_meat", 0));  // none below nothing, as an old bug left some
     agent->cooked_fruit = std::max(0, record.value("cooked_fruit", 0));
-    agent->carried_stone = record.value("carried_stone", 0);
-    agent->carried_bone = record.value("carried_bone", 0);
-    agent->carried_wood = record.value("carried_wood", 0);
+    agent->carried_stone = std::max(0, record.value("carried_stone", 0));  // none below nothing: before 3.203 a friend's
+    agent->carried_bone = std::max(0, record.value("carried_bone", 0));    // craft could spend what one had already chosen
+    agent->carried_wood = std::max(0, record.value("carried_wood", 0));    // to drop, build with or feed a fire with
     agent->carried_seed = record.value("carried_seed", 0);
     agent->boredom = record.value("boredom", 0.0);  // none in an older world
     agent->shelter_known = record.value("shelter_known", 0.0);

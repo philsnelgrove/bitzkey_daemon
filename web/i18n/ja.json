@@ -2011,5 +2011,9 @@
 "LAST CALL": "最後の鳴き声",
 "Body language": "ボディランゲージ",
 "chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none": "聞こえた同種の鳴き手が見えるとき、知性1点ごとにその意図を理解する確率：鳴き手が鳴いた状況でその鳴き声を出すこと、聞いたら鳴き手がその後したことを学ぶ。0で無し",
-"charged": "突進した"
+"charged": "突進した",
+"CORES": "コア",
+"processor cores the simulation works on; a world unfolds the same on any number": "シミュレーションが使うプロセッサのコア数。いくつでも世界の展開は同じ",
+"had nothing to build with": "建てる材料がなかった",
+"had nothing to feed the fire with": "火にくべるものがなかった"
 }

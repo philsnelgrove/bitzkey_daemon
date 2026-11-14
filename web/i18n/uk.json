@@ -2011,5 +2011,9 @@
 "LAST CALL": "ОСТАННІЙ ПОКЛИК",
 "Body language": "Мова тіла",
 "chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none": "шанс за кожне очко інтелекту, що той, хто бачить почутого покликача свого виду, зрозуміє, що той мав на увазі: вчиться так кликати там, де покликач кликав, а почувши, того, що покликач потім зробив; 0 жодного",
-"charged": "кинувся в атаку"
+"charged": "кинувся в атаку",
+"CORES": "ЯДРА",
+"processor cores the simulation works on; a world unfolds the same on any number": "ядра процесора, на яких працює симуляція; світ розгортається однаково за будь-якої кількості",
+"had nothing to build with": "не мав чим будувати",
+"had nothing to feed the fire with": "не мав чим підживити вогонь"
 }

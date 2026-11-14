@@ -2011,5 +2011,9 @@
 "LAST CALL": "अंतिम पुकार",
 "Body language": "शारीरिक भाषा",
 "chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none": "अपनी बुद्धि के हर अंक पर यह संभावना कि जो अपनी जाति के सुने गए पुकारने वाले को देखता है, उसका आशय समझे: वह वहीं वह पुकार करना सीखता है जहाँ पुकारने वाले ने की, और सुनकर, जो उसने फिर किया; 0 कोई नहीं",
-"charged": "धावा बोला"
+"charged": "धावा बोला",
+"CORES": "कोर",
+"processor cores the simulation works on; a world unfolds the same on any number": "प्रोसेसर के कोर जिन पर सिमुलेशन चलता है; किसी भी संख्या पर दुनिया एक जैसी चलती है",
+"had nothing to build with": "बनाने को कुछ नहीं था",
+"had nothing to feed the fire with": "आग में डालने को कुछ नहीं था"
 }
