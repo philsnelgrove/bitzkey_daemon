@@ -851,6 +851,19 @@ Json Probe::calls(Simulation& world) const {
         std::array<std::array<long long, 32>, CALL_COUNT> said{};
         std::array<std::array<long long, 4>, CALL_COUNT> answered{}, answered_kin{}, answered_others{};  // and by the caller: its own kind or another
         Heard fled_kin, fled_others;  // with a hunter in sight, having heard its own kind loudest, or another kind
+        // The same of whole calls of several sounds: by the whole call ("2-5-1" a row of its own), and, for calls of two
+        // sounds or more, by their last sound alone; and what a listener did by the whole call it heard loudest, and by its
+        // ending (row 0 a single sound, then the last sound).
+        std::map<std::string, std::size_t> whole_at, heard_whole_at;
+        std::vector<std::array<long long, 32>> said_whole;
+        std::vector<std::array<long long, 4>> answered_whole;
+        std::array<std::array<long long, 32>, CALL_COUNT> said_ending{};
+        std::array<std::array<long long, 4>, 1 + CALL_COUNT> answered_ending{};
+        const auto row_of = [](auto& at, auto& table, const std::string& key) -> auto& {
+            const auto [found, added] = at.try_emplace(key, table.size());
+            if (added) table.emplace_back();
+            return table[found->second];
+        };
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->has_last_senses) continue;
             const Senses& senses = agent->last_senses;
@@ -867,6 +880,15 @@ Json Probe::calls(Simulation& world) const {
                 for (int good = 0; good < GOODS && !wares; ++good) wares = Simulation::holds(*agent, good);
                 const int offered = situation | (wares ? 16 : 0);
                 ++said[static_cast<std::size_t>(agent->last_call - FirstCall)][static_cast<std::size_t>(offered)];
+                std::string whole = std::to_string(agent->last_call - FirstCall + 1);
+                int ending = -1;
+                for (const int sound : agent->last_sounds) {
+                    if (sound < 0) break;
+                    whole += "-" + std::to_string(sound + 1);
+                    ending = sound;
+                }
+                ++row_of(whole_at, said_whole, whole)[static_cast<std::size_t>(offered)];
+                if (ending >= 0) ++said_ending[static_cast<std::size_t>(ending)][static_cast<std::size_t>(offered)];
             }
             int loudest = -1;
             for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
@@ -875,6 +897,19 @@ Json Probe::calls(Simulation& world) const {
             if (loudest >= 0) {
                 const int answer = agent->last_choice == Flee ? 0 : moved(agent->last_choice) ? 1 : agent->last_choice == Rest ? 2 : 3;
                 ++answered[static_cast<std::size_t>(loudest - FirstCall)][static_cast<std::size_t>(answer)];
+                std::string whole;  // the loudest call it heard, sound by sound
+                int ending = -1;
+                for (int place = 0; place < MAX_SOUNDS; ++place) {
+                    for (int sound = 0; sound < CALL_COUNT; ++sound) {
+                        if (senses[utterance_sense(place, sound)] <= 0) continue;
+                        whole += (whole.empty() ? "" : "-") + std::to_string(sound + 1);
+                        if (place > 0) ending = sound;
+                    }
+                }
+                if (!whole.empty()) {
+                    ++row_of(heard_whole_at, answered_whole, whole)[static_cast<std::size_t>(answer)];
+                    ++answered_ending[static_cast<std::size_t>(ending + 1)][static_cast<std::size_t>(answer)];
+                }
                 const bool kin = senses[heard_sense(loudest, HeardKin)] > 0;
                 ++(kin ? answered_kin : answered_others)[static_cast<std::size_t>(loudest - FirstCall)][static_cast<std::size_t>(answer)];
                 if (hunter) {
@@ -919,6 +954,7 @@ Json Probe::calls(Simulation& world) const {
             calls[name] = entry;
         }
         const auto information = [](const auto& table) {  // the bits shared, the samples, and the bits chance alone gives so few
+            if (table.empty()) return Json{{"bits", nullptr}, {"by_chance", 0.0}, {"samples", 0}};
             long long total = 0;
             std::vector<double> rows, columns(table[0].size(), 0.0);
             for (const auto& row : table) {
@@ -940,6 +976,20 @@ Json Probe::calls(Simulation& world) const {
         };
         result[std::string(species_name(species))] = {
             {"call_tells_situation", information(said)}, {"heard_call_tells_action", information(answered)},
+            {"whole_call_tells_situation", information(said_whole)}, {"ending_tells_situation", information(said_ending)},
+            {"heard_whole_call_tells_action", information(answered_whole)}, {"heard_ending_tells_action", information(answered_ending)},
+            {"after_ending", [&] {  // what listeners did after each ending, as shares: fled, moved, rested, other
+                 Json endings = Json::object();
+                 for (std::size_t row = 0; row < answered_ending.size(); ++row) {
+                     long long heard = 0;
+                     for (const long long count : answered_ending[row]) heard += count;
+                     if (!heard) continue;
+                     endings[row == 0 ? std::string("single") : "ends_" + std::to_string(row)] = {
+                         {"heard", heard}, {"fled", static_cast<double>(answered_ending[row][0]) / heard}, {"moved", static_cast<double>(answered_ending[row][1]) / heard},
+                         {"rested", static_cast<double>(answered_ending[row][2]) / heard}, {"other", static_cast<double>(answered_ending[row][3]) / heard}};
+                 }
+                 return endings;
+             }()},
             {"heard_own_kind", {{"tells_action", information(answered_kin)}, {"hunter_in_sight", fled_kin.heard}, {"fled", share(fled_kin.acted, fled_kin.heard)}}},
             {"heard_other_kinds", {{"tells_action", information(answered_others)}, {"hunter_in_sight", fled_others.heard}, {"fled", share(fled_others.acted, fled_others.heard)}}},
             {"choices", threatened + calm}, {"with_hunter", threatened}, {"calls", calls},
