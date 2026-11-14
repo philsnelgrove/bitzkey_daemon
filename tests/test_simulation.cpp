@@ -3607,6 +3607,21 @@ TEST_CASE("a call that keeps to its caller's habits pleases; one that breaks the
     CHECK(caller.habits.size() == 8);
 }
 
+TEST_CASE("each call teaches silence what keeping quiet would have brought: without the call's cost or its habit pleasure") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    caller.last_call = Silent;
+    CHECK_FALSE(Simulation::silence_target(caller, 3.0));  // silence teaches itself
+    caller.last_call = FirstCall + 1;
+    caller.last_sounds = {3, -1};  // two sounds
+    caller.habit_pull = 0.2;
+    const double cost = (0.5 + caller.feeling(Appetite)) * CALL_COST * 2 / 100;
+    CHECK(*Simulation::silence_target(caller, 3.0) == doctest::Approx(3.0 - CALL_HABIT * 0.2 + cost));
+    SILENCE_LESSON = 0.0;
+    CHECK_FALSE(Simulation::silence_target(caller, 3.0));
+    SILENCE_LESSON = 1.0;
+}
+
 TEST_CASE("a call may run to three sounds, heard in order, each sound heard as if alone, and learnt whole") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);

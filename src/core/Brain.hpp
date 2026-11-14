@@ -87,7 +87,7 @@ enum Sense : int {
     // Then its mental map (see Simulation's MapPlace): of the places it remembers, for this season, how good the best for
     // food was, 0..1, and which way it lies, -1 to 1, west to east and north to south, the nearest first among equals;
     // the same of the most dangerous; and of where it was most comfortable in the season to come.
-    SenseMapFood = SenseMemory + 8,  // MEMORY_NEURONS
+    SenseMapFood = SenseMemory + 16,  // MEMORY_NEURONS
     SenseMapFoodEast,
     SenseMapFoodSouth,
     SenseMapDanger,
@@ -201,7 +201,7 @@ constexpr int CALL_OPTIONS = FirstCall + CALL_COUNT;
 // was (z near 0), overwritten (z near 1), or cleared (writing 0). Its gates read the top hidden layer, which reads what
 // the memory held with everything else it senses. They learn back in time (Brain::learn_memory): how a lesson's error
 // moves with what the memory held is carried back to the gates that wrote it, as many choices back as Memory steps.
-constexpr int MEMORY_NEURONS = 8;
+constexpr int MEMORY_NEURONS = 16;  // 8 until 3.206
 constexpr int MEMORY_GATES = ACTION_COUNT + CALL_OPTIONS;   // the first gate's output, then each neuron's in turn,
 constexpr int MEMORY_VALUES = MEMORY_GATES + MEMORY_NEURONS;  // then the first value to write, and each neuron's
 // Foresight: last of all its outputs, what a brain expects of its next turn, each by how much it will change, about -1 to 1.
@@ -244,8 +244,8 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     constexpr std::array<std::string_view, CALL_OPTIONS> calls = {"silent", "alert", "call_1", "call_2", "call_3", "call_4", "call_5"};
     for (int call = 0; call < CALL_OPTIONS; ++call) names[call_output(call)] = calls[call];
     constexpr std::array<std::string_view, 2 * MEMORY_NEURONS> memory = {
-        "memory_gate_1", "memory_gate_2", "memory_gate_3", "memory_gate_4", "memory_gate_5", "memory_gate_6", "memory_gate_7", "memory_gate_8",
-        "memory_value_1", "memory_value_2", "memory_value_3", "memory_value_4", "memory_value_5", "memory_value_6", "memory_value_7", "memory_value_8"};
+        "memory_gate_1", "memory_gate_2", "memory_gate_3", "memory_gate_4", "memory_gate_5", "memory_gate_6", "memory_gate_7", "memory_gate_8", "memory_gate_9", "memory_gate_10", "memory_gate_11", "memory_gate_12", "memory_gate_13", "memory_gate_14", "memory_gate_15", "memory_gate_16",
+        "memory_value_1", "memory_value_2", "memory_value_3", "memory_value_4", "memory_value_5", "memory_value_6", "memory_value_7", "memory_value_8", "memory_value_9", "memory_value_10", "memory_value_11", "memory_value_12", "memory_value_13", "memory_value_14", "memory_value_15", "memory_value_16"};
     for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) names[MEMORY_GATES + output] = memory[output];
     constexpr std::array<std::string_view, FORESEEN> foreseen = {"foresee_hunger", "foresee_health", "foresee_stamina", "foresee_food"};
     for (int output = 0; output < FORESEEN; ++output) names[FORESIGHT + output] = foreseen[output];
@@ -304,7 +304,7 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "heard_call_3", "heard_call_3_east", "heard_call_3_south", "heard_call_3_kin",
     "heard_call_4", "heard_call_4_east", "heard_call_4_south", "heard_call_4_kin",
     "heard_call_5", "heard_call_5_east", "heard_call_5_south", "heard_call_5_kin",
-    "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8",
+    "memory_1", "memory_2", "memory_3", "memory_4", "memory_5", "memory_6", "memory_7", "memory_8", "memory_9", "memory_10", "memory_11", "memory_12", "memory_13", "memory_14", "memory_15", "memory_16",
     "map_food", "map_food_east", "map_food_south", "map_danger", "map_danger_east", "map_danger_south",
     "map_comfort", "map_comfort_east", "map_comfort_south",
     "known_closeness", "known_regard", "known_east", "known_south", "caller_known", "caller_regard", "known_danger", "known_skill",
@@ -380,6 +380,13 @@ inline double HEADING_RELUCTANCE = 0.5;
 inline double CALL_RELUCTANCE = 0.5;
 // And its memory gates this far below their middle, a fifth open, so what it holds fades slowly until it learns otherwise.
 inline double MEMORY_PERSISTENCE = 1.4;
+// What a new brain's bias holds an output at, whole: below stopping, a call's later sounds; a memory gate, a fifth open; else
+// nothing. An output a brain from an older version never had starts so.
+inline double fresh_bias(int output) {
+    if (later_sound(output)) return -CALL_RELUCTANCE;
+    if (output >= MEMORY_GATES && output < MEMORY_VALUES) return -MEMORY_PERSISTENCE;
+    return 0.0;
+}
 // A brain holds its values in hundredths: what an action is worth over the turns it looks ahead runs to ten and more,
 // and its neurons, each between -1 and 1, would jam at their limits to make that much, the same whatever it senses.
 // Held small, the output layer makes them of neurons free to follow the senses. It gives and learns them whole.

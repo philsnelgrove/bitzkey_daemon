@@ -653,7 +653,7 @@ Brain Brain::from_record(const nlohmann::json& record) {
         for (std::size_t neuron = 0; neuron < width; ++neuron) {
             brain.output_weights[output][neuron] = found == action_at.end() ? 0.0 : output_rows[found->second][neuron];
         }
-        brain.output_biases[output] = found == action_at.end() ? (later_sound(output) ? -CALL_RELUCTANCE : 0.0) : output_bias[found->second];
+        brain.output_biases[output] = found == action_at.end() ? fresh_bias(output) : output_bias[found->second];
     }
     if (!record.value("centred_senses", false)) brain.centre_inputs();  // exported before brains read their senses centred
     brain.scale_values();  // its output layer exported whole, held in hundredths

@@ -2022,5 +2022,7 @@
 "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "鳴いた者が共感に応じて、その声を聞いた同族が予想より良くなったか悪くなったかから学ぶ度合い（近親ほど強い）。0で無し",
 "hunger each sound of a call costs its caller, the alert among them": "鳴き声の一音ごとに鳴いた者が払う空腹（警戒の声も含む）",
 "Call habit": "鳴き声の習慣",
-"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "最も似た状況で発した鳴き声に、普段の鳴き声以上に一致する鳴き声の喜び。どの声が何を指すかは自分で決まる。0で無し"
+"pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "最も似た状況で発した鳴き声に、普段の鳴き声以上に一致する鳴き声の喜び。どの声が何を指すかは自分で決まる。0で無し",
+"Silence lesson": "沈黙の学び",
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "鳴くたびに、黙っていたら何を得たか（鳴き声の代価と喜びを除いた同じ番）も学ぶ割合。0で無し"
 }

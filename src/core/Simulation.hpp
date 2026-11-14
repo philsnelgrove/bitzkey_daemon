@@ -387,6 +387,10 @@ inline double CALL_EMPATHY = 1.0;
 // by its own senses) more than it matches its calls at large: the same call for like situations, different ones for unlike.
 // Which call goes with what is never given; only being consistent with itself pays. It teaches the call alone. 0 for none.
 inline double CALL_HABIT = 0.5;
+// Silence, which a caller rarely chooses, would never learn its worth. Each call also teaches it, at this share of the
+// learning rate, what keeping quiet would have brought that turn: the same, less the call's own pleasures (habit; empathy
+// comes later, and silence has none), and without the hunger the call cost. A call then pays only beyond silence. 0 for none.
+inline double SILENCE_LESSON = 1.0;
 constexpr int CALL_HABITS = 12;
 constexpr int HABIT_NEIGHBOURS = 3;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
@@ -1477,6 +1481,8 @@ public:
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
+    // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
+    static std::optional<double> silence_target(const Bitzkey& agent, double call_target);
     void credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets);  // see CALL_EMPATHY
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent

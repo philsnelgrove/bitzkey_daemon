@@ -1762,6 +1762,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
                 queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
             }
             if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
+            if (const auto quiet = silence_target(agent, call_target)) queue_lesson(agent, agent.last_senses, call_output(Silent), *quiet, rate * SILENCE_LESSON, false, 0.0);
             const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
             if (steps > 0 && MEMORY_LEARNING > 0) {  // back in time, the senses of the choices before following
                 queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * MEMORY_LEARNING, false, 0.0, steps);
@@ -1776,6 +1777,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
         }
         // And from its call, as from an action untraced: what came of the turn, and the best call open now.
         if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
+        if (const auto quiet = silence_target(agent, call_target)) agent.own_brain().learn(agent.last_senses, call_output(Silent), *quiet, rate * SILENCE_LESSON);
         // And back in time: what its memory held, which the choice read, is taught to the gates that wrote it.
         const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
         if (steps > 0 && MEMORY_LEARNING > 0) {
@@ -1846,6 +1848,14 @@ void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
     }
     agent.habits.push_back(now);
     if (static_cast<int>(agent.habits.size()) > CALL_HABITS) agent.habits.erase(agent.habits.begin());
+}
+
+std::optional<double> Simulation::silence_target(const Bitzkey& agent, double call_target) {
+    if (SILENCE_LESSON <= 0 || agent.last_call < FirstCall) return std::nullopt;
+    int sounds = 1;
+    for (const int sound : agent.last_sounds) sounds += sound >= 0;
+    const double cost = (0.5 + agent.feeling(Appetite)) * CALL_COST * sounds / 100;  // as hunger weighs in its wellbeing
+    return limited_value(call_target - CALL_HABIT * agent.habit_pull + cost);
 }
 
 int Simulation::sounds_made(const Bitzkey& agent) {

@@ -202,9 +202,9 @@ struct Reader {
         const int width = record.contains("width") ? record.at("width").get<int>() : OLD_WIDTH;
         if (depth < 1 || width < 1 || width > MAX_WIDTH) throw std::runtime_error("The world file holds a brain of no sensible shape.");
         read_layers(at, depth, width, brain->layers, brain->output_weights, brain->output_biases);
-        for (int output = MORE_SOUNDS; output < OUTPUT_COUNT; ++output) {  // a brain from before calls ran on: none, till it learns
-            if (later_sound(output) && !output_from.empty() && output_from[static_cast<std::size_t>(output)] < 0) {
-                brain->output_biases[static_cast<std::size_t>(output)] = -CALL_RELUCTANCE * (unscaled ? 1.0 : VALUE_SCALE);
+        for (int output = 0; output < OUTPUT_COUNT; ++output) {  // an output it never had, as a new brain holds it
+            if (!output_from.empty() && output_from[static_cast<std::size_t>(output)] < 0) {
+                brain->output_biases[static_cast<std::size_t>(output)] = fresh_bias(output) * (unscaled ? 1.0 : VALUE_SCALE);
             }
         }
         if (record.at("traced").get<bool>()) {
@@ -523,7 +523,8 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->call_held = true;
     }
     if (record.contains("held")) {  // blank, in a world saved before memory
-        for (int held = 0; held < MEMORY_NEURONS; ++held) agent->held[held] = record.at("held").at(held).get<double>();
+        const json& held_record = record.at("held");  // 8 in a world saved before 3.206; the rest hold nothing yet
+        for (int held = 0; held < MEMORY_NEURONS && static_cast<std::size_t>(held) < held_record.size(); ++held) agent->held[held] = held_record.at(held).get<double>();
         agent->last_wrote = record.at("last_wrote").get<bool>();
         for (const json& senses : record.at("past")) agent->past.push_back(numbers.senses(senses));
     }
