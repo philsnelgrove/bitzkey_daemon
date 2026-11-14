@@ -209,7 +209,17 @@ constexpr int MEMORY_VALUES = MEMORY_GATES + MEMORY_NEURONS;  // then the first 
 enum Foreseen : int { ForeseenHunger, ForeseenHealth, ForeseenStamina, ForeseenFood };
 constexpr int FORESEEN = 4;
 constexpr int FORESIGHT = MEMORY_VALUES + MEMORY_NEURONS;  // the first of them
-constexpr int OUTPUT_COUNT = FORESIGHT + FORESEEN;
+// A call may run on: after a first sound (one of the five calls, not the alert), a second, and after that a third, each
+// one of the same five sounds, so a call is one sound, two or three in order. Each place after the first is valued apart:
+// stopping there, or each sound, so the brain weighs going on as it weighs the first sound against silence.
+constexpr int MAX_SOUNDS = 3;
+constexpr int SOUND_CHOICES = 1 + CALL_COUNT;  // stopping, then the five sounds
+constexpr int MORE_SOUNDS = FORESIGHT + FORESEEN;  // the second place's stopping and sounds, then the third's
+constexpr int OUTPUT_COUNT = MORE_SOUNDS + (MAX_SOUNDS - 1) * SOUND_CHOICES;
+// The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
+constexpr int sound_output(int place, int sound) { return MORE_SOUNDS + (place - 1) * SOUND_CHOICES + 1 + sound; }
+// Whether an output values a second or third sound (not stopping): a new brain holds back from them as from calling.
+constexpr bool later_sound(int output) { return output >= MORE_SOUNDS && output < OUTPUT_COUNT && (output - MORE_SOUNDS) % SOUND_CHOICES != 0; }
 using Foresight = std::array<double, FORESEEN>;
 static_assert(SenseMapFood == SenseMemory + MEMORY_NEURONS);
 constexpr int MAX_MEMORY_STEPS = 4;  // the furthest back Memory steps may reach
@@ -239,6 +249,10 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     for (int output = 0; output < 2 * MEMORY_NEURONS; ++output) names[MEMORY_GATES + output] = memory[output];
     constexpr std::array<std::string_view, FORESEEN> foreseen = {"foresee_hunger", "foresee_health", "foresee_stamina", "foresee_food"};
     for (int output = 0; output < FORESEEN; ++output) names[FORESIGHT + output] = foreseen[output];
+    constexpr std::array<std::string_view, (MAX_SOUNDS - 1) * SOUND_CHOICES> more = {
+        "second_stop", "second_call_1", "second_call_2", "second_call_3", "second_call_4", "second_call_5",
+        "third_stop", "third_call_1", "third_call_2", "third_call_3", "third_call_4", "third_call_5"};
+    for (int output = 0; output < (MAX_SOUNDS - 1) * SOUND_CHOICES; ++output) names[MORE_SOUNDS + output] = more[output];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -250,9 +264,13 @@ constexpr int SenseSwims = SenseColdTolerance + 1;  // then its terrain: whether
 constexpr int SenseWalks = SenseSwims + 1;          // onto the land,
 constexpr int SenseFlies = SenseWalks + 1;          // and whether it flies
 constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 nocturnal, 0 diurnal
+// Then the call of the loudest it heard, sound by sound: for each place, first to third, 1 for the sound made there, 0
+// for the others and for a place the call didn't reach, so a listener may hear the order the sounds came in.
+constexpr int SenseUtterance = SenseNocturnal + 1;
+constexpr int utterance_sense(int place, int sound) { return SenseUtterance + CALL_COUNT * place + sound; }
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
-constexpr int SenseImagined = SenseNocturnal + 1;
+constexpr int SenseImagined = SenseUtterance + MAX_SOUNDS * CALL_COUNT;
 constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 // A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
@@ -300,18 +318,24 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "inborn_dominance", "inborn_trust", "inborn_kinship", "species", "size", "strength",
     "armour", "weapons", "speed", "sight", "fertility", "litter", "carrion", "home_temperature",
     "heat_tolerance", "cold_tolerance", "swims", "walks", "flies", "nocturnal",
+    "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
+    "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
+    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5",
     "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 45> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 60> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
     "student_near", "meat_carried", "fruit_carried", "meat_pile_closeness", "stone_carried", "wood_carried",
     "gear_pile_closeness", "fire_closeness", "fire_friendly", "wielding", "foe_sheltered", "shelter_here",
     "seed_carried", "road_here", "hide_worn", "envy", "fighting", "cooking_smell", "leader", "standout_leads", "standout_heard", "rank", "standout_rank",
-    "bow_carried", "archery"};
+    "bow_carried", "archery",
+    "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
+    "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
+    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
 inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};

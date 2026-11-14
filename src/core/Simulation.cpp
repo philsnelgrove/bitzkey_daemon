@@ -1761,7 +1761,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
                 const Bitzkey::Memory& memory = agent.memories[index];
                 queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
             }
-            if (agent.last_call >= 0) queue_lesson(agent, agent.last_senses, call_output(agent.last_call), call_target, rate, false, 0.0);
+            if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
             const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
             if (steps > 0 && MEMORY_LEARNING > 0) {  // back in time, the senses of the choices before following
                 queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * MEMORY_LEARNING, false, 0.0, steps);
@@ -1775,7 +1775,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             agent.own_brain().learn(memory.senses, memory.choice, memory.target, rate * memory.weight);
         }
         // And from its call, as from an action untraced: what came of the turn, and the best call open now.
-        if (agent.last_call >= 0) agent.own_brain().learn(agent.last_senses, call_output(agent.last_call), call_target, rate);
+        if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
         // And back in time: what its memory held, which the choice read, is taught to the gates that wrote it.
         const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
         if (steps > 0 && MEMORY_LEARNING > 0) {
@@ -1795,6 +1795,77 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
     if (!count) return;
     agent.memories.push_back({agent.last_senses, agent.last_choice, target, weight});
     if (agent.memories.size() > count) agent.memories.erase(agent.memories.begin(), agent.memories.end() - static_cast<std::ptrdiff_t>(count));
+}
+
+std::array<int, MAX_SOUNDS> Simulation::utterance_outputs(const Bitzkey& agent) {
+    std::array<int, MAX_SOUNDS> outputs{-1, -1, -1};
+    if (agent.last_call < 0) return outputs;
+    outputs[0] = call_output(agent.last_call);
+    if (agent.last_call < FirstCall) return outputs;
+    for (int place = 1; place < std::min(CALL_LENGTH, MAX_SOUNDS); ++place) {  // each later place offered: a sound, or stopping
+        const int sound = agent.last_sounds[static_cast<std::size_t>(place - 1)];
+        outputs[static_cast<std::size_t>(place)] = sound_output(place, sound);
+        if (sound < 0) break;
+    }
+    return outputs;
+}
+
+int Simulation::sounds_made(const Bitzkey& agent) {
+    if (agent.call < FirstCall) return 0;
+    int made = 1;
+    for (const int sound : agent.sounds) made += sound >= 0;
+    return made;
+}
+
+void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate) {
+    // From its call, as from an action untraced: what came of the turn, and the best call open now; each of its sounds alike.
+    // Feeling for its listeners, it holds the lesson a turn, till their turn is judged (see settle_call).
+    if (CALL_EMPATHY > 0) {
+        agent.call_senses = senses;
+        agent.call_outputs = outputs;
+        agent.held_call_target = target;
+        agent.call_held = rate > 0;
+        return;
+    }
+    for (const int output : outputs) {
+        if (output < 0) continue;
+        if (gpu_) queue_lesson(agent, senses, output, target, rate, false, 0.0);
+        else agent.own_brain().learn(senses, output, target, rate);
+    }
+}
+
+void Simulation::settle_call(Bitzkey& agent) {
+    if (!agent.call_held) return;
+    agent.call_held = false;
+    const double rate = learning_rate(agent);
+    if (rate <= 0 || !agent.brain) return;
+    double target = agent.held_call_target;
+    if (agent.call_listeners > 0) target += CALL_EMPATHY * agent.feeling(Empathy) * agent.call_credit / agent.call_listeners;
+    target = limited_value(target);
+    for (const int output : agent.call_outputs) {
+        if (output < 0) continue;
+        if (gpu_) queue_lesson(agent, agent.call_senses, output, target, rate, false, 0.0);
+        else learning_brain(agent).learn(agent.call_senses, output, target, rate);
+    }
+}
+
+void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets) {
+    // How each one's turn went against what it expected of its choice, shared with the caller of its kind it heard as it
+    // chose, by that caller's care for it: kin wholly, a friend by its regard, any other a quarter.
+    for (Bitzkey* agent : agents) {
+        agent->call_credit = 0.0;
+        agent->call_listeners = 0;
+    }
+    if (CALL_EMPATHY <= 0) return;
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        const Bitzkey& listener = *agents[index];
+        if (!listener.has_last_senses || listener.call_heeded < 0 || listener.chosen_turn != turn_ - 1) continue;
+        Bitzkey* caller = find_agent(listener.call_heeded);
+        if (!caller || !caller->alive() || !caller->call_held || caller == &listener) continue;
+        const double care = family(*caller, listener) ? 1.0 : std::max(0.25, regard_for(*caller, listener));
+        caller->call_credit += care * (targets[index] - listener.chosen_value);
+        ++caller->call_listeners;
+    }
 }
 
 void Simulation::note_entry(Bitzkey& agent, const Bitzkey::Memory& memory, double vividness) {
@@ -2095,10 +2166,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
         call_targets[index] = limited_value(rewards[index] + discount(agent) * best_call);
     }
+    credit_callers(agents, targets);  // what each one's call did to those who heard it, before any learns
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
         return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced || agents[index]->last_panicked);  // a panicked flight teaches
     };
     const auto teach = [&](std::size_t index) {
+        settle_call(*agents[index]);  // its call of two turns ago, now its listeners' turn is judged
         if (taught(index)) learn(*agents[index], targets[index], rewards[index], true, call_targets[index]);
         if (taught(index) && FORESIGHT_LEARNING > 0) foresee(*agents[index], changes[index]);
         rein_in(*agents[index], plans[index].senses, values[index]);
@@ -2281,6 +2354,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         // And what it calls as it does it: by its brain alone, one asleep, spent or frozen with fear keeping silent.
         agent.call = Silent;
         agent.last_call = -1;
+        agent.sounds = agent.last_sounds = {-1, -1};
+        if (!idle[index]) {  // what its brain made of what it chose, to judge the turn against
+            agent.chosen_value = values[index][choice];
+            agent.chosen_turn = turn_;
+            agent.call_heeded = plans[index].situation.heard_from;
+        }
         if (!idle[index] && !situation.frozen) {
             std::vector<int> outputs;
             for (const int call : plans[index].calls) outputs.push_back(call_output(call));
@@ -2290,7 +2369,23 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.call = output - ACTION_COUNT;
                 if (call_roll < 0) break;
             }
+            // A sound may run on: at each place after the first, it stops or adds one of the five, by its brain alone.
+            for (int place = 1; agent.call >= FirstCall && place < std::min(CALL_LENGTH, MAX_SOUNDS); ++place) {
+                std::array<int, SOUND_CHOICES> outputs{};
+                for (int sound = -1; sound < CALL_COUNT; ++sound) outputs[static_cast<std::size_t>(sound + 1)] = sound_output(place, sound);
+                double roll = whim(agent.identifier * MAX_SOUNDS + place, turn_);
+                int picked = outputs[0];
+                for (const auto& [output, chance] : choice_odds(values[index], outputs)) {
+                    roll -= chance;
+                    picked = output;
+                    if (roll < 0) break;
+                }
+                const int sound = picked - sound_output(place, 0);
+                if (sound < 0) break;  // it stopped
+                agent.sounds[static_cast<std::size_t>(place - 1)] = sound;
+            }
             agent.last_call = agent.call;
+            agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
         }
         // What its memory now holds, written as it chose, unless its brain wasn't asked (asleep or spent, it keeps what
@@ -2612,7 +2707,11 @@ void Simulation::learn_from_parent(Bitzkey& child, double target, double call_ta
         if (gpu_) queue_lesson(child, senses, output, value, share, false, 0.0);
         else child.own_brain().learn(senses, output, value, share);
     };
-    if (parent->last_call >= FirstCall) lesson(parent->last_senses, call_output(parent->last_call), call_target);
+    if (parent->last_call >= FirstCall) {
+        for (const int output : utterance_outputs(*parent)) {
+            if (output >= 0) lesson(parent->last_senses, output, call_target);
+        }
+    }
     lesson(child.last_senses, parent->last_choice, target);
 }
 
@@ -2629,7 +2728,9 @@ void Simulation::read_body_language(Bitzkey& listener, double target, double cal
         if (gpu_) queue_lesson(listener, senses, output, value, rate, false, 0.0);
         else listener.own_brain().learn(senses, output, value, rate);
     };
-    lesson(caller->last_senses, call_output(caller->last_call), call_target);
+    for (const int output : utterance_outputs(*caller)) {  // its whole call, sound by sound
+        if (output >= 0) lesson(caller->last_senses, output, call_target);
+    }
     lesson(listener.last_senses, caller->last_choice, target);
 }
 
@@ -3330,14 +3431,20 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 loudest_of_all = loudness;
                 caller = other;
             }
-            double& louder = loudest[static_cast<std::size_t>(other->call - FirstCall)];
-            if (loudness <= louder) return;
-            louder = loudness;
-            senses[heard_sense(other->call, HeardLoudness)] = loudness;
-            senses[heard_sense(other->call, HeardEast)] =
-                std::clamp(static_cast<double>(py_mod(other->x - agent.x + width_ / 2, width_) - width_ / 2) / reach, -1.0, 1.0);
-            senses[heard_sense(other->call, HeardSouth)] = std::clamp(static_cast<double>(other->y - agent.y) / reach, -1.0, 1.0);
-            senses[heard_sense(other->call, HeardKin)] = other->species == agent.species;
+            const auto heard = [&](int call) {  // each of its sounds, as if called alone
+                double& louder = loudest[static_cast<std::size_t>(call - FirstCall)];
+                if (loudness <= louder) return;
+                louder = loudness;
+                senses[heard_sense(call, HeardLoudness)] = loudness;
+                senses[heard_sense(call, HeardEast)] =
+                    std::clamp(static_cast<double>(py_mod(other->x - agent.x + width_ / 2, width_) - width_ / 2) / reach, -1.0, 1.0);
+                senses[heard_sense(call, HeardSouth)] = std::clamp(static_cast<double>(other->y - agent.y) / reach, -1.0, 1.0);
+                senses[heard_sense(call, HeardKin)] = other->species == agent.species;
+            };
+            heard(other->call);
+            for (const int sound : other->sounds) {
+                if (sound >= 0) heard(FirstCall + sound);
+            }
         };
         if (callers_turn_ == turn_) {
             for (const Offset& offset : nearby_offsets(furthest)) {
@@ -3358,6 +3465,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (caller) {
         s.loudest_from = caller->identifier;
         s.loudest_call = caller->call;
+        senses[utterance_sense(0, caller->call - FirstCall)] = 1.0;  // and its call, sound by sound
+        for (int place = 1; place < MAX_SOUNDS && caller->sounds[static_cast<std::size_t>(place - 1)] >= 0; ++place) {
+            senses[utterance_sense(place, caller->sounds[static_cast<std::size_t>(place - 1)])] = 1.0;
+        }
     }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
@@ -4838,7 +4949,7 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
 
 void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
-        agent.hunger = std::min(100.0, agent.hunger + CALL_COST);
+        agent.hunger = std::min(100.0, agent.hunger + CALL_COST * std::max(1, sounds_made(agent)));  // each sound costs
         if (agent.call == AlertCall && s.alert_to) alert(agent, *s.alert_to);
     }
     const std::size_t passed = agent.trail.size();

@@ -2015,5 +2015,10 @@
 "CORES": "RDZENIE",
 "processor cores the simulation works on; a world unfolds the same on any number": "rdzenie procesora, na których pracuje symulacja; świat rozwija się tak samo przy każdej liczbie",
 "had nothing to build with": "nie miał czym budować",
-"had nothing to feed the fire with": "nie miał czym podsycić ognia"
+"had nothing to feed the fire with": "nie miał czym podsycić ognia",
+"Call length": "Długość zawołania",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "najwięcej dźwięków w zawołaniu, po kolei: 1 tylko pojedyncze, 3 także pary i trójki",
+"Call empathy": "Empatia zawołania",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "ile wołający uczy się, wedle swej empatii, z tego, czy ci z jego gatunku, którzy usłyszeli zawołanie, mieli się lepiej czy gorzej, niż oczekiwali, krewni najbardziej; 0 wcale",
+"hunger each sound of a call costs its caller, the alert among them": "głód, jaki kosztuje wołającego każdy dźwięk zawołania, ostrzeżenie też"
 }

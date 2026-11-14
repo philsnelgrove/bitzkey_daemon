@@ -2015,5 +2015,10 @@
 "CORES": "ליבות",
 "processor cores the simulation works on; a world unfolds the same on any number": "ליבות המעבד שעליהן הסימולציה עובדת; עולם מתפתח אותו דבר בכל מספר",
 "had nothing to build with": "לא היה לו במה לבנות",
-"had nothing to feed the fire with": "לא היה לו במה להזין את האש"
+"had nothing to feed the fire with": "לא היה לו במה להזין את האש",
+"Call length": "אורך הקריאה",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "מספר הצלילים המרבי בקריאה, לפי הסדר: 1 צלילים בודדים בלבד, 3 גם זוגות ושלשות",
+"Call empathy": "אמפתיה בקריאה",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "כמה הקורא לומד, לפי האמפתיה שלו, מכך שבני מינו ששמעו את קריאתו הצליחו יותר או פחות מהצפוי, קרובים יותר מכולם; 0 לכלום",
+"hunger each sound of a call costs its caller, the alert among them": "רעב שכל צליל בקריאה עולה לקורא, האזהרה בכללם"
 }

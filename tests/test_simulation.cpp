@@ -3577,6 +3577,35 @@ TEST_CASE("a fire of its own or its herd's comforts whoever sees it, as a strang
     CHECK(simulation.comfort(stranger, seen) == doctest::Approx(simulation.comfort(stranger, without)));
 }
 
+TEST_CASE("a call may run to three sounds, heard in order, each sound heard as if alone, and learnt whole") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    caller.call = FirstCall + 1;  // "2-5-1"
+    caller.sounds = {4, 0};
+    caller.call_turn = simulation.turn() - 1;
+    CHECK(Simulation::sounds_made(caller) == 3);
+    const Senses senses = simulation.sense(listener).senses;
+    CHECK(senses[utterance_sense(0, 1)] == 1.0);
+    CHECK(senses[utterance_sense(1, 4)] == 1.0);
+    CHECK(senses[utterance_sense(2, 0)] == 1.0);
+    CHECK(senses[utterance_sense(1, 1)] == 0.0);
+    for (const int call : std::array<int, 3>{FirstCall + 1, FirstCall + 4, FirstCall}) CHECK(senses[heard_sense(call, HeardLoudness)] > 0.0);
+    CHECK(senses[heard_sense(FirstCall + 2, HeardLoudness)] == 0.0);
+    caller.last_call = caller.call;
+    caller.last_sounds = caller.sounds;
+    CHECK(Simulation::utterance_outputs(caller) == std::array<int, MAX_SOUNDS>{call_output(FirstCall + 1), sound_output(1, 4), sound_output(2, 0)});
+    caller.last_sounds = {-1, -1};  // it stopped after one: that stop is learnt, the third place never reached
+    CHECK(Simulation::utterance_outputs(caller) == std::array<int, MAX_SOUNDS>{call_output(FirstCall + 1), sound_output(1, -1), -1});
+    CALL_LENGTH = 1;  // single sounds only: nothing after the first is learnt
+    CHECK(Simulation::utterance_outputs(caller) == std::array<int, MAX_SOUNDS>{call_output(FirstCall + 1), -1, -1});
+    CALL_LENGTH = 3;
+    PyRandom rng(7);
+    const Brain fresh = Brain::random(rng);  // a new brain stops rather than run on, till taught
+    CHECK(fresh.output_biases[sound_output(1, -1)] > fresh.output_biases[sound_output(1, 2)]);
+}
+
 TEST_CASE("what a friend's craft used since one chose is not spent again: no pack goes below nothing") {
     Simulation simulation = world();
     Bitzkey& animal = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

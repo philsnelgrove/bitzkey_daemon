@@ -2015,5 +2015,10 @@
 "CORES": "ЯДРА",
 "processor cores the simulation works on; a world unfolds the same on any number": "ядра процесора, на яких працює симуляція; світ розгортається однаково за будь-якої кількості",
 "had nothing to build with": "не мав чим будувати",
-"had nothing to feed the fire with": "не мав чим підживити вогонь"
+"had nothing to feed the fire with": "не мав чим підживити вогонь",
+"Call length": "Довжина поклику",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "найбільше звуків у поклику, по черзі: 1 лише окремі звуки, 3 також пари й трійки",
+"Call empathy": "Емпатія поклику",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "наскільки той, хто кличе, вчиться, за своєю емпатією, з того, чи тим із його виду, хто почув поклик, потім велося краще чи гірше за очікуване, рідним найбільше; 0 — ніяк",
+"hunger each sound of a call costs its caller, the alert among them": "голод, якого коштує кожен звук поклику тому, хто кличе, тривога теж"
 }

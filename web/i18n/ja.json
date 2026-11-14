@@ -2015,5 +2015,10 @@
 "CORES": "コア",
 "processor cores the simulation works on; a world unfolds the same on any number": "シミュレーションが使うプロセッサのコア数。いくつでも世界の展開は同じ",
 "had nothing to build with": "建てる材料がなかった",
-"had nothing to feed the fire with": "火にくべるものがなかった"
+"had nothing to feed the fire with": "火にくべるものがなかった",
+"Call length": "鳴き声の長さ",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "一つの鳴き声に順に並べられる音の最大数：1は単音のみ、3は二音・三音も",
+"Call empathy": "鳴き声の共感",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "鳴いた者が共感に応じて、その声を聞いた同族が予想より良くなったか悪くなったかから学ぶ度合い（近親ほど強い）。0で無し",
+"hunger each sound of a call costs its caller, the alert among them": "鳴き声の一音ごとに鳴いた者が払う空腹（警戒の声も含む）"
 }

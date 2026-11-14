@@ -2015,5 +2015,10 @@
 "CORES": "KERNE",
 "processor cores the simulation works on; a world unfolds the same on any number": "Prozessorkerne, auf denen die Simulation arbeitet; eine Welt entfaltet sich bei jeder Anzahl gleich",
 "had nothing to build with": "hatte nichts zum Bauen",
-"had nothing to feed the fire with": "hatte nichts, um das Feuer zu nähren"
+"had nothing to feed the fire with": "hatte nichts, um das Feuer zu nähren",
+"Call length": "Ruflänge",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "die meisten Laute, die ein Ruf in Folge haben kann: 1 nur einzelne Laute, 3 auch Paare und Dreier",
+"Call empathy": "Ruf-Mitgefühl",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "wie viel ein Rufer, nach seinem Mitgefühl, daraus lernt, ob es Artgenossen, die seinen Ruf hörten, dann besser oder schlechter erging als erwartet, Verwandten am meisten; 0 für nichts",
+"hunger each sound of a call costs its caller, the alert among them": "Hunger, den jeder Laut eines Rufs den Rufer kostet, der Warnruf eingeschlossen"
 }

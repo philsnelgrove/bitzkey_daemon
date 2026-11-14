@@ -2015,5 +2015,10 @@
 "CORES": "कोर",
 "processor cores the simulation works on; a world unfolds the same on any number": "प्रोसेसर के कोर जिन पर सिमुलेशन चलता है; किसी भी संख्या पर दुनिया एक जैसी चलती है",
 "had nothing to build with": "बनाने को कुछ नहीं था",
-"had nothing to feed the fire with": "आग में डालने को कुछ नहीं था"
+"had nothing to feed the fire with": "आग में डालने को कुछ नहीं था",
+"Call length": "पुकार की लंबाई",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "एक पुकार में क्रम से अधिकतम ध्वनियाँ: 1 केवल एकल ध्वनियाँ, 3 जोड़े और तिकड़ी भी",
+"Call empathy": "पुकार में सहानुभूति",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "पुकारने वाला अपनी सहानुभूति से कितना सीखता है कि उसकी पुकार सुनने वाले उसकी जाति के उम्मीद से बेहतर या बुरे रहे, परिजन सबसे अधिक; 0 कुछ नहीं",
+"hunger each sound of a call costs its caller, the alert among them": "पुकार की हर ध्वनि पुकारने वाले को कितनी भूख की कीमत पड़ती है, चेतावनी भी"
 }

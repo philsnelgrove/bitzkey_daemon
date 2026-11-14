@@ -2015,5 +2015,10 @@
 "CORES": "CŒURS",
 "processor cores the simulation works on; a world unfolds the same on any number": "cœurs du processeur sur lesquels travaille la simulation ; un monde se déroule de même avec n'importe quel nombre",
 "had nothing to build with": "n'avait rien pour bâtir",
-"had nothing to feed the fire with": "n'avait rien pour nourrir le feu"
+"had nothing to feed the fire with": "n'avait rien pour nourrir le feu",
+"Call length": "Longueur de l'appel",
+"the most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too": "le plus de sons qu'un appel peut enchaîner, dans l'ordre : 1 sons seuls, 3 aussi paires et triplets",
+"Call empathy": "Empathie de l'appel",
+"how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none": "combien un appelant apprend, selon son empathie, du fait que ceux de son espèce qui ont entendu son appel s'en sont mieux ou moins bien tirés que prévu, la parenté surtout ; 0 pour rien",
+"hunger each sound of a call costs its caller, the alert among them": "faim que coûte à l'appelant chaque son d'un appel, l'alerte comprise"
 }

@@ -242,6 +242,14 @@ Json Probe::animal(Simulation& world, int identifier) const {
         Json drivers = Json::array();
         for (const auto& [sense, raised] : intent.drivers) drivers.push_back({{"sense", std::string(SENSES[static_cast<std::size_t>(sense)])}, {"raised", raised}});
         result["call_intent"] = {{"call", agent->last_call == AlertCall ? std::string("alert") : "call_" + std::to_string(agent->last_call - FirstCall + 1)},
+                                 {"sounds", [&] {  // its whole call, sound by sound, 1 to 5
+                                      Json sounds = Json::array();
+                                      if (agent->last_call >= FirstCall) sounds.push_back(agent->last_call - FirstCall + 1);
+                                      for (const int sound : agent->last_sounds) {
+                                          if (agent->last_call >= FirstCall && sound >= 0) sounds.push_back(sound + 1);
+                                      }
+                                      return sounds;
+                                  }()},
                                  {"over_silence", intent.margin}, {"drivers", drivers},
                                  {"expects", {{"hunger", intent.expects[0]}, {"health", intent.expects[1]}, {"stamina", intent.expects[2]}, {"food", intent.expects[3]}}}};
     }
@@ -963,6 +971,12 @@ Json Probe::language(Simulation& world) const {
         std::array<std::array<long long, ANSWERS.size()>, CALL_COUNT> answers{};
         std::array<long long, ANSWERS.size()> quiet{};
         std::vector<std::pair<const Bitzkey*, int>> callers;
+        struct Said {
+            long long made = 0;
+            std::array<long long, FEATURES.size()> with{};
+        };
+        std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
+        std::array<long long, MAX_SOUNDS> lengths{};
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species || !agent->has_last_senses) continue;
             const Senses& senses = agent->last_senses;
@@ -979,6 +993,17 @@ Json Probe::language(Simulation& world) const {
                 ++uses[call];
                 for (std::size_t at = 0; at < FEATURES.size(); ++at) with[call][at] += feature[at];
                 callers.emplace_back(agent, static_cast<int>(call));
+                std::string key = std::to_string(call + 1);
+                int length = 1;
+                for (const int sound : agent->last_sounds) {
+                    if (sound < 0) break;
+                    key += "-" + std::to_string(sound + 1);
+                    ++length;
+                }
+                ++lengths[static_cast<std::size_t>(length - 1)];
+                Said& said = utterances[key];
+                ++said.made;
+                for (std::size_t at = 0; at < FEATURES.size(); ++at) said.with[at] += feature[at];
             }
             int loudest = -1;
             for (int call = FirstCall; call < FirstCall + CALL_COUNT; ++call) {
@@ -1076,8 +1101,53 @@ Json Probe::language(Simulation& world) const {
             std::shuffle(mixed.begin(), mixed.end(), shuffle);
             shuffled += dialect(mixed).value_or(0.0) / 20;
         }
+        // Whole calls: each made 10 times or more, most made first, with what it leans to against all choices; and whether
+        // a first sound keeps its leaning whatever follows it: the mean distance between the profiles of calls sharing a
+        // first sound, against that between calls of different first sounds (below 1, the first sound holds its sense).
+        const auto profile = [&](const Said& said) {
+            std::array<double, FEATURES.size()> lifts{};
+            for (std::size_t at = 0; at < FEATURES.size(); ++at) {
+                const double everywhere = choices > 0 ? static_cast<double>(base[at]) / choices : 0.0;
+                lifts[at] = everywhere > 0 && said.made > 0 ? static_cast<double>(said.with[at]) / static_cast<double>(said.made) / everywhere : 1.0;
+            }
+            return lifts;
+        };
+        std::vector<std::pair<std::string, const Said*>> common;
+        for (const auto& [key, said] : utterances) {
+            if (said.made >= 10) common.emplace_back(key, &said);
+        }
+        std::sort(common.begin(), common.end(), [](const auto& a, const auto& b) { return a.second->made != b.second->made ? a.second->made > b.second->made : a.first < b.first; });
+        Json table = Json::array();
+        for (std::size_t at = 0; at < std::min<std::size_t>(common.size(), 25); ++at) {
+            Json lift = Json::object();
+            const auto lifts = profile(*common[at].second);
+            for (std::size_t feature = 0; feature < FEATURES.size(); ++feature) lift[FEATURES[feature]] = lifts[feature];
+            table.push_back({{"said", common[at].first}, {"made", common[at].second->made}, {"lift", lift}});
+        }
+        double within = 0, between = 0;
+        long long within_pairs = 0, between_pairs = 0;
+        for (std::size_t a = 0; a < common.size(); ++a) {
+            for (std::size_t b = a + 1; b < common.size(); ++b) {
+                if (common[a].first.find('-') == std::string::npos || common[b].first.find('-') == std::string::npos) continue;  // longer calls only
+                const auto one = profile(*common[a].second), two = profile(*common[b].second);
+                double distance = 0;
+                for (std::size_t feature = 0; feature < FEATURES.size(); ++feature) distance += std::abs(one[feature] - two[feature]);
+                if (common[a].first[0] == common[b].first[0]) {
+                    within += distance;
+                    ++within_pairs;
+                } else {
+                    between += distance;
+                    ++between_pairs;
+                }
+            }
+        }
+        const Json holds = within_pairs > 0 && between_pairs > 0 && between > 0
+                               ? Json((within / static_cast<double>(within_pairs)) / (between / static_cast<double>(between_pairs)))
+                               : Json(nullptr);
         result[std::string(species_name(species))] = {
             {"choices", choices}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
+            {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
+            {"first_sound_holds", holds},
             {"conventions", {{"neighbour_pairs", pairs}, {"neighbours_same", ratio(static_cast<double>(same), static_cast<double>(pairs))},
                              {"parent_young_pairs", kin_pairs}, {"parent_young_same", ratio(static_cast<double>(kin_same), static_cast<double>(kin_pairs))},
                              {"same_by_chance", made > 0 ? Json(same_by_chance) : Json(nullptr)}}},

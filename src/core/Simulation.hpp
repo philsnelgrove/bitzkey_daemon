@@ -374,7 +374,14 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 16;
-inline double CALL_COST = 0.05;
+inline double CALL_COST = 0.05;  // for each sound of a call: two sounds cost twice as much as one
+// The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
+inline int CALL_LENGTH = 3;
+// What a caller feels of what its call did to those of its kind who heard it: whether their next turn went better or worse
+// than each expected (its reward against what its brain valued its choice at), each weighed by the caller's care for it
+// (its kin wholly, a friend by its regard, any other a little), the mean of them, times its empathy and this, is added to
+// what the call itself teaches it, a turn late, as the listeners' turn comes after. Its action's lesson is untouched. 0 for none.
+inline double CALL_EMPATHY = 1.0;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
 // next turn, it got away (a hunter was in sight and it was not struck) or, hungry (half or more), it ate, the caller
 // takes joy in it (CALL_PAYOFF, times a half and its empathy or sociability, the greater; for three helped a turn at
@@ -1095,6 +1102,19 @@ struct Bitzkey {
     int answer_to = -1, answer_call = -1, answer_turn = -1;  // the last caller of any kind it heard, its call and when, till answered or a day passes
     int struck_turn = -1;               // the last turn it was struck
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
+    std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};       // the sounds its call ran on to after the first (0..4), -1 where it stopped
+    std::array<int, MAX_SOUNDS - 1> last_sounds{-1, -1};  // likewise of its last choice of call, to learn from
+    double chosen_value = 0.0;          // what its brain valued its last choice at, to judge how the turn went against it
+    int chosen_turn = -1;               // and the turn it chose it
+    int call_heeded = -1;               // the caller of its kind it heard as it last chose, whose call shares in how that went
+    // Its last call's lesson, held a turn for what it then did to those who heard it (Call empathy): the senses it called
+    // by, the outputs of its sounds (and of where it stopped), the target, and whether one is held.
+    Senses call_senses{};
+    std::array<int, MAX_SOUNDS> call_outputs{-1, -1, -1};
+    double held_call_target = 0.0;
+    bool call_held = false;
+    double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
+    int call_listeners = 0;    // and how many they were
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
     // Its senses at the choices before its last, most recent first, back to the first its memory wasn't written at, and
     // no more than Memory steps: what learning back in time goes over. Whether its memory was written at its last choice.
@@ -1440,6 +1460,9 @@ public:
     // and what the parent then did, in its own senses holding the call, valued as its own turn, to take in.
     void learn_from_parent(Bitzkey& child, double target, double call_target, double rate);
     void read_body_language(Bitzkey& listener, double target, double call_target, double rate);  // see BODY_LANGUAGE
+    void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
+    void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
+    void credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets);  // see CALL_EMPATHY
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent
     // The genome of a Bitzkey from lineage_first() on; those before it are off the graph and forgotten.
@@ -1630,6 +1653,10 @@ public:
     // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
     void deed_seen(const Bitzkey& doer, double deed, const Bitzkey* target = nullptr, DeedKind kind = PlainDeed, int craft = -1, Culture culture = NoCulture);
     static bool family(const Bitzkey& one, const Bitzkey& other);  // parent, child or sibling
+    // The outputs its last call is learnt by: its first sound's (or silence's, or the alert's), then where it went on to,
+    // or stopped, at each later place offered; -1 for places it never reached.
+    static std::array<int, MAX_SOUNDS> utterance_outputs(const Bitzkey& agent);
+    static int sounds_made(const Bitzkey& agent);  // how many sounds its current call has, 0 silent or alerting
     void culture_seen(Bitzkey& seer, const Bitzkey& doer, Culture culture);  // the esteem its kind's culture gives the deed
     double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither
     double skill_held(const Bitzkey& agent, const Bitzkey& other) const;  // how skilled it holds it, or else its colour

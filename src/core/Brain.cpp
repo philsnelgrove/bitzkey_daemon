@@ -207,6 +207,9 @@ Brain Brain::random(PyRandom& rng, int depth, int width) {
         brain.output_biases[heading] -= HEADING_RELUCTANCE;
     }
     for (int call = AlertCall; call < CALL_OPTIONS; ++call) brain.output_biases[call_output(call)] -= CALL_RELUCTANCE;
+    for (int output = MORE_SOUNDS; output < OUTPUT_COUNT; ++output) {
+        if (later_sound(output)) brain.output_biases[output] -= CALL_RELUCTANCE;  // and as much below stopping, each sound more
+    }
     for (int neuron = 0; neuron < MEMORY_NEURONS; ++neuron) brain.output_biases[MEMORY_GATES + neuron] -= MEMORY_PERSISTENCE;
     brain.scale_values();  // valuing as it would whole
     return brain;
@@ -650,7 +653,7 @@ Brain Brain::from_record(const nlohmann::json& record) {
         for (std::size_t neuron = 0; neuron < width; ++neuron) {
             brain.output_weights[output][neuron] = found == action_at.end() ? 0.0 : output_rows[found->second][neuron];
         }
-        brain.output_biases[output] = found == action_at.end() ? 0.0 : output_bias[found->second];
+        brain.output_biases[output] = found == action_at.end() ? (later_sound(output) ? -CALL_RELUCTANCE : 0.0) : output_bias[found->second];
     }
     if (!record.value("centred_senses", false)) brain.centre_inputs();  // exported before brains read their senses centred
     brain.scale_values();  // its output layer exported whole, held in hundredths

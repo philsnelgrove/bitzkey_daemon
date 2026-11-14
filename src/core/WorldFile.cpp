@@ -164,6 +164,11 @@ struct Reader {
         const int width = record.contains("width") ? record.at("width").get<int>() : OLD_WIDTH;
         if (depth < 1 || width < 1 || width > MAX_WIDTH) throw std::runtime_error("The world file holds a brain of no sensible shape.");
         read_layers(at, depth, width, brain->layers, brain->output_weights, brain->output_biases);
+        for (int output = MORE_SOUNDS; output < OUTPUT_COUNT; ++output) {  // a brain from before calls ran on: none, till it learns
+            if (later_sound(output) && !output_from.empty() && output_from[static_cast<std::size_t>(output)] < 0) {
+                brain->output_biases[static_cast<std::size_t>(output)] = -CALL_RELUCTANCE * (unscaled ? 1.0 : VALUE_SCALE);
+            }
+        }
         if (record.at("traced").get<bool>()) {
             Brain::Traces traces;
             read_layers(at, depth, width, traces.layers, traces.output_weights, traces.output_biases);
@@ -239,12 +244,19 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
     for (const Senses& senses : agent.past) past.push_back(numbers.senses(senses));
     record["past"] = std::move(past);
+    record["last_sounds"] = agent.last_sounds;
+    record["chosen"] = {agent.chosen_value, agent.chosen_turn, agent.call_heeded};
+    if (agent.call_held) {  // its call's lesson, held till its listeners' turn is judged: by the outputs' names
+        json outputs = json::array();
+        for (const int output : agent.call_outputs) outputs.push_back(output >= 0 ? json(std::string(OUTPUTS[static_cast<std::size_t>(output)])) : json(nullptr));
+        record["held_call"] = {{"senses", numbers.senses(agent.call_senses)}, {"outputs", outputs}, {"target", agent.held_call_target}};
+    }
     json places = json::array();  // each [column, row, last, then for each season: seen, food, danger, comfort]
     for (const MapPlace& place : agent.places) {
         json entry = {place.column, place.row, place.last};
@@ -427,6 +439,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->has_last_senses = false;
     }
     agent->call = record.value("call", 0);  // silent, in a world saved before calls
+    if (record.contains("sounds")) agent->sounds = record["sounds"].get<std::array<int, MAX_SOUNDS - 1>>();  // one sound, before calls ran on
     agent->call_turn = record.value("call_turn", -1);
     agent->heard_from = record.value("heard_from", -1);  // none, in a world saved before calls paid
     agent->heard_call = record.value("heard_call", -1);
@@ -435,6 +448,23 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->heard_danger = record.value("heard_danger", false);
     agent->struck_turn = record.value("struck_turn", -1);
     agent->last_call = record.value("last_call", -1);
+    if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();
+    if (record.contains("chosen")) {  // what it expected of its last choice, and whose call it heard as it chose
+        agent->chosen_value = record["chosen"].at(0).get<double>();
+        agent->chosen_turn = record["chosen"].at(1).get<int>();
+        agent->call_heeded = record["chosen"].at(2).get<int>();
+    }
+    if (record.contains("held_call")) {
+        const json& held = record["held_call"];
+        agent->call_senses = numbers.senses(held.at("senses"));
+        agent->held_call_target = held.at("target").get<double>();
+        for (std::size_t place = 0; place < MAX_SOUNDS; ++place) {
+            const json& name = held.at("outputs").at(place);
+            const auto found = name.is_null() ? OUTPUTS.end() : std::find(OUTPUTS.begin(), OUTPUTS.end(), name.get<std::string>());
+            agent->call_outputs[place] = found == OUTPUTS.end() ? -1 : static_cast<int>(found - OUTPUTS.begin());
+        }
+        agent->call_held = true;
+    }
     if (record.contains("held")) {  // blank, in a world saved before memory
         for (int held = 0; held < MEMORY_NEURONS; ++held) agent->held[held] = record.at("held").at(held).get<double>();
         agent->last_wrote = record.at("last_wrote").get<bool>();
