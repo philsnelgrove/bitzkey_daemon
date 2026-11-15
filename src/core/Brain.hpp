@@ -417,6 +417,9 @@ Held memory_after(const Values& values, const Held& held);
 
 // Softmax over the available actions' values, in the options' order.
 std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options);
+std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options, double temperature);
+// How loosely it picks among silence and calls, and each later sound (see Call temperature).
+inline double CALL_TEMPERATURE = 0.1;
 
 // One hidden layer: a row of weights for each neuron, reading the senses (the first layer) or the
 // layer before.

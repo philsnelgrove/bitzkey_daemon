@@ -2024,5 +2024,9 @@
 "Call habit": "Rufgewohnheit",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "Freude an einem Ruf, der den Rufen gleicht, die es dort machte, wo es am ähnlichsten empfand, mehr als seinen Rufen überhaupt; welcher Ruf wozu gehört, bestimmt es selbst; 0 für keine",
 "Silence lesson": "Lehre des Schweigens",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "Anteil seines Lernens, mit dem jeder Ruf auch lehrt, was Schweigen gebracht hätte: derselbe Zug ohne die Kosten oder Freuden des Rufs; 0 für nichts"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "Anteil seines Lernens, mit dem jeder Ruf auch lehrt, was Schweigen gebracht hätte: derselbe Zug ohne die Kosten oder Freuden des Rufs; 0 für nichts",
+"Call baseline": "Ruf-Grundlinie",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "wie weit ein Ruf nur seinen eigenen Anteil lernt, über das Schweigen hinaus: seine eigenen Freuden, Gewohnheit und Mitgefühl, abzüglich seiner Kosten; 0: den ganzen Zug, wie jede Wahl",
+"Call temperature": "Ruf-Temperatur",
+"how loosely a brain picks among silence and calls, and each later sound": "wie locker ein Gehirn zwischen Schweigen und Rufen wählt, und jeden späteren Laut"
 }

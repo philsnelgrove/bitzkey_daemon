@@ -2024,5 +2024,9 @@
 "Call habit": "Звичка поклику",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "втіха від поклику, що збігається з тими, які воно подавало там, де відчувало найсхожіше, більше, ніж з його покликами загалом; який поклик до чого — його власне; 0 — ніяк",
 "Silence lesson": "Урок мовчання",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "частка його навчання, якою кожен поклик навчає й того, що дало б мовчання: той самий хід без ціни та втіх поклику; 0 — ніяк"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "частка його навчання, якою кожен поклик навчає й того, що дало б мовчання: той самий хід без ціни та втіх поклику; 0 — ніяк",
+"Call baseline": "Базова лінія поклику",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "наскільки поклик вчиться лише своєї частки, понад мовчання: власних утіх, звички й співчуття, мінус його ціна; 0: увесь хід, як будь-який вибір",
+"Call temperature": "Температура поклику",
+"how loosely a brain picks among silence and calls, and each later sound": "наскільки вільно мозок обирає між мовчанням і покликами, та кожним наступним звуком"
 }

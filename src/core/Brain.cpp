@@ -127,11 +127,15 @@ Held memory_after(const Values& values, const Held& held) {
 }
 
 std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options) {
+    return choice_odds(values, options, TEMPERATURE);
+}
+
+std::vector<std::pair<int, double>> choice_odds(const Values& values, std::span<const int> options, double temperature) {
     double best = values[options[0]];
     for (const int option : options) best = std::max(best, values[option]);
     std::vector<double> weights;
     weights.reserve(options.size());
-    for (const int option : options) weights.push_back(std::exp((values[option] - best) / TEMPERATURE));
+    for (const int option : options) weights.push_back(std::exp((values[option] - best) / temperature));
     const double total = py_sum(weights);
     std::vector<std::pair<int, double>> odds;
     odds.reserve(options.size());

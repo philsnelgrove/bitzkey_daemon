@@ -3616,10 +3616,46 @@ TEST_CASE("each call teaches silence what keeping quiet would have brought: with
     caller.last_sounds = {3, -1};  // two sounds
     caller.habit_pull = 0.2;
     const double cost = (0.5 + caller.feeling(Appetite)) * CALL_COST * 2 / 100;
+    caller.call_whole = 3.0;  // the whole turn, as its call would learn it
+    CALL_BASELINE = 0.0;
     CHECK(*Simulation::silence_target(caller, 3.0) == doctest::Approx(3.0 - CALL_HABIT * 0.2 + cost));
+    CALL_BASELINE = 1.0;
+    CHECK(*Simulation::silence_target(caller, 3.0) == doctest::Approx(0.0));  // silence's own part is nothing
     SILENCE_LESSON = 0.0;
     CHECK_FALSE(Simulation::silence_target(caller, 3.0));
     SILENCE_LESSON = 1.0;
+}
+
+TEST_CASE("by the call baseline a call learns only its own part: its pleasures and habit, less its cost; a copier takes the caller's") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    caller.last_call = AlertCall;
+    const double alert_cost = (0.5 + caller.feeling(Appetite)) * CALL_COST / 100;
+    CHECK(Simulation::call_cost(caller) == doctest::Approx(alert_cost));  // the alert is one sound
+    caller.last_call = FirstCall + 2;
+    caller.last_sounds = {1, 4};  // three sounds
+    CHECK(Simulation::call_cost(caller) == doctest::Approx(3 * alert_cost));
+    caller.last_call = Silent;
+    CHECK(Simulation::call_cost(caller) == 0.0);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 6, 5);
+    caller.call_part = 0.4;
+    learner.call_part = -0.1;
+    CALL_BASELINE = 1.0;
+    CHECK(Simulation::copied_call_target(learner, caller, -0.1) == doctest::Approx(0.4));  // as the caller valued it
+    CALL_BASELINE = 0.0;
+    CHECK(Simulation::copied_call_target(learner, caller, 30.0) == doctest::Approx(30.0));  // the learner's own turn, as before
+    CALL_BASELINE = 1.0;
+}
+
+TEST_CASE("calls are chosen at their own temperature") {
+    Values values{};
+    values[call_output(Silent)] = 0.0;
+    values[call_output(FirstCall)] = 0.2;
+    const std::array<int, 2> options{call_output(Silent), call_output(FirstCall)};
+    const auto loose = choice_odds(values, options, 0.5), tight = choice_odds(values, options, 0.1);
+    CHECK(loose[1].second == doctest::Approx(1 / (1 + std::exp(-0.4))));
+    CHECK(tight[1].second == doctest::Approx(1 / (1 + std::exp(-2.0))));
+    CHECK(choice_odds(values, options)[1].second == doctest::Approx(choice_odds(values, options, TEMPERATURE)[1].second));
 }
 
 TEST_CASE("a call may run to three sounds, heard in order, each sound heard as if alone, and learnt whole") {

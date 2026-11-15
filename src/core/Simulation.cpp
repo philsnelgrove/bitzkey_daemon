@@ -1852,10 +1852,24 @@ void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
 
 std::optional<double> Simulation::silence_target(const Bitzkey& agent, double call_target) {
     if (SILENCE_LESSON <= 0 || agent.last_call < FirstCall) return std::nullopt;
-    int sounds = 1;
-    for (const int sound : agent.last_sounds) sounds += sound >= 0;
-    const double cost = (0.5 + agent.feeling(Appetite)) * CALL_COST * sounds / 100;  // as hunger weighs in its wellbeing
-    return limited_value(call_target - CALL_HABIT * agent.habit_pull + cost);
+    // The whole turn without the call's habit and cost; by the Call baseline, silence's own part, nothing.
+    (void)call_target;
+    const double whole = limited_value(agent.call_whole) - CALL_HABIT * agent.habit_pull + call_cost(agent);
+    return limited_value((1 - CALL_BASELINE) * whole);
+}
+
+double Simulation::call_cost(const Bitzkey& agent) {
+    // The hunger its last call's sounds cost (the alert one), as hunger weighs in its wellbeing.
+    int sounds = agent.last_call >= AlertCall ? 1 : 0;
+    if (agent.last_call >= FirstCall) {
+        for (const int sound : agent.last_sounds) sounds += sound >= 0;
+    }
+    return (0.5 + agent.feeling(Appetite)) * CALL_COST * sounds / 100;
+}
+
+double Simulation::copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target) {
+    // A call copied from another is valued as that one valued it, by the Call baseline: its own part, not the learner's.
+    return limited_value(call_target + CALL_BASELINE * (caller.call_part - learner.call_part));
 }
 
 int Simulation::sounds_made(const Bitzkey& agent) {
@@ -2212,7 +2226,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         targets[index] = limited_value(rewards[index] + discount(agent) * best);  // held within the Value limit
         double best_call = values[index][call_output(Silent)];
         for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
-        call_targets[index] = limited_value(rewards[index] + discount(agent) * best_call + CALL_HABIT * agent.habit_pull);
+        // What its call (or silence) is taught: the whole turn, as any choice, or by the Call baseline only the call's own
+        // part, beyond keeping quiet: its own pleasures and habit, less the hunger its sounds cost (silence's own part 0).
+        agent.call_whole = rewards[index] + discount(agent) * best_call + CALL_HABIT * agent.habit_pull;
+        agent.call_part = agent.call_pleasure + CALL_HABIT * agent.habit_pull - call_cost(agent);
+        call_targets[index] = CALL_BASELINE <= 0 ? limited_value(agent.call_whole)
+                                                 : limited_value((1 - CALL_BASELINE) * agent.call_whole + CALL_BASELINE * agent.call_part);
     }
     credit_callers(agents, targets);  // what each one's call did to those who heard it, before any learns
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
@@ -2412,7 +2431,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             std::vector<int> outputs;
             for (const int call : plans[index].calls) outputs.push_back(call_output(call));
             double call_roll = call_rolls[index];
-            for (const auto& [output, chance] : choice_odds(values[index], outputs)) {
+            for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
                 call_roll -= chance;
                 agent.call = output - ACTION_COUNT;
                 if (call_roll < 0) break;
@@ -2423,7 +2442,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 for (int sound = -1; sound < CALL_COUNT; ++sound) outputs[static_cast<std::size_t>(sound + 1)] = sound_output(place, sound);
                 double roll = whim(agent.identifier * MAX_SOUNDS + place, turn_);
                 int picked = outputs[0];
-                for (const auto& [output, chance] : choice_odds(values[index], outputs)) {
+                for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
                     roll -= chance;
                     picked = output;
                     if (roll < 0) break;
@@ -2461,6 +2480,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.last_wellbeing = wellbeing(agent);
         agent.last_comfort = comforts[index];
         agent.reward = -BOREDOM_UNEASE * agent.boredom;
+        agent.call_pleasure = 0.0;
         agent.assailant.reset();  // the chance to strike back, or need to flee, passes with this choice
         agent.panicked = false;
         agent.alarm.reset();
@@ -2757,8 +2777,9 @@ void Simulation::learn_from_parent(Bitzkey& child, double target, double call_ta
         else child.own_brain().learn(senses, output, value, share);
     };
     if (parent->last_call >= FirstCall) {
+        const double copied = copied_call_target(child, *parent, call_target);
         for (const int output : utterance_outputs(*parent)) {
-            if (output >= 0) lesson(parent->last_senses, output, call_target);
+            if (output >= 0) lesson(parent->last_senses, output, copied);
         }
     }
     lesson(child.last_senses, parent->last_choice, target);
@@ -2777,8 +2798,9 @@ void Simulation::read_body_language(Bitzkey& listener, double target, double cal
         if (gpu_) queue_lesson(listener, senses, output, value, rate, false, 0.0);
         else listener.own_brain().learn(senses, output, value, rate);
     };
+    const double copied = copied_call_target(listener, *caller, call_target);
     for (const int output : utterance_outputs(*caller)) {  // its whole call, sound by sound
-        if (output >= 0) lesson(caller->last_senses, output, call_target);
+        if (output >= 0) lesson(caller->last_senses, output, copied);
     }
     lesson(listener.last_senses, caller->last_choice, target);
 }
@@ -4758,6 +4780,7 @@ void Simulation::answered(Bitzkey& listener, Bitzkey& caller, double mine, doubl
     if (mine <= 0 || theirs <= 0 || COMMUNICATION_JOY <= 0) return;
     listener.reward += COMMUNICATION_JOY * mine;
     caller.reward += COMMUNICATION_JOY * theirs;
+    caller.call_pleasure += COMMUNICATION_JOY * theirs;  // its call's own
     if (listener.answer_call >= FirstCall && caller.species != Species::Plant) {
         const auto count = [this, kind = static_cast<std::size_t>(caller.species), call = static_cast<std::size_t>(listener.answer_call - FirstCall)] {
             ++call_payoffs_[kind][call][2];
@@ -5715,7 +5738,10 @@ void Simulation::alert(Bitzkey& agent, const Bitzkey& about) {
             other->kill_alert = Cell{about.x, about.y};
         }
     }
-    if (heeded) agent.reward += ALERT_JOY;  // a pleasure only when a herd-mate took it in
+    if (heeded) {  // a pleasure only when a herd-mate took it in, and its call's own
+        agent.reward += ALERT_JOY;
+        agent.call_pleasure += ALERT_JOY;
+    }
 }
 
 void Simulation::scavenge(Bitzkey& agent, Bitzkey& corpse) {

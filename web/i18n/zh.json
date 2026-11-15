@@ -2024,5 +2024,9 @@
 "Call habit": "叫声习惯",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "叫声与它在感觉最相似处所发叫声相合（多于平常叫声）时的愉悦；哪种叫声配什么由它自己定；0 为无",
 "Silence lesson": "沉默之课",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "每次叫唤也借以学到保持沉默会带来什么的学习份额：同一回合，去掉叫声的代价与愉悦；0 为不学"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "每次叫唤也借以学到保持沉默会带来什么的学习份额：同一回合，去掉叫声的代价与愉悦；0 为不学",
+"Call baseline": "叫声基线",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "叫声在沉默之外只学习自身部分的程度：其自身的快乐、习惯和同理心，减去代价；0：整个回合，如同任何选择",
+"Call temperature": "叫声温度",
+"how loosely a brain picks among silence and calls, and each later sound": "大脑在沉默与叫声之间，以及每个后续声音上选择的随意程度"
 }

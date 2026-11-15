@@ -2024,5 +2024,9 @@
 "Call habit": "पुकार की आदत",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "उस पुकार का आनंद जो उसके सबसे मिलते-जुलते अनुभवों में की गई पुकारों से, सामान्य पुकारों से अधिक, मेल खाती है; कौन-सी पुकार किसके साथ, यह उसका अपना है; 0 कुछ नहीं",
 "Silence lesson": "मौन का पाठ",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "सीखने का वह भाग जिससे हर पुकार यह भी सिखाती है कि चुप रहना क्या लाता: वही बारी, पुकार की कीमत या आनंद के बिना; 0 कुछ नहीं"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "सीखने का वह भाग जिससे हर पुकार यह भी सिखाती है कि चुप रहना क्या लाता: वही बारी, पुकार की कीमत या आनंद के बिना; 0 कुछ नहीं",
+"Call baseline": "पुकार आधार रेखा",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "कोई पुकार चुप रहने से आगे केवल अपना हिस्सा कितना सीखती है: उसके अपने सुख, आदत और सहानुभूति, उसकी लागत घटाकर; 0: पूरी बारी, किसी भी चुनाव की तरह",
+"Call temperature": "पुकार तापमान",
+"how loosely a brain picks among silence and calls, and each later sound": "मस्तिष्क चुप्पी और पुकारों के बीच, और हर बाद की ध्वनि में, कितनी ढील से चुनता है"
 }

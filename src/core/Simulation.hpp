@@ -391,6 +391,11 @@ inline double CALL_HABIT = 0.5;
 // learning rate, what keeping quiet would have brought that turn: the same, less the call's own pleasures (habit; empathy
 // comes later, and silence has none), and without the hunger the call cost. A call then pays only beyond silence. 0 for none.
 inline double SILENCE_LESSON = 1.0;
+// Baseline: what a call (or silence) is taught. At 0 the whole turn, as any choice, so every call in a situation learns
+// the same but for its habit and empathy, and that small difference drowns in the turn's own. At 1 only the call's own
+// part, beyond keeping quiet: its own pleasures (an alert heeded, being understood), habit and empathy, less the hunger
+// its sounds cost; silence's own part is nothing. Those copying a call take the caller's own part. Between, a blend.
+inline double CALL_BASELINE = 1.0;
 constexpr int CALL_HABITS = 12;
 constexpr int HABIT_NEIGHBOURS = 3;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
@@ -1131,6 +1136,9 @@ struct Bitzkey {
     };
     std::vector<CallHabit> habits;
     double habit_pull = 0.0;  // how well its last call kept to its habits, beyond chance, -1..1
+    double call_pleasure = 0.0;  // the pleasures of its call since it last chose (an alert heeded, being understood)
+    double call_whole = 0.0;     // what its call would be taught as the whole turn, as any choice (worked out as it learns)
+    double call_part = 0.0;      // and its call's own part beyond silence (see Call baseline), which those copying it take
     double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
     int call_listeners = 0;    // and how many they were
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
@@ -1483,6 +1491,9 @@ public:
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);
+    static double call_cost(const Bitzkey& agent);  // the hunger its last call's sounds cost, as wellbeing weighs it
+    // A call another made, as one copying it values it (see Call baseline).
+    static double copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target);
     void credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets);  // see CALL_EMPATHY
     int tended_at(int x, int y) const { return in_bounds(x, y) ? tended_[static_cast<std::size_t>(y) * width_ + x] : 0; }
     int morning_fruit(Bitzkey& plant);  // the fruit a plant bears this morning, any bone fed its land spent

@@ -2024,5 +2024,9 @@
 "Call habit": "鳴き声の習慣",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "最も似た状況で発した鳴き声に、普段の鳴き声以上に一致する鳴き声の喜び。どの声が何を指すかは自分で決まる。0で無し",
 "Silence lesson": "沈黙の学び",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "鳴くたびに、黙っていたら何を得たか（鳴き声の代価と喜びを除いた同じ番）も学ぶ割合。0で無し"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "鳴くたびに、黙っていたら何を得たか（鳴き声の代価と喜びを除いた同じ番）も学ぶ割合。0で無し",
+"Call baseline": "鳴き声の基準線",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "鳴き声が沈黙を超えた自分の分だけをどこまで学ぶか：自身の喜び、習慣、共感から費用を引いたもの。0：ほかの選択と同じくターン全体",
+"Call temperature": "鳴き声の温度",
+"how loosely a brain picks among silence and calls, and each later sound": "脳が沈黙と鳴き声、そして後に続く各音をどれほどゆるく選ぶか"
 }

@@ -238,6 +238,8 @@ std::vector<Rule> make_rules() {
         {"SILENCE_LESSON", "Mind", "Silence lesson", "share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none", 0.0, 2.0, 0.1, false, &SILENCE_LESSON},
         {"CALL_HABIT", "Mind", "Call habit", "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none", 0.0, 2.0, 0.1, false, &CALL_HABIT},
         {"CALL_EMPATHY", "Mind", "Call empathy", "how much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none", 0.0, 5.0, 0.1, false, &CALL_EMPATHY},
+        {"CALL_BASELINE", "Mind", "Call baseline", "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice", 0.0, 1.0, 0.1, false, &CALL_BASELINE},
+        {"CALL_TEMPERATURE", "Mind", "Call temperature", "how loosely a brain picks among silence and calls, and each later sound", 0.01, 5.0, 0.01, false, &CALL_TEMPERATURE},
         {"MEMORY_STEPS", "Mind", "Memory steps", "choices back a lesson's error reaches the memory gates that wrote what the brain read; 0: memory is only as born", 0, 4, 1, true, &MEMORY_STEPS},
         {"MEMORY_LEARNING", "Mind", "Memory learning", "how fast memory gates learn, times the brain's learning rate", 0.0, 5.0, 0.05, false, &MEMORY_LEARNING},
         {"MAP_PLACES", "Mind", "Map places", "places an animal's mental map holds, the one visited longest ago forgotten for a new one; 0: no map", 0, 32, 1, true, &MAP_PLACES},

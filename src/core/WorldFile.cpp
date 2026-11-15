@@ -298,6 +298,8 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         record["habit_pull"] = agent.habit_pull;
     }
     record["chosen"] = {agent.chosen_value, agent.chosen_turn, agent.call_heeded};
+    if (agent.call_pleasure != 0) record["call_pleasure"] = agent.call_pleasure;
+    if (agent.call_whole != 0 || agent.call_part != 0) record["call_values"] = {agent.call_whole, agent.call_part};
     if (agent.call_held) {  // its call's lesson, held till its listeners' turn is judged: by the outputs' names
         json outputs = json::array();
         for (const int output : agent.call_outputs) outputs.push_back(output >= 0 ? json(std::string(OUTPUTS[static_cast<std::size_t>(output)])) : json(nullptr));
@@ -505,6 +507,11 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             agent->habits.push_back(habit);
         }
         agent->habit_pull = record.value("habit_pull", 0.0);
+    }
+    agent->call_pleasure = record.value("call_pleasure", 0.0);
+    if (record.contains("call_values")) {  // what its last call was taught, whole and its own part (see Call baseline)
+        agent->call_whole = record.at("call_values").at(0).get<double>();
+        agent->call_part = record.at("call_values").at(1).get<double>();
     }
     if (record.contains("chosen")) {  // what it expected of its last choice, and whose call it heard as it chose
         agent->chosen_value = record["chosen"].at(0).get<double>();

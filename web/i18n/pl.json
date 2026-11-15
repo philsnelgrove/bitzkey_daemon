@@ -2024,5 +2024,9 @@
 "Call habit": "Nawyk zawołania",
 "pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none": "przyjemność z zawołania zgodnego z tymi, które wydał tam, gdzie czuł najpodobniej, bardziej niż z jego zawołaniami w ogóle; które zawołanie do czego, to jego sprawa; 0 wcale",
 "Silence lesson": "Lekcja milczenia",
-"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "część jego nauki, którą każde zawołanie uczy też, co dałoby milczenie: ta sama tura bez kosztu i przyjemności zawołania; 0 wcale"
+"share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none": "część jego nauki, którą każde zawołanie uczy też, co dałoby milczenie: ta sama tura bez kosztu i przyjemności zawołania; 0 wcale",
+"Call baseline": "Linia bazowa zawołania",
+"how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "na ile zawołanie uczy się tylko swojej części, ponad milczenie: własnych przyjemności, nawyku i empatii, minus jego koszt; 0: cała tura, jak każdy wybór",
+"Call temperature": "Temperatura zawołań",
+"how loosely a brain picks among silence and calls, and each later sound": "jak swobodnie mózg wybiera między milczeniem a zawołaniami oraz każdym kolejnym dźwiękiem"
 }
