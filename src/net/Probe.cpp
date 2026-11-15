@@ -845,6 +845,28 @@ Json Probe::calls(Simulation& world) const {
         };
         std::array<Heard, CALL_COUNT> threat_heard{}, threat_heard_kin{}, calm_heard{};
         Heard threat_none, calm_none;
+        struct News {
+            long long heard = 0, caller_hunter = 0, hunter_news = 0, hunter_news_alarmed = 0, caller_food = 0, food_news = 0, food_news_hungry = 0;
+        } news;
+        // The ceiling: every caller of its kind whose last free call is held (see call_senses), with its reach; a listener
+        // counts if any of them, within reach of where it stands now, had news it lacked, whichever call it heeded.
+        struct Caller {
+            const Bitzkey* who;
+            int reach;
+        };
+        std::vector<Caller> callers_now;
+        for (const Bitzkey* other : world.living()) {
+            if (other->species != species || !other->call_held) continue;
+            const int first = other->call_outputs[0];
+            if (first < call_output(FirstCall) || first >= call_output(FirstCall + CALL_COUNT)) continue;
+            callers_now.push_back({other, call_reach(*other)});
+        }
+        struct Ceiling {
+            long long listeners = 0, callers_in_reach = 0, any_hunter_news = 0, any_food_news_hungry = 0, any_news = 0;
+        } ceiling;
+        const auto sees_food_now = [](const Senses& s) {
+            return s[SenseGrassSeen] > 0 || s[SensePlantCloseness] > 0 || s[SensePreyCloseness] > 0 || s[SenseCarrionCloseness] > 0;
+        };
         // What a call says, with no meaning given it: how much the free call made tells of the caller's situation (a
         // hunter in sight, hungry, food in sight, kin alongside, goods it could trade: 32 in all), and how much the loudest call heard tells of
         // what the listener did (fled, moved, rested, other), in bits.
@@ -936,6 +958,42 @@ Json Probe::calls(Simulation& world) const {
                 none.heard += 1;
                 none.acted += acted;
             }
+            if (any) {  // the ceiling, over every caller in reach
+                ++ceiling.listeners;
+                bool hunter_news = false, food_news = false;
+                const bool hungry = senses[SenseHunger] >= 0.5, lacks_food = !sees_food_now(senses);
+                for (const Caller& caller : callers_now) {
+                    if (caller.who == agent) continue;
+                    if (std::abs(caller.who->x - agent->x) + std::abs(caller.who->y - agent->y) > caller.reach) continue;
+                    ++ceiling.callers_in_reach;
+                    const Senses& theirs = caller.who->call_senses;
+                    hunter_news = hunter_news || (theirs[SenseThreatCloseness] > 0 && !hunter && senses[SenseAlarm] <= 0);
+                    food_news = food_news || (hungry && lacks_food && sees_food_now(theirs));
+                }
+                ceiling.any_hunter_news += hunter_news;
+                ceiling.any_food_news_hungry += food_news;
+                ceiling.any_news += hunter_news || food_news;
+            }
+            // News: did the call it heard (from its own kind, as it last chose) carry something the caller sensed and it
+            // did not? The caller's senses as it called are those its call lesson holds (call_senses).
+            if (agent->call_heeded >= 0) {
+                const Bitzkey* caller = world.find_agent(agent->call_heeded);
+                if (caller && caller->alive() && caller->call_held) {
+                    const Senses& theirs = caller->call_senses;
+                    const auto sees_food = [](const Senses& s) {
+                        return s[SenseGrassSeen] > 0 || s[SensePlantCloseness] > 0 || s[SensePreyCloseness] > 0 || s[SenseCarrionCloseness] > 0;
+                    };
+                    ++news.heard;
+                    const bool caller_hunter = theirs[SenseThreatCloseness] > 0;
+                    news.caller_hunter += caller_hunter;
+                    news.hunter_news += caller_hunter && !hunter && senses[SenseAlarm] <= 0;
+                    news.hunter_news_alarmed += caller_hunter && !hunter && senses[SenseAlarm] > 0;
+                    const bool caller_food = sees_food(theirs);
+                    news.caller_food += caller_food;
+                    news.food_news += caller_food && !sees_food(senses);
+                    news.food_news_hungry += caller_food && !sees_food(senses) && senses[SenseHunger] >= 0.5;
+                }
+            }
         }
         const auto share = [](long long part, long long whole) { return whole > 0 ? Json(static_cast<double>(part) / whole) : Json(nullptr); };
         Json calls = Json::object();
@@ -993,7 +1051,20 @@ Json Probe::calls(Simulation& world) const {
             {"heard_own_kind", {{"tells_action", information(answered_kin)}, {"hunter_in_sight", fled_kin.heard}, {"fled", share(fled_kin.acted, fled_kin.heard)}}},
             {"heard_other_kinds", {{"tells_action", information(answered_others)}, {"hunter_in_sight", fled_others.heard}, {"fled", share(fled_others.acted, fled_others.heard)}}},
             {"choices", threatened + calm}, {"with_hunter", threatened}, {"calls", calls},
-            {"fled_hearing_nothing", share(threat_none.acted, threat_none.heard)}, {"moved_hearing_nothing", share(calm_none.acted, calm_none.heard)}};
+            {"fled_hearing_nothing", share(threat_none.acted, threat_none.heard)}, {"moved_hearing_nothing", share(calm_none.acted, calm_none.heard)},
+            // Of the calls of its own kind heard as it chose: how often the caller had a hunter or food in sight, and how
+            // often the hearer did not (news), the hunter one also without an alarm of its own, the food one also hungry.
+            {"news", {{"heard", news.heard}, {"caller_saw_hunter", share(news.caller_hunter, news.heard)},
+                      {"hunter_news", share(news.hunter_news, news.heard)}, {"hunter_news_but_alarmed", share(news.hunter_news_alarmed, news.heard)},
+                      {"caller_saw_food", share(news.caller_food, news.heard)}, {"food_news", share(news.food_news, news.heard)},
+                      {"food_news_to_the_hungry", share(news.food_news_hungry, news.heard)}}},
+            // Of those that heard any call: how many callers of their kind were in reach, and how often at least one of
+            // them had hunter news, or food news for a hungry one, whichever call was heeded (the most calls could carry).
+            {"news_ceiling", {{"listeners", ceiling.listeners},
+                              {"callers_in_reach_mean", ceiling.listeners > 0 ? Json(static_cast<double>(ceiling.callers_in_reach) / ceiling.listeners) : Json(nullptr)},
+                              {"any_hunter_news", share(ceiling.any_hunter_news, ceiling.listeners)},
+                              {"any_food_news_to_the_hungry", share(ceiling.any_food_news_hungry, ceiling.listeners)},
+                              {"any_news", share(ceiling.any_news, ceiling.listeners)}}}};
     }
     return {{"turn", world.turn()}, {"calls", result}};
 }
