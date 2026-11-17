@@ -5059,6 +5059,16 @@ TEST_CASE("speak as heard: a caller hears its own call as a listener would, not 
     std::vector<Values> values(heard.size(), Values{});
     values.back()[OUTSIDE + OutsideThreat] = 0.8;  // hearing its own call, it foresees the hunter it saw; nothing else does
     CHECK(Simulation::understood(caller, values) == doctest::Approx(0.8 / OUTSIDE_SEEN));
+    CHECK(Simulation::understood_silence(caller, values) == doctest::Approx(0.0));  // hearing nothing, no worse than the mean of the rest
+    values[1][OUTSIDE + OutsideThreat] = 0.8;  // one sound alone foretells it too: silence now below the mean, its own call still above
+    CHECK(Simulation::understood_silence(caller, values) == doctest::Approx(-0.8 / OUTSIDE_SEEN / (1 + CALL_COUNT)));
+    CHECK(Simulation::understood(caller, values) == doctest::Approx(0.8 / OUTSIDE_SEEN * CALL_COUNT / (1 + CALL_COUNT)));
+    // Silence, taught beside the call, takes its own: calling gains nothing by being a call.
+    caller.call_whole = caller.habit_pull = 0.0;
+    caller.call_understood = Simulation::understood(caller, values);
+    caller.silence_understood = Simulation::understood_silence(caller, values);
+    REQUIRE(Simulation::silence_target(caller, 0.0).has_value());
+    CHECK(*Simulation::silence_target(caller, 0.0) == doctest::Approx(limited_value(SPEAK_AS_HEARD * caller.silence_understood)));
     for (std::size_t option = 0; option + 1 < values.size(); ++option) values[option][OUTSIDE + OutsideThreat] = 0.8;
     CHECK(Simulation::understood(caller, values) == doctest::Approx(0.0));  // no better than any sound: nothing its own
     values.back()[OUTSIDE + OutsideThreat] = 0.0;

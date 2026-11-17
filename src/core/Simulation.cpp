@@ -1879,28 +1879,42 @@ std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
     return heard;
 }
 
+namespace {
+// How near what it saw of the outside a brain's foresight comes, hearing as `values` were valued: the nearer, the higher.
+double heard_fit(const Bitzkey& agent, const Values& values) {
+    double off = 0.0;
+    for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
+        const double saw = agent.last_senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])];
+        off += std::abs(values[OUTSIDE + seen] - saw) / OUTSIDE_SEEN;
+    }
+    return -off;
+}
+// The mean of that for hearing nothing and each sound alone, the first 1 + CALL_COUNT of `heard`.
+double heard_mean(const Bitzkey& agent, const std::vector<Values>& heard) {
+    double mean = 0.0;
+    for (int option = 0; option <= CALL_COUNT; ++option) mean += heard_fit(agent, heard[static_cast<std::size_t>(option)]) / (1 + CALL_COUNT);
+    return mean;
+}
+}  // namespace
+
 double Simulation::understood(const Bitzkey& agent, const std::vector<Values>& heard) {
     if (agent.last_call < FirstCall || heard.size() < 1 + CALL_COUNT) return 0.0;
-    const auto fit = [&](const Values& values) {  // how near what it saw, the nearer the higher
-        double off = 0.0;
-        for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
-            const double saw = agent.last_senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])];
-            off += std::abs(values[OUTSIDE + seen] - saw) / OUTSIDE_SEEN;
-        }
-        return -off;
-    };
-    double mean = 0.0;
-    for (int option = 0; option <= CALL_COUNT; ++option) mean += fit(heard[static_cast<std::size_t>(option)]) / (1 + CALL_COUNT);
     const std::size_t own = heard.size() > 1 + CALL_COUNT ? heard.size() - 1 : static_cast<std::size_t>(1 + agent.last_call - FirstCall);
-    return fit(heard[own]) - mean;
+    return heard_fit(agent, heard[own]) - heard_mean(agent, heard);
+}
+
+double Simulation::understood_silence(const Bitzkey& agent, const std::vector<Values>& heard) {
+    if (agent.last_call < FirstCall || heard.size() < 1 + CALL_COUNT) return 0.0;
+    return heard_fit(agent, heard.front()) - heard_mean(agent, heard);
 }
 
 std::optional<double> Simulation::silence_target(const Bitzkey& agent, double call_target) {
     if (SILENCE_LESSON <= 0 || agent.last_call < FirstCall) return std::nullopt;
     // The whole turn without the call's habit and cost; by the Call baseline, silence's own part, nothing.
     (void)call_target;
-    const double whole = limited_value(agent.call_whole) - CALL_HABIT * agent.habit_pull - SPEAK_AS_HEARD * agent.call_understood + call_cost(agent);
-    return limited_value((1 - CALL_BASELINE) * whole);
+    const double heard = SPEAK_AS_HEARD * agent.silence_understood;  // what hearing nothing would have told it
+    const double whole = limited_value(agent.call_whole) - CALL_HABIT * agent.habit_pull - SPEAK_AS_HEARD * agent.call_understood + heard + call_cost(agent);
+    return limited_value((1 - CALL_BASELINE) * whole + CALL_BASELINE * heard);
 }
 
 double Simulation::call_cost(const Bitzkey& agent) {
@@ -2232,7 +2246,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     std::vector<std::size_t> speakers;  // which animal, for each of `hearing`
     std::vector<std::size_t> starts;    // where each speaker's senses begin in `hearing`, and the end
     std::vector<Senses> hearing;
-    for (Bitzkey* agent : agents) agent->call_understood = 0.0;
+    for (Bitzkey* agent : agents) agent->call_understood = agent->silence_understood = 0.0;
     if (SPEAK_AS_HEARD > 0 && OUTSIDE_FORESIGHT > 0 && FORESIGHT_LEARNING > 0) {
         for (const std::size_t index : asked) {
             const Bitzkey& agent = *agents[index];
@@ -2279,7 +2293,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     for (std::size_t speaker = 0; speaker + 1 < starts.size(); ++speaker) {  // how much nearer what it saw its call brings it
         const auto from = static_cast<std::ptrdiff_t>(starts[speaker]), to = static_cast<std::ptrdiff_t>(starts[speaker + 1]);
         Bitzkey& agent = *agents[speakers[starts[speaker]]];
-        agent.call_understood = understood(agent, std::vector<Values>(heard_as.begin() + from, heard_as.begin() + to));
+        const std::vector<Values> heard(heard_as.begin() + from, heard_as.begin() + to);
+        agent.call_understood = understood(agent, heard);
+        agent.silence_understood = understood_silence(agent, heard);
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
     share_hearths(agents, plans);

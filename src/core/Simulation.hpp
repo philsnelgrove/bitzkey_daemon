@@ -402,8 +402,9 @@ inline double CALL_BASELINE = 1.0;
 inline double OUTSIDE_FORESIGHT = 10.0;
 // Speak as heard: each call also teaches its caller how much nearer its own foresight of the outside, hearing that call
 // as one who heard it would (not seeing the hunter, prey or meat it saw), comes to what it saw than on the mean of hearing
-// nothing or any one sound, times this. So a caller comes to say what it would itself understand; what any call means
-// is left to them. 0 for none.
+// nothing or any one sound, times this; and silence, taught beside each call, the same for hearing nothing, so that
+// calling in itself gains nothing. So a caller comes to say what it would itself understand; what any call means is left
+// to them. 0 for none.
 inline double SPEAK_AS_HEARD = 5.0;
 // The alert: 1, a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd, who then know where it is (the
 // alarm, the kill alert); 0, there is no alert, and only the five calls are left to tell of them.
@@ -1155,6 +1156,7 @@ struct Bitzkey {
     double call_whole = 0.0;     // what its call would be taught as the whole turn, as any choice (worked out as it learns)
     double call_part = 0.0;      // and its call's own part beyond silence (see Call baseline), which those copying it take
     double call_understood = 0.0;  // how far its own foresight, hearing its last call, came nearer what it saw (Speak as heard)
+    double silence_understood = 0.0;  // and hearing nothing, as silence is taught it, so that calling gains nothing in itself
     double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
     int call_listeners = 0;    // and how many they were
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
@@ -1514,6 +1516,9 @@ public:
     // How much nearer what it saw of the outside its foresight comes hearing its own call than on the mean of hearing
     // nothing or any one sound (`heard`, its brain's values for each of hearing_itself's senses, in their order).
     static double understood(const Bitzkey& agent, const std::vector<Values>& heard);
+    // The same for hearing nothing (the first of `heard`): what silence is taught beside a call, so that calls and silence
+    // are weighed alike and calling gains nothing merely by being a call.
+    static double understood_silence(const Bitzkey& agent, const std::vector<Values>& heard);
     static double call_cost(const Bitzkey& agent);  // the hunger its last call's sounds cost, as wellbeing weighs it
     // A call another made, as one copying it values it (see Call baseline).
     static double copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target);
