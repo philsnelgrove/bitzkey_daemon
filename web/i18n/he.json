@@ -2028,5 +2028,13 @@
 "Call baseline": "קו בסיס של קריאה",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "עד כמה קריאה לומדת רק את חלקה שלה, מעבר לשתיקה: הנאותיה, ההרגל והאמפתיה, פחות מחירה; 0: התור כולו, ככל בחירה",
 "Call temperature": "טמפרטורת קריאה",
-"how loosely a brain picks among silence and calls, and each later sound": "באיזו רפיון מוח בוחר בין שתיקה לקריאות, ובכל צליל מאוחר יותר"
+"how loosely a brain picks among silence and calls, and each later sound": "באיזו רפיון מוח בוחר בין שתיקה לקריאות, ובכל צליל מאוחר יותר",
+"Outside foresight": "ראייה מראש של הסביבה",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "כמה מהר מוח לומד עד כמה קרוב יחוש צייד, טרף ובשר בתור הבא, כפול למידת הראייה מראש שלו; ללא תגמול; 0 לאף אחד",
+"Speak as heard": "לדבר כפי ששומעים",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "כמה קריאה נלמדת לפי כמה ראיית הקורא עצמו, בשומעו את הקריאה, מתקרבת לצייד, לטרף או לבשר שראה, מאשר בשמיעת כלום או צליל יחיד; 0 לאף אחד",
+"Alerts": "אזעקות",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: אוכל עשב הרואה צייד, או צייד הרואה טרף טרי, יכול להזעיק את עדרו; 0: אין אזעקה, רק חמש הקריאות",
+"Copy in own senses": "העתקה בחושים עצמיים",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: צאצא או קורא שפת גוף לומד קריאה שנשמעה במקום שבו היה הוא עצמו; 0: במקום שבו היה הקורא"
 }

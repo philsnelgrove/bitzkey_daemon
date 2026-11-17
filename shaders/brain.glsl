@@ -12,7 +12,7 @@
 
 const uint INPUTS = 236u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
-const uint ACTIONS = 126u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight, then a call's later sounds
+const uint ACTIONS = 129u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight, then a call's later sounds, then foresight of the outside
 const uint MEMORY_NEURONS = 16u;
 const uint MEMORY_SENSE = 74u;  // SenseMemory: the first sense of what the memory held
 const uint MEMORY_GATES = 78u;  // the first gate's output, then each neuron's, then the values to write

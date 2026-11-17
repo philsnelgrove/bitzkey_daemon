@@ -4197,7 +4197,7 @@ TEST_CASE("the call it made is pictured too, so foresight learns what follows a 
     const double before = caller.brain->values(called)[FORESIGHT + thing];
     Foresight change{};
     change.fill(before < 0.5 ? 1.0 : -1.0);
-    simulation.foresee(caller, change);
+    simulation.foresee(caller, change, caller.last_senses);
     const double after = caller.brain->values(called)[FORESIGHT + thing];
     CHECK(std::abs(after - change[0]) < std::abs(before - change[0]));  // learnt toward what followed the call
     const CallIntent intent = call_intent(*caller.brain, caller.last_senses, FirstCall);
@@ -5007,4 +5007,84 @@ TEST_CASE("a world parted into tiles unfolds the same side by side as one tile a
     CHECK(side_by_side == one_by_one);
     CHECK(side_by_side == again);
     CHECK(Simulation::claim_breaches.load() == 0);
+}
+
+TEST_CASE("outside foresight: a brain learns how near it will next sense a hunter, prey and meat, no reward needed") {
+    CHECK(OUTPUTS[OUTSIDE + OutsideThreat] == "foresee_threat");
+    CHECK(OUTPUTS[OUTSIDE + OutsideCarrion] == "foresee_carrion");
+    CHECK_FALSE(later_sound(OUTSIDE));  // not a call's sound
+    CHECK(later_sound(OUTSIDE - 1));
+    Simulation simulation = world(30);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.index_cells();
+    REQUIRE(grazer.brain);
+    grazer.mind[Intellect] = 7.0;
+    grazer.last_senses = simulation.sense(grazer).senses;
+    grazer.has_last_senses = true;
+    grazer.last_choice = Rest;
+    grazer.last_call = -1;
+    const int seen = py_mod(simulation.turn(), OUTSIDE_SEEN);
+    Senses now = grazer.last_senses;
+    now[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])] = 1.0;  // and now it senses one beside it
+    const double before = grazer.brain->values(grazer.last_senses)[OUTSIDE + seen];
+    simulation.foresee(grazer, Foresight{}, now);
+    CHECK(grazer.brain->values(grazer.last_senses)[OUTSIDE + seen] > before);
+}
+
+TEST_CASE("speak as heard: a caller hears its own call as a listener would, not seeing what it saw, and is taught how much nearer it comes") {
+    Simulation simulation = world(30);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.index_cells();
+    caller.last_senses = simulation.sense(caller).senses;
+    caller.has_last_senses = true;
+    caller.last_call = FirstCall + 2;
+    caller.last_sounds = {4, -1};
+    caller.last_senses[SenseThreatCloseness] = 0.8;
+    caller.last_senses[heard_sense(FirstCall, HeardLoudness)] = 0.5;  // a call it heard itself, not its own
+    const std::vector<Senses> heard = Simulation::hearing_itself(caller);
+    REQUIRE(heard.size() == 1 + CALL_COUNT + 1);  // nothing, each sound alone, its own of two sounds
+    const Senses& quiet = heard.front();
+    const Senses& called = heard.back();
+    CHECK(quiet[SenseThreatCloseness] == 0.0);  // the hunter it saw, put out of mind
+    CHECK(quiet[heard_sense(FirstCall, HeardLoudness)] == 0.0);
+    CHECK(quiet[utterance_sense(0, 2)] == 0.0);
+    CHECK(heard[1 + 3][heard_sense(FirstCall + 3, HeardLoudness)] == 1.0);  // a sound alone
+    CHECK(heard[1 + 3][utterance_sense(1, 4)] == 0.0);
+    CHECK(called[heard_sense(FirstCall + 2, HeardLoudness)] == 1.0);  // its own, sound by sound, from beside it
+    CHECK(called[heard_sense(FirstCall + 4, HeardLoudness)] == 1.0);
+    CHECK(called[heard_sense(FirstCall + 2, HeardKin)] == 1.0);
+    CHECK(called[utterance_sense(0, 2)] == 1.0);
+    CHECK(called[utterance_sense(1, 4)] == 1.0);
+    CHECK(called[SenseThreatCloseness] == 0.0);
+    std::vector<Values> values(heard.size(), Values{});
+    values.back()[OUTSIDE + OutsideThreat] = 0.8;  // hearing its own call, it foresees the hunter it saw; nothing else does
+    CHECK(Simulation::understood(caller, values) == doctest::Approx(0.8 / OUTSIDE_SEEN));
+    for (std::size_t option = 0; option + 1 < values.size(); ++option) values[option][OUTSIDE + OutsideThreat] = 0.8;
+    CHECK(Simulation::understood(caller, values) == doctest::Approx(0.0));  // no better than any sound: nothing its own
+    values.back()[OUTSIDE + OutsideThreat] = 0.0;
+    CHECK(Simulation::understood(caller, values) < 0);  // worse than the rest
+    caller.last_sounds = {-1, -1};  // a call of one sound is weighed as that sound alone
+    REQUIRE(Simulation::hearing_itself(caller).size() == 1 + CALL_COUNT);
+    std::vector<Values> single(1 + CALL_COUNT, Values{});
+    single[1 + 2][OUTSIDE + OutsideThreat] = 0.8;
+    CHECK(Simulation::understood(caller, single) == doctest::Approx(0.8 / OUTSIDE_SEEN * CALL_COUNT / (1 + CALL_COUNT)));
+    // In a world, each that called and learns from it is taught so, some more, some less.
+    for (int turn = 0; turn < 30; ++turn) simulation.take_turn();
+}
+
+TEST_CASE("with no alerts, a grazer seeing a hunter has only silence and the five calls, and is never alarmed by a herd-mate's alert") {
+    struct Restore {
+        int was = ALERTS;
+        ~Restore() { ALERTS = was; }
+    } restore;
+    ALERTS = 0;
+    Simulation simulation = world(30);
+    const Dna dna = encode_dna(Species::Grazer, {{"sight", 7}});
+    Bitzkey& grazer = simulation.add_agent(dna, 10, 10);
+    simulation.add_agent(dna, 11, 10);
+    simulation.add_agent(encode_dna(Species::Predator), 10, 8);
+    simulation.index_cells();
+    const auto alarmed = simulation.sense(grazer);
+    REQUIRE(alarmed.situation.hunter != nullptr);
+    CHECK(alarmed.calls == std::vector<int>{Silent, FirstCall, FirstCall + 1, FirstCall + 2, FirstCall + 3, FirstCall + 4});
 }

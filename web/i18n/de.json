@@ -2028,5 +2028,13 @@
 "Call baseline": "Ruf-Grundlinie",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "wie weit ein Ruf nur seinen eigenen Anteil lernt, über das Schweigen hinaus: seine eigenen Freuden, Gewohnheit und Mitgefühl, abzüglich seiner Kosten; 0: den ganzen Zug, wie jede Wahl",
 "Call temperature": "Ruf-Temperatur",
-"how loosely a brain picks among silence and calls, and each later sound": "wie locker ein Gehirn zwischen Schweigen und Rufen wählt, und jeden späteren Laut"
+"how loosely a brain picks among silence and calls, and each later sound": "wie locker ein Gehirn zwischen Schweigen und Rufen wählt, und jeden späteren Laut",
+"Outside foresight": "Vorausschau nach außen",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "wie schnell ein Gehirn lernt, wie nah es im nächsten Zug einen Jäger, Beute und Fleisch wahrnehmen wird, mal seinem Vorausschau-Lernen; ohne Belohnung; 0 für keine",
+"Speak as heard": "Sprechen wie gehört",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "wie sehr ein Ruf dadurch gelehrt wird, wie viel näher die eigene Vorausschau des Rufers, wenn sie diesen Ruf hört, dem Jäger, der Beute oder dem Fleisch kommt, die er sah, als beim Hören von nichts oder eines einzelnen Lauts; 0 für keine",
+"Alerts": "Warnrufe",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: ein Weidetier, das einen Jäger sieht, oder ein Jäger, der eine frische Beute sieht, kann seine Herde darauf aufmerksam machen; 0: kein Warnruf, nur die fünf Rufe",
+"Copy in own senses": "In eigenen Sinnen nachahmen",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: ein Kind oder ein Leser von Körpersprache lernt einen gehörten Ruf dort, wo es selbst war; 0: dort, wo der Rufer war"
 }

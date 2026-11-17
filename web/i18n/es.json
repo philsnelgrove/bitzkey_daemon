@@ -2028,5 +2028,13 @@
 "Call baseline": "Línea base de la llamada",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "hasta qué punto una llamada aprende solo su propia parte, más allá de callar: sus propios placeres, hábito y empatía, menos su coste; 0: el turno entero, como cualquier elección",
 "Call temperature": "Temperatura de llamada",
-"how loosely a brain picks among silence and calls, and each later sound": "con qué soltura elige un cerebro entre el silencio y las llamadas, y cada sonido posterior"
+"how loosely a brain picks among silence and calls, and each later sound": "con qué soltura elige un cerebro entre el silencio y las llamadas, y cada sonido posterior",
+"Outside foresight": "Previsión del exterior",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "qué tan rápido aprende un cerebro lo cerca que percibirá a un cazador, una presa y carne en el siguiente turno, por su aprendizaje de previsión; sin recompensa; 0 para ninguno",
+"Speak as heard": "Hablar como se oye",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "cuánto se enseña a una llamada según cuánto más se acerca la previsión del propio llamador, al oír esa llamada, al cazador, la presa o la carne que vio, que al no oír nada o un solo sonido; 0 para ninguno",
+"Alerts": "Alertas",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: un herbívoro que ve a un cazador, o un cazador que ve una presa fresca, puede alertar a su manada; 0: sin alerta, solo las cinco llamadas",
+"Copy in own senses": "Copiar con sus propios sentidos",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: una cría o quien lee el lenguaje corporal aprende una llamada oída donde estaba él mismo; 0: donde estaba quien llamó"
 }

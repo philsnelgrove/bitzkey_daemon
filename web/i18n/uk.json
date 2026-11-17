@@ -2028,5 +2028,13 @@
 "Call baseline": "Базова лінія поклику",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "наскільки поклик вчиться лише своєї частки, понад мовчання: власних утіх, звички й співчуття, мінус його ціна; 0: увесь хід, як будь-який вибір",
 "Call temperature": "Температура поклику",
-"how loosely a brain picks among silence and calls, and each later sound": "наскільки вільно мозок обирає між мовчанням і покликами, та кожним наступним звуком"
+"how loosely a brain picks among silence and calls, and each later sound": "наскільки вільно мозок обирає між мовчанням і покликами, та кожним наступним звуком",
+"Outside foresight": "Передбачення зовнішнього",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "як швидко мозок вчиться, наскільки близько наступного ходу відчує мисливця, здобич і м'ясо, помножено на його навчання передбачення; без винагороди; 0 — немає",
+"Speak as heard": "Говори, як чуєш",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "наскільки поклик навчається тим, наскільки власне передбачення того, хто кличе, почувши цей поклик, наближається до мисливця, здобичі чи м'яса, які він бачив, ніж коли не чує нічого або один звук; 0 — немає",
+"Alerts": "Тривоги",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: травоїдна тварина, що бачить мисливця, або мисливець, що бачить свіжу здобич, може сповістити свою зграю; 0: без тривоги, лише п'ять покликів",
+"Copy in own senses": "Копіювати власними чуттями",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: дитинча або той, хто читає мову тіла, вивчає почутий поклик там, де було саме; 0: там, де був той, хто кликав"
 }

@@ -2028,5 +2028,13 @@
 "Call baseline": "叫声基线",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "叫声在沉默之外只学习自身部分的程度：其自身的快乐、习惯和同理心，减去代价；0：整个回合，如同任何选择",
 "Call temperature": "叫声温度",
-"how loosely a brain picks among silence and calls, and each later sound": "大脑在沉默与叫声之间，以及每个后续声音上选择的随意程度"
+"how loosely a brain picks among silence and calls, and each later sound": "大脑在沉默与叫声之间，以及每个后续声音上选择的随意程度",
+"Outside foresight": "外界预见",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "大脑学习下一回合会感到猎手、猎物和肉有多近的速度，乘以其预见学习；不含奖励；0 为无",
+"Speak as heard": "如闻而言",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "一个叫声受教的程度：呼叫者自己的预见在听到该叫声时，比起什么都没听到或只听到单个声音，离它所见的猎手、猎物或肉近了多少；0 为无",
+"Alerts": "警报",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1：看见猎手的食草动物，或看见新鲜猎物的猎手，可以向其群体发出警报；0：没有警报，只有五种叫声",
+"Copy in own senses": "以自身感官模仿",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1：幼崽或读懂肢体语言者在自己所在之处学会听到的叫声；0：在呼叫者所在之处"
 }

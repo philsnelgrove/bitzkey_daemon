@@ -2028,5 +2028,13 @@
 "Call baseline": "鳴き声の基準線",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "鳴き声が沈黙を超えた自分の分だけをどこまで学ぶか：自身の喜び、習慣、共感から費用を引いたもの。0：ほかの選択と同じくターン全体",
 "Call temperature": "鳴き声の温度",
-"how loosely a brain picks among silence and calls, and each later sound": "脳が沈黙と鳴き声、そして後に続く各音をどれほどゆるく選ぶか"
+"how loosely a brain picks among silence and calls, and each later sound": "脳が沈黙と鳴き声、そして後に続く各音をどれほどゆるく選ぶか",
+"Outside foresight": "外界の予見",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "次のターンに狩る者、獲物、肉をどれほど近くに感じるかを脳が学ぶ速さ（予見の学習の倍数）。報酬はない。0でなし",
+"Speak as heard": "聞こえるように話す",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "呼び声が教えられる度合い：その呼び声を聞いた呼び手自身の予見が、見た狩る者・獲物・肉に、何も聞かないか単一の音を聞く場合よりどれだけ近づくか。0でなし",
+"Alerts": "警報",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1：狩る者を見た草食動物、または新しい獲物を見た狩る者は群れに知らせることができる。0：警報なし、五つの呼び声のみ",
+"Copy in own senses": "自分の感覚で真似る",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1：子や身振りを読む者は、聞いた呼び声を自分がいた場所で学ぶ。0：呼び手がいた場所で"
 }

@@ -2028,5 +2028,13 @@
 "Call baseline": "Linea di base del richiamo",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "quanto un richiamo impara solo la propria parte, oltre il tacere: i propri piaceri, abitudine ed empatia, meno il suo costo; 0: il turno intero, come ogni scelta",
 "Call temperature": "Temperatura del richiamo",
-"how loosely a brain picks among silence and calls, and each later sound": "con quanta libertà un cervello sceglie tra silenzio e richiami, e ogni suono successivo"
+"how loosely a brain picks among silence and calls, and each later sound": "con quanta libertà un cervello sceglie tra silenzio e richiami, e ogni suono successivo",
+"Outside foresight": "Previsione dell'esterno",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "quanto in fretta un cervello impara quanto vicino percepirà un cacciatore, una preda e della carne al turno successivo, per il suo apprendimento di previsione; nessuna ricompensa; 0 per nessuno",
+"Speak as heard": "Parlare come si sente",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "quanto un richiamo viene insegnato da quanto la previsione del richiamante stesso, udendo quel richiamo, si avvicina al cacciatore, alla preda o alla carne che ha visto, rispetto a non udire nulla o un solo suono; 0 per nessuno",
+"Alerts": "Allarmi",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: un erbivoro che vede un cacciatore, o un cacciatore una preda fresca, può avvisarne il branco; 0: nessun allarme, solo i cinque richiami",
+"Copy in own senses": "Copiare con i propri sensi",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: un piccolo o chi legge il linguaggio del corpo impara un richiamo udito dove si trovava lui stesso; 0: dove si trovava il richiamante"
 }

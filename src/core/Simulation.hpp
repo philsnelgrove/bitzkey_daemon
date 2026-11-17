@@ -396,6 +396,21 @@ inline double SILENCE_LESSON = 1.0;
 // part, beyond keeping quiet: its own pleasures (an alert heeded, being understood), habit and empathy, less the hunger
 // its sounds cost; silence's own part is nothing. Those copying a call take the caller's own part. Between, a blend.
 inline double CALL_BASELINE = 1.0;
+// Foresight of the outside: each turn a brain learns, of one of the hunter, prey and meat in turn, how near it now senses it,
+// from what it sensed the turn before (picturing nothing), at this times its foresight's learning rate. No reward is in it,
+// and every turn teaches it, so a call heard before a hunter came into sight may come to foretell one. 0 for none.
+inline double OUTSIDE_FORESIGHT = 10.0;
+// Speak as heard: each call also teaches its caller how much nearer its own foresight of the outside, hearing that call
+// as one who heard it would (not seeing the hunter, prey or meat it saw), comes to what it saw than on the mean of hearing
+// nothing or any one sound, times this. So a caller comes to say what it would itself understand; what any call means
+// is left to them. 0 for none.
+inline double SPEAK_AS_HEARD = 5.0;
+// The alert: 1, a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd, who then know where it is (the
+// alarm, the kill alert); 0, there is no alert, and only the five calls are left to tell of them.
+inline int ALERTS = 1;
+// Copying a call: 1, a child or one who reads a caller's body language learns to make the call where it was itself when it
+// heard it, by its own senses; 0, where the caller was, by the caller's senses.
+inline int COPY_OWN_SENSES = 1;
 constexpr int CALL_HABITS = 12;
 constexpr int HABIT_NEIGHBOURS = 3;
 // A call that helps pays its caller. Each animal remembers the loudest caller of its own kind it heard; if, by the
@@ -1139,6 +1154,7 @@ struct Bitzkey {
     double call_pleasure = 0.0;  // the pleasures of its call since it last chose (an alert heeded, being understood)
     double call_whole = 0.0;     // what its call would be taught as the whole turn, as any choice (worked out as it learns)
     double call_part = 0.0;      // and its call's own part beyond silence (see Call baseline), which those copying it take
+    double call_understood = 0.0;  // how far its own foresight, hearing its last call, came nearer what it saw (Speak as heard)
     double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
     int call_listeners = 0;    // and how many they were
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
@@ -1491,6 +1507,13 @@ public:
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);
+    // Speak as heard: its senses as it made its last call, with the hunter, prey and meat it saw put out of them, hearing
+    // in turn nothing, then each of the five sounds alone, then (when it ran to more sounds) its own whole call: each
+    // from beside it, of its kind.
+    static std::vector<Senses> hearing_itself(const Bitzkey& agent);
+    // How much nearer what it saw of the outside its foresight comes hearing its own call than on the mean of hearing
+    // nothing or any one sound (`heard`, its brain's values for each of hearing_itself's senses, in their order).
+    static double understood(const Bitzkey& agent, const std::vector<Values>& heard);
     static double call_cost(const Bitzkey& agent);  // the hunger its last call's sounds cost, as wellbeing weighs it
     // A call another made, as one copying it values it (see Call baseline).
     static double copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target);
@@ -1572,7 +1595,7 @@ public:
 
     // The rest is public so tests can drive single steps, as the Python tests do.
     void rein_in(Bitzkey& agent, const Senses& senses, const Values& valued);  // what it values beyond the Value limit, taught back
-    void foresee(Bitzkey& agent, const Foresight& change);  // one thing it foresaw, taught what came
+    void foresee(Bitzkey& agent, const Foresight& change, const Senses& now);  // one thing it foresaw, taught what came
     // Which way an animal breaks ties between targets equally near, or flees one straight in line: east (1) or west (-1),
     // south (1) or north (-1), turning with its number and the turn, so no way is favoured.
     struct Side {

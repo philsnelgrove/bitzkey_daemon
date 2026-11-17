@@ -2028,5 +2028,13 @@
 "Call baseline": "पुकार आधार रेखा",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "कोई पुकार चुप रहने से आगे केवल अपना हिस्सा कितना सीखती है: उसके अपने सुख, आदत और सहानुभूति, उसकी लागत घटाकर; 0: पूरी बारी, किसी भी चुनाव की तरह",
 "Call temperature": "पुकार तापमान",
-"how loosely a brain picks among silence and calls, and each later sound": "मस्तिष्क चुप्पी और पुकारों के बीच, और हर बाद की ध्वनि में, कितनी ढील से चुनता है"
+"how loosely a brain picks among silence and calls, and each later sound": "मस्तिष्क चुप्पी और पुकारों के बीच, और हर बाद की ध्वनि में, कितनी ढील से चुनता है",
+"Outside foresight": "बाहर की पूर्वदृष्टि",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "एक मस्तिष्क कितनी तेज़ी से सीखता है कि अगली बारी में वह शिकारी, शिकार और मांस को कितना पास महसूस करेगा, उसकी पूर्वदृष्टि सीखने के गुणा; इसमें कोई इनाम नहीं; 0 कोई नहीं",
+"Speak as heard": "जैसा सुना वैसा बोलना",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "किसी पुकार को कितना सिखाया जाता है इस पर कि पुकारने वाले की अपनी पूर्वदृष्टि, वह पुकार सुनकर, उसके देखे शिकारी, शिकार या मांस के कितना अधिक पास आती है, कुछ न सुनने या किसी एक ध्वनि की तुलना में; 0 कोई नहीं",
+"Alerts": "चेतावनियाँ",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: शिकारी को देखने वाला चरने वाला, या ताज़ा शिकार देखने वाला शिकारी, अपने झुंड को सचेत कर सकता है; 0: कोई चेतावनी नहीं, केवल पाँच पुकारें",
+"Copy in own senses": "अपनी इंद्रियों से नकल",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: बच्चा या शरीर की भाषा पढ़ने वाला सुनी हुई पुकार वहीं सीखता है जहाँ वह स्वयं था; 0: जहाँ पुकारने वाला था"
 }

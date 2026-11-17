@@ -2028,5 +2028,13 @@
 "Call baseline": "Linha de base do chamado",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "quanto um chamado aprende só a sua própria parte, além de ficar calado: os seus próprios prazeres, hábito e empatia, menos o seu custo; 0: o turno inteiro, como qualquer escolha",
 "Call temperature": "Temperatura do chamado",
-"how loosely a brain picks among silence and calls, and each later sound": "com que folga um cérebro escolhe entre o silêncio e os chamados, e cada som seguinte"
+"how loosely a brain picks among silence and calls, and each later sound": "com que folga um cérebro escolhe entre o silêncio e os chamados, e cada som seguinte",
+"Outside foresight": "Previsão do exterior",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "quão rápido um cérebro aprende quão perto sentirá um caçador, uma presa e carne no próximo turno, vezes seu aprendizado de previsão; sem recompensa; 0 para nenhum",
+"Speak as heard": "Falar como se ouve",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "quanto um chamado é ensinado por quanto a própria previsão de quem chama, ao ouvir esse chamado, se aproxima do caçador, da presa ou da carne que viu, em vez de não ouvir nada ou um único som; 0 para nenhum",
+"Alerts": "Alertas",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: um herbívoro que vê um caçador, ou um caçador uma presa fresca, pode alertar seu bando; 0: sem alerta, apenas os cinco chamados",
+"Copy in own senses": "Copiar com os próprios sentidos",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: um filhote ou quem lê linguagem corporal aprende um chamado ouvido onde ele mesmo estava; 0: onde estava quem chamou"
 }

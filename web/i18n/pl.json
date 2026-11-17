@@ -2028,5 +2028,13 @@
 "Call baseline": "Linia bazowa zawołania",
 "how far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice": "na ile zawołanie uczy się tylko swojej części, ponad milczenie: własnych przyjemności, nawyku i empatii, minus jego koszt; 0: cała tura, jak każdy wybór",
 "Call temperature": "Temperatura zawołań",
-"how loosely a brain picks among silence and calls, and each later sound": "jak swobodnie mózg wybiera między milczeniem a zawołaniami oraz każdym kolejnym dźwiękiem"
+"how loosely a brain picks among silence and calls, and each later sound": "jak swobodnie mózg wybiera między milczeniem a zawołaniami oraz każdym kolejnym dźwiękiem",
+"Outside foresight": "Przewidywanie otoczenia",
+"how fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none": "jak szybko mózg uczy się, jak blisko w następnej turze wyczuje łowcę, zdobycz i mięso, razy jego uczenie przewidywania; bez nagrody; 0 brak",
+"Speak as heard": "Mów, jak słyszysz",
+"how much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none": "ile zawołanie jest uczone tym, o ile bardziej przewidywanie samego wołającego, słyszącego to zawołanie, zbliża się do łowcy, zdobyczy lub mięsa, które widział, niż gdy nie słyszy nic lub pojedynczy dźwięk; 0 brak",
+"Alerts": "Alarmy",
+"1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: roślinożerca widzący łowcę lub łowca widzący świeżą zdobycz może zaalarmować stado; 0: brak alarmu, tylko pięć zawołań",
+"Copy in own senses": "Naśladuj własnymi zmysłami",
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: młode lub czytający mowę ciała uczy się usłyszanego zawołania tam, gdzie samo było; 0: tam, gdzie był wołający"
 }

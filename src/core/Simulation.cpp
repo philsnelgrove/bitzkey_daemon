@@ -1850,11 +1850,56 @@ void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
     if (static_cast<int>(agent.habits.size()) > CALL_HABITS) agent.habits.erase(agent.habits.begin());
 }
 
+std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
+    Senses quiet = agent.last_senses;
+    for (const int sense : OUTSIDE_SENSES) quiet[static_cast<std::size_t>(sense)] = 0.0;
+    for (int call = FirstCall; call < CALL_OPTIONS; ++call) {
+        for (int part = 0; part < HEARD_SENSES; ++part) quiet[static_cast<std::size_t>(heard_sense(call, part))] = 0.0;
+    }
+    for (int place = 0; place < MAX_SOUNDS; ++place) {
+        for (int sound = 0; sound < CALL_COUNT; ++sound) quiet[static_cast<std::size_t>(utterance_sense(place, sound))] = 0.0;
+    }
+    const auto hear = [](Senses& senses, int place, int sound) {
+        senses[static_cast<std::size_t>(heard_sense(FirstCall + sound, HeardLoudness))] = 1.0;
+        senses[static_cast<std::size_t>(heard_sense(FirstCall + sound, HeardKin))] = 1.0;
+        senses[static_cast<std::size_t>(utterance_sense(place, sound))] = 1.0;
+    };
+    std::vector<Senses> heard{quiet};
+    for (int sound = 0; sound < CALL_COUNT; ++sound) {  // each sound alone
+        heard.push_back(quiet);
+        hear(heard.back(), 0, sound);
+    }
+    if (agent.last_call >= FirstCall && agent.last_sounds[0] >= 0) {  // its own, when it ran to more than one sound
+        heard.push_back(quiet);
+        hear(heard.back(), 0, agent.last_call - FirstCall);
+        for (int place = 1; place < MAX_SOUNDS && agent.last_sounds[static_cast<std::size_t>(place - 1)] >= 0; ++place) {
+            hear(heard.back(), place, agent.last_sounds[static_cast<std::size_t>(place - 1)]);
+        }
+    }
+    return heard;
+}
+
+double Simulation::understood(const Bitzkey& agent, const std::vector<Values>& heard) {
+    if (agent.last_call < FirstCall || heard.size() < 1 + CALL_COUNT) return 0.0;
+    const auto fit = [&](const Values& values) {  // how near what it saw, the nearer the higher
+        double off = 0.0;
+        for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
+            const double saw = agent.last_senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])];
+            off += std::abs(values[OUTSIDE + seen] - saw) / OUTSIDE_SEEN;
+        }
+        return -off;
+    };
+    double mean = 0.0;
+    for (int option = 0; option <= CALL_COUNT; ++option) mean += fit(heard[static_cast<std::size_t>(option)]) / (1 + CALL_COUNT);
+    const std::size_t own = heard.size() > 1 + CALL_COUNT ? heard.size() - 1 : static_cast<std::size_t>(1 + agent.last_call - FirstCall);
+    return fit(heard[own]) - mean;
+}
+
 std::optional<double> Simulation::silence_target(const Bitzkey& agent, double call_target) {
     if (SILENCE_LESSON <= 0 || agent.last_call < FirstCall) return std::nullopt;
     // The whole turn without the call's habit and cost; by the Call baseline, silence's own part, nothing.
     (void)call_target;
-    const double whole = limited_value(agent.call_whole) - CALL_HABIT * agent.habit_pull + call_cost(agent);
+    const double whole = limited_value(agent.call_whole) - CALL_HABIT * agent.habit_pull - SPEAK_AS_HEARD * agent.call_understood + call_cost(agent);
     return limited_value((1 - CALL_BASELINE) * whole);
 }
 
@@ -1961,11 +2006,17 @@ void Simulation::rein_in(Bitzkey& agent, const Senses& senses, const Values& val
     }
 }
 
-void Simulation::foresee(Bitzkey& agent, const Foresight& change) {
+void Simulation::foresee(Bitzkey& agent, const Foresight& change, const Senses& now) {
     // One lesson a turn, whichever thing's turn it is, so foresight costs little beside what it already learns.
     const int thing = py_mod(turn_, FORESEEN);
     const double rate = learning_rate(agent) * FORESIGHT_LEARNING;
     if (rate <= 0) return;
+    if (OUTSIDE_FORESIGHT > 0) {  // and of the outside, one thing in turn: how near it senses it now, from what it sensed
+        const int seen = py_mod(turn_, OUTSIDE_SEEN);
+        const double near = now[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])];
+        if (gpu_) queue_lesson(agent, agent.last_senses, OUTSIDE + seen, near, rate * OUTSIDE_FORESIGHT, false, 0.0);
+        else learning_brain(agent).learn(agent.last_senses, OUTSIDE + seen, near, rate * OUTSIDE_FORESIGHT);
+    }
     const Senses pictured = imagining(agent.last_senses, agent.last_choice);  // what it did, as if it had pictured it
     if (gpu_) queue_lesson(agent, pictured, FORESIGHT + thing, change[thing], rate, false, 0.0);
     else learning_brain(agent).learn(pictured, FORESIGHT + thing, change[thing], rate);
@@ -2175,19 +2226,44 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     std::vector<Values> values(agents.size(), Values{});  // one batch of brains; the idle's left at nothing
     std::vector<double> comforts;
     comforts.reserve(agents.size());
+    // Speak as heard: each about to learn from a call it made hears that call as one who heard it would: from its senses
+    // as it called, with the hunter, prey and meat it saw put out of them and no call heard but its own, from beside it,
+    // of its kind; and, to weigh it against, hearing nothing, and each sound alone. Six or seven more in the same batch.
+    std::vector<std::size_t> speakers;  // which animal, for each of `hearing`
+    std::vector<std::size_t> starts;    // where each speaker's senses begin in `hearing`, and the end
+    std::vector<Senses> hearing;
+    for (Bitzkey* agent : agents) agent->call_understood = 0.0;
+    if (SPEAK_AS_HEARD > 0 && OUTSIDE_FORESIGHT > 0 && FORESIGHT_LEARNING > 0) {
+        for (const std::size_t index : asked) {
+            const Bitzkey& agent = *agents[index];
+            if (!agent.has_last_senses || agent.last_call < FirstCall) continue;
+            starts.push_back(hearing.size());
+            for (const Senses& heard : hearing_itself(agent)) {
+                hearing.push_back(heard);
+                speakers.push_back(index);
+            }
+        }
+        starts.push_back(hearing.size());
+    }
+    std::vector<Values> heard_as(hearing.size());
     if (gpu_) {  // every brain at once, on the GPUs
         std::vector<gpu::BrainEngine::Handle> handles;
         std::vector<Senses> senses;
-        handles.reserve(asked.size());
-        senses.reserve(asked.size());
+        handles.reserve(asked.size() + hearing.size());
+        senses.reserve(asked.size() + hearing.size());
         for (const std::size_t index : asked) {
             handles.push_back(agents[index]->gpu);
             senses.push_back(plans[index].senses);
         }
-        std::vector<Values> batch(asked.size());
+        for (std::size_t place = 0; place < hearing.size(); ++place) {
+            handles.push_back(agents[speakers[place]]->gpu);
+            senses.push_back(hearing[place]);
+        }
+        std::vector<Values> batch(senses.size());
         try {
-            if (!asked.empty()) gpu_->values(handles, senses, batch);
+            if (!senses.empty()) gpu_->values(handles, senses, batch);
             for (std::size_t place = 0; place < asked.size(); ++place) values[asked[place]] = batch[place];
+            for (std::size_t place = 0; place < hearing.size(); ++place) heard_as[place] = batch[asked.size() + place];
         } catch (const std::runtime_error& error) {
             leave_gpu(error);  // and this turn's thinking is done on the CPU, below
         }
@@ -2195,6 +2271,15 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     if (!gpu_) {  // on every core at once, each brain reading only itself
         std::for_each(std::execution::par, asked.begin(), asked.end(),
                       [&](std::size_t index) { values[index] = agents[index]->brain->values(plans[index].senses); });
+        std::vector<std::size_t> places(hearing.size());
+        std::iota(places.begin(), places.end(), std::size_t{0});
+        std::for_each(std::execution::par, places.begin(), places.end(),
+                      [&](std::size_t place) { heard_as[place] = agents[speakers[place]]->brain->values(hearing[place]); });
+    }
+    for (std::size_t speaker = 0; speaker + 1 < starts.size(); ++speaker) {  // how much nearer what it saw its call brings it
+        const auto from = static_cast<std::ptrdiff_t>(starts[speaker]), to = static_cast<std::ptrdiff_t>(starts[speaker + 1]);
+        Bitzkey& agent = *agents[speakers[starts[speaker]]];
+        agent.call_understood = understood(agent, std::vector<Values>(heard_as.begin() + from, heard_as.begin() + to));
     }
     for (std::size_t index = 0; index < agents.size(); ++index) comforts.push_back(comfort(*agents[index], plans[index].situation));
     share_hearths(agents, plans);
@@ -2228,8 +2313,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         for (const int call : plans[index].calls) best_call = std::max(best_call, values[index][call_output(call)]);
         // What its call (or silence) is taught: the whole turn, as any choice, or by the Call baseline only the call's own
         // part, beyond keeping quiet: its own pleasures and habit, less the hunger its sounds cost (silence's own part 0).
-        agent.call_whole = rewards[index] + discount(agent) * best_call + CALL_HABIT * agent.habit_pull;
-        agent.call_part = agent.call_pleasure + CALL_HABIT * agent.habit_pull - call_cost(agent);
+        agent.call_whole = rewards[index] + discount(agent) * best_call + CALL_HABIT * agent.habit_pull + SPEAK_AS_HEARD * agent.call_understood;
+        agent.call_part = agent.call_pleasure + CALL_HABIT * agent.habit_pull + SPEAK_AS_HEARD * agent.call_understood - call_cost(agent);
         call_targets[index] = CALL_BASELINE <= 0 ? limited_value(agent.call_whole)
                                                  : limited_value((1 - CALL_BASELINE) * agent.call_whole + CALL_BASELINE * agent.call_part);
     }
@@ -2240,7 +2325,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     const auto teach = [&](std::size_t index) {
         settle_call(*agents[index]);  // its call of two turns ago, now its listeners' turn is judged
         if (taught(index)) learn(*agents[index], targets[index], rewards[index], true, call_targets[index]);
-        if (taught(index) && FORESIGHT_LEARNING > 0) foresee(*agents[index], changes[index]);
+        if (taught(index) && FORESIGHT_LEARNING > 0) foresee(*agents[index], changes[index], plans[index].senses);
         rein_in(*agents[index], plans[index].senses, values[index]);
     };
     if (gpu_) {  // queued for the GPUs: each animal's lessons on its own core, then joined in the animals' order
@@ -2779,7 +2864,7 @@ void Simulation::learn_from_parent(Bitzkey& child, double target, double call_ta
     if (parent->last_call >= FirstCall) {
         const double copied = copied_call_target(child, *parent, call_target);
         for (const int output : utterance_outputs(*parent)) {
-            if (output >= 0) lesson(parent->last_senses, output, copied);
+            if (output >= 0) lesson(COPY_OWN_SENSES ? child.last_senses : parent->last_senses, output, copied);
         }
     }
     lesson(child.last_senses, parent->last_choice, target);
@@ -2800,7 +2885,7 @@ void Simulation::read_body_language(Bitzkey& listener, double target, double cal
     };
     const double copied = copied_call_target(listener, *caller, call_target);
     for (const int output : utterance_outputs(*caller)) {  // its whole call, sound by sound
-        if (output >= 0) lesson(caller->last_senses, output, copied);
+        if (output >= 0) lesson(COPY_OWN_SENSES ? listener.last_senses : caller->last_senses, output, copied);
     }
     lesson(listener.last_senses, caller->last_choice, target);
 }
@@ -3140,7 +3225,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         available[CraftArrows] = s.fletch_for && at_hand(agent, -1, neighbors).wood > 0;
     }
-    if (view.any) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
+    if (view.any && ALERTS) {  // with a herd to tell: a grazer of a hunter it sees, a hunter of a fresh kill it sees
         if (agent.species == Species::Grazer && seen_hunter) s.alert_to = seen_hunter;
         else if ((agent.species == Species::Omnivore || agent.species == Species::Predator) && seen_kill) s.alert_to = seen_kill;
     }
