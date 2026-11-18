@@ -374,7 +374,7 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 16;
-inline double CALL_COST = 0.05;  // for each sound of a call: two sounds cost twice as much as one
+inline double CALL_COST = 0.3;  // for each sound of a call: two sounds cost twice as much as one
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
 inline int CALL_LENGTH = 3;
 // What a caller feels of what its call did to those of its kind who heard it: whether their next turn went better or worse
@@ -408,7 +408,7 @@ inline double OUTSIDE_FORESIGHT = 10.0;
 inline double SPEAK_AS_HEARD = 5.0;
 // The alert: 1, a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd, who then know where it is (the
 // alarm, the kill alert); 0, there is no alert, and only the five calls are left to tell of them.
-inline int ALERTS = 1;
+inline int ALERTS = 0;
 // Copying a call: 1, a child or one who reads a caller's body language learns to make the call where it was itself when it
 // heard it, by its own senses; 0, where the caller was, by the caller's senses.
 inline int COPY_OWN_SENSES = 1;

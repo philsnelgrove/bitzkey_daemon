@@ -1262,7 +1262,7 @@ Default **16**; from 1 to 30, in steps of 1.
 
 Hunger each sound of a call costs its caller, the alert among them.
 
-Default **0.05**; from 0 to 5, in steps of 0.05.
+Default **0.3**; from 0 to 5, in steps of 0.05.
 
 #### 6.24.2 Call length (`CALL_LENGTH`)
 
@@ -1316,7 +1316,7 @@ Default **5**; from 0 to 20, in steps of 0.5.
 
 1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls.
 
-Default **1**; from 0 to 1, in steps of 1.
+Default **0**; from 0 to 1, in steps of 1.
 
 ### 6.33 Copy in own senses (`COPY_OWN_SENSES`)
 

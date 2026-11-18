@@ -2665,6 +2665,11 @@ TEST_CASE("a call is heard by those within its reach, the louder the nearer, and
 TEST_CASE("an animal calls alongside its action: silence and the five calls always open, the alert when it has news") {
     CHECK(std::find(ACTIONS.begin(), ACTIONS.end(), "alert") == ACTIONS.end());  // no longer an action
     CHECK(OUTPUTS[call_output(AlertCall)] == "alert");
+    struct Restore {
+        int was = ALERTS;
+        ~Restore() { ALERTS = was; }
+    } restore;
+    ALERTS = 1;
     Simulation simulation = world(30);
     const Dna dna = encode_dna(Species::Grazer, {{"sight", 7}});
     Bitzkey& grazer = simulation.add_agent(dna, 10, 10);
