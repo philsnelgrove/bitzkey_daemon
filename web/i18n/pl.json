@@ -2036,5 +2036,17 @@
 "Alerts": "Alarmy",
 "1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: roślinożerca widzący łowcę lub łowca widzący świeżą zdobycz może zaalarmować stado; 0: brak alarmu, tylko pięć zawołań",
 "Copy in own senses": "Naśladuj własnymi zmysłami",
-"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: młode lub czytający mowę ciała uczy się usłyszanego zawołania tam, gdzie samo było; 0: tam, gdzie był wołający"
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: młode lub czytający mowę ciała uczy się usłyszanego zawołania tam, gdzie samo było; 0: tam, gdzie był wołający",
+"Cues": "Sygnały",
+"1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone": "1: każde działanie ma sygnał, jeden z pięciu dźwięków, najpierw przypadkowy, a potem przejęty od innych widzianych, jak wołają przy działaniu; ból i panika wywołują krzyk; zależnie od intelektu zwierzę wydaje swój sygnał z instynktu albo wybiera swoje wołanie; 0: wołania tylko z mózgu",
+"Cue urge": "Popęd sygnału",
+"with cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent": "przy sygnałach szansa, że zwierzę działające z instynktu wyda sygnał tego, co robi, zamiast milczeć",
+"Cue favour": "Preferencja sygnału",
+"with cues, how much more an animal choosing its call values the cue of what it does": "przy sygnałach, o ile bardziej zwierzę wybierające wołanie ceni sygnał tego, co robi",
+"Cue sociability": "Towarzyskość sygnału",
+"with cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not": "przy sygnałach, o ile bardziej zwierzę wybierające wołanie ceni sygnał tego, co robi, razy jego towarzyskość minus połowa: towarzyskie skłaniają się, by go wydać, samotnicze nie",
+"Cue copying": "Naśladowanie sygnałów",
+"with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "przy sygnałach szansa, że ten, kto słyszy i widzi innego ze swojego gatunku wołającego przy działaniu, przyjmie ten dźwięk jako własny sygnał tego działania",
+"Cry drift": "Dryf krzyku",
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "przy sygnałach szansa, że krzyk bólu i paniki noworodka będzie innym dźwiękiem niż krzyk jego matki"
 }

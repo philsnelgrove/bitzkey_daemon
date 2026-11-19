@@ -2036,5 +2036,17 @@
 "Alerts": "चेतावनियाँ",
 "1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: शिकारी को देखने वाला चरने वाला, या ताज़ा शिकार देखने वाला शिकारी, अपने झुंड को सचेत कर सकता है; 0: कोई चेतावनी नहीं, केवल पाँच पुकारें",
 "Copy in own senses": "अपनी इंद्रियों से नकल",
-"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: बच्चा या शरीर की भाषा पढ़ने वाला सुनी हुई पुकार वहीं सीखता है जहाँ वह स्वयं था; 0: जहाँ पुकारने वाला था"
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: बच्चा या शरीर की भाषा पढ़ने वाला सुनी हुई पुकार वहीं सीखता है जहाँ वह स्वयं था; 0: जहाँ पुकारने वाला था",
+"Cues": "संकेत",
+"1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone": "1: हर क्रिया का एक संकेत होता है, पाँच ध्वनियों में से एक, पहले संयोग से और फिर दूसरों से लिया गया जिन्हें काम करते हुए पुकारते देखा; दर्द और घबराहट में चीख निकलती है; अपनी बुद्धि के अनुसार प्राणी अपना संकेत सहज वृत्ति से बोलता है या अपनी पुकार चुनता है; 0: पुकार केवल मस्तिष्क से",
+"Cue urge": "संकेत की ललक",
+"with cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent": "संकेतों के साथ, यह संभावना कि सहज वृत्ति से काम करता प्राणी चुप रहने के बजाय अपने काम का संकेत बोले",
+"Cue favour": "संकेत का झुकाव",
+"with cues, how much more an animal choosing its call values the cue of what it does": "संकेतों के साथ, अपनी पुकार चुनता प्राणी अपने काम के संकेत को कितना अधिक महत्व देता है",
+"Cue sociability": "संकेत मिलनसारिता",
+"with cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not": "संकेतों के साथ, अपनी पुकार चुनता प्राणी अपने काम के संकेत को कितना अधिक महत्व देता है, उसकी मिलनसारिता में से आधा घटाकर गुणा: मिलनसार उसे बोलने की ओर झुकते हैं, एकांतप्रिय नहीं",
+"Cue copying": "संकेत की नकल",
+"with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "संकेतों के साथ, यह संभावना कि जो अपनी जाति के किसी दूसरे को काम करते हुए पुकारते सुनता और देखता है, वह उस ध्वनि को उस क्रिया का अपना संकेत बना ले",
+"Cry drift": "चीख का बहाव",
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "संकेतों के साथ, यह संभावना कि नवजात की दर्द और घबराहट की चीख उसकी माँ से अलग ध्वनि हो"
 }

@@ -2036,5 +2036,17 @@
 "Alerts": "警报",
 "1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1：看见猎手的食草动物，或看见新鲜猎物的猎手，可以向其群体发出警报；0：没有警报，只有五种叫声",
 "Copy in own senses": "以自身感官模仿",
-"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1：幼崽或读懂肢体语言者在自己所在之处学会听到的叫声；0：在呼叫者所在之处"
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1：幼崽或读懂肢体语言者在自己所在之处学会听到的叫声；0：在呼叫者所在之处",
+"Cues": "信号",
+"1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone": "1：每个行动都有一个信号，即五种声音之一，起初随机，之后从看到边行动边鸣叫的同类那里学来；疼痛和惊慌会发出叫喊；按其智力，动物出于本能发出信号，或自行选择叫声；0：叫声只由大脑决定",
+"Cue urge": "信号冲动",
+"with cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent": "有信号时，出于本能行动的动物发出其所做之事的信号而不保持沉默的概率",
+"Cue favour": "信号偏好",
+"with cues, how much more an animal choosing its call values the cue of what it does": "有信号时，选择叫声的动物对其所做之事的信号多看重多少",
+"Cue sociability": "信号社交性",
+"with cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not": "有信号时，选择叫声的动物对其所做之事的信号多看重多少，乘以其社交性减去一半：合群者倾向于发出，独居者则不",
+"Cue copying": "信号模仿",
+"with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "有信号时，听到并看到同类边行动边鸣叫的动物，把那个声音当作自己对该行动的信号的概率",
+"Cry drift": "叫喊漂变",
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "有信号时，新生儿的疼痛与惊慌叫喊与其母亲不同声音的概率"
 }

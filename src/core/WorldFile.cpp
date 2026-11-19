@@ -282,7 +282,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -496,6 +496,12 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->heard_danger = record.value("heard_danger", false);
     agent->struck_turn = record.value("struck_turn", -1);
     agent->last_call = record.value("last_call", -1);
+    if (record.contains("cues")) {
+        const auto cues = record["cues"].get<std::vector<int>>();
+        for (std::size_t action = 0; action < cues.size() && action < agent->cues.size(); ++action) agent->cues[action] = static_cast<std::int8_t>(cues[action]);
+    }
+    agent->cry = record.value("cry", -1);
+    agent->call_kind = record.value("call_kind", 0);
     if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();
     if (record.contains("habits") && numbers.sense_from.empty()) {  // kept only while its senses are the same
         for (const json& entry : record["habits"]) {

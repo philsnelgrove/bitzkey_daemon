@@ -2036,5 +2036,17 @@
 "Alerts": "Тривоги",
 "1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: травоїдна тварина, що бачить мисливця, або мисливець, що бачить свіжу здобич, може сповістити свою зграю; 0: без тривоги, лише п'ять покликів",
 "Copy in own senses": "Копіювати власними чуттями",
-"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: дитинча або той, хто читає мову тіла, вивчає почутий поклик там, де було саме; 0: там, де був той, хто кликав"
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: дитинча або той, хто читає мову тіла, вивчає почутий поклик там, де було саме; 0: там, де був той, хто кликав",
+"Cues": "Сигнали",
+"1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone": "1: кожна дія має сигнал, один із п'яти звуків, спершу випадковий, а потім перейнятий від інших, яких бачили, як вони кличуть під час дії; біль і паніка викликають крик; залежно від розуму тварина подає свій сигнал з інстинкту або обирає свій поклик; 0: поклики лише від мозку",
+"Cue urge": "Потяг сигналу",
+"with cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent": "із сигналами ймовірність, що тварина, яка діє з інстинкту, подасть сигнал того, що робить, замість мовчати",
+"Cue favour": "Перевага сигналу",
+"with cues, how much more an animal choosing its call values the cue of what it does": "із сигналами, наскільки більше тварина, що обирає поклик, цінує сигнал того, що робить",
+"Cue sociability": "Товариськість сигналу",
+"with cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not": "із сигналами, наскільки більше тварина, що обирає поклик, цінує сигнал того, що робить, помножене на її товариськість мінус половина: товариські схильні подавати його, відлюдні ні",
+"Cue copying": "Наслідування сигналів",
+"with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "із сигналами ймовірність, що той, хто чує й бачить іншого свого виду, який кличе під час дії, візьме цей звук за власний сигнал цієї дії",
+"Cry drift": "Дрейф крику",
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "із сигналами ймовірність, що крик болю й паніки новонародженого буде іншим звуком, ніж у його матері"
 }

@@ -2686,6 +2686,78 @@ TEST_CASE("an animal calls alongside its action: silence and the five calls alwa
     for (const Bitzkey* agent : simulation.living()) CHECK((agent->call >= Silent && agent->call < CALL_OPTIONS));
 }
 
+struct CueRules {  // the cue rules, as they were, after each test
+    int cues = CUES;
+    double urge = CUE_URGE, copy = CUE_COPY, drift = CRY_DRIFT;
+    ~CueRules() { CUES = cues; CUE_URGE = urge; CUE_COPY = copy; CRY_DRIFT = drift; }
+};
+
+TEST_CASE("without cues an animal's calls are its brain's alone") {
+    CueRules restore;
+    CUES = 0;
+    Simulation simulation = world(30);
+    for (int index = 0; index < 6; ++index) simulation.add_agent(encode_dna(Species::Grazer), 5 + index, 5);
+    for (int turn = 0; turn < 10; ++turn) simulation.take_turn();
+    for (const Bitzkey* agent : simulation.living()) CHECK(agent->call_kind == 0);
+}
+
+TEST_CASE("with cues the dullest voice the cue of what they do by instinct, or keep silent, and the struck cry out") {
+    CueRules restore;
+    CUES = 1;
+    CUE_URGE = 1.0;
+    CUE_COPY = 0.0;
+    Simulation simulation = world(30);
+    const Dna dull = encode_dna(Species::Grazer, {{"intellect", 0}});
+    for (int index = 0; index < 6; ++index) simulation.add_agent(dull, 5 + index, 5);
+    int instinct = 0, cries = 0;
+    for (int turn = 0; turn < 10; ++turn) {
+        if (turn == 5) simulation.living().front()->struck_turn = simulation.turn();
+        simulation.take_turn();
+        for (const Bitzkey* agent : simulation.living()) {
+            if (agent->call_kind == 2) {
+                ++instinct;
+                CHECK(agent->call == agent->cue(agent->last_choice));
+            } else if (agent->call_kind == 1) {
+                ++cries;
+                CHECK(agent->call == agent->own_cry());
+            }
+            CHECK(agent->call_kind != 3);  // none chooses
+        }
+    }
+    CHECK(instinct > 0);
+    CHECK(cries > 0);
+    CUE_URGE = 0.0;  // by instinct, with no urge, silent
+    simulation.take_turn();
+    for (const Bitzkey* agent : simulation.living()) {
+        if (agent->call_kind == 2) CHECK(agent->call == Silent);
+    }
+}
+
+TEST_CASE("with cues the brightest choose their calls, and cues are taken on from others and kept with the world") {
+    CueRules restore;
+    CUES = 1;
+    CUE_COPY = 1.0;
+    Simulation simulation = world(30);
+    const Dna bright = encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}});
+    for (int index = 0; index < 8; ++index) simulation.add_agent(bright, 5 + index % 4, 5 + index / 4);
+    bool taken = false;
+    for (int turn = 0; turn < 30 && !taken; ++turn) {
+        simulation.take_turn();
+        for (const Bitzkey* agent : simulation.living()) {
+            if (agent->call_kind == 2) CHECK(agent->intelligence() < 1.0);  // only those short of the brightest act by instinct
+            taken = taken || std::any_of(agent->cues.begin(), agent->cues.end(), [](std::int8_t cue) { return cue >= 0; });
+        }
+    }
+    CHECK(taken);
+    Bitzkey* agent = simulation.living().front();
+    agent->cues[Eat] = FirstCall + 2;
+    agent->cry = FirstCall + 3;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    const Bitzkey* again = loaded->find_agent(agent->identifier);
+    REQUIRE(again);
+    CHECK((again->cues == agent->cues && again->cry == FirstCall + 3 && again->cue(Eat) == FirstCall + 2));
+}
+
 TEST_CASE("a world keeps its calls when saved and loaded") {
     Simulation simulation = world(20);
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);

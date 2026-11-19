@@ -1788,6 +1788,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
     }
     if (rate > 0) learn_from_parent(agent, target, call_target, rate);
     if (rate > 0) read_body_language(agent, target, call_target, rate);
+    copy_cue(agent);
     if (replay && DIARY_ENTRIES > 0 && !agent.diary.empty() && rate > 0) {  // one diary entry, in turn
         const Bitzkey::Memory& memory = agent.diary[static_cast<std::size_t>(turn_) % agent.diary.size()].memory;
         if (gpu_) queue_lesson(agent, memory.senses, memory.choice, memory.target, rate * memory.weight, false, 0.0);
@@ -2528,17 +2529,40 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.chosen_turn = turn_;
             agent.call_heeded = plans[index].situation.heard_from;
         }
+        agent.call_kind = 0;
         if (!idle[index] && !situation.frozen) {
-            std::vector<int> outputs;
-            for (const int call : plans[index].calls) outputs.push_back(call_output(call));
-            double call_roll = call_rolls[index];
-            for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
-                call_roll -= chance;
-                agent.call = output - ACTION_COUNT;
-                if (call_roll < 0) break;
+            // With cues, pain and panic cry out, and by its intellect it voices its cue by instinct or chooses its call.
+            int forced = -1;
+            if (CUES && (situation.panic || agent.struck_turn >= turn_ - 1)) {
+                forced = agent.own_cry();
+                agent.call_kind = 1;
+            } else if (CUES && whim(agent.identifier ^ 0x5A17, turn_) >= agent.intelligence()) {
+                forced = whim(~agent.identifier ^ 0x5A17, turn_) < CUE_URGE ? agent.cue(choice) : static_cast<int>(Silent);
+                agent.call_kind = 2;
+            } else if (CUES) {
+                agent.call_kind = 3;
+            }
+            if (forced >= 0) {
+                agent.call = forced;
+            } else {
+                std::vector<int> outputs;
+                for (const int call : plans[index].calls) outputs.push_back(call_output(call));
+                Values tilted;
+                const Values* weighed = &values[index];
+                if (CUES) {  // the cue of what it does favoured, the more for the sociable
+                    tilted = values[index];
+                    tilted[static_cast<std::size_t>(call_output(agent.cue(choice)))] += CUE_FAVOUR + CUE_SOCIABILITY * (agent.feeling(Sociability) - 0.5);
+                    weighed = &tilted;
+                }
+                double call_roll = call_rolls[index];
+                for (const auto& [output, chance] : choice_odds(*weighed, outputs, CALL_TEMPERATURE)) {
+                    call_roll -= chance;
+                    agent.call = output - ACTION_COUNT;
+                    if (call_roll < 0) break;
+                }
             }
             // A sound may run on: at each place after the first, it stops or adds one of the five, by its brain alone.
-            for (int place = 1; agent.call >= FirstCall && place < std::min(CALL_LENGTH, MAX_SOUNDS); ++place) {
+            for (int place = 1; forced < 0 && agent.call >= FirstCall && place < std::min(CALL_LENGTH, MAX_SOUNDS); ++place) {
                 std::array<int, SOUND_CHOICES> outputs{};
                 for (int sound = -1; sound < CALL_COUNT; ++sound) outputs[static_cast<std::size_t>(sound + 1)] = sound_output(place, sound);
                 double roll = whim(agent.identifier * MAX_SOUNDS + place, turn_);
@@ -2904,6 +2928,16 @@ void Simulation::read_body_language(Bitzkey& listener, double target, double cal
         if (output >= 0) lesson(COPY_OWN_SENSES ? listener.last_senses : caller->last_senses, output, copied);
     }
     lesson(listener.last_senses, caller->last_choice, target);
+}
+
+void Simulation::copy_cue(Bitzkey& listener) {
+    if (!CUES || CUE_COPY <= 0 || listener.heard_turn != turn_ || listener.heard_from < 0) return;
+    const Bitzkey* caller = find_agent(listener.heard_from);
+    if (!caller || !caller->alive() || !caller->has_last_senses || caller->last_call < FirstCall || caller->species != listener.species) return;
+    if (caller->call_kind == 1) return;  // a cry tells of pain, not of what it did
+    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener)) return;  // heard, but not seen
+    if (whim(listener.identifier ^ 0xC0B1, turn_) >= CUE_COPY) return;
+    listener.cues[static_cast<std::size_t>(caller->last_choice)] = static_cast<std::int8_t>(caller->last_call);
 }
 
 void Simulation::learn_witnessed() {
@@ -7358,6 +7392,10 @@ void Simulation::give_birth(Bitzkey& mother) {
         child.mother = mother.identifier;
         child.father = young.father;
         child.mind = young.mind;
+        if (CUES) {  // its mother's cry, or now and then another
+            child.cry = mother.own_cry();
+            if (whim(child.identifier ^ 0xC27, turn_) < CRY_DRIFT) child.cry = FirstCall + std::min(CALL_COUNT - 1, static_cast<int>(whim(~child.identifier ^ 0xC27, turn_) * CALL_COUNT));
+        }
         child.hunger = std::max(0.0, 100 - young.energy / child.stomach);
         child.generation = young.generation;
         population_ += 1;

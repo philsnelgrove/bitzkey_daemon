@@ -406,6 +406,19 @@ inline double OUTSIDE_FORESIGHT = 10.0;
 // calling in itself gains nothing. So a caller comes to say what it would itself understand; what any call means is left
 // to them. 0 for none.
 inline double SPEAK_AS_HEARD = 5.0;
+// Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
+// and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
+// this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
+// birth, whatever its mind. Otherwise, by its intellect, it acts by instinct or by choice: the dullest always by
+// instinct, the brightest always by choice. By instinct, it voices the cue of what it does with chance CUE_URGE, or
+// keeps silent, its brain having no say; by choice, its brain picks its call, the cue's sound favoured by CUE_FAVOUR and
+// by CUE_SOCIABILITY times its sociability less a half, so the sociable lean to voicing it and the solitary to not.
+inline int CUES = 0;
+inline double CUE_URGE = 0.3;
+inline double CUE_FAVOUR = 0.05;
+inline double CUE_SOCIABILITY = 0.1;
+inline double CUE_COPY = 0.1;
+inline double CRY_DRIFT = 0.02;
 // The alert: 1, a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd, who then know where it is (the
 // alarm, the kill alert); 0, there is no alert, and only the five calls are left to tell of them.
 inline int ALERTS = 0;
@@ -1134,6 +1147,15 @@ struct Bitzkey {
     int answer_to = -1, answer_call = -1, answer_turn = -1;  // the last caller of any kind it heard, its call and when, till answered or a day passes
     int struck_turn = -1;               // the last turn it was struck
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
+    std::array<std::int8_t, ACTION_COUNT> cues = [] { std::array<std::int8_t, ACTION_COUNT> none{}; none.fill(-1); return none; }();  // its cue for each action, -1: its first, by chance
+    int cry = -1;                       // the sound it cries out in pain or panic; -1: its first, by chance
+    int call_kind = 0;                  // how it came by this turn's call: 0 by its brain (CUES 0), 1 a cry, 2 by instinct, 3 by choice
+    // Its cue for an action: one taken on from another, or else its own first, by chance.
+    int cue(int action) const {
+        const int taken = cues[static_cast<std::size_t>(action)];
+        return taken >= 0 ? taken : FirstCall + std::min(CALL_COUNT - 1, static_cast<int>(whim(identifier ^ ((action + 1) * 40503), 0x43554553) * CALL_COUNT));
+    }
+    int own_cry() const { return cry >= 0 ? cry : FirstCall + std::min(CALL_COUNT - 1, static_cast<int>(whim(identifier, 0x435259) * CALL_COUNT)); }
     std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};       // the sounds its call ran on to after the first (0..4), -1 where it stopped
     std::array<int, MAX_SOUNDS - 1> last_sounds{-1, -1};  // likewise of its last choice of call, to learn from
     double chosen_value = 0.0;          // what its brain valued its last choice at, to judge how the turn went against it
@@ -1504,6 +1526,7 @@ public:
     // and what the parent then did, in its own senses holding the call, valued as its own turn, to take in.
     void learn_from_parent(Bitzkey& child, double target, double call_target, double rate);
     void read_body_language(Bitzkey& listener, double target, double call_target, double rate);  // see BODY_LANGUAGE
+    void copy_cue(Bitzkey& listener);  // see CUES
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it

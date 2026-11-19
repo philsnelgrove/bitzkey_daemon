@@ -1,3 +1,4 @@
+#include <map>
 #include "net/Probe.hpp"
 
 #include <cstdio>
@@ -1277,8 +1278,36 @@ Json Probe::language(Simulation& world) const {
         const Json holds = within_pairs > 0 && between_pairs > 0 && between > 0
                                ? Json((within / static_cast<double>(within_pairs)) / (between / static_cast<double>(between_pairs)))
                                : Json(nullptr);
+        // Cues (CUES 1): how this turn's calls came about, and how far those doing the same thing share its cue.
+        std::array<long long, 6> kinds{};  // cries, instinct calls, instinct silences, chosen cues, chosen other calls, chosen silences
+        std::map<int, std::array<long long, CALL_COUNT>> cue_of_action;
+        long long taken = 0, slots = 0;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species || !agent->has_last_senses || agent->call_kind == 0) continue;
+            const bool calling = agent->last_call >= FirstCall;
+            const int cue = agent->cue(agent->last_choice);
+            if (agent->call_kind == 1) ++kinds[0];
+            else if (agent->call_kind == 2) ++kinds[calling ? 1 : 2];
+            else ++kinds[!calling ? 5 : agent->last_call == cue ? 3 : 4];
+            ++cue_of_action[agent->last_choice][static_cast<std::size_t>(cue - FirstCall)];
+            ++slots;
+            taken += agent->cues[static_cast<std::size_t>(agent->last_choice)] >= 0;
+        }
+        long long agreeing = 0, counted = 0;
+        for (const auto& [action, counts] : cue_of_action) {
+            long long sum = 0, most = 0;
+            for (const long long count : counts) { sum += count; most = std::max(most, count); }
+            if (sum < 2) continue;
+            agreeing += most;
+            counted += sum;
+        }
+        const Json cues = slots == 0 ? Json(nullptr) : Json{
+            {"cries", kinds[0]}, {"instinct_calls", kinds[1]}, {"instinct_silences", kinds[2]},
+            {"chosen_cues", kinds[3]}, {"chosen_other_calls", kinds[4]}, {"chosen_silences", kinds[5]},
+            {"cue_taken_from_others", ratio(static_cast<double>(taken), static_cast<double>(slots))},
+            {"same_cue_for_same_action", ratio(static_cast<double>(agreeing), static_cast<double>(counted))}};
         result[std::string(species_name(species))] = {
-            {"choices", choices}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
+            {"choices", choices}, {"cues", cues}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"speak_as_heard", understood_calls > 0 ? Json(understood / static_cast<double>(understood_calls)) : Json(nullptr)},

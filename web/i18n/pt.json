@@ -2036,5 +2036,17 @@
 "Alerts": "Alertas",
 "1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls": "1: um herbívoro que vê um caçador, ou um caçador uma presa fresca, pode alertar seu bando; 0: sem alerta, apenas os cinco chamados",
 "Copy in own senses": "Copiar com os próprios sentidos",
-"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: um filhote ou quem lê linguagem corporal aprende um chamado ouvido onde ele mesmo estava; 0: onde estava quem chamou"
+"1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was": "1: um filhote ou quem lê linguagem corporal aprende um chamado ouvido onde ele mesmo estava; 0: onde estava quem chamou",
+"Cues": "Sinais",
+"1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone": "1: cada ação tem um sinal, um dos cinco sons, primeiro ao acaso e depois tomado de outros vistos a chamar enquanto agem; a dor e o pânico gritam; pelo seu intelecto um animal emite o seu sinal por instinto ou escolhe o seu chamamento; 0: chamamentos só pelo cérebro",
+"Cue urge": "Impulso do sinal",
+"with cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent": "com sinais, a probabilidade de um animal que age por instinto emitir o sinal do que faz, em vez de ficar calado",
+"Cue favour": "Preferência do sinal",
+"with cues, how much more an animal choosing its call values the cue of what it does": "com sinais, quanto mais um animal que escolhe o seu chamamento valoriza o sinal do que faz",
+"Cue sociability": "Sociabilidade do sinal",
+"with cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not": "com sinais, quanto mais um animal que escolhe o seu chamamento valoriza o sinal do que faz, vezes a sua sociabilidade menos metade: os sociáveis tendem a emiti-lo, os solitários não",
+"Cue copying": "Cópia de sinais",
+"with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "com sinais, a probabilidade de quem ouve e vê outro da sua espécie chamar enquanto age tomar esse som como o seu próprio sinal para essa ação",
+"Cry drift": "Deriva do grito",
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "com sinais, a probabilidade de o grito de dor e pânico de um recém-nascido ser outro som que não o da mãe"
 }
