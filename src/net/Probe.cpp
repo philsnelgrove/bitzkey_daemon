@@ -1070,6 +1070,55 @@ Json Probe::calls(Simulation& world) const {
     return {{"turn", world.turn()}, {"calls", result}};
 }
 
+Json Probe::eavesdrop(Simulation& world) const {
+    // For each hunting kind, this turn's choices: of those that heard another kind's call (the loudest such sound, by the
+    // senses it chose by), how many then went or walked towards it, away from it, or across, hunted, or did something else;
+    // and of those that heard no call at all, how many moved (any way) or hunted. A reading only: nothing is taught.
+    Json result = Json::object();
+    for (const Species species : {Species::Predator, Species::Omnivore}) {
+        long long heard = 0, toward = 0, away = 0, across = 0, hunted = 0, other = 0;
+        long long quiet = 0, quiet_moved = 0, quiet_hunted = 0;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species || !agent->has_last_senses || agent->last_forced) continue;
+            const Senses& senses = agent->last_senses;
+            int loudest = -1;
+            bool any = false;
+            for (int call = FirstCall; call < CALL_OPTIONS; ++call) {
+                const double loud = senses[static_cast<std::size_t>(heard_sense(call, HeardLoudness))];
+                if (loud <= 0) continue;
+                any = true;
+                if (senses[static_cast<std::size_t>(heard_sense(call, HeardKin))] > 0) continue;
+                if (loudest < 0 || loud > senses[static_cast<std::size_t>(heard_sense(loudest, HeardLoudness))]) loudest = call;
+            }
+            const int choice = agent->last_choice;
+            const bool moved = choice >= GoNorth && choice <= WalkWest;
+            if (loudest < 0) {
+                if (any) continue;  // heard only its own kind
+                ++quiet;
+                quiet_moved += moved;
+                quiet_hunted += choice == Hunt;
+                continue;
+            }
+            ++heard;
+            const double east = senses[static_cast<std::size_t>(heard_sense(loudest, HeardEast))];
+            const double south = senses[static_cast<std::size_t>(heard_sense(loudest, HeardSouth))];
+            int to = -1, from = -1;  // the way towards it and away, by its larger bearing
+            if (std::abs(east) >= std::abs(south)) { to = east > 0 ? GoEast : GoWest; from = east > 0 ? GoWest : GoEast; }
+            else { to = south > 0 ? GoSouth : GoNorth; from = south > 0 ? GoNorth : GoSouth; }
+            const auto as_go = [](int action) { return action >= WalkNorth && action <= WalkWest ? action - (WalkNorth - GoNorth) : action; };
+            if (choice == Hunt) ++hunted;
+            else if (!moved) ++other;
+            else if (as_go(choice) == to) ++toward;
+            else if (as_go(choice) == from) ++away;
+            else ++across;
+        }
+        result[std::string(species_name(species))] = {
+            {"heard_other_kind", {{"count", heard}, {"toward", toward}, {"away", away}, {"across", across}, {"hunted", hunted}, {"other", other}}},
+            {"heard_nothing", {{"count", quiet}, {"moved", quiet_moved}, {"hunted", quiet_hunted}}}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
 Json Probe::language(Simulation& world) const {
     // Meaning is never assigned, only looked for, each against what chance gives:
     // - each free call's profile: how much likelier each thing is when it is made than over all choices (lift 1 is none);
@@ -2504,6 +2553,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/language", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return language(world); }));
+    }));
+    server.Get(prefix + "/eavesdrop", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return eavesdrop(world); }));
     }));
     server.Get(prefix + "/towns", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return towns(world); }));
