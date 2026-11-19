@@ -2048,5 +2048,11 @@
 "Cue copying": "Наслідування сигналів",
 "with cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action": "із сигналами ймовірність, що той, хто чує й бачить іншого свого виду, який кличе під час дії, візьме цей звук за власний сигнал цієї дії",
 "Cry drift": "Дрейф крику",
-"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "із сигналами ймовірність, що крик болю й паніки новонародженого буде іншим звуком, ніж у його матері"
+"with cues, the chance that a newborn's cry of pain and panic is another sound than its mother's": "із сигналами ймовірність, що крик болю й паніки новонародженого буде іншим звуком, ніж у його матері",
+"Naming": "Називання",
+"how much an itch to tell of what drives it or what it does (any thing it senses from afar, or any action, with its herd near) lifts every sound alike over silence, times its intelligence and a half plus its sociability; which sound is left to it; 0 for none": "наскільки бажання розповісти про те, що ним рухає або що воно робить (будь-яку річ, яку відчуває здалеку, чи будь-яку дію, коли стадо поруч), підносить кожен звук однаково над мовчанням, помножене на його інтелект і половину плюс його товариськість; який звук — вирішує воно; 0 — жодного",
+"Naming itch kept": "Збережене бажання називати",
+"with naming, how much of its itch to tell an animal keeps from one turn to the next": "при називанні, скільки свого бажання розповісти тварина зберігає від ходу до ходу",
+"Naming relief": "Полегшення називання",
+"with naming, how much more a call is taught when one who heard it is then driven by the same thing, or does the same, the itch passing": "при називанні, наскільки більше навчається поклик, коли той, хто його почув, потім керується тим самим або робить те саме, і бажання минає"
 }

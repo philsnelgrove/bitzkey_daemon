@@ -419,6 +419,17 @@ inline double CUE_FAVOUR = 0.05;
 inline double CUE_SOCIABILITY = 0.1;
 inline double CUE_COPY = 0.1;
 inline double CRY_DRIFT = 0.02;
+// Naming, the urge to tell (NAMING): with its herd near, an animal itches to tell of what stands out to it: the thing
+// outside it that drives its leaning most (any of OUTSIDE_SENSES, by how much its best option's value falls without
+// that sense), or what it does (by how far that leads its next best option), whichever stands out more. The itch builds
+// by that much and fades by NAMING_KEEP a turn. It lifts every sound alike over silence by NAMING x itch x its
+// intelligence x (a half + its sociability): which sound is left to it. When one who heard it is then itself driven by
+// the same thing, or does the same, the caller is relieved: its call is taught NAMING_RELIEF more and the itch passes.
+// A call telling of a thing is judged by Speak as heard on that thing alone. 0 for none.
+inline double NAMING = 1.0;
+inline double NAMING_KEEP = 0.8;
+inline double NAMING_RELIEF = 1.0;
+constexpr int NAMING_LOOK_EVERY = 3;  // turns between each animal's looks at what drives it (an extra brain pass a thing)
 // The alert: 1, a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd, who then know where it is (the
 // alarm, the kill alert); 0, there is no alert, and only the five calls are left to tell of them.
 inline int ALERTS = 0;
@@ -1150,6 +1161,11 @@ struct Bitzkey {
     std::array<std::int8_t, ACTION_COUNT> cues = [] { std::array<std::int8_t, ACTION_COUNT> none{}; none.fill(-1); return none; }();  // its cue for each action, -1: its first, by chance
     int cry = -1;                       // the sound it cries out in pain or panic; -1: its first, by chance
     int call_kind = 0;                  // how it came by this turn's call: 0 by its brain (CUES 0), 1 a cry, 2 by instinct, 3 by choice
+    double itch = 0.0;                  // its urge to tell of what drives it (Naming), 0 to 1
+    int named = -1, named_turn = -1;    // what it told of as it last called: an index of OUTSIDE_SENSES, or OUTSIDE_SEEN + an action; -1 none; and when
+    bool relieved = false;              // one who heard that call was then driven by the same thing
+    int drive_thing = -1;               // the thing outside that drove it when it last looked (Naming), -1 none
+    double drive_weight = 0.0;          // and how much, 0 to 1
     // Its cue for an action: one taken on from another, or else its own first, by chance.
     int cue(int action) const {
         const int taken = cues[static_cast<std::size_t>(action)];

@@ -215,12 +215,18 @@ constexpr int FORESIGHT = MEMORY_VALUES + MEMORY_NEURONS;  // the first of them
 constexpr int MAX_SOUNDS = 3;
 constexpr int SOUND_CHOICES = 1 + CALL_COUNT;  // stopping, then the five sounds
 constexpr int MORE_SOUNDS = FORESIGHT + FORESEEN;  // the second place's stopping and sounds, then the third's
-// Foresight of the outside: last of all its outputs, what a brain expects to sense next turn of three things about it,
-// each as that sense's level, 0..1: the nearest hunter, the nearest prey and the nearest meat. They are taught by what it
-// then senses, no reward needed (see OUTSIDE_FORESIGHT), so a call it heard may come to tell of what it has yet to see.
+// Foresight of the outside: last of all its outputs, what a brain expects to sense next turn of each thing about it it
+// senses from afar, each as that sense's level, 0..1: the nearest hunter, prey, meat, and so on through every thing
+// outside it, so anything may come to be named. They are taught by what it then senses, no reward needed (see
+// OUTSIDE_FORESIGHT), so a call it heard may come to tell of what it has yet to see. New things go at the end.
 enum Outside : int { OutsideThreat, OutsidePrey, OutsideCarrion };
-constexpr int OUTSIDE_SEEN = 3;
-constexpr std::array<int, OUTSIDE_SEEN> OUTSIDE_SENSES = {SenseThreatCloseness, SensePreyCloseness, SenseCarrionCloseness};
+constexpr int OUTSIDE_SEEN = 21;
+constexpr std::array<int, OUTSIDE_SEEN> OUTSIDE_SENSES = {
+    SenseThreatCloseness, SensePreyCloseness, SenseCarrionCloseness, SenseKillCloseness, SenseGrassCloseness,
+    SensePlantCloseness, SenseMateCloseness, SenseHerdCloseness, SenseParentCloseness, SenseKnownCloseness,
+    SenseElderCloseness, SenseFoeCloseness, SenseStandoutCloseness, SenseMeatPileCloseness, SenseFruitPileCloseness,
+    SenseStonePileCloseness, SenseBonePileCloseness, SenseWoodPileCloseness, SenseGearPileCloseness, SenseFireCloseness,
+    SenseComfortCloseness};
 constexpr int OUTSIDE = MORE_SOUNDS + (MAX_SOUNDS - 1) * SOUND_CHOICES;  // the first of them
 constexpr int OUTPUT_COUNT = OUTSIDE + OUTSIDE_SEEN;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
@@ -261,7 +267,11 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
         "second_stop", "second_call_1", "second_call_2", "second_call_3", "second_call_4", "second_call_5",
         "third_stop", "third_call_1", "third_call_2", "third_call_3", "third_call_4", "third_call_5"};
     for (int output = 0; output < (MAX_SOUNDS - 1) * SOUND_CHOICES; ++output) names[MORE_SOUNDS + output] = more[output];
-    constexpr std::array<std::string_view, OUTSIDE_SEEN> outside = {"foresee_threat", "foresee_prey", "foresee_carrion"};
+    constexpr std::array<std::string_view, OUTSIDE_SEEN> outside = {
+        "foresee_threat", "foresee_prey", "foresee_carrion", "foresee_kill", "foresee_grass", "foresee_plant", "foresee_mate",
+        "foresee_herd", "foresee_parent", "foresee_known", "foresee_elder", "foresee_foe", "foresee_standout",
+        "foresee_meat_pile", "foresee_fruit_pile", "foresee_stone_pile", "foresee_bone_pile", "foresee_wood_pile",
+        "foresee_gear_pile", "foresee_fire", "foresee_comfort"};
     for (int output = 0; output < OUTSIDE_SEEN; ++output) names[OUTSIDE + output] = outside[output];
     return names;
 }();

@@ -2686,6 +2686,53 @@ TEST_CASE("an animal calls alongside its action: silence and the five calls alwa
     for (const Bitzkey* agent : simulation.living()) CHECK((agent->call >= Silent && agent->call < CALL_OPTIONS));
 }
 
+struct NamingRules {  // the naming rules, as they were, after each test
+    double naming = NAMING, keep = NAMING_KEEP, relief = NAMING_RELIEF;
+    ~NamingRules() { NAMING = naming; NAMING_KEEP = keep; NAMING_RELIEF = relief; }
+};
+
+TEST_CASE("without naming no animal itches to tell or names anything") {
+    NamingRules restore;
+    NAMING = 0.0;
+    Simulation simulation = world(30);
+    for (int index = 0; index < 6; ++index) simulation.add_agent(encode_dna(Species::Grazer), 5 + index, 5);
+    simulation.add_agent(encode_dna(Species::Predator), 8, 8);
+    for (int turn = 0; turn < 10; ++turn) {
+        simulation.take_turn();
+        for (const Bitzkey* agent : simulation.living()) CHECK((agent->itch == 0.0 && agent->named == -1));
+    }
+}
+
+TEST_CASE("with naming a herd beside a hunter itches to tell of it, and the itch is kept with the world and passes when relieved") {
+    NamingRules restore;
+    NAMING = 1.0;
+    Simulation simulation = world(30);
+    const Dna bright = encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}});
+    for (int index = 0; index < 8; ++index) simulation.add_agent(bright, 5 + index % 4, 5 + index / 4);
+    simulation.add_agent(encode_dna(Species::Predator), 8, 9);
+    double most = 0.0;
+    for (int turn = 0; turn < 10; ++turn) {
+        simulation.take_turn();
+        for (const Bitzkey* agent : simulation.living()) {
+            CHECK((agent->itch >= 0.0 && agent->itch <= 1.0));
+            if (agent->named >= 0) CHECK(agent->named < OUTSIDE_SEEN + ACTION_COUNT);
+            if (agent->species == Species::Grazer) most = std::max(most, agent->itch);
+        }
+    }
+    CHECK(most > 0.0);
+    Bitzkey* agent = simulation.living().front();
+    agent->itch = 0.75;
+    agent->named = 1;
+    agent->named_turn = 42;
+    const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
+    const Bitzkey* again = loaded->find_agent(agent->identifier);
+    REQUIRE(again);
+    CHECK((again->itch == doctest::Approx(0.75) && again->named == 1 && again->named_turn == 42));
+    agent->relieved = true;
+    simulation.settle_call(*agent);
+    CHECK((agent->itch == 0.0 && !agent->relieved));
+}
+
 struct CueRules {  // the cue rules, as they were, after each test
     int cues = CUES;
     double urge = CUE_URGE, copy = CUE_COPY, drift = CRY_DRIFT;
