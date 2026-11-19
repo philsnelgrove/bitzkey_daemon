@@ -282,7 +282,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"drive_thing", agent.drive_thing}, {"drive_weight", agent.drive_weight},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -504,10 +504,16 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->call_kind = record.value("call_kind", 0);
     agent->itch = record.value("itch", 0.0);
     agent->named = record.value("named", -1);
+    if (agent->named >= OUTSIDE_SEEN) agent->named = -1;  // before 3.212, an action told of
     agent->named_turn = record.value("named_turn", -1);
     agent->relieved = record.value("relieved", false);
-    agent->drive_thing = record.value("drive_thing", -1);
-    agent->drive_weight = record.value("drive_weight", 0.0);
+    agent->has_foresaw = record.value("has_foresaw", false);
+    if (record.contains("foresaw")) agent->foresaw = record["foresaw"].get<std::array<double, OUTSIDE_SEEN>>();
+    if (record.contains("surprised")) agent->surprised = record["surprised"].get<std::array<double, OUTSIDE_SEEN>>();
+    agent->outside_surprise = record.value("outside_surprise", 0.0);
+    agent->told_by = record.value("told_by", -1);
+    agent->told_turn = record.value("told_turn", -1);
+    agent->told_surprise = record.value("told_surprise", 0.0);
     if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();
     if (record.contains("habits") && numbers.sense_from.empty()) {  // kept only while its senses are the same
         for (const json& entry : record["habits"]) {

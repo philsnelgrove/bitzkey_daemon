@@ -1306,46 +1306,55 @@ Json Probe::language(Simulation& world) const {
             {"chosen_cues", kinds[3]}, {"chosen_other_calls", kinds[4]}, {"chosen_silences", kinds[5]},
             {"cue_taken_from_others", ratio(static_cast<double>(taken), static_cast<double>(slots))},
             {"same_cue_for_same_action", ratio(static_cast<double>(agreeing), static_cast<double>(counted))}};
-        // Naming: how itchy they are, and whether the first sound of those telling tells what they told of, a thing or an
-        // action (bits, against what so few tellings would show by chance; only what was told of counted).
-        constexpr int REFERENTS = OUTSIDE_SEEN + ACTION_COUNT;
-        std::vector<std::array<long long, CALL_COUNT>> told(REFERENTS, std::array<long long, CALL_COUNT>{});
-        long long tellings = 0, of_things = 0, living_count = 0;
-        double itch_sum = 0.0;
+        // Naming: how itchy they are, and whether the first sound of those telling tells what most surprised them, or what
+        // they were doing (bits, against what so few tellings would show by chance). The probe's reading alone: the
+        // animals are never told what they tell of.
+        std::vector<std::array<long long, CALL_COUNT>> by_thing(OUTSIDE_SEEN, std::array<long long, CALL_COUNT>{});
+        std::vector<std::array<long long, CALL_COUNT>> by_deed(ACTION_COUNT, std::array<long long, CALL_COUNT>{});
+        long long tellings = 0, living_count = 0;
+        double itch_sum = 0.0, surprise_sum = 0.0;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
             ++living_count;
             itch_sum += agent->itch;
-            if (agent->named < 0 || agent->named >= REFERENTS || agent->named_turn < world.turn() - 1 || agent->last_call < FirstCall) continue;
-            ++told[static_cast<std::size_t>(agent->named)][static_cast<std::size_t>(agent->last_call - FirstCall)];
+            surprise_sum += agent->outside_surprise;
+            if (agent->named < 0 || agent->named >= OUTSIDE_SEEN || agent->named_turn < world.turn() - 1 || agent->last_call < FirstCall) continue;
+            ++by_thing[static_cast<std::size_t>(agent->named)][static_cast<std::size_t>(agent->last_call - FirstCall)];
+            if (agent->last_choice >= 0 && agent->last_choice < ACTION_COUNT) ++by_deed[static_cast<std::size_t>(agent->last_choice)][static_cast<std::size_t>(agent->last_call - FirstCall)];
             ++tellings;
-            of_things += agent->named < OUTSIDE_SEEN;
         }
-        Json naming = nullptr;
-        if (tellings > 0) {
-            std::vector<double> rows(REFERENTS, 0.0);
+        // Bits the first sound carries of the rows, against chance, and the table by row name.
+        const auto naming_table = [&](const std::vector<std::array<long long, CALL_COUNT>>& told, auto name) {
+            std::vector<double> rows(told.size(), 0.0);
             std::array<double, CALL_COUNT> cols{};
-            for (int r = 0; r < REFERENTS; ++r)
-                for (int c = 0; c < CALL_COUNT; ++c) { rows[r] += told[r][c]; cols[c] += told[r][c]; }
+            double total = 0.0;
+            for (std::size_t r = 0; r < told.size(); ++r)
+                for (int c = 0; c < CALL_COUNT; ++c) { rows[r] += told[r][c]; cols[c] += told[r][c]; total += told[r][c]; }
             double bits = 0.0;
             int used_rows = 0, used_cols = 0;
             for (const double row : rows) used_rows += row > 0;
             for (const double col : cols) used_cols += col > 0;
-            Json things = Json::object(), deeds = Json::object();
-            for (int r = 0; r < REFERENTS; ++r) {
+            Json sounds_by = Json::object();
+            for (std::size_t r = 0; r < told.size(); ++r) {
                 if (rows[r] <= 0) continue;
                 Json sounds = Json::array();
                 for (int c = 0; c < CALL_COUNT; ++c) {
                     sounds.push_back(told[r][c]);
-                    if (told[r][c] > 0) bits += told[r][c] / static_cast<double>(tellings) * std::log2(told[r][c] * static_cast<double>(tellings) / (rows[r] * cols[c]));
+                    if (told[r][c] > 0) bits += told[r][c] / total * std::log2(told[r][c] * total / (rows[r] * cols[c]));
                 }
-                if (r < OUTSIDE_SEEN) things[std::string(OUTPUTS[static_cast<std::size_t>(OUTSIDE + r)].substr(8))] = sounds;  // past "foresee_"
-                else deeds[std::string(ACTIONS[static_cast<std::size_t>(r - OUTSIDE_SEEN)])] = sounds;
+                sounds_by[name(static_cast<int>(r))] = sounds;
             }
-            const double chance = (used_rows - 1) * std::max(0, used_cols - 1) / (2.0 * static_cast<double>(tellings) * std::log(2.0));
-            naming = {{"mean_itch", itch_sum / static_cast<double>(std::max(1LL, living_count))}, {"tellings", tellings},
-                      {"tellings_of_things", of_things}, {"first_sound_by_thing", things}, {"first_sound_by_action", deeds},
-                      {"sound_tells_what_bits", bits}, {"by_chance", chance}};
+            const double chance = total > 0 ? (used_rows - 1) * std::max(0, used_cols - 1) / (2.0 * total * std::log(2.0)) : 0.0;
+            return std::tuple{sounds_by, bits, chance};
+        };
+        Json naming = nullptr;
+        if (tellings > 0) {
+            const auto [things, thing_bits, thing_chance] = naming_table(by_thing, [](int r) { return std::string(OUTPUTS[static_cast<std::size_t>(OUTSIDE + r)].substr(8)); });  // past "foresee_"
+            const auto [deeds, deed_bits, deed_chance] = naming_table(by_deed, [](int r) { return std::string(ACTIONS[static_cast<std::size_t>(r)]); });
+            naming = {{"mean_itch", itch_sum / static_cast<double>(std::max(1LL, living_count))},
+                      {"mean_surprise", surprise_sum / static_cast<double>(std::max(1LL, living_count))}, {"tellings", tellings},
+                      {"first_sound_by_surprise", things}, {"sound_tells_surprise_bits", thing_bits}, {"surprise_by_chance", thing_chance},
+                      {"first_sound_by_action", deeds}, {"sound_tells_action_bits", deed_bits}, {"action_by_chance", deed_chance}};
         } else if (living_count > 0) {
             naming = {{"mean_itch", itch_sum / static_cast<double>(living_count)}, {"tellings", 0}};
         }

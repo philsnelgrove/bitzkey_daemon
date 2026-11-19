@@ -2703,7 +2703,7 @@ TEST_CASE("without naming no animal itches to tell or names anything") {
     }
 }
 
-TEST_CASE("with naming a herd beside a hunter itches to tell of it, and the itch is kept with the world and passes when relieved") {
+TEST_CASE("with naming a herd beside a hunter is surprised and itches to tell, and the itch is kept with the world and passes when relieved") {
     NamingRules restore;
     NAMING = 1.0;
     Simulation simulation = world(30);
@@ -2715,7 +2715,8 @@ TEST_CASE("with naming a herd beside a hunter itches to tell of it, and the itch
         simulation.take_turn();
         for (const Bitzkey* agent : simulation.living()) {
             CHECK((agent->itch >= 0.0 && agent->itch <= 1.0));
-            if (agent->named >= 0) CHECK(agent->named < OUTSIDE_SEEN + ACTION_COUNT);
+            if (agent->named >= 0) CHECK(agent->named < OUTSIDE_SEEN);  // the thing that most surprised it
+            CHECK((agent->outside_surprise >= 0.0 && agent->outside_surprise <= 1.0));
             if (agent->species == Species::Grazer) most = std::max(most, agent->itch);
         }
     }
@@ -2724,10 +2725,13 @@ TEST_CASE("with naming a herd beside a hunter itches to tell of it, and the itch
     agent->itch = 0.75;
     agent->named = 1;
     agent->named_turn = 42;
+    agent->surprised[3] = 0.5;
+    agent->foresaw[2] = 0.25;
     const auto loaded = WorldFile::from_bytes(WorldFile::bytes(simulation));
     const Bitzkey* again = loaded->find_agent(agent->identifier);
     REQUIRE(again);
     CHECK((again->itch == doctest::Approx(0.75) && again->named == 1 && again->named_turn == 42));
+    CHECK((again->surprised[3] == doctest::Approx(0.5) && again->foresaw[2] == doctest::Approx(0.25)));
     agent->relieved = true;
     simulation.settle_call(*agent);
     CHECK((agent->itch == 0.0 && !agent->relieved));

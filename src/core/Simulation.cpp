@@ -1882,11 +1882,17 @@ std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
 
 namespace {
 // How near what it saw of the outside a brain's foresight comes, hearing as `values` were valued: the nearer, the higher.
-// A call that told of one thing (Naming) is judged by that thing alone.
+// A call told in surprise (Naming) weighs each thing by how much it surprised the caller.
 double heard_fit(const Bitzkey& agent, const Values& values) {
-    if (agent.named >= 0 && agent.named < OUTSIDE_SEEN && agent.named_turn == agent.call_turn) {
-        const double saw = agent.last_senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent.named)])];
-        return -std::abs(values[OUTSIDE + agent.named] - saw);
+    if (agent.named >= 0 && agent.named_turn == agent.call_turn) {
+        double off = 0.0, total = 0.0;
+        for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
+            const double saw = agent.last_senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(seen)])];
+            const double weight = agent.surprised[static_cast<std::size_t>(seen)] + 1e-3;  // none wholly out
+            off += weight * std::abs(values[OUTSIDE + seen] - saw);
+            total += weight;
+        }
+        return -off / total;
     }
     double off = 0.0;
     for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
@@ -1962,7 +1968,7 @@ void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::arr
 }
 
 void Simulation::settle_call(Bitzkey& agent) {
-    const bool relieved = agent.relieved;  // one who heard it was driven by the same thing: the itch passes
+    const bool relieved = agent.relieved;  // one who heard it was then less surprised: the itch passes
     agent.relieved = false;
     if (relieved) agent.itch = 0.0;
     if (!agent.call_held) return;
@@ -2459,72 +2465,17 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         timings.think += lap(clock);
     }
-    // Naming: what drives each one's leaning, among the things outside it, found by how far its best option's value
-    // falls with that sense taken away. Asked, every few turns, of those who may itch to tell (with their herd near,
-    // choosing their own call), of the few things each senses most strongly. One more batch of brains.
-    std::vector<std::array<double, OUTSIDE_SEEN>> drives(agents.size(), std::array<double, OUTSIDE_SEEN>{});
-    std::vector<std::pair<Bitzkey*, int>> told(agents.size(), {nullptr, -1});  // the caller each heard tell, and of what
+    // Naming: the teller each heard last turn, if any (a caller who told in surprise).
+    std::vector<Bitzkey*> told(agents.size(), nullptr);
     const auto may_itch = [this](const Bitzkey& agent, const Situation& situation) {  // herd near, its call its own choice
         return situation.herd_near > 0 && !situation.panic && !situation.frozen && !(CUES && agent.struck_turn >= turn_ - 1) &&
                !(CUES && whim(agent.identifier ^ 0x5A17, turn_) >= agent.intelligence());
     };
-    if (NAMING > 0) {
-        clock = std::chrono::steady_clock::now();
-        std::vector<gpu::BrainEngine::Handle> handles;
-        std::vector<Senses> without;
-        std::vector<std::pair<std::size_t, int>> whose;  // which animal, and the thing taken away
-        std::vector<int> best_of(agents.size(), -1);
-        for (std::size_t index = 0; index < agents.size(); ++index) {
-            const Bitzkey& agent = *agents[index];
-            const Situation& situation = plans[index].situation;
-            if (idle[index] || situation.frozen || situation.panic || plans[index].options.empty()) continue;
-            const Senses& senses = plans[index].senses;
-            if (situation.heard_from >= 0) {  // the caller it heard, if it told of something last turn
-                const Bitzkey* caller = find_agent(situation.heard_from);
-                if (caller && caller->alive() && caller->named >= 0 && caller->named_turn == turn_ - 1 && caller != &agent) {
-                    told[index] = {find_agent(situation.heard_from), caller->named};
-                }
-            }
-            const bool itchy = may_itch(agent, situation) && py_mod(agent.identifier + turn_, NAMING_LOOK_EVERY) == 0;  // it looks again every few turns
-            int best = plans[index].options.front();
-            for (const int option : plans[index].options) if (values[index][option] > values[index][best]) best = option;
-            // Weighed: the few things it senses most strongly (the nearest), and the thing it heard told of.
-            constexpr int LOOKS = 3;
-            std::array<int, OUTSIDE_SEEN> nearest{};
-            std::iota(nearest.begin(), nearest.end(), 0);
-            const auto level = [&](int thing) { return senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(thing)])]; };
-            std::partial_sort(nearest.begin(), nearest.begin() + LOOKS, nearest.end(), [&](int a, int b) { return level(a) > level(b) || (level(a) == level(b) && a < b); });
-            for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
-                const int sense = OUTSIDE_SENSES[static_cast<std::size_t>(thing)];
-                const bool looked = itchy && std::find(nearest.begin(), nearest.begin() + LOOKS, thing) != nearest.begin() + LOOKS;
-                if (senses[static_cast<std::size_t>(sense)] <= 0.0 || !looked) continue;
-                best_of[index] = best;
-                handles.push_back(agent.gpu);
-                without.push_back(senses);
-                without.back()[static_cast<std::size_t>(sense)] = 0.0;
-                whose.emplace_back(index, thing);
-            }
-        }
-        std::vector<Values> fell(without.size());
-        if (gpu_ && !without.empty()) {
-            try {
-                gpu_->values(handles, without, fell);
-            } catch (const std::runtime_error& error) {
-                leave_gpu(error);
-            }
-        }
-        if (!gpu_) {
-            std::vector<std::size_t> places(without.size());
-            std::iota(places.begin(), places.end(), std::size_t{0});
-            std::for_each(std::execution::par, places.begin(), places.end(),
-                          [&](std::size_t place) { fell[place] = agents[whose[place].first]->brain->values(without[place]); });
-        }
-        for (std::size_t place = 0; place < without.size(); ++place) {
-            const auto [index, thing] = whose[place];
-            const int best = best_of[index];
-            drives[index][static_cast<std::size_t>(thing)] = std::max(0.0, values[index][best] - fell[place][best]);
-        }
-        timings.think += lap(clock);
+    for (std::size_t index = 0; NAMING > 0 && index < agents.size(); ++index) {
+        const Situation& situation = plans[index].situation;
+        if (idle[index] || situation.heard_from < 0) continue;
+        Bitzkey* caller = find_agent(situation.heard_from);
+        if (caller && caller->alive() && caller->named >= 0 && caller->named_turn == turn_ - 1 && caller != agents[index]) told[index] = caller;
     }
     // How fresh an option is to an animal: 1 if untried or BOREDOM_HORIZON turns past, 0 if just done.
     const auto novelty = [this](const Bitzkey& agent, int option) {
@@ -2616,34 +2567,29 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.call_heeded = plans[index].situation.heard_from;
         }
         agent.call_kind = 0;
-        // Naming: the thing outside that drives it most, and its itch to tell of it, building by how much it moves it.
-        int driven = -1;
-        for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
-            if (drives[index][static_cast<std::size_t>(thing)] > 0 && (driven < 0 || drives[index][static_cast<std::size_t>(thing)] > drives[index][static_cast<std::size_t>(driven)])) driven = thing;
+        // Naming: how far what it senses of the outside is from what it foresaw last turn; its itch builds by its greatest surprise.
+        std::array<double, OUTSIDE_SEEN> surprise{};
+        double most = 0.0;
+        int startled = -1;  // the thing that most surprised it, kept for the probe alone
+        if (NAMING > 0 && !idle[index] && agent.has_foresaw) {
+            double sum = 0.0;
+            for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                const double sensed = plans[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(thing)])];
+                const double off = std::clamp(std::abs(sensed - agent.foresaw[static_cast<std::size_t>(thing)]), 0.0, 1.0);
+                surprise[static_cast<std::size_t>(thing)] = off;
+                sum += off;
+                if (off > most) { most = off; startled = thing; }
+            }
+            agent.outside_surprise = sum / OUTSIDE_SEEN;
         }
-        // It looks again only every few turns (see the batch above); between, what drove it when it last looked, while still sensed.
-        if (NAMING > 0 && py_mod(agent.identifier + turn_, NAMING_LOOK_EVERY) == 0) {
-            agent.drive_thing = driven;
-            agent.drive_weight = driven >= 0 ? std::min(1.0, drives[index][static_cast<std::size_t>(driven)]) : 0.0;
-        } else if (agent.drive_thing >= 0 && plans[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent.drive_thing)])] > 0.0) {
-            driven = agent.drive_thing;
+        if (!idle[index]) {  // what it foresees now, to be surprised by next turn
+            for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) agent.foresaw[static_cast<std::size_t>(thing)] = values[index][OUTSIDE + thing];
+            agent.has_foresaw = true;
         } else {
-            driven = -1;
-            agent.drive_thing = -1;
-            agent.drive_weight = 0.0;
+            agent.has_foresaw = false;
         }
-        // Or what it does, by how far it leads its next best option: whichever stands out more is what it would tell of.
-        double leads = 0.0;
-        if (options.size() > 1) {
-            double next = -1e300;
-            for (const int option : options) if (option != choice) next = std::max(next, values[index][option]);
-            leads = std::clamp(values[index][choice] - next, 0.0, 1.0);
-        }
-        const double thing_weight = driven >= 0 ? agent.drive_weight : 0.0;
-        const int referent = thing_weight >= leads ? driven : OUTSIDE_SEEN + choice;  // a thing, or past them an action
-        const double weight = std::max(thing_weight, leads);
-        const bool itchy = NAMING > 0 && !idle[index] && may_itch(agent, situation) && weight > 0;
-        if (!idle[index]) agent.itch = std::min(1.0, NAMING_KEEP * agent.itch + (itchy ? weight : 0.0));
+        const bool itchy = NAMING > 0 && !idle[index] && may_itch(agent, situation) && most > 0;
+        if (!idle[index]) agent.itch = std::min(1.0, NAMING_KEEP * agent.itch + (itchy ? most : 0.0));
         agent.named = -1;
         if (!idle[index] && !situation.frozen) {
             // With cues, pain and panic cry out, and by its intellect it voices its cue by instinct or chooses its call.
@@ -2700,9 +2646,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_call = agent.call;
             agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
-            if (itchy && forced < 0 && agent.call >= FirstCall) {  // it told, of what drove it or what it does
-                agent.named = referent;
+            if (itchy && forced < 0 && agent.call >= FirstCall) {  // it told, surprised
+                agent.named = startled;
                 agent.named_turn = turn_;
+                agent.surprised = surprise;
             }
         }
         keep_habit(agent, plans[index].senses);  // how its call kept to its habits, and the call remembered
@@ -2743,17 +2690,16 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         if (situation.panic || situation.frozen) return std::nullopt;  // no choice of its own
         return Insights::Choice{agents[index]->species, agents[index]->profile(), plans[index].options, choices[index]};
     });
-    for (std::size_t index = 0; NAMING > 0 && index < agents.size(); ++index) {  // a caller relieved: one who heard it is driven by the same thing
-        const auto [caller, thing] = told[index];
-        if (!caller || !caller->alive()) continue;
-        if (thing >= OUTSIDE_SEEN) {  // told of an action: relieved if it then does the same
-            if (choices[index] == thing - OUTSIDE_SEEN) caller->relieved = true;
-            continue;
+    for (std::size_t index = 0; NAMING > 0 && index < agents.size(); ++index) {  // a caller relieved: one who heard it is then less surprised
+        Bitzkey& hearer = *agents[index];
+        if (idle[index]) continue;
+        if (hearer.told_by >= 0 && hearer.told_turn == turn_ - 1) {  // its foresight made as it heard, judged now
+            Bitzkey* caller = find_agent(hearer.told_by);
+            if (caller && caller->alive() && hearer.outside_surprise < hearer.told_surprise) caller->relieved = true;
         }
-        // Told of a thing: relieved if, having heard, it foresees that thing nearer than it now senses it (its mind turned
-        // to it, seen yet or not).
-        const double sensed = plans[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(thing)])];
-        if (values[index][OUTSIDE + thing] > sensed) caller->relieved = true;
+        hearer.told_by = told[index] ? told[index]->identifier : -1;
+        hearer.told_turn = turn_;
+        hearer.told_surprise = hearer.outside_surprise;
     }
     if (gpu_) {  // the brains of all about to breed, and their mates', back from the GPUs at once
         std::vector<Bitzkey*> breeding;

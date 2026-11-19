@@ -1350,7 +1350,7 @@ Default **0.02**; from 0 to 1, in steps of 0.01.
 
 ### 6.33 Naming (`NAMING`)
 
-How much an itch to tell of what drives it or what it does (any thing it senses from afar, or any action, with its herd near) lifts every sound alike over silence, times its intelligence and a half plus its sociability; which sound is left to it; 0 for none.
+How much an itch to tell, built by surprise (what it senses from afar against what it foresaw, with its herd near), lifts every sound alike over silence, times its intelligence and a half plus its sociability; which sound, and what it comes to mean, is left to it; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
@@ -1362,7 +1362,7 @@ Default **0.8**; from 0 to 0.99, in steps of 0.01.
 
 #### 6.33.2 Naming relief (`NAMING_RELIEF`)
 
-With naming, how much more a call is taught when one who heard it is then driven by the same thing, or does the same, the itch passing.
+With naming, how much more a call is taught when one who heard it is then less surprised than it was, the itch passing.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
