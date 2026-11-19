@@ -12,6 +12,12 @@ This is the large-scale Linux service: the C++ simulation running around the clo
 
 Download the package from the [latest release](https://github.com/philsnelgrove/bitzkey_daemon/releases/latest), unpack it on Ubuntu and run `sudo packaging/install.sh`, as described under Installing on Ubuntu below.
 
+## The brain
+
+[![A 3D model of the Bitzkey brain](docs/brain-model.png)](docs/brain-model.html)
+
+Each Bitzkey thinks with one neural network: 236 senses in, 147 values out. Inborn intellect decides what lies between: more hidden layers up to an intellect of 4, then wider ones. Short-term memory is a loop of 16 neurons carried from one choice to the next; long-term memory is the learnt weights and a mental map of remembered places. Download [docs/brain-model.html](docs/brain-model.html) and open it in a browser to turn the model and grow it from intellect 0 to 7.
+
 Bitzkey runs here as a service on Ubuntu Linux. It is the simulation from the C++ Bitzkey (`bitzkey-cpp`), and its interface is a web page at **http://<server>:49152/**.
 
 There is one world, and everyone who opens the page sees and steers that same world. Each viewer's own choices stay in their browser:

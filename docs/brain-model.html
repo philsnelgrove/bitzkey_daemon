@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitzkey Brain Model</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: a blueprint plate. Title strip, the 3D model as the plate, a legend of UML class boxes beside it, the intellect dial below. */
+:root {
+  --bg: #eef1f4; --plate: #f8fafb; --ink: #17212b; --muted: #5b6b7a; --rule: #c9d3dc;
+  --sense: #2f7d6d; --memory: #b8661f; --hidden: #3a5fb0; --grow: #d1435b; --act: #6b4fa8; --see: #2c8fb3;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --scene-bg: #f8fafb; --line: #9aa9b7;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f151b; --plate: #141c24; --ink: #e3e9ef; --muted: #93a3b3; --rule: #2a3744;
+  --sense: #4fb59f; --memory: #e08a3c; --hidden: #6e93e6; --grow: #ff6b84; --act: #a68be0; --see: #55b9dc;
+  --scene-bg: #141c24; --line: #4a5b6b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f151b; --plate: #141c24; --ink: #e3e9ef; --muted: #93a3b3; --rule: #2a3744;
+  --sense: #4fb59f; --memory: #e08a3c; --hidden: #6e93e6; --grow: #ff6b84; --act: #a68be0; --see: #55b9dc;
+  --scene-bg: #141c24; --line: #4a5b6b; color-scheme: dark }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 3.4vw, 2.4rem); margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.plate { position: relative; background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; min-width: 0; }
+#scene { display: block; width: 100%; height: min(62vh, 560px); min-height: 340px; cursor: grab; touch-action: none; }
+#scene:active { cursor: grabbing; }
+.hint { position: absolute; left: 12px; bottom: 10px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.tag { position: absolute; transform: translate(-50%, -100%); font: 600 11px var(--mono); color: var(--ink); background: var(--plate);
+  border: 1px solid var(--rule); padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+.tag small { display: block; font-weight: 400; color: var(--muted); }
+.tag.grown { border-color: var(--grow); }
+aside { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.uml { border: 1px solid var(--rule); background: var(--plate); border-radius: 4px; font-size: 13px; }
+.uml .head { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: center; }
+.uml .stereo { font: 11px var(--mono); color: var(--muted); }
+.uml .name { font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.uml .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.uml ul { list-style: none; margin: 0; padding: 6px 10px; font: 12px var(--mono); color: var(--muted); display: grid; gap: 2px; }
+.uml ul li span { color: var(--ink); }
+.dial { background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 12px; }
+.dial-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.dial label { font-family: var(--display); font-weight: 600; font-size: 1.05rem; }
+#intellect { flex: 1 1 260px; accent-color: var(--grow); }
+.pips { display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--muted); padding: 0 2px; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 24px; font: 13px var(--mono); font-variant-numeric: tabular-nums; }
+.readout b { font-weight: 600; color: var(--ink); }
+.readout .delta { color: var(--grow); }
+.note { color: var(--muted); font-size: 13px; margin: 0; max-width: 75ch; }
+button { font: 600 12px var(--mono); background: transparent; color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--grow); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>The Bitzkey brain</h1>
+    <p class="sub">One network per animal: 236 senses in, 147 values out. Inborn intellect decides what lies between: first more hidden layers, then wider ones.</p>
+  </header>
+
+  <div class="stage">
+    <div class="plate">
+      <canvas id="scene" aria-label="3D model of a Bitzkey brain"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="hint">drag to turn · wheel or pinch to zoom · red in senses = mental map</div>
+    </div>
+    <aside id="legend"></aside>
+  </div>
+
+  <div class="dial">
+    <div class="dial-row">
+      <label for="intellect">Intellect <span id="iv">4</span></label>
+      <input id="intellect" type="range" min="0" max="7" step="1" value="4">
+      <button id="play" type="button">Grow 0 → 7</button>
+    </div>
+    <div class="pips" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+    <div class="readout" id="readout"></div>
+    <p class="note">Hidden layers: one per point of intellect, at least one, up to four (MAX_DEPTH). Each has 38 neurons (BASE_WIDTH), plus 5 more for each point beyond 4 (WIDTH_STEP), so 53 at intellect 7. Red marks what the current intellect adds over the one below it. Short-term memory is the loop: 16 neurons written each choice and read back as senses on the next. Long-term memory has no neurons of its own: it is the weights themselves, and the mental map of remembered places kept beside the brain and read in as 9 senses.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  // From the code (Brain.hpp): senses and outputs, in index order.
+  const INPUTS = [
+    { name: "WorldSenses", stereo: "input", range: "0–73", n: 74, color: "--sense", attrs: ["hunger, health, stamina", "hunters, prey, herd, calls heard"] },
+    { name: "MemoryReadBack", stereo: "input · short-term", range: "74–89", n: 16, color: "--memory", attrs: ["what it held last choice"] },
+    { name: "MentalMap", stereo: "input · long-term", range: "90–98", n: 9, color: "--grow", attrs: ["best food, worst danger, comfort", "remembered places, by season"] },
+    { name: "SurroundingsTraits", stereo: "input", range: "99–213", n: 115, color: "--sense", attrs: ["closeness of 21 things", "mind, body, climate genes"] },
+    { name: "HeardUtterance", stereo: "input", range: "214–228", n: 15, color: "--see", attrs: ["3 places × 5 sounds"] },
+    { name: "ImaginedAction", stereo: "input", range: "229–235", n: 7, color: "--act", attrs: ["7 bits: the act it pictures"] },
+  ];
+  const OUTPUTS = [
+    { name: "Actions", stereo: "output", range: "0–70", n: 71, color: "--act", attrs: ["value of each act"] },
+    { name: "Calls", stereo: "output", range: "71–77", n: 7, color: "--see", attrs: ["silence, alert, 5 sounds"] },
+    { name: "MemoryGates", stereo: "output · recurrent", range: "78–93", n: 16, color: "--memory", attrs: ["keep or overwrite"] },
+    { name: "MemoryValues", stereo: "output · recurrent", range: "94–109", n: 16, color: "--memory", attrs: ["what to write"] },
+    { name: "Foresight", stereo: "output", range: "110–113", n: 4, color: "--hidden", attrs: ["hunger, health, stamina, food"] },
+    { name: "LaterSounds", stereo: "output", range: "114–125", n: 12, color: "--see", attrs: ["2nd and 3rd place: stop or sound"] },
+    { name: "OutsideForesight", stereo: "output", range: "126–146", n: 21, color: "--hidden", attrs: ["21 things it expects to sense"] },
+  ];
+  const N_IN = 236, N_OUT = 147;
+  const depthOf = i => Math.max(1, Math.min(4, i));
+  const widthOf = i => 38 + 5 * Math.max(0, i - 4);
+  const weightsOf = i => { const d = depthOf(i), w = widthOf(i); return N_IN * w + (d - 1) * w * w + w * N_OUT + d * w + N_OUT; };
+
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // Legend as UML class boxes.
+  const legend = document.getElementById("legend");
+  const box = (name, stereo, color, attrs) => {
+    const el = document.createElement("div"); el.className = "uml";
+    el.innerHTML = `<div class="head"><div class="stereo">«${stereo}»</div><div class="name"><i class="swatch" style="background:var(${color})"></i>${name}</div></div><ul>${attrs.map(a => `<li>${a}</li>`).join("")}</ul>`;
+    legend.appendChild(el); return el;
+  };
+  box("Senses", "layer", "--sense", ["<span>236</span> inputs, 6 groups", "world · memory · map · surroundings · heard · imagined"]);
+  const hiddenBox = box("HiddenLayer[d]", "layer · grows", "--hidden", []);
+  box("Outputs", "layer", "--act", ["<span>147</span> outputs, 7 groups", "acts · calls · memory · foresight · sounds"]);
+  box("Short-term memory", "recurrent loop", "--memory", ["<span>16</span> neurons carried choice to choice", "kept or overwritten by learnt gates", "gates read the top hidden layer"]);
+  box("Long-term memory", "outside the network", "--grow", ["<span>weights</span>: all it has learnt, for life", "<span>mental map</span>: places it remembers", "fed back in as 9 senses (90–98)"]);
+
+  // Scene.
+  const canvas = document.getElementById("scene");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+  const root = new THREE.Group(); scene.add(root);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(20, 30, 25); scene.add(sun);
+
+  const col = name => new THREE.Color(css(name));
+  const sphere = new THREE.SphereGeometry(0.16, 10, 8);
+  const mats = {};
+  const mat = name => (mats[name] ||= new THREE.MeshLambertMaterial({ color: col(name) }));
+
+  // A layer of n neurons as a grid of balls on a slab standing in the y-z plane at x.
+  const COLS_IO = 16, SP = 0.42;
+  function slabFor(n, cols) { const rows = Math.ceil(n / cols); return { w: cols * SP, h: rows * SP }; }
+  function placeGrid(group, n, cols, colorOf, x, yTop) {
+    const pts = [];
+    for (let k = 0; k < n; k++) {
+      const r = Math.floor(k / cols), c = k % cols;
+      const m = new THREE.Mesh(sphere, mat(colorOf(k)));
+      m.position.set(x, yTop - r * SP, (c - (cols - 1) / 2) * SP);
+      group.add(m); pts.push(m.position.clone());
+    }
+    return pts;
+  }
+  function frame(group, x, w, h, yTop, color, opacity = 0.08) {
+    const g = new THREE.BoxGeometry(0.06, h + 0.3, w + 0.3);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col(color), transparent: true, opacity }));
+    m.position.set(x, yTop - h / 2 + SP / 2, 0); group.add(m);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: col(color) }));
+    edges.position.copy(m.position); group.add(edges);
+  }
+  const groupColor = groups => k => { let s = 0; for (const g of groups) { s += g.n; if (k < s) return g.color; } return groups[groups.length - 1].color; };
+
+  let built = null, labelsSpec = [], memLoop = null;
+  const labelsEl = document.getElementById("labels");
+
+  function build(i, prev) {
+    if (built) { root.remove(built); built.traverse(o => { if (o.geometry && o.geometry !== sphere) o.geometry.dispose(); }); }
+    built = new THREE.Group(); root.add(built); labelsSpec = [];
+    const d = depthOf(i), w = widthOf(i), pd = prev == null ? d : depthOf(prev), pw = prev == null ? w : widthOf(prev);
+    const gap = 5.2, total = (d + 1) * gap, x0 = -total / 2;
+
+    const inSlab = slabFor(N_IN, COLS_IO), outSlab = slabFor(N_OUT, COLS_IO);
+    const yIn = inSlab.h / 2, yOut = outSlab.h / 2;
+    const inPts = placeGrid(built, N_IN, COLS_IO, groupColor(INPUTS), x0, yIn);
+    frame(built, x0, inSlab.w, inSlab.h, yIn, "--sense");
+    labelsSpec.push({ p: new THREE.Vector3(x0, yIn + 0.9, 0), html: `«input» Senses<small>236</small>` });
+
+    const hidCols = Math.ceil(Math.sqrt(w * 1.4));
+    const hidSlab = slabFor(w, hidCols), yH = hidSlab.h / 2;
+    const layers = [];
+    for (let L = 0; L < d; L++) {
+      const x = x0 + gap * (L + 1);
+      const newLayer = prev != null && L >= pd;
+      const pts = placeGrid(built, w, hidCols, k => (newLayer || (prev != null && k >= pw)) ? "--grow" : "--hidden", x, yH);
+      frame(built, x, hidSlab.w, hidSlab.h, yH, newLayer ? "--grow" : "--hidden", newLayer ? 0.14 : 0.08);
+      labelsSpec.push({ p: new THREE.Vector3(x, yH + 0.9, 0), html: `«hidden» Layer ${L + 1}<small>${w} neurons · tanh</small>`, grown: newLayer || (prev != null && w > pw) });
+      layers.push(pts);
+    }
+    const xo = x0 + gap * (d + 1);
+    const outPts = placeGrid(built, N_OUT, COLS_IO, groupColor(OUTPUTS), xo, yOut);
+    frame(built, xo, outSlab.w, outSlab.h, yOut, "--act");
+    labelsSpec.push({ p: new THREE.Vector3(xo, yOut + 0.9, 0), html: `«output» Values<small>147</small>` });
+
+    // Connections: a light sample of the full wiring between neighbouring layers.
+    const chain = [inPts, ...layers, outPts];
+    const pos = [];
+    const rnd = mulberry(7 + i);
+    for (let L = 0; L + 1 < chain.length; L++) {
+      const a = chain[L], b = chain[L + 1];
+      const count = 260;
+      for (let k = 0; k < count; k++) {
+        const p = a[Math.floor(rnd() * a.length)], q = b[Math.floor(rnd() * b.length)];
+        pos.push(p.x, p.y, p.z, q.x, q.y, q.z);
+      }
+    }
+    const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    built.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: col("--line"), transparent: true, opacity: 0.18 })));
+
+    // Memory loop: from the memory value outputs (94–109) back over the top to the memory senses (74–89).
+    const outMem = outPts[100], inMem = inPts[81];
+    const top = Math.max(yIn, yOut, yH) + 3.2;
+    const curve = new THREE.CubicBezierCurve3(outMem, new THREE.Vector3(xo + 2, top + 2, 0), new THREE.Vector3(x0 - 2, top + 2, 0), inMem);
+    built.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.06, 6, false), new THREE.MeshLambertMaterial({ color: col("--memory") })));
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 12), new THREE.MeshLambertMaterial({ color: col("--memory") }));
+    const tip = curve.getPoint(1), before = curve.getPoint(0.97);
+    head.position.copy(tip); head.lookAt(before); head.rotateX(-Math.PI / 2); built.add(head);
+    labelsSpec.push({ p: curve.getPoint(0.5).add(new THREE.Vector3(0, 0.3, 0)), html: `«short-term» memory loop<small>16 neurons, next choice</small>` });
+
+    // Readout and legend.
+    const wts = weightsOf(i), pwts = prev == null ? null : weightsOf(prev);
+    document.getElementById("readout").innerHTML =
+      `<span>hidden layers <b>${d}</b></span><span>neurons per layer <b>${w}</b></span><span>hidden neurons <b>${d * w}</b></span>` +
+      `<span>weights and biases <b>${wts.toLocaleString("en")}</b>${pwts != null && wts !== pwts ? ` <span class="delta">(${wts > pwts ? "+" : ""}${(wts - pwts).toLocaleString("en")})</span>` : ""}</span>`;
+    hiddenBox.querySelector("ul")?.remove();
+    const ul = document.createElement("ul");
+    ul.innerHTML = `<li>depth = clamp(intellect, 1, 4) → <span>${d}</span></li><li>width = 38 + 5·max(0, intellect − 4) → <span>${w}</span></li><li>activation: tanh</li>`;
+    hiddenBox.appendChild(ul);
+
+    const span = total + 6;
+    targetDist = Math.max(22, span * 1.35);
+  }
+
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  // Camera: orbit by drag, zoom by wheel or pinch.
+  let yaw = -0.62, pitch = 0.32, dist = 34, targetDist = 34, zoom = 1;
+  const pointers = new Map(); let pinch0 = 0;
+  canvas.addEventListener("pointerdown", e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+  canvas.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    const last = pointers.get(e.pointerId);
+    if (pointers.size === 1) { yaw -= (e.clientX - last.x) * 0.006; pitch = Math.max(-1.2, Math.min(1.2, pitch + (e.clientY - last.y) * 0.005)); }
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()]; const dd = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch0) zoom = Math.max(0.5, Math.min(2.2, zoom * pinch0 / dd)); pinch0 = dd;
+    }
+  });
+  const up = e => { pointers.delete(e.pointerId); pinch0 = 0; };
+  canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+  canvas.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.5, Math.min(2.2, zoom * (1 + Math.sign(e.deltaY) * 0.08))); }, { passive: false });
+
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(canvas);
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function render() {
+    dist += (targetDist * zoom - dist) * (reduce ? 1 : 0.08);
+    camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist + 2, Math.cos(yaw) * Math.cos(pitch) * dist);
+    camera.lookAt(0, 1.5, 0);
+    scene.background = new THREE.Color(css("--scene-bg"));
+    renderer.render(scene, camera);
+    const r = canvas.getBoundingClientRect();
+    labelsEl.innerHTML = labelsSpec.map(s => {
+      const v = s.p.clone().project(camera);
+      if (v.z > 1) return "";
+      return `<div class="tag${s.grown ? " grown" : ""}" style="left:${(v.x + 1) / 2 * r.width}px;top:${(1 - v.y) / 2 * r.height}px">${s.html}</div>`;
+    }).join("");
+    requestAnimationFrame(render);
+  }
+
+  const slider = document.getElementById("intellect"), iv = document.getElementById("iv");
+  let current = 4;
+  function setIntellect(i) { const prev = current; current = i; iv.textContent = i; slider.value = i; build(i, i > prev ? prev : null); }
+  slider.addEventListener("input", () => setIntellect(+slider.value));
+  let playing = null;
+  document.getElementById("play").addEventListener("click", () => {
+    if (playing) { clearInterval(playing); playing = null; return; }
+    current = 0; build(0, null); iv.textContent = 0; slider.value = 0; let i = 0;
+    playing = setInterval(() => { i++; if (i > 7) { clearInterval(playing); playing = null; return; } setIntellect(i); }, 1300);
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { for (const k in mats) delete mats[k]; build(current, null); });
+  new MutationObserver(() => { for (const k in mats) delete mats[k]; build(current, null); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  build(4, null); resize(); dist = targetDist; render();
+})();
+</script>
+
+</body>
+</html>
