@@ -2,6 +2,8 @@
 
 The Bitzkey project was started years ago, to teach my best friend programming. He wanted to learn about Python and AI, so it seemed like a natural project. Since then, my friend has passed away. So I finished this to honour him. I open-sourced it for the same reason. So, Sam Bunn, wherever you are, may you live on through Bitzkeys!
 
+Bitzkeys is finally coming around to it's original intent.  Everything this far has been building up to the capability of an emergent social structure, including communication.  Every trial they face is a reason to talk about it, or a reason to make friends, or enemies.  It is my personal goal to (through the manager) learn of the first instance of merchant hawking, in whatever language they've made up.
+
 Bitzkeys is now multilingual.  The choice of languages was somewhat arbitrary since I speak none of them (well, a little French...).  If you'd like me to add a language, please leave a comment to that effect.
 
 Also, the desktop and daemon version of Bitzkey is now distributable, cross platform.  So if you happen to have extra computers just lying around, you can run them as Bitzkey workers and explore even larger worlds!
