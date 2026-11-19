@@ -4383,7 +4383,7 @@ void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
         tutor.last_action = "lost its pupil";
         return;
     }
-    tutor.hunger = std::min(100.0, tutor.hunger + CALL_COST);  // as dear as a call
+    tutor.hunger = std::min(100.0, tutor.hunger + TUTOR_COST);
     pupil.tutored_turn = turn_;
     if (lesson == CRAFT_COUNT) {
         pupil.archery += TUTOR_PRACTICE * ARCHERY_LEARNING * (1 - pupil.archery);  // worth part of a shot

@@ -5095,7 +5095,7 @@ TEST_CASE("a tutor gives one of its kind beside it a lesson: a recipe it lacks, 
     CHECK((pupil.crafts >> club & 1) != 0);  // the recipe, now known
     CHECK(pupil.craft_source[static_cast<std::size_t>(club)] == 5);
     CHECK(pupil.craft_tries[static_cast<std::size_t>(club)] == 1);
-    CHECK(tutor.hunger == doctest::Approx(hunger + CALL_COST));  // as dear as a call
+    CHECK(tutor.hunger == doctest::Approx(hunger + TUTOR_COST));
     CHECK(tutor.reward > joy);
     CHECK(simulation.regard_for(pupil, tutor) > 0.0);
     CHECK(lesson(pupil) == -1);  // a lesson a day at most

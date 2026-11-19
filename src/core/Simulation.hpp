@@ -375,6 +375,7 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 16;
 inline double CALL_COST = 0.3;  // for each sound of a call: two sounds cost twice as much as one
+inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
 inline int CALL_LENGTH = 3;
 // What a caller feels of what its call did to those of its kind who heard it: whether their next turn went better or worse
