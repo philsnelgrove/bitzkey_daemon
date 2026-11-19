@@ -1310,7 +1310,7 @@ Default **10**; from 0 to 20, in steps of 0.5.
 
 How much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none.
 
-Default **5**; from 0 to 20, in steps of 0.5.
+Default **15**; from 0 to 20, in steps of 0.5.
 
 ### 6.32 Cues (`CUES`)
 
