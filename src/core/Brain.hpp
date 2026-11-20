@@ -288,9 +288,19 @@ constexpr int SenseNocturnal = SenseFlies + 1;     // then its activity gene: 1 
 // for the others and for a place the call didn't reach, so a listener may hear the order the sounds came in.
 constexpr int SenseUtterance = SenseNocturnal + 1;
 constexpr int utterance_sense(int place, int sound) { return SenseUtterance + CALL_COUNT * place + sound; }
+// Then the tag every call carries, read by all who hear it, of the same loudest caller (all 0 when it heard none): how
+// alike each of the caller's three colours (ring, dot, social background) is to its own, 1 the same; each of those
+// colours as red, green and blue; and its pitch, harshness and urgency, each 0 to 1 (see Simulation's call_tag).
+enum VoiceSense : int {
+    VoiceRingLikeness, VoiceDotLikeness, VoiceSocialLikeness, VoiceRingRed, VoiceRingGreen, VoiceRingBlue, VoiceDotRed,
+    VoiceDotGreen, VoiceDotBlue, VoiceSocialRed, VoiceSocialGreen, VoiceSocialBlue, VoicePitch, VoiceHarshness, VoiceUrgency
+};
+constexpr int VOICE_SENSES = 15;
+constexpr int SenseVoice = SenseUtterance + MAX_SOUNDS * CALL_COUNT;
+constexpr int voice_sense(int part) { return SenseVoice + part; }
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
-constexpr int SenseImagined = SenseUtterance + MAX_SOUNDS * CALL_COUNT;
+constexpr int SenseImagined = SenseVoice + VOICE_SENSES;
 constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 // A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
@@ -341,6 +351,9 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
     "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
     "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5",
+    "voice_ring_likeness", "voice_dot_likeness", "voice_social_likeness", "voice_ring_red", "voice_ring_green",
+    "voice_ring_blue", "voice_dot_red", "voice_dot_green", "voice_dot_blue", "voice_social_red", "voice_social_green",
+    "voice_social_blue", "voice_pitch", "voice_harshness", "voice_urgency",
     "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as

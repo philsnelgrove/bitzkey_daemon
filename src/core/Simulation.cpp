@@ -1860,7 +1860,10 @@ std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
     for (int place = 0; place < MAX_SOUNDS; ++place) {
         for (int sound = 0; sound < CALL_COUNT; ++sound) quiet[static_cast<std::size_t>(utterance_sense(place, sound))] = 0.0;
     }
-    const auto hear = [](Senses& senses, int place, int sound) {
+    for (int part = 0; part < VOICE_SENSES; ++part) quiet[static_cast<std::size_t>(voice_sense(part))] = 0.0;
+    const CallTag own = call_tag(agent, agent);  // heard, its call carries its own tag
+    const auto hear = [&own](Senses& senses, int place, int sound) {
+        for (int part = 0; part < VOICE_SENSES; ++part) senses[static_cast<std::size_t>(voice_sense(part))] = own[static_cast<std::size_t>(part)];
         senses[static_cast<std::size_t>(heard_sense(FirstCall + sound, HeardLoudness))] = 1.0;
         senses[static_cast<std::size_t>(heard_sense(FirstCall + sound, HeardKin))] = 1.0;
         senses[static_cast<std::size_t>(utterance_sense(place, sound))] = 1.0;
@@ -2647,6 +2650,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_call = agent.call;
             agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
+            // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
+            // more for the fearful), hunger and pain.
+            const double threat = plans[index].senses[static_cast<std::size_t>(SenseThreatCloseness)] * (0.5 + agent.fearfulness()) / 1.5;
+            const double pain = 1 - std::max(0.0, agent.health) / agent.max_health;
+            agent.call_urgency = std::clamp(std::max({most, threat, std::min(100.0, agent.hunger) / 100, pain}), 0.0, 1.0);
             if (itchy && forced < 0 && agent.call >= FirstCall) {  // it told, surprised
                 agent.named = startled;
                 agent.named_turn = turn_;
@@ -3759,6 +3767,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         for (int place = 1; place < MAX_SOUNDS && caller->sounds[static_cast<std::size_t>(place - 1)] >= 0; ++place) {
             senses[utterance_sense(place, caller->sounds[static_cast<std::size_t>(place - 1)])] = 1.0;
         }
+        const CallTag tag = call_tag(*caller, agent);  // and the tag it carries, read by all who hear it
+        for (int part = 0; part < VOICE_SENSES; ++part) senses[voice_sense(part)] = tag[static_cast<std::size_t>(part)];
     }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross
@@ -5045,6 +5055,26 @@ double Simulation::skill_held(const Bitzkey& agent, const Bitzkey& other) const 
     if (const auto held = inherited(agent, other)) return held->skill;
     const Faction* faction = faction_of(agent, other);
     return faction ? faction->skill : 0.0;
+}
+
+CallTag call_tag(const Bitzkey& caller, const Bitzkey& hearer) {
+    CallTag tag{};
+    const std::array<std::uint32_t, 3> words = {body_word(caller.dna), mind_word(caller.dna), social_word(caller.dna)};
+    const std::array<std::uint32_t, 3> own = {body_word(hearer.dna), mind_word(hearer.dna), social_word(hearer.dna)};
+    for (std::size_t part = 0; part < 3; ++part) {
+        tag[VoiceRingLikeness + part] = 1 - colour_difference(words[part], own[part]);
+        const Rgb rgb = color_from_word(words[part]);
+        tag[VoiceRingRed + 3 * part] = rgb.r / 255.0;
+        tag[VoiceRingGreen + 3 * part] = rgb.g / 255.0;
+        tag[VoiceRingBlue + 3 * part] = rgb.b / 255.0;
+    }
+    // Pitch: mostly its size, the larger the lower, shaded by its voice gene; harshness: half its aggression, half its
+    // condition (hunger and hurt); urgency: how stirred it was as it called.
+    tag[VoicePitch] = 0.75 * (1 - caller.physique(Size)) + 0.25 * decode_voice(caller.dna) / static_cast<double>(VOICE_MAX);
+    const double condition = 0.5 * std::min(100.0, caller.hunger) / 100 + 0.5 * (1 - std::max(0.0, caller.health) / caller.max_health);
+    tag[VoiceHarshness] = std::clamp(0.5 * caller.feeling(Aggression) + 0.5 * condition, 0.0, 1.0);
+    tag[VoiceUrgency] = caller.call_urgency;
+    return tag;
 }
 
 double Simulation::wellbeing(const Bitzkey& agent) const {

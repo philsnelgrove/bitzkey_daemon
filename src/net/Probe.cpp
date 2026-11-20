@@ -499,6 +499,31 @@ Json Probe::tracks() const {
 }
 
 void Probe::after_turn(const Simulation& world) {
+    {
+        std::lock_guard informed_lock(informed_mutex_);
+        if (informing_) {
+            const bool next = informed_turn_ == world.turn() - 1;
+            std::map<int, Before> now;
+            for (const Bitzkey* agent : world.living()) {
+                const int species = static_cast<int>(agent->species);
+                if (species < 1 || species > 3) continue;
+                if (next) {
+                    const auto was = informed_last_.find(agent->identifier);
+                    if (was != informed_last_.end()) {
+                        const int bin = std::min(INFORMED_BINS - 1, static_cast<int>(was->second.surprise / 0.025));
+                        const double drop = was->second.surprise - agent->outside_surprise;
+                        Tally& tally = informed_[species][bin][was->second.told ? 1 : 0];
+                        ++tally.n;
+                        tally.drop += drop;
+                        tally.drop2 += drop * drop;
+                    }
+                }
+                now[agent->identifier] = {species, agent->told_by >= 0, agent->outside_surprise};
+            }
+            informed_last_ = std::move(now);
+            informed_turn_ = world.turn();
+        }
+    }
     std::lock_guard lock(watch_mutex_);
     for (auto& [identifier, samples] : watched_) {
         const Bitzkey* agent = world.find_agent(identifier);
@@ -1082,6 +1107,54 @@ Json Probe::tellings(Simulation& world) const {
                         agent->named >= 0 && agent->named_turn == agent->call_turn ? 1 : 0});
     }
     return {{"turn", world.turn()}, {"columns", {"id", "species", "first", "second", "third", "startled", "did", "told"}}, {"calls", rows}};
+}
+
+Json Probe::informed(Simulation& world, bool start, bool stop) {
+    std::lock_guard lock(informed_mutex_);
+    if (start) {
+        informing_ = true;
+        informed_since_ = world.turn();
+        informed_turn_ = -1;
+        informed_last_.clear();
+        for (auto& species : informed_)
+            for (auto& bin : species)
+                for (Tally& tally : bin) tally = {};
+    }
+    if (stop) informing_ = false;
+    // Per species: the mean fall in surprise for the told and the untold, and the told's fall beyond the untold's at the
+    // same surprise (each bin weighted by its told), with its standard error. Positive: hearing a telling helped.
+    static const char* NAMES[] = {"plant", "grazer", "omnivore", "predator"};
+    Json result = Json::object();
+    for (int species = 1; species <= 3; ++species) {
+        long long told = 0, untold = 0;
+        double told_drop = 0, untold_drop = 0, beyond = 0, variance = 0;
+        Json bins = Json::array();
+        for (int bin = 0; bin < INFORMED_BINS; ++bin) {
+            const Tally& t = informed_[species][bin][1];
+            const Tally& u = informed_[species][bin][0];
+            told += t.n;
+            untold += u.n;
+            told_drop += t.drop;
+            untold_drop += u.drop;
+            if (t.n > 0) bins.push_back({{"from", bin * 0.025}, {"told", t.n}, {"told_fall", t.drop / t.n}, {"untold", u.n},
+                                         {"untold_fall", u.n ? u.drop / u.n : 0.0}});
+            if (t.n < 2 || u.n < 2) continue;
+            const double mt = t.drop / t.n, mu = u.drop / u.n;
+            const double vt = std::max(0.0, t.drop2 / t.n - mt * mt) / (t.n - 1), vu = std::max(0.0, u.drop2 / u.n - mu * mu) / (u.n - 1);
+            beyond += t.n * (mt - mu);
+            variance += static_cast<double>(t.n) * t.n * (vt + vu);
+        }
+        long long matched = 0;
+        for (int bin = 0; bin < INFORMED_BINS; ++bin)
+            if (informed_[species][bin][1].n >= 2 && informed_[species][bin][0].n >= 2) matched += informed_[species][bin][1].n;
+        result[NAMES[species]] = {
+            {"told", told}, {"untold", untold},
+            {"told_fall", told ? told_drop / told : 0.0}, {"untold_fall", untold ? untold_drop / untold : 0.0},
+            {"fall_beyond_untold", matched ? beyond / matched : 0.0},
+            {"standard_error", matched ? std::sqrt(variance) / matched : 0.0},
+            {"bins", bins}};
+    }
+    return {{"turn", world.turn()}, {"gathering", informing_}, {"since", informed_since_}, {"species", result}};
 }
 
 Json Probe::eavesdrop(Simulation& world) const {
@@ -2570,6 +2643,10 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/tellings", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return tellings(world); }));
+    }));
+    server.Get(prefix + "/informed", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const bool start = request.get_param_value("start") == "1", stop = request.get_param_value("stop") == "1";
+        reply(response, looked([&](Simulation& world) { return informed(world, start, stop); }));
     }));
     server.Get(prefix + "/eavesdrop", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return eavesdrop(world); }));

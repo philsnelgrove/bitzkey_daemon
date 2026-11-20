@@ -123,6 +123,11 @@ Traits decode_temperament(Dna dna);  // the dot's traits, then the social backgr
 Body decode_body(Dna dna);  // the species slot holds the species index, the trait value mod 4
 inline int decode_neurodivergence(Dna dna) { return static_cast<int>((dna.social >> NEURODIVERGENCE_SHIFT) & NEURODIVERGENCE_MAX); }
 inline bool decode_nocturnal(Dna dna) { return (dna.bits & NOCTURNAL) != 0; }
+// The voice gene: three of the social background's spare bits above the terrain, 0 to 7, inherited with the rest of
+// that word; it shades a call's pitch (see Simulation's call_tag).
+constexpr int VOICE_SHIFT = TERRAIN_SHIFT + 2;
+constexpr int VOICE_MAX = 7;
+inline int decode_voice(Dna dna) { return static_cast<int>((dna.social >> VOICE_SHIFT) & VOICE_MAX); }
 inline Terrain decode_terrain(Dna dna) { return static_cast<Terrain>((dna.social & TERRAIN_BITS) >> TERRAIN_SHIFT); }
 inline Dna with_terrain(Dna dna, Terrain terrain) {
     dna.social = (dna.social & ~TERRAIN_BITS) | static_cast<std::uint32_t>(terrain) << TERRAIN_SHIFT;

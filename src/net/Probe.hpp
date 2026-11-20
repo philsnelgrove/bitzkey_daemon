@@ -113,6 +113,10 @@ public:
     Json language(Simulation& world) const;  // what each call goes with and brings about, and whether neighbours, kin and groups share calls
     Json eavesdrop(Simulation& world) const;  // whether hunters that heard another kind's call went towards it, against those that heard none
     Json tellings(Simulation& world) const;   // every call made as animals last chose: who, its sounds, what most surprised it, what it did
+    // Whether hearing a telling helps: from the turn asked to start (start=1) until asked to stop (stop=1), after every
+    // turn, how far each animal's surprise at the outside fell from one turn to the next, for those that had heard a
+    // telling and those that had not, matched by how surprised they were. A reading only.
+    Json informed(Simulation& world, bool start, bool stop);
     Json towns(Simulation& world) const;  // how far from the sea shelters, sites and roads stand, against land, animals and plants
     Json opinions(Simulation& world) const;  // whether what animals think of a colour group goes with entering or contesting its land
     Json regard(Simulation& world) const;
@@ -138,6 +142,15 @@ private:
     std::mutex herd_mutex_;
     std::map<std::string, std::vector<Herd>> herds_;  // by species: the herds as last seen, to keep their numbers
     int next_herd_ = 1;
+    // /informed: each animal as last seen (species, whether it had just heard a telling, its surprise), and the tallies
+    static constexpr int INFORMED_BINS = 20;      // by surprise, 0.025 wide, the last holding all above
+    struct Tally { long long n = 0; double drop = 0, drop2 = 0; };
+    struct Before { int species = 0; bool told = false; double surprise = 0; };
+    std::mutex informed_mutex_;
+    bool informing_ = false;
+    int informed_since_ = -1, informed_turn_ = -1;
+    std::map<int, Before> informed_last_;
+    Tally informed_[4][INFORMED_BINS][2] = {};  // species, bin, told
 };
 
 }  // namespace bitzkey::net

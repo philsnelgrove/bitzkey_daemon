@@ -2759,12 +2759,14 @@ TEST_CASE("with cues the dullest voice the cue of what they do by instinct, or k
     CUE_COPY = 0.0;
     Simulation simulation = world(30);
     const Dna dull = encode_dna(Species::Grazer, {{"intellect", 0}});
-    for (int index = 0; index < 6; ++index) simulation.add_agent(dull, 5 + index, 5);
+    std::set<int> dullards;  // these alone: any young born may be brighter
+    for (int index = 0; index < 6; ++index) dullards.insert(simulation.add_agent(dull, 5 + index, 5).identifier);
     int instinct = 0, cries = 0;
     for (int turn = 0; turn < 10; ++turn) {
         if (turn == 5) simulation.living().front()->struck_turn = simulation.turn();
         simulation.take_turn();
         for (const Bitzkey* agent : simulation.living()) {
+            if (!dullards.contains(agent->identifier)) continue;
             if (agent->call_kind == 2) {
                 ++instinct;
                 CHECK(agent->call == agent->cue(agent->last_choice));
@@ -3824,6 +3826,29 @@ TEST_CASE("calls are chosen at their own temperature") {
     CHECK(loose[1].second == doctest::Approx(1 / (1 + std::exp(-0.4))));
     CHECK(tight[1].second == doctest::Approx(1 / (1 + std::exp(-2.0))));
     CHECK(choice_odds(values, options)[1].second == doctest::Approx(choice_odds(values, options, TEMPERATURE)[1].second));
+}
+
+TEST_CASE("a call carries a tag every hearer reads: the caller's colours, alike to its own and as they are, pitch, harshness and urgency") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"aggression", 7}}), 5, 5);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    caller.call = FirstCall + 1;
+    caller.call_turn = simulation.turn() - 1;
+    caller.call_urgency = 0.7;
+    caller.hunger = 0.0;
+    caller.health = caller.max_health;
+    const Senses senses = simulation.sense(listener).senses;
+    const CallTag tag = call_tag(caller, listener);
+    for (int part = 0; part < VOICE_SENSES; ++part) CHECK(senses[voice_sense(part)] == doctest::Approx(tag[static_cast<std::size_t>(part)]));
+    CHECK(tag[VoiceUrgency] == doctest::Approx(0.7));
+    CHECK(tag[VoiceHarshness] == doctest::Approx(0.5 * caller.feeling(Aggression)));
+    CHECK(tag[VoicePitch] == doctest::Approx(0.25 * decode_voice(caller.dna) / 7.0));  // the largest: low, but for its voice
+    CHECK(call_tag(caller, caller)[VoiceRingLikeness] == doctest::Approx(1.0));
+    CHECK(tag[VoiceRingRed] == doctest::Approx(color_from_word(body_word(caller.dna)).r / 255.0));
+    caller.call_turn = simulation.turn() - 5;  // no call heard: no tag
+    const Senses unheard = simulation.sense(listener).senses;
+    for (int part = 0; part < VOICE_SENSES; ++part) CHECK(unheard[voice_sense(part)] == 0.0);
 }
 
 TEST_CASE("a call may run to three sounds, heard in order, each sound heard as if alone, and learnt whole") {

@@ -1173,6 +1173,7 @@ struct Bitzkey {
     double outside_surprise = 0.0;      // its mean surprise at the outside this turn, 0 to 1 (Naming)
     int told_by = -1, told_turn = -1;   // the teller it last heard, and when
     double told_surprise = 0.0;         // its mean surprise as it heard
+    double call_urgency = 0.0;          // how stirred it was as it last called, carried in its call's tag
     int startled = -1;                  // the thing that most surprised it as it last chose, for the probe alone (not saved)
     // Its cue for an action: one taken on from another, or else its own first, by chance.
     int cue(int action) const {
@@ -1413,6 +1414,9 @@ int gestation(int size);  // turns an animal of this body size carries its young
 int call_reach(const Bitzkey& caller);  // how many steps its calls carry (Call reach)
 // The genome with its species trait made a predator's (3, or 7 where its top bit was set: the species is the
 // trait mod 4), the rest unchanged.
+// The tag a call carries, as a hearer reads it: its senses from voice_sense(0) on (see VoiceSense).
+using CallTag = std::array<double, VOICE_SENSES>;
+CallTag call_tag(const Bitzkey& caller, const Bitzkey& hearer);
 Dna predator_dna(Dna dna);
 // A child's genome with its species moved along the chain of evolution, grazer, omnivore, predator, by a
 // mutation of the species: a flip landing on predator makes any animal a predator; otherwise a flip of the
