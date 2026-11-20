@@ -2058,5 +2058,7 @@
 "Tutor cost": "Koszt nauczania",
 "hunger a lesson costs the one who tutors": "głód, który lekcja kosztuje tego, kto uczy",
 "Call fatigue": "Zmęczenie wołaniem",
-"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "wytrzymałość, którą każdy dźwięk zawołania kosztuje wołającego, łącznie z alarmem, liczona jak zmęczenie czynnością (sama czynność kosztuje 10)"
+"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "wytrzymałość, którą każdy dźwięk zawołania kosztuje wołającego, łącznie z alarmem, liczona jak zmęczenie czynnością (sama czynność kosztuje 10)",
+"Fatigue unease": "Dyskomfort zmęczenia",
+"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "dyskomfort bycia zmęczonym, niewielki póki świeży i gwałtownie rosnący ku wyczerpaniu (jako sześcian zużytej wytrzymałości), od połowy tego dla najbardziej odpornych do półtora raza dla najmniej odpornych"
 }

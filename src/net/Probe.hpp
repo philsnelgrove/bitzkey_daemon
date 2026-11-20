@@ -112,6 +112,7 @@ public:
     Json gifts(Simulation& world) const;  // the gifts lately given, looked over for trade
     Json language(Simulation& world) const;  // what each call goes with and brings about, and whether neighbours, kin and groups share calls
     Json eavesdrop(Simulation& world) const;  // whether hunters that heard another kind's call went towards it, against those that heard none
+    Json tellings(Simulation& world) const;   // every call made as animals last chose: who, its sounds, what most surprised it, what it did
     Json towns(Simulation& world) const;  // how far from the sea shelters, sites and roads stand, against land, animals and plants
     Json opinions(Simulation& world) const;  // whether what animals think of a colour group goes with entering or contesting its land
     Json regard(Simulation& world) const;

@@ -2591,6 +2591,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         const bool itchy = NAMING > 0 && !idle[index] && may_itch(agent, situation) && most > 0;
         if (!idle[index]) agent.itch = std::min(1.0, NAMING_KEEP * agent.itch + (itchy ? most : 0.0));
         agent.named = -1;
+        agent.startled = startled;
         if (!idle[index] && !situation.frozen) {
             // With cues, pain and panic cry out, and by its intellect it voices its cue by instinct or chooses its call.
             int forced = -1;
@@ -5048,7 +5049,9 @@ double Simulation::skill_held(const Bitzkey& agent, const Bitzkey& other) const 
 
 double Simulation::wellbeing(const Bitzkey& agent) const {
     const double appetite = 0.5 + agent.feeling(Appetite);
-    return -appetite * std::min(100.0, agent.hunger) / 100 - (1 - std::max(0.0, agent.health) / agent.max_health);
+    const double spent = std::clamp(1 - agent.stamina / FULL_STAMINA, 0.0, 1.0);
+    const double tired = FATIGUE_UNEASE * (1.5 - agent.feeling(Resilience)) * spent * spent * spent;
+    return -appetite * std::min(100.0, agent.hunger) / 100 - (1 - std::max(0.0, agent.health) / agent.max_health) - tired;
 }
 
 double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {

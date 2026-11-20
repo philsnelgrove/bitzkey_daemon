@@ -4,14 +4,14 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 490 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 491 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
 1. [World](#1-world) (18 rules)
 2. [Bodies](#2-bodies) (36 rules)
 3. [Breeding](#3-breeding) (33 rules)
-4. [Feelings](#4-feelings) (25 rules)
+4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
 6. [Mind](#6-mind) (174 rules)
 7. [Food](#7-food) (83 rules)
@@ -630,24 +630,6 @@ Discomfort two steps from home, half that one step; less if hardy.
 
 Default **2**; from 0 to 5, in steps of 0.05.
 
-#### 4.4.3 Resting unease (`RESTING_UNEASE`)
-
-Unease, each turn, of having chosen to rest out of its temperature, two steps from home; half one step, less if hardy, none asleep or spent.
-
-Default **1**; from 0 to 5, in steps of 0.05.
-
-#### 4.4.4 Homeward unease (`HOMEWARD_UNEASE`)
-
-More discomfort the further home lies, this much half the map away; each step home eases it.
-
-Default **3**; from 0 to 5, in steps of 0.05.
-
-#### 4.4.5 Empathy pain (`EMPATHY_PAIN`)
-
-How much an empathetic animal feels another's wound.
-
-Default **0.15**; from 0 to 5, in steps of 0.05.
-
 ### 4.5 Feeding joy (`FEEDING_JOY`)
 
 How glad a parent is of feeding a starving infant of its own, in proportion for one less hungry; more if empathetic.
@@ -696,7 +678,31 @@ How much of a sudden death's lesson a herd-mate's starving teaches those who see
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-### 4.8 Other kind (`OTHER_KIND`)
+### 4.8 Resting unease (`RESTING_UNEASE`)
+
+Unease, each turn, of having chosen to rest out of its temperature, two steps from home; half one step, less if hardy, none asleep or spent.
+
+Default **1**; from 0 to 5, in steps of 0.05.
+
+#### 4.8.1 Fatigue unease (`FATIGUE_UNEASE`)
+
+Unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least.
+
+Default **0.5**; from 0 to 5, in steps of 0.05.
+
+#### 4.8.2 Homeward unease (`HOMEWARD_UNEASE`)
+
+More discomfort the further home lies, this much half the map away; each step home eases it.
+
+Default **3**; from 0 to 5, in steps of 0.05.
+
+#### 4.8.3 Empathy pain (`EMPATHY_PAIN`)
+
+How much an empathetic animal feels another's wound.
+
+Default **0.15**; from 0 to 5, in steps of 0.05.
+
+### 4.9 Other kind (`OTHER_KIND`)
 
 How much of that pain reaches it for another species.
 

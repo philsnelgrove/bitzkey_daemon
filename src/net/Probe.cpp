@@ -1070,6 +1070,20 @@ Json Probe::calls(Simulation& world) const {
     return {{"turn", world.turn()}, {"calls", result}};
 }
 
+Json Probe::tellings(Simulation& world) const {
+    // Each call made as animals last chose, one row each: its maker, species (0 plant .. 3 predator), first sound (0-4, or
+    // -1 the alert), second and third (-1 none), the thing that most surprised it (an index of OUTSIDE_SENSES, -1 none),
+    // what it did (an action), and 1 if it told in surprise (its itch lifting it). A reading only, to gather over turns.
+    Json rows = Json::array();
+    for (const Bitzkey* agent : world.living()) {
+        if (agent->last_call < AlertCall || agent->call_turn < world.turn() - 1) continue;
+        rows.push_back({agent->identifier, static_cast<int>(agent->species), agent->last_call == AlertCall ? -1 : agent->last_call - FirstCall,
+                        agent->last_sounds[0], agent->last_sounds[1], agent->startled, agent->last_choice,
+                        agent->named >= 0 && agent->named_turn == agent->call_turn ? 1 : 0});
+    }
+    return {{"turn", world.turn()}, {"columns", {"id", "species", "first", "second", "third", "startled", "did", "told"}}, {"calls", rows}};
+}
+
 Json Probe::eavesdrop(Simulation& world) const {
     // For each hunting kind, this turn's choices: of those that heard another kind's call (the loudest such sound, by the
     // senses it chose by), how many then went or walked towards it, away from it, or across, hunted, or did something else;
@@ -2553,6 +2567,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/language", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return language(world); }));
+    }));
+    server.Get(prefix + "/tellings", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return tellings(world); }));
     }));
     server.Get(prefix + "/eavesdrop", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return eavesdrop(world); }));

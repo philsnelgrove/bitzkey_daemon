@@ -2058,5 +2058,7 @@
 "Tutor cost": "指導の代償",
 "hunger a lesson costs the one who tutors": "教える者が一回の教えで払う空腹",
 "Call fatigue": "呼び声の疲れ",
-"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "呼び声の一音ごとに呼ぶ者が使うスタミナ。警報も含み、行動の疲れと同じように数える（行動ひとつで10）"
+"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "呼び声の一音ごとに呼ぶ者が使うスタミナ。警報も含み、行動の疲れと同じように数える（行動ひとつで10）",
+"Fatigue unease": "疲労の不快",
+"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "疲れていることの不快さ。元気なうちはわずかで、消耗に向かって急に高まる（使ったスタミナの3乗として）。最も回復力のある者はこの半分、最も回復力のない者は1.5倍"
 }

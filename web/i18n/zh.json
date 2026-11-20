@@ -2058,5 +2058,7 @@
 "Tutor cost": "教导代价",
 "hunger a lesson costs the one who tutors": "一堂课让教导者付出的饥饿",
 "Call fatigue": "呼唤疲劳",
-"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "呼唤的每个声音消耗呼唤者多少耐力，警报也算在内，按行动的疲劳来计（单个行动消耗 10）"
+"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "呼唤的每个声音消耗呼唤者多少耐力，警报也算在内，按行动的疲劳来计（单个行动消耗 10）",
+"Fatigue unease": "疲劳不适",
+"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "疲倦的不适，精力充沛时很少，接近力竭时急剧上升（按消耗体力的立方计），最有韧性者为此值的一半，最无韧性者为其一倍半"
 }

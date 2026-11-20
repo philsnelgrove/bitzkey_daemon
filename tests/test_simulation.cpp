@@ -3753,6 +3753,24 @@ TEST_CASE("a call tires its caller: each sound costs CALL_FATIGUE stamina, as an
     CALL_FATIGUE = fatigue_was;
     CALL_COST = cost_was;
 }
+TEST_CASE("tiredness is felt: FATIGUE_UNEASE x the cube of the stamina spent, the resilient minding it least") {
+    struct Keep { double was = FATIGUE_UNEASE; ~Keep() { FATIGUE_UNEASE = was; } } keep;
+    FATIGUE_UNEASE = 1.0;
+    Simulation simulation = world();
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    animal.hunger = 0.0;
+    animal.stamina = FULL_STAMINA;
+    const double fresh = simulation.wellbeing(animal);
+    animal.stamina = FULL_STAMINA / 2;
+    const double half = simulation.wellbeing(animal);
+    animal.stamina = 0.0;
+    const double spent = simulation.wellbeing(animal);
+    const double mind = 1.5 - animal.feeling(Resilience);
+    CHECK(fresh - half == doctest::Approx(mind * 0.125));
+    CHECK(fresh - spent == doctest::Approx(mind));
+    FATIGUE_UNEASE = 0.0;
+    CHECK(simulation.wellbeing(animal) == doctest::Approx(fresh));
+}
 TEST_CASE("each call teaches silence what keeping quiet would have brought: without the call's cost or its habit pleasure") {
     struct KeepCost { double was = CALL_COST; ~KeepCost() { CALL_COST = was; } } keep_cost;  // as it was before 3.214, so the cost shows
     CALL_COST = 0.3;

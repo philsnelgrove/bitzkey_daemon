@@ -138,6 +138,7 @@ std::vector<Rule> make_rules() {
         {"FAMINE_LESSON", "Feelings", "Famine lesson", "how much of a sudden death's lesson a herd-mate's starving teaches those who see it; 0 for none", 0.0, 1.0, 0.05, false, &FAMINE_LESSON},
         {"PARENT_GRIEF", "Feelings", "Parent grief", "how much a parent grieves when one of its infants dies, wherever; more if empathetic", 0.0, 10.0, 0.1, false, &PARENT_GRIEF},
         {"RESTING_UNEASE", "Feelings", "Resting unease", "unease, each turn, of having chosen to rest out of its temperature, two steps from home; half one step, less if hardy, none asleep or spent", 0.0, 5.0, 0.05, false, &RESTING_UNEASE},
+        {"FATIGUE_UNEASE", "Feelings", "Fatigue unease", "unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least", 0.0, 5.0, 0.05, false, &FATIGUE_UNEASE},
         {"HOMEWARD_UNEASE", "Feelings", "Homeward unease", "more discomfort the further home lies, this much half the map away; each step home eases it", 0.0, 5.0, 0.05, false, &HOMEWARD_UNEASE},
         {"EMPATHY_PAIN", "Feelings", "Empathy pain", "how much an empathetic animal feels another's wound", 0.0, 5.0, 0.05, false, &EMPATHY_PAIN},
         {"OTHER_KIND", "Feelings", "Other kind", "how much of that pain reaches it for another species", 0.0, 1.0, 0.05, false, &OTHER_KIND},

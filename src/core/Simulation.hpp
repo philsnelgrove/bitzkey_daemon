@@ -213,6 +213,9 @@ inline double FEAR_DREAD = 0.3;
 inline double UNEASE = 0.1;
 inline double CLIMATE_UNEASE = 2.0;  // discomfort two or more steps from home, half that one step; less for the hardy
 inline double RESTING_UNEASE = 1.0;  // unease, a turn, of having chosen to rest out of its temperature, two or more steps from home (half one step; less if hardy)
+// Tiredness is felt: an unease of FATIGUE_UNEASE x the cube of the stamina spent, hardly felt while fresh and
+// sharply near exhaustion, times one and a half less its resilience (the resilient mind it least).
+inline double FATIGUE_UNEASE = 0.5;
 inline double HOMEWARD_UNEASE = 3.0;  // more discomfort away from home, rising with the distance to home to this at half the map's height
 inline double EMPATHY_PAIN = 0.15;
 // Parental attachment: a parent is glad of its own young, still infants, within its sight, up to PARENT_JOY with
@@ -1170,6 +1173,7 @@ struct Bitzkey {
     double outside_surprise = 0.0;      // its mean surprise at the outside this turn, 0 to 1 (Naming)
     int told_by = -1, told_turn = -1;   // the teller it last heard, and when
     double told_surprise = 0.0;         // its mean surprise as it heard
+    int startled = -1;                  // the thing that most surprised it as it last chose, for the probe alone (not saved)
     // Its cue for an action: one taken on from another, or else its own first, by chance.
     int cue(int action) const {
         const int taken = cues[static_cast<std::size_t>(action)];
