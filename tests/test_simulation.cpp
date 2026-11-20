@@ -3886,6 +3886,7 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     Simulation herd = world(20);
     for (int index = 0; index < 12; ++index) herd.add_agent(encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}}), 4 + index % 4, 4 + index / 4);
     herd.add_agent(encode_dna(Species::Predator), 10, 10);
+    herd.gather_intent(true);
     bool intended = false;
     for (int turn = 0; turn < 60; ++turn) {
         herd.take_turn();
@@ -3901,6 +3902,14 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     const Simulation::IntentTally& tally = herd.intent_tally()[static_cast<std::size_t>(Species::Grazer)];
     CHECK(tally.hearers > 0);
     CHECK(tally.met <= tally.hearers);
+    const Simulation::IntentWindow& window = herd.intent_window()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(window.heard.hearers == tally.hearers);  // the window opened as the world began
+    CHECK(window.unheard.hearers + window.other.hearers > 0);  // and bystanders were found beside the hearers
+    CHECK(window.unheard.met <= window.unheard.hearers);
+    herd.gather_intent(false);
+    const long long counted = window.heard.hearers;
+    for (int turn = 0; turn < 10; ++turn) herd.take_turn();
+    CHECK(window.heard.hearers == counted);  // closed, it counts no more
 }
 
 TEST_CASE("a call carries a tag every hearer reads: the caller's colours, alike to its own and as they are, pitch, harshness and urgency") {

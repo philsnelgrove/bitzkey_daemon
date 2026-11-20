@@ -2053,11 +2053,32 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
         if (caller->held_intent < 0) continue;
         const bool met = (deeds >> caller->held_intent) & 1U;
         caller->intent_met += met;
-        IntentTally& tally = intent_tally_[static_cast<std::size_t>(caller->species)];
-        ++tally.hearers;
-        tally.met += met;
-        ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
-        for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (deeds >> wish) & 1U;
+        const auto count = [&](IntentTally& tally, unsigned done, bool did) {
+            ++tally.hearers;
+            tally.met += did;
+            ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
+            for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (done >> wish) & 1U;
+        };
+        count(intent_tally_[static_cast<std::size_t>(caller->species)], deeds, met);
+        if (gathering_intent_) count(intent_window_[static_cast<std::size_t>(caller->species)].heard, deeds, met);
+    }
+    if (!gathering_intent_ || !wishing) return;
+    // Bystanders, for the probe: those of each caller's kind near it, choosing when its hearers did, who didn't heed it.
+    for (const Bitzkey* caller : agents) {
+        if (!caller->wish_judged || caller->held_intent < 0 || !caller->alive()) continue;
+        IntentWindow& window = intent_window_[static_cast<std::size_t>(caller->species)];
+        for (const Bitzkey* other : nearby(*caller, BYSTANDER_REACH)) {
+            if (other == caller || other->species != caller->species || !other->alive() || !other->has_last_senses ||
+                other->chosen_turn != turn_ - 1 || other->call_heeded == caller->identifier) {
+                continue;
+            }
+            const unsigned deeds = deeds_of(*other, *caller);
+            IntentTally& tally = other->call_heeded < 0 ? window.unheard : window.other;
+            ++tally.hearers;
+            tally.met += (deeds >> caller->held_intent) & 1U;
+            ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
+            for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (deeds >> wish) & 1U;
+        }
     }
 }
 

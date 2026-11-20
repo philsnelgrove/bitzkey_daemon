@@ -1634,6 +1634,15 @@ public:
         std::array<long long, WISHES> intended{}, done{};
     };
     const std::array<IntentTally, 4>& intent_tally() const { return intent_tally_; }
+    // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
+    // who chose as its hearers did but heard no call, or heard another's loudest; and how many of them did its intent.
+    struct IntentWindow {
+        IntentTally heard, unheard, other;
+    };
+    static constexpr int BYSTANDER_REACH = 8;
+    void gather_intent(bool on) { gathering_intent_ = on; if (on) intent_window_ = {}; }
+    bool gathering_intent() const { return gathering_intent_; }
+    const std::array<IntentWindow, 4>& intent_window() const { return intent_window_; }
     // The deeds of `hearer`'s last choice, as `caller`'s wishes name them, a bit for each (see INTENT).
     unsigned deeds_of(const Bitzkey& hearer, const Bitzkey& caller) const;
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
@@ -2344,6 +2353,8 @@ private:
     // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
     std::array<std::array<long long, 4>, 4> followers_lost_{};
     std::array<IntentTally, 4> intent_tally_{};
+    std::array<IntentWindow, 4> intent_window_{};
+    bool gathering_intent_ = false;
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood
     int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;

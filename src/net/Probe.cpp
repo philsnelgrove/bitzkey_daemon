@@ -1109,6 +1109,41 @@ Json Probe::tellings(Simulation& world) const {
     return {{"turn", world.turn()}, {"columns", {"id", "species", "first", "second", "third", "startled", "did", "told"}}, {"calls", rows}};
 }
 
+Json Probe::intent(Simulation& world, bool start, bool stop) {
+    if (start) {
+        world.gather_intent(true);
+        intent_since_ = world.turn();
+    }
+    if (stop) world.gather_intent(false);
+    const auto group = [](const Simulation::IntentTally& tally) {
+        double chance = 0.0;  // as often as each intent came, times as often as each deed was done, among these
+        Json done = Json::object();
+        for (int wish = 0; wish < WISHES; ++wish) {
+            const auto at = static_cast<std::size_t>(wish);
+            done[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = tally.done[at];
+            if (tally.hearers > 0) chance += static_cast<double>(tally.intended[at]) * static_cast<double>(tally.done[at]) / (static_cast<double>(tally.hearers) * static_cast<double>(tally.hearers));
+        }
+        const double met = tally.hearers > 0 ? static_cast<double>(tally.met) / static_cast<double>(tally.hearers) : 0.0;
+        return Json{{"count", tally.hearers}, {"met", tally.hearers > 0 ? Json(met) : Json(nullptr)},
+                    {"standard_error", tally.hearers > 0 ? Json(std::sqrt(met * (1 - met) / static_cast<double>(tally.hearers))) : Json(nullptr)},
+                    {"by_chance", tally.hearers > 0 ? Json(chance) : Json(nullptr)}, {"done", done}};
+    };
+    Json species_json = Json::object();
+    for (std::size_t species = 1; species < 4; ++species) {
+        const Simulation::IntentWindow& window = world.intent_window()[species];
+        Json intended = Json::object();
+        for (int wish = 0; wish < WISHES; ++wish) intended[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = window.heard.intended[static_cast<std::size_t>(wish)];
+        Json entry = {{"hearers", group(window.heard)}, {"bystanders_unheard", group(window.unheard)},
+                      {"bystanders_heard_another", group(window.other)}, {"intended", intended}};
+        if (window.heard.hearers > 0 && window.unheard.hearers > 0) {
+            entry["lift_over_unheard"] = static_cast<double>(window.heard.met) / static_cast<double>(window.heard.hearers) -
+                                         static_cast<double>(window.unheard.met) / static_cast<double>(window.unheard.hearers);
+        }
+        species_json[std::string(species_name(static_cast<Species>(species)))] = entry;
+    }
+    return {{"gathering", world.gathering_intent()}, {"since", intent_since_}, {"turn", world.turn()}, {"species", species_json}};
+}
+
 Json Probe::informed(Simulation& world, bool start, bool stop) {
     std::lock_guard lock(informed_mutex_);
     if (start) {
@@ -2664,6 +2699,10 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     server.Get(prefix + "/informed", answered([=, this](const httplib::Request& request, httplib::Response& response) {
         const bool start = request.get_param_value("start") == "1", stop = request.get_param_value("stop") == "1";
         reply(response, looked([&](Simulation& world) { return informed(world, start, stop); }));
+    }));
+    server.Get(prefix + "/intent", answered([=, this](const httplib::Request& request, httplib::Response& response) {
+        const bool start = request.get_param_value("start") == "1", stop = request.get_param_value("stop") == "1";
+        reply(response, looked([&](Simulation& world) { return intent(world, start, stop); }));
     }));
     server.Get(prefix + "/eavesdrop", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return eavesdrop(world); }));

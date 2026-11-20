@@ -117,6 +117,10 @@ public:
     // turn, how far each animal's surprise at the outside fell from one turn to the next, for those that had heard a
     // telling and those that had not, matched by how surprised they were. A reading only.
     Json informed(Simulation& world, bool start, bool stop);
+    // Intent over a window (start=1 opens it afresh, stop=1 closes it): of those who heard a call with an intent, the share
+    // who did it, against bystanders of the caller's kind near it who heard no call or another's.
+    Json intent(Simulation& world, bool start, bool stop);
+    int intent_since_ = -1;
     Json towns(Simulation& world) const;  // how far from the sea shelters, sites and roads stand, against land, animals and plants
     Json opinions(Simulation& world) const;  // whether what animals think of a colour group goes with entering or contesting its land
     Json regard(Simulation& world) const;
