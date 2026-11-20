@@ -77,6 +77,26 @@ TEST_CASE("a terrain mutation moves it a step along its chain, toward the sea or
     CHECK(fish.count(Terrain::Terrestrial) == 0);
 }
 
+TEST_CASE("a voice mutation steps it one up or down, at its share of the body mutations, and no further than its ends") {
+    const auto children = [](Dna parent, bool mutation) {
+        PyRandom rng(13);
+        std::map<int, int> found;
+        for (int child = 0; child < 4000; ++child) found[decode_voice(cross(parent, parent, rng, std::nullopt, 0.0, 1.0, mutation))] += 1;
+        return found;
+    };
+    const Dna middling = with_voice(encode_dna(Species::Grazer), 4);
+    CHECK(decode_voice(middling) == 4);
+    CHECK(decode_terrain(middling) == Terrain::Terrestrial);  // its neighbours untouched
+    const auto found = children(middling, true);
+    CHECK(found.size() == 3);  // 3, 4 or 5: a step either way, never two
+    CHECK((found.at(3) > 0 && found.at(5) > 0));
+    CHECK((4000 - found.at(4)) / 4000.0 == doctest::Approx(VOICE_MUTATION_SHARE).epsilon(0.1));
+    CHECK(children(middling, false).size() == 1);  // none where it's off
+    const auto lowest = children(with_voice(encode_dna(Species::Grazer), 0), true);
+    CHECK(lowest.count(-1) == 0);
+    CHECK(lowest.count(7) == 0);  // no wrapping round
+}
+
 TEST_CASE("the species' third bit is the activity gene") {
     const Dna diurnal = encode_dna(Species::Omnivore);
     CHECK_FALSE(decode_nocturnal(diurnal));

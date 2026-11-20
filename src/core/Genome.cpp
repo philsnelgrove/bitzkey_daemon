@@ -218,6 +218,10 @@ Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind,
         const int moved = std::max(0, std::min(3, place + (rng.random() < 0.5 ? 1 : -1)));
         child = with_terrain(child, TERRAIN_CHAIN[static_cast<std::size_t>(moved)]);
     }
+    if (terrain_mutation && rng.random() < body_chance * VOICE_MUTATION_SHARE) {  // its voice a step higher or lower
+        const int voice = decode_voice(child) + (rng.random() < 0.5 ? 1 : -1);
+        child = with_voice(child, std::max(0, std::min(VOICE_MAX, voice)));
+    }
     return child;
 }
 

@@ -63,6 +63,9 @@ constexpr double BODY_MUTATION_CHANCE = 0.25;  // one bit of the ring flips
 constexpr double SPECIES_REROLL = 0.5;  // a body mutation landing on the species is moved to another bit, rolled afresh, this often
 // A birth's chance of its terrain moving a step along TERRAIN_CHAIN, as a share of its body mutation chance.
 constexpr double TERRAIN_MUTATION_SHARE = 1.0 / 32;
+// A birth's chance of its voice gene stepping one up or down (no further than 0 or 7), as a share of its body
+// mutation chance: an eighth of births at the default, so lines and kinds drift apart in voice.
+constexpr double VOICE_MUTATION_SHARE = 0.5;
 constexpr std::uint64_t NOCTURNAL = std::uint64_t{1} << 34;  // the species trait's third bit: active by night
 constexpr int V1_MAX = 15;
 constexpr int V2_TRAIT_DEFAULT = 3;  // the traits version 2 lacked start here when converted
@@ -128,6 +131,10 @@ inline bool decode_nocturnal(Dna dna) { return (dna.bits & NOCTURNAL) != 0; }
 constexpr int VOICE_SHIFT = TERRAIN_SHIFT + 2;
 constexpr int VOICE_MAX = 7;
 inline int decode_voice(Dna dna) { return static_cast<int>((dna.social >> VOICE_SHIFT) & VOICE_MAX); }
+inline Dna with_voice(Dna dna, int voice) {
+    dna.social = (dna.social & ~(static_cast<std::uint32_t>(VOICE_MAX) << VOICE_SHIFT)) | static_cast<std::uint32_t>(voice) << VOICE_SHIFT;
+    return dna;
+}
 inline Terrain decode_terrain(Dna dna) { return static_cast<Terrain>((dna.social & TERRAIN_BITS) >> TERRAIN_SHIFT); }
 inline Dna with_terrain(Dna dna, Terrain terrain) {
     dna.social = (dna.social & ~TERRAIN_BITS) | static_cast<std::uint32_t>(terrain) << TERRAIN_SHIFT;
@@ -179,7 +186,7 @@ std::uint32_t write_social(std::uint32_t spare, const Mind& mind, PyRandom& rng)
 // the dot and social background written from `mind`, or from the average of the parents' inborn traits.
 // Its terrain is one parent's, as the rest of the social background's spare bits are; with `terrain_mutation`, a
 // birth has TERRAIN_MUTATION_SHARE of the body mutation chance of moving it a step along TERRAIN_CHAIN, toward the
-// sea or the air as likely (and no further than the chain's end).
+// sea or the air as likely (and no further than the chain's end); and VOICE_MUTATION_SHARE of it of stepping its voice.
 Dna cross(Dna first, Dna second, PyRandom& rng, const std::optional<Mind>& mind = std::nullopt,
           double mind_chance = MIND_MUTATION_CHANCE, double body_chance = BODY_MUTATION_CHANCE,
           bool terrain_mutation = true);
