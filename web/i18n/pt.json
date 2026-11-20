@@ -2060,5 +2060,7 @@
 "Call fatigue": "Fadiga do chamado",
 "stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "vigor que cada som de um chamado custa a quem chama, o alerta incluído, contado como o cansaço de uma ação (uma ação sozinha custa 10)",
 "Fatigue unease": "Desconforto da fadiga",
-"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "desconforto de estar cansado, pouco enquanto descansado e subindo fortemente rumo à exaustão (como o cubo do vigor gasto), de metade disto para os mais resilientes a uma vez e meia para os menos"
+"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "desconforto de estar cansado, pouco enquanto descansado e subindo fortemente rumo à exaustão (como o cubo do vigor gasto), de metade disto para os mais resilientes a uma vez e meia para os menos",
+"Echo": "Eco",
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "quanto mais prontos vêm os sons que um animal ouviu logo antes de algo o surpreender, quando essa mesma coisa o surpreende de novo: muda apenas qual som, nunca se chama nem por quanto tempo; 0 para nenhum"
 }

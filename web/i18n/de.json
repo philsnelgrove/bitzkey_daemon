@@ -2060,5 +2060,7 @@
 "Call fatigue": "Rufmüdigkeit",
 "stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "Ausdauer, die jeder Laut eines Rufs den Rufenden kostet, der Alarm mitgezählt, so gezählt wie die Müdigkeit einer Handlung (eine Handlung allein kostet 10)",
 "Fatigue unease": "Erschöpfungsunbehagen",
-"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "Unbehagen, müde zu sein, gering solange frisch und steil ansteigend zur Erschöpfung hin (als Kubik der verbrauchten Ausdauer), von der Hälfte davon für die Widerstandsfähigsten bis zum Anderthalbfachen für die am wenigsten Widerstandsfähigen"
+"unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "Unbehagen, müde zu sein, gering solange frisch und steil ansteigend zur Erschöpfung hin (als Kubik der verbrauchten Ausdauer), von der Hälfte davon für die Widerstandsfähigsten bis zum Anderthalbfachen für die am wenigsten Widerstandsfähigen",
+"Echo": "Echo",
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "wie viel bereiter die Laute, die ein Tier zuletzt hörte, kurz bevor es etwas überraschte, kommen, wenn dasselbe es wieder überrascht: es ändert nur welcher Laut, nie ob es ruft oder wie lange; 0 für keins"
 }

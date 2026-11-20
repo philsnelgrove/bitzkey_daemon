@@ -2626,7 +2626,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                     weighed = &tilted;
                 }
                 double call_roll = call_rolls[index];
-                for (const auto& [output, chance] : choice_odds(*weighed, outputs, CALL_TEMPERATURE)) {
+                auto odds = choice_odds(*weighed, outputs, CALL_TEMPERATURE);
+                if (ECHO > 0 && startled >= 0 && agent.echo_of[static_cast<std::size_t>(startled)][0] > 0)
+                    echo_odds(odds, call_output(FirstCall + agent.echo_of[static_cast<std::size_t>(startled)][0] - 1),
+                              call_output(FirstCall), call_output(CALL_OPTIONS - 1));
+                for (const auto& [output, chance] : odds) {
                     call_roll -= chance;
                     agent.call = output - ACTION_COUNT;
                     if (call_roll < 0) break;
@@ -2638,7 +2642,11 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 for (int sound = -1; sound < CALL_COUNT; ++sound) outputs[static_cast<std::size_t>(sound + 1)] = sound_output(place, sound);
                 double roll = whim(agent.identifier * MAX_SOUNDS + place, turn_);
                 int picked = outputs[0];
-                for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
+                auto odds = choice_odds(values[index], outputs, CALL_TEMPERATURE);
+                if (ECHO > 0 && startled >= 0 && agent.echo_of[static_cast<std::size_t>(startled)][static_cast<std::size_t>(place)] > 0)
+                    echo_odds(odds, sound_output(place, agent.echo_of[static_cast<std::size_t>(startled)][static_cast<std::size_t>(place)] - 1),
+                              sound_output(place, 0), sound_output(place, CALL_COUNT - 1));
+                for (const auto& [output, chance] : odds) {
                     roll -= chance;
                     picked = output;
                     if (roll < 0) break;
@@ -2660,6 +2668,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.named_turn = turn_;
                 agent.surprised = surprise;
             }
+        }
+        if (ECHO > 0 && startled >= 0 && situation.loudest_sounds[0] >= 0) {  // echo: the call heard, kept against what surprised it
+            for (std::size_t place = 0; place < MAX_SOUNDS; ++place)
+                agent.echo_of[static_cast<std::size_t>(startled)][place] = static_cast<std::int8_t>(situation.loudest_sounds[place] + 1);
         }
         keep_habit(agent, plans[index].senses);  // how its call kept to its habits, and the call remembered
         // What its memory now holds, written as it chose, unless its brain wasn't asked (asleep or spent, it keeps what
@@ -3763,6 +3775,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (caller) {
         s.loudest_from = caller->identifier;
         s.loudest_call = caller->call;
+        if (caller->call >= FirstCall) s.loudest_sounds = {caller->call - FirstCall, caller->sounds[0], caller->sounds[1]};
         senses[utterance_sense(0, caller->call - FirstCall)] = 1.0;  // and its call, sound by sound
         for (int place = 1; place < MAX_SOUNDS && caller->sounds[static_cast<std::size_t>(place - 1)] >= 0; ++place) {
             senses[utterance_sense(place, caller->sounds[static_cast<std::size_t>(place - 1)])] = 1.0;
@@ -5055,6 +5068,20 @@ double Simulation::skill_held(const Bitzkey& agent, const Bitzkey& other) const 
     if (const auto held = inherited(agent, other)) return held->skill;
     const Faction* faction = faction_of(agent, other);
     return faction ? faction->skill : 0.0;
+}
+
+void echo_odds(std::vector<std::pair<int, double>>& odds, int favoured, int first, int last) {
+    double mass = 0.0, total = 0.0;  // the sounds' share of the odds, kept; within it, the favoured one readier
+    const double boost = std::exp(std::min(50.0, ECHO / CALL_TEMPERATURE));
+    for (auto& [output, chance] : odds) {
+        if (output < first || output > last) continue;
+        mass += chance;
+        if (output == favoured) chance *= boost;
+        total += chance;
+    }
+    if (total <= 0) return;
+    for (auto& [output, chance] : odds)
+        if (output >= first && output <= last) chance *= mass / total;
 }
 
 CallTag call_tag(const Bitzkey& caller, const Bitzkey& hearer) {

@@ -3828,6 +3828,39 @@ TEST_CASE("calls are chosen at their own temperature") {
     CHECK(choice_odds(values, options)[1].second == doctest::Approx(choice_odds(values, options, TEMPERATURE)[1].second));
 }
 
+TEST_CASE("echo makes the sound heard before a surprise readier, keeping the odds of silence and of calling") {
+    struct Keep { double echo = ECHO, temperature = CALL_TEMPERATURE; ~Keep() { ECHO = echo; CALL_TEMPERATURE = temperature; } } keep;
+    ECHO = 1.0;
+    CALL_TEMPERATURE = 0.5;
+    std::vector<std::pair<int, double>> odds = {{call_output(Silent), 0.4}, {call_output(AlertCall), 0.1}};
+    for (int call = FirstCall; call < CALL_OPTIONS; ++call) odds.emplace_back(call_output(call), 0.1);
+    echo_odds(odds, call_output(FirstCall + 2), call_output(FirstCall), call_output(CALL_OPTIONS - 1));
+    double sounds = 0.0;
+    for (const auto& [output, chance] : odds) if (output >= call_output(FirstCall)) sounds += chance;
+    CHECK(odds[0].second == doctest::Approx(0.4));  // silence and the alert as they were
+    CHECK(odds[1].second == doctest::Approx(0.1));
+    CHECK(sounds == doctest::Approx(0.5));  // calling as likely as before
+    const double favoured = odds[static_cast<std::size_t>(2 + 2)].second, other = odds[2].second;
+    CHECK(favoured / other == doctest::Approx(std::exp(1.0 / 0.5)));  // as if valued ECHO higher
+    // In a world: animals that heard a call before a surprise keep it against the thing that surprised them.
+    struct KeepNaming { double was = NAMING; ~KeepNaming() { NAMING = was; } } keep_naming;
+    NAMING = 1.0;
+    Simulation simulation = world(20);
+    for (int index = 0; index < 12; ++index) simulation.add_agent(encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}}), 4 + index % 4, 4 + index / 4);
+    simulation.add_agent(encode_dna(Species::Predator), 10, 10);
+    bool kept = false;
+    for (int turn = 0; turn < 40 && !kept; ++turn) {
+        simulation.take_turn();
+        for (const Bitzkey* agent : simulation.living())
+            for (const auto& thing : agent->echo_of)
+                if (thing[0] > 0) {
+                    kept = true;
+                    CHECK(thing[0] <= CALL_COUNT);
+                }
+    }
+    CHECK(kept);
+}
+
 TEST_CASE("a call carries a tag every hearer reads: the caller's colours, alike to its own and as they are, pitch, harshness and urgency") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"aggression", 7}}), 5, 5);

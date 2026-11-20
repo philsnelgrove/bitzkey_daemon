@@ -411,6 +411,11 @@ inline double OUTSIDE_FORESIGHT = 10.0;
 // calling in itself gains nothing. So a caller comes to say what it would itself understand; what any call means is left
 // to them. 0 for none.
 inline double SPEAK_AS_HEARD = 15.0;
+// Echo, speak as heard with the odds held: an animal remembers, for each outside thing, the call it heard just
+// before that thing surprised it most; when the same thing next surprises it most and it calls, the remembered
+// sound at each place comes readier among the five, as if valued ECHO higher. Silence, the alert and stopping keep
+// their own odds, so it changes which sound, never whether it calls or how long. Needs NAMING's surprise. 0 for none.
+inline double ECHO = 2.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1173,6 +1178,9 @@ struct Bitzkey {
     double outside_surprise = 0.0;      // its mean surprise at the outside this turn, 0 to 1 (Naming)
     int told_by = -1, told_turn = -1;   // the teller it last heard, and when
     double told_surprise = 0.0;         // its mean surprise as it heard
+    // Echo: for each outside thing, the call heard just before it most surprised it, sound by sound, each 1 + the
+    // sound (0 none)
+    std::array<std::array<std::int8_t, MAX_SOUNDS>, OUTSIDE_SEEN> echo_of{};
     double call_urgency = 0.0;          // how stirred it was as it last called, carried in its call's tag
     int startled = -1;                  // the thing that most surprised it as it last chose, for the probe alone (not saved)
     // Its cue for an action: one taken on from another, or else its own first, by chance.
@@ -1417,6 +1425,9 @@ int call_reach(const Bitzkey& caller);  // how many steps its calls carry (Call 
 // The tag a call carries, as a hearer reads it: its senses from voice_sense(0) on (see VoiceSense).
 using CallTag = std::array<double, VOICE_SENSES>;
 CallTag call_tag(const Bitzkey& caller, const Bitzkey& hearer);
+// Echo: among the odds of `first` to `last` (the five sounds of a place), `favoured` made readier, as if valued ECHO
+// higher, their share of the odds kept; the others' odds untouched.
+void echo_odds(std::vector<std::pair<int, double>>& odds, int favoured, int first, int last);
 Dna predator_dna(Dna dna);
 // A child's genome with its species moved along the chain of evolution, grazer, omnivore, predator, by a
 // mutation of the species: a flip landing on predator makes any animal a predator; otherwise a flip of the
@@ -1741,6 +1752,7 @@ public:
         double ambition = 0.0;  // its dislike of the group whose land it stands in, uninvited: -1 a friend's, 1 a foe's
         int heard_from = -1, heard_call = -1;  // the loudest caller of its kind it heard, and its call
         int loudest_from = -1, loudest_call = -1;  // the loudest caller of any kind it heard, and its call
+        std::array<int, MAX_SOUNDS> loudest_sounds{-1, -1, -1};  // that call's sounds, 0..4, -1 none (as heard)
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
