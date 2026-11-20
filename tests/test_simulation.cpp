@@ -3861,6 +3861,48 @@ TEST_CASE("echo makes the sound heard before a surprise readier, keeping the odd
     CHECK(kept);
 }
 
+TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, and callers come to want things of their hearers") {
+    Simulation simulation = world(20);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 13, 10);
+    hearer.last_choice = GoWest;  // toward the caller, to the west of it
+    CHECK(simulation.deeds_of(hearer, caller) == (1U << WishNear));
+    hearer.last_choice = WalkEast;
+    CHECK(simulation.deeds_of(hearer, caller) == (1U << WishAway));
+    hearer.last_choice = GoNorth;  // neither nearer nor further
+    CHECK(simulation.deeds_of(hearer, caller) == 0U);
+    hearer.last_choice = Flee;
+    CHECK(simulation.deeds_of(hearer, caller) == (1U << WishFlee));
+    hearer.last_choice = Browse;
+    CHECK(simulation.deeds_of(hearer, caller) == (1U << WishEat));
+    hearer.last_choice = Offer;
+    CHECK(simulation.deeds_of(hearer, caller) == (1U << WishTrade));
+    CHECK(OUTPUTS[WISH] == "wish_near");
+    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "wish_fight");
+    // In a world: callers hold an intent, and their hearers' deeds are tallied against it.
+    struct Keep { double intent = INTENT, wishes = WISH_LEARNING; ~Keep() { INTENT = intent; WISH_LEARNING = wishes; } } keep;
+    INTENT = 1.0;
+    WISH_LEARNING = 1.0;
+    Simulation herd = world(20);
+    for (int index = 0; index < 12; ++index) herd.add_agent(encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}}), 4 + index % 4, 4 + index / 4);
+    herd.add_agent(encode_dna(Species::Predator), 10, 10);
+    bool intended = false;
+    for (int turn = 0; turn < 60; ++turn) {
+        herd.take_turn();
+        for (const Bitzkey* agent : herd.living()) {
+            CHECK(agent->intent < WISHES);
+            if (agent->intent >= 0) {
+                intended = true;
+                CHECK(agent->call >= FirstCall);
+            }
+        }
+    }
+    CHECK(intended);
+    const Simulation::IntentTally& tally = herd.intent_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.hearers > 0);
+    CHECK(tally.met <= tally.hearers);
+}
+
 TEST_CASE("a call carries a tag every hearer reads: the caller's colours, alike to its own and as they are, pitch, harshness and urgency") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}, {"aggression", 7}}), 5, 5);

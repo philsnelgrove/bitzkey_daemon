@@ -2062,5 +2062,9 @@
 "Fatigue unease": "Неспокій від утоми",
 "unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "неспокій від утоми, слабкий, поки свіжий, і круто зростає до виснаження (як куб витраченої витривалості), від половини цього для найстійкіших до півтора разу для найменш стійких",
 "Echo": "Відлуння",
-"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "наскільки легше приходять звуки, які тварина чула якраз перед тим, як щось її здивувало, коли те саме здивує її знову: змінює лише який звук, ніколи не чи кличе і як довго; 0 — жодного"
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "наскільки легше приходять звуки, які тварина чула якраз перед тим, як щось її здивувало, коли те саме здивує її знову: змінює лише який звук, ніколи не чи кличе і як довго; 0 — жодного",
+"Intent": "Намір",
+"how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "наскільки поклик учиться з частки тих, хто його почув і потім зробив те, чого кличний найбільше від них хотів (підійти, відійти, тікати, відпочити, їсти, торгувати чи битися); його бажання вчаться з того, як чужі вчинки обернулися для нього; 0 — жодного",
+"Wish learning": "Навчання бажань",
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "наскільки кличний учиться, чого хоче від тих, хто його чує: кожен вчинок, який вони потім зробили, оцінений за тим, як його власний хід вийшов проти очікуваного, як частка його навчання; 0 — жодного"
 }

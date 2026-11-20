@@ -304,7 +304,9 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         json outputs = json::array();
         for (const int output : agent.call_outputs) outputs.push_back(output >= 0 ? json(std::string(OUTPUTS[static_cast<std::size_t>(output)])) : json(nullptr));
         record["held_call"] = {{"senses", numbers.senses(agent.call_senses)}, {"outputs", outputs}, {"target", agent.held_call_target}};
+        if (agent.held_intent >= 0) record["held_call"]["intent"] = agent.held_intent;
     }
+    if (agent.intent >= 0) record["intent"] = agent.intent;
     json places = json::array();  // each [column, row, last, then for each season: seen, food, danger, comfort]
     for (const MapPlace& place : agent.places) {
         json entry = {place.column, place.row, place.last};
@@ -515,6 +517,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->told_turn = record.value("told_turn", -1);
     agent->told_surprise = record.value("told_surprise", 0.0);
     agent->call_urgency = record.value("call_urgency", 0.0);
+    agent->intent = record.value("intent", -1);
     if (record.contains("echo_of")) agent->echo_of = record["echo_of"].get<std::array<std::array<std::int8_t, MAX_SOUNDS>, OUTSIDE_SEEN>>();
     if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();
     if (record.contains("habits") && numbers.sense_from.empty()) {  // kept only while its senses are the same
@@ -542,6 +545,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         const json& held = record["held_call"];
         agent->call_senses = numbers.senses(held.at("senses"));
         agent->held_call_target = held.at("target").get<double>();
+        agent->held_intent = held.value("intent", -1);
         for (std::size_t place = 0; place < MAX_SOUNDS; ++place) {
             const json& name = held.at("outputs").at(place);
             const auto found = name.is_null() ? OUTPUTS.end() : std::find(OUTPUTS.begin(), OUTPUTS.end(), name.get<std::string>());

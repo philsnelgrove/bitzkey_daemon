@@ -2062,5 +2062,9 @@
 "Fatigue unease": "疲劳不适",
 "unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "疲倦的不适，精力充沛时很少，接近力竭时急剧上升（按消耗体力的立方计），最有韧性者为此值的一半，最无韧性者为其一倍半",
 "Echo": "回声",
-"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "动物在某物令其惊讶前刚听到的声音，在同一事物再次令其惊讶时变得多容易发出：只改变发哪个声音，从不改变是否呼叫或叫多久；0 为无"
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "动物在某物令其惊讶前刚听到的声音，在同一事物再次令其惊讶时变得多容易发出：只改变发哪个声音，从不改变是否呼叫或叫多久；0 为无",
+"Intent": "意图",
+"how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "呼叫从听到者中随后做了呼叫者最希望之事(靠近、离开、逃跑、休息、进食、交易或战斗)的比例中学到多少;其愿望从他者行为对它的影响中习得;0 为无",
+"Wish learning": "愿望学习",
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "呼叫者学习它想要听者做什么的程度:听者随后的每个行为,按它自己这一回合相对预期的结果来评价,作为其学习的一部分;0 为无"
 }

@@ -1503,6 +1503,23 @@ Json Probe::language(Simulation& world) const {
                              {"parent_young_pairs", kin_pairs}, {"parent_young_same", ratio(static_cast<double>(kin_same), static_cast<double>(kin_pairs))},
                              {"same_by_chance", made > 0 ? Json(same_by_chance) : Json(nullptr)}}},
             {"dialects", {{"groups_differ", spoken ? Json(*spoken) : Json(nullptr)}, {"by_chance", spoken ? Json(shuffled) : Json(nullptr)}}}};
+        // Intent, since the world began or was loaded: of those who heard a call with an intent, the share who then did
+        // what their caller most wished, against chance (as often as each intent came, times as often as each deed was done).
+        const Simulation::IntentTally& tally = world.intent_tally()[static_cast<std::size_t>(species)];
+        Json intended = Json::object(), done = Json::object();
+        double intent_chance = 0.0;
+        for (int wish = 0; wish < WISHES; ++wish) {
+            const std::string name(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5));  // past "wish_"
+            intended[name] = tally.intended[static_cast<std::size_t>(wish)];
+            done[name] = tally.done[static_cast<std::size_t>(wish)];
+            if (tally.hearers > 0) {
+                intent_chance += static_cast<double>(tally.intended[static_cast<std::size_t>(wish)]) / static_cast<double>(tally.hearers) *
+                                 static_cast<double>(tally.done[static_cast<std::size_t>(wish)]) / static_cast<double>(tally.hearers);
+            }
+        }
+        result[std::string(species_name(species))]["intent"] = {
+            {"hearers", tally.hearers}, {"met", ratio(static_cast<double>(tally.met), static_cast<double>(tally.hearers))},
+            {"by_chance", tally.hearers > 0 ? Json(intent_chance) : Json(nullptr)}, {"intended", intended}, {"done", done}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

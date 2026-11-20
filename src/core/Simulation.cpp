@@ -1955,11 +1955,13 @@ int Simulation::sounds_made(const Bitzkey& agent) {
 
 void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate) {
     // From its call, as from an action untraced: what came of the turn, and the best call open now; each of its sounds alike.
-    // Feeling for its listeners, it holds the lesson a turn, till their turn is judged (see settle_call).
-    if (CALL_EMPATHY > 0) {
+    // Feeling for its listeners, or wanting something of them, it holds the lesson a turn, till their turn is judged (see
+    // settle_call).
+    if (CALL_EMPATHY > 0 || INTENT > 0 || WISH_LEARNING > 0) {
         agent.call_senses = senses;
         agent.call_outputs = outputs;
         agent.held_call_target = target;
+        agent.held_intent = agent.intent;
         agent.call_held = rate > 0;
         return;
     }
@@ -1981,30 +1983,81 @@ void Simulation::settle_call(Bitzkey& agent) {
     double target = agent.held_call_target;
     if (relieved) target += NAMING_RELIEF;
     if (agent.call_listeners > 0) target += CALL_EMPATHY * agent.feeling(Empathy) * agent.call_credit / agent.call_listeners;
+    if (agent.call_listeners > 0 && agent.held_intent >= 0) target += INTENT * agent.intent_met / static_cast<double>(agent.call_listeners);
     target = limited_value(target);
+    const auto lesson = [&](int output, double value, double share) {
+        if (gpu_) queue_lesson(agent, agent.call_senses, output, value, share, false, 0.0);
+        else learning_brain(agent).learn(agent.call_senses, output, value, share);
+    };
     for (const int output : agent.call_outputs) {
-        if (output < 0) continue;
-        if (gpu_) queue_lesson(agent, agent.call_senses, output, target, rate, false, 0.0);
-        else learning_brain(agent).learn(agent.call_senses, output, target, rate);
+        if (output >= 0) lesson(output, target, rate);
     }
+    // Its wishes: each deed its hearers did, taught by how its own turn went against what it expected.
+    if (WISH_LEARNING > 0 && agent.wish_judged) {
+        const double value = limited_value(agent.wish_advantage);
+        for (int wish = 0; wish < WISHES; ++wish) {
+            if (agent.wishes_done & (1U << wish)) lesson(WISH + wish, value, rate * WISH_LEARNING);
+        }
+    }
+}
+
+unsigned Simulation::deeds_of(const Bitzkey& hearer, const Bitzkey& caller) const {
+    const int choice = hearer.last_choice;
+    unsigned deeds = 0;
+    const auto deed = [&deeds](Wish wish) { deeds |= 1U << wish; };
+    if (choice >= GoNorth && choice <= WalkWest) {  // nearer the caller, or further off, by which way it set out
+        const Heading& heading = HEADINGS[static_cast<std::size_t>(choice - GoNorth)];
+        const int east = py_mod(caller.x - hearer.x + width_ / 2, width_) - width_ / 2, south = caller.y - hearer.y;
+        const int toward = heading.dx * east + heading.dy * south;
+        if (toward > 0) deed(WishNear);
+        if (toward < 0) deed(WishAway);
+    }
+    switch (choice) {
+        case Flee: deed(WishFlee); break;
+        case Rest: deed(WishRest); break;
+        case Eat: case Forage: case Browse: case Uproot: case Scavenge: case Feast: case EatPile: case EatCarried:
+        case EatSeed: case EatMarrow: deed(WishEat); break;
+        case Give: case Offer: deed(WishTrade); break;
+        case Hunt: case Attack: case Defend: case Shoot: deed(WishFight); break;
+        default: break;
+    }
+    return deeds;
 }
 
 void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets) {
     // How each one's turn went against what it expected of its choice, shared with the caller of its kind it heard as it
     // chose, by that caller's care for it: kin wholly, a friend by its regard, any other a quarter.
-    for (Bitzkey* agent : agents) {
+    // And, with Intent, which deeds its hearers did, how many did what it intended, and how its own turn went.
+    const bool wishing = INTENT > 0 || WISH_LEARNING > 0;
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        Bitzkey* agent = agents[index];
         agent->call_credit = 0.0;
         agent->call_listeners = 0;
+        agent->wishes_done = 0;
+        agent->intent_met = 0;
+        agent->wish_judged = wishing && agent->call_held && agent->has_last_senses && agent->chosen_turn == turn_ - 1;
+        agent->wish_advantage = agent->wish_judged ? targets[index] - agent->chosen_value : 0.0;
     }
-    if (CALL_EMPATHY <= 0) return;
+    if (CALL_EMPATHY <= 0 && !wishing) return;
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& listener = *agents[index];
         if (!listener.has_last_senses || listener.call_heeded < 0 || listener.chosen_turn != turn_ - 1) continue;
         Bitzkey* caller = find_agent(listener.call_heeded);
         if (!caller || !caller->alive() || !caller->call_held || caller == &listener) continue;
         const double care = family(*caller, listener) ? 1.0 : std::max(0.25, regard_for(*caller, listener));
-        caller->call_credit += care * (targets[index] - listener.chosen_value);
+        if (CALL_EMPATHY > 0) caller->call_credit += care * (targets[index] - listener.chosen_value);
         ++caller->call_listeners;
+        if (!wishing) continue;
+        const unsigned deeds = deeds_of(listener, *caller);
+        caller->wishes_done |= deeds;
+        if (caller->held_intent < 0) continue;
+        const bool met = (deeds >> caller->held_intent) & 1U;
+        caller->intent_met += met;
+        IntentTally& tally = intent_tally_[static_cast<std::size_t>(caller->species)];
+        ++tally.hearers;
+        tally.met += met;
+        ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
+        for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (deeds >> wish) & 1U;
     }
 }
 
@@ -2563,6 +2616,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         // And what it calls as it does it: by its brain alone, one asleep, spent or frozen with fear keeping silent.
         agent.call = Silent;
         agent.last_call = -1;
+        agent.intent = -1;
         agent.sounds = agent.last_sounds = {-1, -1};
         if (!idle[index]) {  // what its brain made of what it chose, to judge the turn against
             agent.chosen_value = values[index][choice];
@@ -2658,6 +2712,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_call = agent.call;
             agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
+            if (INTENT > 0 && agent.call >= FirstCall) {
+                agent.intent = 0;
+                for (int wish = 1; wish < WISHES; ++wish) {
+                    if (values[index][WISH + wish] > values[index][WISH + agent.intent]) agent.intent = wish;
+                }
+            }
             // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
             // more for the fearful), hunger and pain.
             const double threat = plans[index].senses[static_cast<std::size_t>(SenseThreatCloseness)] * (0.5 + agent.fearfulness()) / 1.5;

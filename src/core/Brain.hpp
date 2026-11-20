@@ -228,7 +228,15 @@ constexpr std::array<int, OUTSIDE_SEEN> OUTSIDE_SENSES = {
     SenseStonePileCloseness, SenseBonePileCloseness, SenseWoodPileCloseness, SenseGearPileCloseness, SenseFireCloseness,
     SenseComfortCloseness};
 constexpr int OUTSIDE = MORE_SOUNDS + (MAX_SOUNDS - 1) * SOUND_CHOICES;  // the first of them
-constexpr int OUTPUT_COUNT = OUTSIDE + OUTSIDE_SEEN;
+// Wishes: last of all its outputs, what a caller expects to gain were one who heard its call then to do each of these:
+// come nearer to it, go further off, flee, rest, eat, trade (give or offer) or fight. Each is taught, when its call is
+// heard, by how the caller's own turn went against what it expected, for each of these its hearers then did (see
+// WISH_LEARNING); so which deeds of others it wants is learnt, not given. The one it values most as it calls is its
+// intent, and the call is taught the more the more of its hearers did that (see INTENT).
+enum Wish : int { WishNear, WishAway, WishFlee, WishRest, WishEat, WishTrade, WishFight };
+constexpr int WISHES = 7;
+constexpr int WISH = OUTSIDE + OUTSIDE_SEEN;  // the first of them
+constexpr int OUTPUT_COUNT = WISH + WISHES;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
 constexpr int sound_output(int place, int sound) { return MORE_SOUNDS + (place - 1) * SOUND_CHOICES + 1 + sound; }
 // Whether an output values a second or third sound (not stopping): a new brain holds back from them as from calling.
@@ -251,7 +259,7 @@ constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
     "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "make_bow", "make_wagon", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed", "build_road", "eat_marrow", "fertilize", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store_food", "craft_arrows"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write, then what it
-// foresees, then a call's later sounds, then what it foresees of the outside.
+// foresees, then a call's later sounds, then what it foresees of the outside, then its wishes of its hearers.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     std::array<std::string_view, OUTPUT_COUNT> names{};
     for (int action = 0; action < ACTION_COUNT; ++action) names[action] = ACTIONS[action];
@@ -273,6 +281,8 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
         "foresee_meat_pile", "foresee_fruit_pile", "foresee_stone_pile", "foresee_bone_pile", "foresee_wood_pile",
         "foresee_gear_pile", "foresee_fire", "foresee_comfort"};
     for (int output = 0; output < OUTSIDE_SEEN; ++output) names[OUTSIDE + output] = outside[output];
+    constexpr std::array<std::string_view, WISHES> wishes = {"wish_near", "wish_away", "wish_flee", "wish_rest", "wish_eat", "wish_trade", "wish_fight"};
+    for (int output = 0; output < WISHES; ++output) names[WISH + output] = wishes[output];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1

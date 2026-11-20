@@ -416,6 +416,13 @@ inline double SPEAK_AS_HEARD = 15.0;
 // sound at each place comes readier among the five, as if valued ECHO higher. Silence, the alert and stopping keep
 // their own odds, so it changes which sound, never whether it calls or how long. Needs NAMING's surprise. 0 for none.
 inline double ECHO = 2.0;
+// Intent: a caller's wishes (the Wish outputs) say what it expects to gain were one who heard it to come nearer, go
+// further off, flee, rest, eat, trade or fight. When its call is heard, each wish one of its hearers then fulfilled is
+// taught, at WISH_LEARNING of its learning rate, by how the caller's own turn went against what it expected; so what it
+// wants of others is learnt from its own life. The wish it valued most as it called is its intent, and the call is
+// taught INTENT times the share of its hearers who then did that. Which sounds ask for what is left to them. 0 for none.
+inline double INTENT = 1.0;
+inline double WISH_LEARNING = 1.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1200,6 +1207,14 @@ struct Bitzkey {
     std::array<int, MAX_SOUNDS> call_outputs{-1, -1, -1};
     double held_call_target = 0.0;
     bool call_held = false;
+    // Intent: the wish it valued most as it last called (-1 none), and as its held call was made; and, as its hearers'
+    // turn is judged, which deeds they did (a bit for each wish), how many did its intent, and how its own turn went.
+    int intent = -1;
+    int held_intent = -1;
+    unsigned wishes_done = 0;
+    int intent_met = 0;
+    double wish_advantage = 0.0;
+    bool wish_judged = false;
     // Its last calls (see CALL_HABIT): what it sensed, each sense held in a byte, and the call, sound by sound (-1 none).
     struct CallHabit {
         std::array<std::int8_t, INPUT_SIZE> senses{};
@@ -1612,6 +1627,15 @@ public:
     // Followers who stopped holding a recognised leader as their standout, by species and why: it died, one of them left
     // the other's colour group, its esteem fell to nothing, or one in sight outshone it; since the world began or was loaded.
     const std::array<std::array<long long, 4>, 4>& followers_lost() const { return followers_lost_; }
+    // Intent, by species, since the world began or was loaded: of hearers of a call with an intent, how many there were
+    // with each intent, how many did each deed, and how many did their caller's intent.
+    struct IntentTally {
+        long long hearers = 0, met = 0;
+        std::array<long long, WISHES> intended{}, done{};
+    };
+    const std::array<IntentTally, 4>& intent_tally() const { return intent_tally_; }
+    // The deeds of `hearer`'s last choice, as `caller`'s wishes name them, a bit for each (see INTENT).
+    unsigned deeds_of(const Bitzkey& hearer, const Bitzkey& caller) const;
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
     struct Trade {
         int turn, offerer, owner, wanted, offered;
@@ -2319,6 +2343,7 @@ private:
     std::deque<Gift> gifts_;
     // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
     std::array<std::array<long long, 4>, 4> followers_lost_{};
+    std::array<IntentTally, 4> intent_tally_{};
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood
     int leaders_ = 0;  // recognised at the last count
     std::deque<Trade> trades_;

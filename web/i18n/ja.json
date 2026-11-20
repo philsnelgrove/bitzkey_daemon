@@ -2062,5 +2062,9 @@
 "Fatigue unease": "疲労の不快",
 "unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "疲れていることの不快さ。元気なうちはわずかで、消耗に向かって急に高まる（使ったスタミナの3乗として）。最も回復力のある者はこの半分、最も回復力のない者は1.5倍",
 "Echo": "こだま",
-"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "何かに驚く直前に聞いた音が、同じものに再び驚いたときにどれだけ出やすくなるか。変わるのはどの音かだけで、鳴くかどうかや長さは変わらない。0で無し"
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "何かに驚く直前に聞いた音が、同じものに再び驚いたときにどれだけ出やすくなるか。変わるのはどの音かだけで、鳴くかどうかや長さは変わらない。0で無し",
+"Intent": "意図",
+"how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "鳴き声を聞いた者のうち、鳴いた者が最も望んだこと(近づく・離れる・逃げる・休む・食べる・取引する・戦う)をその後した割合から、その鳴き声がどれだけ学ぶか。望みは他者の行いが自分にどう働いたかから学ぶ。0で無し",
+"Wish learning": "望みの学習",
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "鳴いた者が聞き手に何を望むかをどれだけ学ぶか。聞き手がその後した各行いを、自分の番が予想に比べてどうだったかで評価し、学習の一部とする。0で無し"
 }

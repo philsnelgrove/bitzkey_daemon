@@ -2062,5 +2062,9 @@
 "Fatigue unease": "אי־נוחות מעייפות",
 "unease of being tired, little while fresh and rising steeply towards exhaustion (as the cube of the stamina spent), from half this for the most resilient to one and a half times it for the least": "אי־נוחות של עייפות, מעטה כשהוא רענן ועולה בחדות לקראת תשישות (כחזקה שלישית של הסיבולת שהוצאה), ממחצית מזה לעמידים ביותר ועד פי אחד וחצי לעמידים פחות מכולם",
 "Echo": "הד",
-"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "עד כמה זמינים יותר הצלילים שבעל חיים שמע ממש לפני שמשהו הפתיע אותו, כשאותו דבר מפתיע אותו שוב: זה משנה רק איזה צליל, לעולם לא אם הוא קורא או לכמה זמן; 0 לאף אחד"
+"how much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none": "עד כמה זמינים יותר הצלילים שבעל חיים שמע ממש לפני שמשהו הפתיע אותו, כשאותו דבר מפתיע אותו שוב: זה משנה רק איזה צליל, לעולם לא אם הוא קורא או לכמה זמן; 0 לאף אחד",
+"Intent": "כוונה",
+"how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "כמה קריאה לומדת מחלקם של השומעים שעשו אחר כך את מה שהקורא הכי רצה מהם (להתקרב, להתרחק, לברוח, לנוח, לאכול, לסחור או להילחם); רצונותיו נלמדים ממה שמעשי אחרים הביאו לו; 0 לאף אחד",
+"Wish learning": "למידת רצונות",
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "כמה קורא לומד מה הוא רוצה משומעיו: כל מעשה שעשו אחר כך, מוערך לפי איך עבר התור שלו מול מה שציפה, כחלק מלמידתו; 0 לאף אחד"
 }
