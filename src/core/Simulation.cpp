@@ -5239,7 +5239,9 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
 
 void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
-        agent.hunger = std::min(100.0, agent.hunger + CALL_COST * std::max(1, sounds_made(agent)));  // each sound costs
+        const int sounds = std::max(1, sounds_made(agent));  // each sound costs, in hunger and in stamina
+        agent.hunger = std::min(100.0, agent.hunger + CALL_COST * sounds);
+        agent.stamina = std::max(0.0, agent.stamina - fatigue(agent, CALL_FATIGUE * sounds));
         if (agent.call == AlertCall && s.alert_to) alert(agent, *s.alert_to);
     }
     const std::size_t passed = agent.trail.size();

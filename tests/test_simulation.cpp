@@ -3735,7 +3735,27 @@ TEST_CASE("a call that keeps to its caller's habits pleases; one that breaks the
     CHECK(caller.habits.size() == 8);
 }
 
+TEST_CASE("a call tires its caller: each sound costs CALL_FATIGUE stamina, as an action's tiredness is counted, and CALL_COST hunger") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
+    const double fatigue_was = CALL_FATIGUE, cost_was = CALL_COST;
+    CALL_FATIGUE = 5.0;
+    CALL_COST = 0.0;
+    caller.stamina = 50.0;
+    caller.hunger = 10.0;
+    caller.call = FirstCall + 1;
+    caller.sounds = {2, -1};  // two sounds
+    caller.call_turn = simulation.turn();
+    Simulation::Situation nothing;
+    simulation.act(caller, Rest, nothing);
+    CHECK(caller.stamina == doctest::Approx(std::min(FULL_STAMINA, 50.0 - fatigue(caller, 10.0) + rest_recovery())));
+    CHECK(caller.hunger == doctest::Approx(10.0).epsilon(0.05));  // no hunger for it, by default now
+    CALL_FATIGUE = fatigue_was;
+    CALL_COST = cost_was;
+}
 TEST_CASE("each call teaches silence what keeping quiet would have brought: without the call's cost or its habit pleasure") {
+    struct KeepCost { double was = CALL_COST; ~KeepCost() { CALL_COST = was; } } keep_cost;  // as it was before 3.214, so the cost shows
+    CALL_COST = 0.3;
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
     caller.last_call = Silent;
@@ -3755,6 +3775,8 @@ TEST_CASE("each call teaches silence what keeping quiet would have brought: with
 }
 
 TEST_CASE("by the call baseline a call learns only its own part: its pleasures and habit, less its cost; a copier takes the caller's") {
+    struct KeepCost { double was = CALL_COST; ~KeepCost() { CALL_COST = was; } } keep_cost;  // as it was before 3.214, so the cost shows
+    CALL_COST = 0.3;
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
     caller.last_call = AlertCall;

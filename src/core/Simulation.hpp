@@ -374,7 +374,8 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // Calls (Brain.hpp): one carries this many steps times a half and its caller's size (a share of its range), at least
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 16;
-inline double CALL_COST = 0.3;  // for each sound of a call: two sounds cost twice as much as one
+inline double CALL_COST = 0.0;  // hunger for each sound of a call: two sounds cost twice as much as one (0.3 until 3.214)
+inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
 inline int CALL_LENGTH = 3;

@@ -2056,5 +2056,7 @@
 "Naming relief": "Soulagement de nommer",
 "with naming, how much more a call is taught when one who heard it is then less surprised than it was, the itch passing": "en nommant, combien plus un cri est appris quand celui qui l'a entendu est ensuite moins surpris qu'avant, l'envie passant",
 "Tutor cost": "Coût du tutorat",
-"hunger a lesson costs the one who tutors": "faim qu'une leçon coûte à celui qui l'enseigne"
+"hunger a lesson costs the one who tutors": "faim qu'une leçon coûte à celui qui l'enseigne",
+"Call fatigue": "Fatigue du cri",
+"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "endurance que chaque son d'un cri coûte à celui qui crie, l'alerte comprise, comptée comme la fatigue d'une action (une action seule coûte 10)"
 }

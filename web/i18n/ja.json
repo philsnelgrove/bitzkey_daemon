@@ -2056,5 +2056,7 @@
 "Naming relief": "名付けの安堵",
 "with naming, how much more a call is taught when one who heard it is then less surprised than it was, the itch passing": "名付けで、呼び声を聞いた者がその後以前より驚かなくなったとき、その呼び声がどれだけ多く教えられるか。衝動は消える",
 "Tutor cost": "指導の代償",
-"hunger a lesson costs the one who tutors": "教える者が一回の教えで払う空腹"
+"hunger a lesson costs the one who tutors": "教える者が一回の教えで払う空腹",
+"Call fatigue": "呼び声の疲れ",
+"stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)": "呼び声の一音ごとに呼ぶ者が使うスタミナ。警報も含み、行動の疲れと同じように数える（行動ひとつで10）"
 }
