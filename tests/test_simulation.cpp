@@ -1307,6 +1307,8 @@ TEST_CASE("worked land left untended goes wild, its bone with it") {
     FALLOW_YEARS = 0;
     simulation.go_fallow();
     CHECK(simulation.arable_at(6, temperate));  // never, at 0
+    farmer.y = (temperate + 20) % 40;  // away, so it can't tend it again as the turn passes
+    simulation.index_cells();
     simulation.advance();
     FALLOW_YEARS = 1e-9;  // as if a year had passed untended
     simulation.go_fallow();
@@ -3928,10 +3930,15 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
 
 TEST_CASE("pointing: a caller points at one outside thing, its hearers read the finger, and how well they understood is tallied") {
     CHECK(OUTPUTS[POINT] == "point_threat");
-    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "point_comfort");
-    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN);
+    CHECK(OUTPUTS[ATTEND - 1] == "point_comfort");
+    CHECK(OUTPUTS[ATTEND + AttendYes] == "attend");
+    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "ignore");
+    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN + ATTEND_OPTIONS);
     CHECK(SENSES[SensePointed + PointedAny] == "pointed");
     CHECK(SENSES[SensePointed + PointedCloseness] == "pointed_closeness");
+    CHECK(SENSES[SensePointed + Attending] == "attending");
+    CHECK(SENSES[SensePointed + SeesPointing] == "sees_pointing");
+    CHECK(SENSES[SensePointed + Watched] == "watched");
     Simulation lone = world(20);
     Bitzkey& caller = lone.add_agent(encode_dna(Species::Grazer), 10, 10);
     caller.point = 4;
@@ -3941,22 +3948,36 @@ TEST_CASE("pointing: a caller points at one outside thing, its hearers read the 
     CHECK(caller.pointed_at(10) == 4);
     CHECK(caller.pointed_at(9) == 2);  // a call before, read though it has called again
     CHECK(caller.pointed_at(8) == -1);
+    // Willing to learn from another: by sociability and intellect, 1 for the middling.
+    {
+        Bitzkey& dull = lone.add_agent(encode_dna(Species::Grazer, {{"sociability", 1}, {"intellect", 1}}), 3, 3);
+        Bitzkey& keen = lone.add_agent(encode_dna(Species::Grazer, {{"sociability", 7}, {"intellect", 7}}), 15, 15);
+        CHECK(Simulation::willing_to_learn(keen) > Simulation::willing_to_learn(dull));
+        CHECK(Simulation::willing_to_learn(dull) >= 0.25);
+        CHECK(Simulation::willing_to_learn(keen) <= 2.25);
+    }
     struct Keep { double pointing = POINTING, understood = UNDERSTOOD; ~Keep() { POINTING = pointing; UNDERSTOOD = understood; } } keep;
     POINTING = 1.0;
     UNDERSTOOD = 4.0;
     Simulation herd = world(20);
     for (int index = 0; index < 12; ++index) herd.add_agent(encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}}), 4 + index % 4, 4 + index / 4);
     herd.add_agent(encode_dna(Species::Predator), 10, 10);
-    bool pointed = false, read = false;
+    bool pointed = false, read = false, attended = false;
     for (int turn = 0; turn < 60; ++turn) {
         herd.take_turn();
         for (const Bitzkey* agent : herd.living()) {
+            if (agent->attend_turn >= 0) attended = true;
+            if (agent->pointed_turn >= 0 && agent->pointed_turn == herd.turn()) {  // read a finger this turn: having attended before
+                CHECK(agent->attend_turn >= 0);
+                CHECK(agent->attend_turn >= agent->pointed_turn - 1);
+                CHECK(agent->pointed_by >= 0);
+            }
             CHECK(agent->point < OUTSIDE_SEEN);
             if (agent->point >= 0) {
                 pointed = true;
                 CHECK(agent->point_turn <= agent->call_turn);  // only a call points
             }
-            if (agent->point_turn >= 0 && agent->point_turn == agent->call_turn) CHECK(agent->last_call >= FirstCall);
+            if (agent->point_turn == herd.turn() && agent->call_turn == herd.turn()) CHECK(agent->last_call >= FirstCall);  // pointed as it called this turn
             if (agent->pointed_turn >= 0) {
                 read = true;
                 CHECK(agent->pointed_thing >= 0);
@@ -3965,9 +3986,12 @@ TEST_CASE("pointing: a caller points at one outside thing, its hearers read the 
         }
     }
     CHECK(pointed);
+    CHECK(attended);
     CHECK(read);
     const Simulation::PointTally& tally = herd.point_tally()[static_cast<std::size_t>(Species::Grazer)];
     CHECK(tally.calls > 0);
+    CHECK(tally.attend_chances > 0);
+    CHECK(tally.attended <= tally.attend_chances);
     long long points = 0, judged = 0;
     for (std::size_t thing = 0; thing < tally.points.size(); ++thing) {
         points += tally.points[thing];

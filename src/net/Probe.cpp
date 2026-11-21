@@ -1677,7 +1677,9 @@ Json Probe::language(Simulation& world) const {
         result[std::string(species_name(species))]["pointing"] = {
             {"calls", points.calls}, {"things", things},
             {"sound_tells_thing_bits", with_sound > 0 ? Json(information) : Json(nullptr)},
-            {"by_chance_bits", with_sound > 0 ? Json(chance_information) : Json(nullptr)}};
+            {"by_chance_bits", with_sound > 0 ? Json(chance_information) : Json(nullptr)},
+            {"attend_chances", points.attend_chances},
+            {"attended_share", points.attend_chances > 0 ? Json(points.attended / static_cast<double>(points.attend_chances)) : Json(nullptr)}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

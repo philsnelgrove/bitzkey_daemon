@@ -1745,6 +1745,18 @@ Brain& Simulation::learning_brain(Bitzkey& agent) {
     return *agent.brain;
 }
 
+namespace {
+// Whether its choice to attend or not, made last turn, is to be taught now (see ATTENTION).
+bool attend_lesson(const Bitzkey& agent) {
+    return ATTEND_LEARNING > 0 && agent.attend_choice >= 0 && agent.attend_choice < ATTEND_OPTIONS;
+}
+}  // namespace
+
+double Simulation::willing_to_learn(const Bitzkey& agent) {
+    // How willing it is to learn from another, by its sociability and its intellect: 1 for the middling, 0.25 the least.
+    return (0.5 + agent.feeling(Sociability)) * (0.5 + agent.intelligence());
+}
+
 void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay, double call_target) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
@@ -1763,6 +1775,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
             }
             if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
             if (const auto quiet = silence_target(agent, call_target)) queue_lesson(agent, agent.last_senses, call_output(Silent), *quiet, rate * SILENCE_LESSON, false, 0.0);
+            if (attend_lesson(agent)) queue_lesson(agent, agent.last_senses, ATTEND + agent.attend_choice, target, rate * ATTEND_LEARNING * willing_to_learn(agent), false, 0.0);
             const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
             if (steps > 0 && MEMORY_LEARNING > 0) {  // back in time, the senses of the choices before following
                 queue_lesson(agent, agent.last_senses, agent.last_choice, target, rate * MEMORY_LEARNING, false, 0.0, steps);
@@ -1778,6 +1791,8 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
         // And from its call, as from an action untraced: what came of the turn, and the best call open now.
         if (agent.last_call >= 0) teach_call(agent, agent.last_senses, utterance_outputs(agent), call_target, rate);
         if (const auto quiet = silence_target(agent, call_target)) agent.own_brain().learn(agent.last_senses, call_output(Silent), *quiet, rate * SILENCE_LESSON);
+        // And whether it attended, as it chose by the same senses: by what came of the turn.
+        if (attend_lesson(agent)) agent.own_brain().learn(agent.last_senses, ATTEND + agent.attend_choice, target, rate * ATTEND_LEARNING * willing_to_learn(agent));
         // And back in time: what its memory held, which the choice read, is taught to the gates that wrote it.
         const int steps = std::min(static_cast<int>(agent.past.size()), MEMORY_STEPS);
         if (steps > 0 && MEMORY_LEARNING > 0) {
@@ -2016,6 +2031,12 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         agent->understood_count = 0;
     }
     if (POINTING <= 0 && UNDERSTOOD <= 0) return;
+    for (const Bitzkey* agent : agents) {  // for the probe: whether each chose to attend last turn, when it could
+        if (agent->attend_choice < 0) continue;
+        PointTally& tally = point_tally_[static_cast<std::size_t>(agent->species)];
+        ++tally.attend_chances;
+        tally.attended += agent->attend_choice == AttendYes;
+    }
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& hearer = *agents[index];
         if (hearer.pointed_turn != turn_ - 1 || hearer.pointed_off < 0 || !hearer.has_foresaw || hearer.pointed_thing < 0) continue;
@@ -2177,6 +2198,14 @@ void Simulation::foresee(Bitzkey& agent, const Foresight& change, const Senses& 
             const double near = now[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(thing_seen)])];
             if (gpu_) queue_lesson(agent, agent.last_senses, OUTSIDE + thing_seen, near, rate * OUTSIDE_FORESIGHT, false, 0.0);
             else learning_brain(agent).learn(agent.last_senses, OUTSIDE + thing_seen, near, rate * OUTSIDE_FORESIGHT);
+        }
+        // Shown: attending, it read a finger last turn; what it was shown is learnt the more the more sociable and clever.
+        if (SHOWN_LEARNING > 0 && agent.pointed_turn == turn_ - 1 && agent.pointed_thing >= 0) {
+            const int shown = agent.pointed_thing;
+            const double near = now[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(shown)])];
+            const double share = rate * OUTSIDE_FORESIGHT * SHOWN_LEARNING * willing_to_learn(agent);
+            if (gpu_) queue_lesson(agent, agent.last_senses, OUTSIDE + shown, near, share, false, 0.0);
+            else learning_brain(agent).learn(agent.last_senses, OUTSIDE + shown, near, share);
         }
     }
     const Senses pictured = imagining(agent.last_senses, agent.last_choice);  // what it did, as if it had pictured it
@@ -2681,6 +2710,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.odds_offered |= 1U << option;
         }
         // And what it calls as it does it: by its brain alone, one asleep, spent or frozen with fear keeping silent.
+        const int previous_call = agent.last_call;  // what it said last, should it be watched and say it again
+        const std::array<int, MAX_SOUNDS - 1> previous_sounds = agent.last_sounds;
         agent.call = Silent;
         agent.last_call = -1;
         agent.intent = -1;
@@ -2708,12 +2739,33 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         if (POINTING > 0 && !idle[index] && situation.pointed >= 0) {  // a finger read: how surprised by that thing as it heard
             const auto thing = static_cast<std::size_t>(situation.pointed);
-            agent.pointed_by = situation.loudest_from;
+            agent.pointed_by = situation.pointed_from;
             agent.pointed_thing = situation.pointed;
             agent.pointed_turn = turn_;
             agent.pointed_off = agent.has_foresaw
                 ? std::clamp(std::abs(plans[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[thing])] - agent.foresaw[thing]), 0.0, 1.0)
                 : -1.0;
+        }
+        // Attention: hearing a call, or seeing one point, whether to attend to that one, by its brain's odds.
+        agent.attend_choice = -1;
+        if (POINTING > 0 && !idle[index] && situation.attend_to >= 0) {
+            const std::array<int, ATTEND_OPTIONS> outputs{ATTEND + AttendYes, ATTEND + AttendNo};
+            double roll = whim(agent.identifier ^ 0x41545445, turn_);
+            int picked = outputs[0];
+            Values leaning = values[index];  // the curious lean to attend, the incurious to ignore
+            const double curious = ATTEND_CURIOSITY * 2 * (agent.feeling(Curiosity) - 0.5);
+            leaning[ATTEND + AttendYes] += curious;
+            leaning[ATTEND + AttendNo] -= curious;
+            for (const auto& [output, chance] : choice_odds(leaning, outputs, CALL_TEMPERATURE)) {
+                roll -= chance;
+                picked = output;
+                if (roll < 0) break;
+            }
+            agent.attend_choice = picked - ATTEND;
+            if (agent.attend_choice == AttendYes) {
+                agent.attending = situation.attend_to;
+                agent.attend_turn = turn_;
+            }
         }
         if (!idle[index]) {  // what it foresees now, to be surprised by next turn
             for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) agent.foresaw[static_cast<std::size_t>(thing)] = values[index][OUTSIDE + thing];
@@ -2728,9 +2780,19 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         if (!idle[index] && !situation.frozen) {
             // With cues, pain and panic cry out, and by its intellect it voices its cue by instinct or chooses its call.
             int forced = -1;
+            // Watched, it says it again, sounds and point alike, till none watches, one is less surprised by the thing,
+            // or it flees; pain and panic still cry out first.
+            const bool repeating = WATCHED_REPEAT > 0 && situation.watched && agent.call_turn == turn_ - 1 &&
+                                   previous_call >= FirstCall && choice != Flee &&
+                                   !(agent.understood_count > 0 && agent.understood_sum > 0);
+            bool repeated = false;
             if (CUES && (situation.panic || agent.struck_turn >= turn_ - 1)) {
                 forced = agent.own_cry();
                 agent.call_kind = 1;
+            } else if (repeating) {
+                forced = previous_call;
+                agent.sounds = previous_sounds;
+                repeated = true;
             } else if (CUES && whim(agent.identifier ^ 0x5A17, turn_) >= agent.intelligence()) {
                 forced = whim(~agent.identifier ^ 0x5A17, turn_) < CUE_URGE ? agent.cue(choice) : static_cast<int>(Silent);
                 agent.call_kind = 2;
@@ -2799,10 +2861,14 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) outputs[static_cast<std::size_t>(thing)] = POINT + thing;
                 double roll = whim(agent.identifier ^ 0x504F494E, turn_);
                 int picked = outputs[0];
-                for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
-                    roll -= chance;
-                    picked = output;
-                    if (roll < 0) break;
+                if (repeated && agent.point >= 0 && agent.point_turn == turn_ - 1) {
+                    picked = POINT + agent.point;  // the same thing again
+                } else {
+                    for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
+                        roll -= chance;
+                        picked = output;
+                        if (roll < 0) break;
+                    }
                 }
                 agent.prior_point = agent.point;
                 agent.prior_point_turn = agent.point_turn;
@@ -4017,11 +4083,43 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseKnownSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
         }
     }
-    if (caller && POINTING > 0) {  // its finger: where the thing it pointed at lies for this one, not what it is
-        if (const int thing = caller->pointed_at(turn_ - 1); thing >= 0) {
-            s.pointed = thing;
-            senses[SensePointed + PointedAny] = 1.0;
-            senses[SensePointed + PointedCloseness] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(thing)]];
+    if (POINTING > 0) {
+        // Seen pointing, heard or not: the nearest in sight whose finger is up, as it called last turn.
+        const Bitzkey* pointer = nullptr;
+        double pointer_closeness = 0.0;
+        for (const Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive()) continue;
+            if (other->attending == agent.identifier && other->attend_turn == turn_ - 1) {  // watched by it
+                senses[SensePointed + Watched] = 1.0;
+                s.watched = true;
+            }
+            if (other->pointed_at(turn_ - 1) < 0) continue;
+            const double near = closeness(agent, cell_of(other), sight);
+            if (!pointer || near > pointer_closeness) {
+                pointer = other;
+                pointer_closeness = near;
+            }
+        }
+        senses[SensePointed + SeesPointing] = pointer_closeness;
+        s.attend_to = caller ? caller->identifier : pointer ? pointer->identifier : -1;  // whom it may attend to now
+        // Attending, as it chose last turn: the one it watches, if still in sight, and that one's finger, where the thing
+        // it points at lies for this one, not what it is; that thing kept clear, all else outside dimmed.
+        const Bitzkey* watched = agent.attend_turn == turn_ - 1 && agent.attending >= 0 ? find_agent(agent.attending) : nullptr;
+        if (watched && watched->alive() && watched != &agent && distance(watched->x, watched->y, agent.x, agent.y) <= sight) {
+            senses[SensePointed + Attending] = 1.0;
+            s.attend_to = watched->identifier;  // it may keep its focus, or lose it
+            const int thing = watched->pointed_at(turn_ - 1);
+            if (thing >= 0) {
+                s.pointed = thing;
+                s.pointed_from = watched->identifier;
+                senses[SensePointed + PointedAny] = 1.0;
+                senses[SensePointed + PointedCloseness] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(thing)]];
+            }
+            if (ATTENTION > 0) {
+                for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) {
+                    if (seen != thing) senses[OUTSIDE_SENSES[static_cast<std::size_t>(seen)]] *= 1 - std::min(1.0, ATTENTION);
+                }
+            }
         }
     }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);

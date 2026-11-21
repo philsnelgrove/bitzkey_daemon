@@ -430,6 +430,23 @@ inline double WISH_LEARNING = 1.0;
 // (its sounds) UNDERSTOOD times it. Which sounds go with which thing is left to them. 0 for none.
 inline double POINTING = 1.0;
 inline double UNDERSTOOD = 4.0;  // a hearer's surprise falls by a few hundredths: 4 brings it near Intent's share
+// Attention: a finger is seen in two steps. Hearing a call, or seeing one point though it heard none, it chooses by its
+// brain's odds whether to attend to that one (its Attend outputs); and only the turn after, attending, does it see that
+// one's finger, the thing pointed at kept clear while its sight of all else outside is dimmed by this share, the price of
+// looking at another. Whether to attend is taught, at ATTEND_LEARNING of its learning rate, by what came of its turn.
+// ATTENTION 0 for no price; ATTEND_LEARNING 0 to leave its choice untaught.
+inline double ATTENTION = 0.5;
+inline double ATTEND_LEARNING = 1.0;
+// The curious attend more: the Attend output is favoured by ATTEND_CURIOSITY times (its curiosity - 0.5) times 2, and
+// ignoring disfavoured as much, so the most curious lean fully one way and the least the other.
+inline double ATTEND_CURIOSITY = 0.1;  // at CALL_TEMPERATURE 0.1, the most curious about 7 times as likely to attend as not, alike
+// Shown: what an attending animal sees pointed at is taught to its foresight once more, at SHOWN_LEARNING of its
+// outside foresight's share; that lesson and whether to attend are each learnt the more the more willing it is to learn
+// from another, (0.5 + sociability) x (0.5 + intellect), 1 for the middling. 0 for no extra lesson.
+inline double SHOWN_LEARNING = 1.0;
+// Watched: a caller that knows it is attended to (its sense watched) repeats its last call, sounds and point alike, until
+// none watches it, one that read its finger is less surprised by the thing, or it flees or cries out. 0 for off.
+inline double WATCHED_REPEAT = 1.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1233,6 +1250,11 @@ struct Bitzkey {
     double understood_sum = 0.0;
     int understood_count = 0;
     int pointed_at(int turn) const { return point_turn == turn ? point : prior_point_turn == turn ? prior_point : -1; }
+    // Attention (see ATTENTION): whom it turned its attention to and the turn (-1 none), so it sees that one's finger the
+    // turn after; and whether it chose to attend (AttendYes, AttendNo) as it last had someone to attend to, -1 none, with
+    // the senses it chose by, to be taught by what came of its turn.
+    int attending = -1, attend_turn = -1;
+    int attend_choice = -1;
     // Its last calls (see CALL_HABIT): what it sensed, each sense held in a byte, and the call, sound by sound (-1 none).
     struct CallHabit {
         std::array<std::int8_t, INPUT_SIZE> senses{};
@@ -1668,6 +1690,8 @@ public:
         std::array<long long, OUTSIDE_SEEN> points{}, judged{};
         std::array<double, OUTSIDE_SEEN> understood{};
         std::array<std::array<long long, CALL_COUNT>, OUTSIDE_SEEN> sounds{};
+        // Attention: turns one had someone to attend to, a caller heard or one seen pointing, and how often it attended.
+        long long attend_chances = 0, attended = 0;
     };
     const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
@@ -1832,7 +1856,9 @@ public:
         int heard_from = -1, heard_call = -1;  // the loudest caller of its kind it heard, and its call
         int loudest_from = -1, loudest_call = -1;  // the loudest caller of any kind it heard, and its call
         std::array<int, MAX_SOUNDS> loudest_sounds{-1, -1, -1};  // that call's sounds, 0..4, -1 none (as heard)
-        int pointed = -1;  // the thing that caller pointed at, -1 none (see POINTING)
+        int pointed = -1, pointed_from = -1;  // the thing the one it attends to pointed at, and who, -1 none (see POINTING)
+        int attend_to = -1;  // whom it may turn its attention to: the one it attends to still, else the loudest caller heard, else the nearest seen pointing
+        bool watched = false;  // one attends to it (see WATCHED_REPEAT)
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1844,6 +1870,8 @@ public:
     };
     // Pointing: how much less surprised by the thing each caller pointed at its hearers now are (see POINTING).
     void gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now);
+    // How willing it is to learn from another (see SHOWN_LEARNING).
+    static double willing_to_learn(const Bitzkey& agent);
 
     // A hunter's view of its territory: how crowded with rivals, and whether its prey are common enough to hunt.
     void survey(Bitzkey& agent);

@@ -240,7 +240,13 @@ constexpr int WISH = OUTSIDE + OUTSIDE_SEEN;  // the first of them
 // the same 21 in the same order. It points at one by their odds, as it picks a sound; each is taught by how much less
 // surprised by that thing its hearers then were (see POINTING), so what it points at, and when, is learnt, not given.
 constexpr int POINT = WISH + WISHES;  // the first of them
-constexpr int OUTPUT_COUNT = POINT + OUTSIDE_SEEN;
+// Attention: last of all its outputs, how it values turning its attention to the loudest caller it hears (or, hearing
+// none, the nearest it sees pointing), and how it values not. Only one that attended sees that one's finger next turn,
+// and while it attends its own sight of the outside is dimmed (see ATTENTION); so whether to attend is learnt.
+enum AttendOutput : int { AttendYes, AttendNo };
+constexpr int ATTEND_OPTIONS = 2;
+constexpr int ATTEND = POINT + OUTSIDE_SEEN;  // the first of them
+constexpr int OUTPUT_COUNT = ATTEND + ATTEND_OPTIONS;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
 constexpr int sound_output(int place, int sound) { return MORE_SOUNDS + (place - 1) * SOUND_CHOICES + 1 + sound; }
 // Whether an output values a second or third sound (not stopping): a new brain holds back from them as from calling.
@@ -293,6 +299,8 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
         "point_meat_pile", "point_fruit_pile", "point_stone_pile", "point_bone_pile", "point_wood_pile",
         "point_gear_pile", "point_fire", "point_comfort"};
     for (int output = 0; output < OUTSIDE_SEEN; ++output) names[POINT + output] = points[output];
+    names[ATTEND + AttendYes] = "attend";
+    names[ATTEND + AttendNo] = "ignore";
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -320,9 +328,12 @@ constexpr int SenseVoice = SenseUtterance + MAX_SOUNDS * CALL_COUNT;
 constexpr int voice_sense(int part) { return SenseVoice + part; }
 // Then the loudest caller's pointing finger (see POINTING): 1 when it pointed at something as it called, and how close the
 // thing it pointed at is to the hearer itself, as the hearer senses that kind of thing, 1 beside it falling to 0 at the
-// edge of its sight, 0 when it can't see one: where to look, but not what it is.
-enum PointSense : int { PointedAny, PointedCloseness };
-constexpr int POINT_SENSES = 2;
+// edge of its sight, 0 when it can't see one: where to look, but not what it is. Only one attending to that caller
+// sees its finger (see ATTENTION). Then whether it attends to someone this turn, 1 or 0; and how close the nearest it
+// sees pointing is, 1 beside it falling to 0 at the edge of its sight, heard or not, so a point seen may draw it to listen;
+// and whether one in its sight attends to it, 1 or 0 (see WATCHED_REPEAT).
+enum PointSense : int { PointedAny, PointedCloseness, Attending, SeesPointing, Watched };
+constexpr int POINT_SENSES = 5;
 constexpr int SensePointed = SenseVoice + VOICE_SENSES;
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
@@ -380,11 +391,11 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "voice_ring_likeness", "voice_dot_likeness", "voice_social_likeness", "voice_ring_red", "voice_ring_green",
     "voice_ring_blue", "voice_dot_red", "voice_dot_green", "voice_dot_blue", "voice_social_red", "voice_social_green",
     "voice_social_blue", "voice_pitch", "voice_harshness", "voice_urgency", "pointed", "pointed_closeness",
-    "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
+    "attending", "sees_pointing", "watched", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 62> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 65> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
@@ -394,7 +405,7 @@ constexpr std::array<std::string_view, 62> SPARSE_SENSES = {
     "bow_carried", "archery",
     "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
     "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
-    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness"};
+    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
 inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};

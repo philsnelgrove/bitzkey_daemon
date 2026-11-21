@@ -310,6 +310,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     if (agent.intent >= 0) record["intent"] = agent.intent;
     if (agent.point >= 0 || agent.prior_point >= 0) record["point"] = {agent.point, agent.point_turn, agent.prior_point, agent.prior_point_turn};
     if (agent.pointed_turn >= 0) record["pointed"] = {agent.pointed_by, agent.pointed_thing, agent.pointed_turn, agent.pointed_off};
+    if (agent.attend_turn >= 0 || agent.attend_choice >= 0) record["attend"] = {agent.attending, agent.attend_turn, agent.attend_choice};
     json places = json::array();  // each [column, row, last, then for each season: seen, food, danger, comfort]
     for (const MapPlace& place : agent.places) {
         json entry = {place.column, place.row, place.last};
@@ -534,6 +535,12 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->pointed_thing = pointed.at(1).get<int>();
         agent->pointed_turn = pointed.at(2).get<int>();
         agent->pointed_off = pointed.at(3).get<double>();
+    }
+    if (record.contains("attend")) {  // whom it attends to and since when, and whether it chose to, to be taught
+        const json& attend = record["attend"];
+        agent->attending = attend.at(0).get<int>();
+        agent->attend_turn = attend.at(1).get<int>();
+        agent->attend_choice = attend.at(2).get<int>();
     }
     if (record.contains("echo_of")) agent->echo_of = record["echo_of"].get<std::array<std::array<std::int8_t, MAX_SOUNDS>, OUTSIDE_SEEN>>();
     if (record.contains("last_sounds")) agent->last_sounds = record["last_sounds"].get<std::array<int, MAX_SOUNDS - 1>>();

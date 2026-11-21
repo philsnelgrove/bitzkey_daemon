@@ -2070,5 +2070,15 @@
 "Pointing": "Вказування",
 "how much a caller learns what to point at as it calls: those who hear it sense how close the thing it points at is to them, not what it is, and each thing is valued by how much less surprised by it they then were, as a share of its learning; 0 for none": "наскільки той, хто кличе, вчиться, на що вказувати, коли кличе: ті, хто чує, відчувають, наскільки близько до них вказана річ, а не що це, і кожна річ цінується тим, наскільки менше вона їх потім здивувала, як частка його навчання; 0 — немає",
 "Understood": "Зрозуміло",
-"how much a call is taught by how much less surprised by the thing its caller pointed at its hearers then were, so sounds that tell what is pointed at are favoured; 0 for none": "наскільки поклик вчиться з того, наскільки менше річ, на яку вказав той, хто кличе, потім здивувала тих, хто чув, тож перевагу мають звуки, що кажуть, на що вказано; 0 — немає"
+"how much a call is taught by how much less surprised by the thing its caller pointed at its hearers then were, so sounds that tell what is pointed at are favoured; 0 for none": "наскільки поклик вчиться з того, наскільки менше річ, на яку вказав той, хто кличе, потім здивувала тих, хто чув, тож перевагу мають звуки, що кажуть, на що вказано; 0 — немає",
+"Attention": "Увага",
+"a finger is seen in two steps: hearing a call, or seeing one point, an animal chooses whether to attend to that one, and only the turn after, attending, sees its finger; while it attends, its sight of all else outside is dimmed by this share; 0 for no price": "палець видно у два кроки: почувши поклик або побачивши, що хтось вказує, тварина обирає, чи звернути на нього увагу, і лише наступного ходу, уважна, бачить його палець; поки вона уважна, її бачення всього іншого зовні приглушене на цю частку; 0 без ціни",
+"Attend learning": "Навчання уваги",
+"how much an animal learns whether to attend to a caller or one pointing, by what came of its turn, as a share of its learning; 0 for none": "скільки тварина вчиться, чи звертати увагу на того, хто кличе чи вказує, з того, що приніс її хід, як частка її навчання; 0 зовсім",
+"Attend curiosity": "Цікавість уваги",
+"how much curiosity leans an animal to attend to a caller or one pointing: the most curious lean to attend by this much, the least to ignore; 0 for none": "наскільки цікавість схиляє тварину звертати увагу на того, хто кличе чи вказує: найцікавіші схиляються до уваги на стільки, найменш цікаві до ігнорування; 0 зовсім",
+"Shown learning": "Навчання показаного",
+"how much an attending animal learns of the thing it was shown, as a share of its foresight's learning; this and whether to attend are learnt the more the more sociable and clever it is; 0 for none": "скільки уважна тварина дізнається про річ, яку їй показали, як частка навчання її передбачення; цьому і тому, чи звертати увагу, вона вчиться тим більше, чим товариськіша й кмітливіша; 0 зовсім",
+"Watched repeat": "Повтор під наглядом",
+"a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "той, хто кличе і знає, що на нього звертають увагу, повторює поклик і вказівку, доки ніхто не дивиться, хтось менше дивується речі, або він тікає чи кричить; 0 вимкнено"
 }
