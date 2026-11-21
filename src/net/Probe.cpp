@@ -1679,7 +1679,12 @@ Json Probe::language(Simulation& world) const {
             {"sound_tells_thing_bits", with_sound > 0 ? Json(information) : Json(nullptr)},
             {"by_chance_bits", with_sound > 0 ? Json(chance_information) : Json(nullptr)},
             {"attend_chances", points.attend_chances},
-            {"attended_share", points.attend_chances > 0 ? Json(points.attended / static_cast<double>(points.attend_chances)) : Json(nullptr)}};
+            {"attended_share", points.attend_chances > 0 ? Json(points.attended / static_cast<double>(points.attend_chances)) : Json(nullptr)},
+            {"forced_attends", points.forced},
+            {"known_judged", points.known_judged},
+            {"known_understood", points.known_judged > 0 ? Json(points.known_understood / static_cast<double>(points.known_judged)) : Json(nullptr)},
+            {"stranger_judged", points.stranger_judged},
+            {"stranger_understood", points.stranger_judged > 0 ? Json(points.stranger_understood / static_cast<double>(points.stranger_judged)) : Json(nullptr)}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

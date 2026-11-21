@@ -2080,5 +2080,7 @@
 "Shown learning": "दिखाया गया सीखना",
 "how much an attending animal learns of the thing it was shown, as a share of its foresight's learning; this and whether to attend are learnt the more the more sociable and clever it is; 0 for none": "ध्यान देता प्राणी उसे दिखाई गई चीज़ के बारे में कितना सीखता है, अपनी पूर्वदृष्टि की सीख के हिस्से के रूप में; यह और ध्यान दे या नहीं, वह जितना मिलनसार और चतुर हो उतना अधिक सीखता है; कुछ नहीं के लिए 0",
 "Watched repeat": "देखे जाने पर दोहराना",
-"a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "जो पुकारने वाला जानता है कि उस पर ध्यान दिया जा रहा है, वह अपनी पुकार और इशारा दोहराता है जब तक कोई न देखे, कोई उस चीज़ से कम चकित हो, या वह भागे या चीखे; बंद के लिए 0"
+"a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "जो पुकारने वाला जानता है कि उस पर ध्यान दिया जा रहा है, वह अपनी पुकार और इशारा दोहराता है जब तक कोई न देखे, कोई उस चीज़ से कम चकित हो, या वह भागे या चीखे; बंद के लिए 0",
+"Known attend": "परिचितों पर ध्यान",
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "जब कोई परिचित (जान-पहचान वाला, माता-पिता या उसका बच्चा) पुकारे या इशारा करे, तो प्राणी बिना चुने ध्यान देता है, इस संभावना गुणा उसकी मिलनसारिता से; अजनबियों के लिए वह अब भी चुनता है; बंद के लिए 0"
 }

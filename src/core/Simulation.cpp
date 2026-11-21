@@ -1757,6 +1757,12 @@ double Simulation::willing_to_learn(const Bitzkey& agent) {
     return (0.5 + agent.feeling(Sociability)) * (0.5 + agent.intelligence());
 }
 
+bool Simulation::recognises(const Bitzkey& one, const Bitzkey& other) {
+    if (other.identifier == one.mother || other.identifier == one.father) return true;
+    if (other.mother == one.identifier || other.father == one.identifier) return true;
+    return std::any_of(one.known.begin(), one.known.end(), [&](const Acquaintance& known) { return known.identifier == other.identifier; });
+}
+
 void Simulation::learn(Bitzkey& agent, double target, double outcome, bool replay, double call_target) {
     // From its own last choice, by TD(lambda), so the choices before it share in what came of it. With
     // `replay`, it then re-learns from its most recent experiences, as many as its intellect allows,
@@ -2034,6 +2040,10 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
     for (const Bitzkey* agent : agents) {  // for the probe: whether each chose to attend last turn, when it could
         if (agent->attend_choice < 0) continue;
         PointTally& tally = point_tally_[static_cast<std::size_t>(agent->species)];
+        if (agent->attend_choice == AttendForced) {
+            ++tally.forced;
+            continue;
+        }
         ++tally.attend_chances;
         tally.attended += agent->attend_choice == AttendYes;
     }
@@ -2046,6 +2056,14 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         const double off = std::clamp(std::abs(now[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[thing])] - hearer.foresaw[thing]), 0.0, 1.0);
         caller->understood_sum += hearer.pointed_off - off;
         ++caller->understood_count;
+        PointTally& tally = point_tally_[static_cast<std::size_t>(caller->species)];  // for the probe: by whether it knew the caller
+        if (recognises(hearer, *caller)) {
+            ++tally.known_judged;
+            tally.known_understood += hearer.pointed_off - off;
+        } else {
+            ++tally.stranger_judged;
+            tally.stranger_understood += hearer.pointed_off - off;
+        }
     }
     for (const Bitzkey* caller : agents) {  // for the probe: each held call that pointed, as its hearers' turn is judged
         if (!caller->call_held || caller->held_point < 0) continue;
@@ -2748,7 +2766,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         // Attention: hearing a call, or seeing one point, whether to attend to that one, by its brain's odds.
         agent.attend_choice = -1;
-        if (POINTING > 0 && !idle[index] && situation.attend_to >= 0) {
+        // One it knows calls or points: it turns to that one, unbidden, the more surely the more sociable it is.
+        if (POINTING > 0 && !idle[index] && situation.attend_to >= 0 && situation.attend_known && KNOWN_ATTEND > 0 &&
+            whim(agent.identifier ^ 0x4B4E4F57, turn_) < KNOWN_ATTEND * agent.feeling(Sociability)) {
+            agent.attend_choice = AttendForced;
+            agent.attending = situation.attend_to;
+            agent.attend_turn = turn_;
+        } else if (POINTING > 0 && !idle[index] && situation.attend_to >= 0) {
             const std::array<int, ATTEND_OPTIONS> outputs{ATTEND + AttendYes, ATTEND + AttendNo};
             double roll = whim(agent.identifier ^ 0x41545445, turn_);
             int picked = outputs[0];
@@ -4101,13 +4125,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         senses[SensePointed + SeesPointing] = pointer_closeness;
-        s.attend_to = caller ? caller->identifier : pointer ? pointer->identifier : -1;  // whom it may attend to now
+        const Bitzkey* turn_to = caller ? caller : pointer;
+        s.attend_to = turn_to ? turn_to->identifier : -1;  // whom it may attend to now
+        s.attend_known = turn_to && recognises(agent, *turn_to);
         // Attending, as it chose last turn: the one it watches, if still in sight, and that one's finger, where the thing
         // it points at lies for this one, not what it is; that thing kept clear, all else outside dimmed.
         const Bitzkey* watched = agent.attend_turn == turn_ - 1 && agent.attending >= 0 ? find_agent(agent.attending) : nullptr;
         if (watched && watched->alive() && watched != &agent && distance(watched->x, watched->y, agent.x, agent.y) <= sight) {
             senses[SensePointed + Attending] = 1.0;
             s.attend_to = watched->identifier;  // it may keep its focus, or lose it
+            s.attend_known = recognises(agent, *watched);
             const int thing = watched->pointed_at(turn_ - 1);
             if (thing >= 0) {
                 s.pointed = thing;

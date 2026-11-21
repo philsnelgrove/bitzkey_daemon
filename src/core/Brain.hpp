@@ -245,6 +245,7 @@ constexpr int POINT = WISH + WISHES;  // the first of them
 // and while it attends its own sight of the outside is dimmed (see ATTENTION); so whether to attend is learnt.
 enum AttendOutput : int { AttendYes, AttendNo };
 constexpr int ATTEND_OPTIONS = 2;
+constexpr int AttendForced = ATTEND_OPTIONS;  // not an output: turned to one it knows, unbidden (see KNOWN_ATTEND), so untaught
 constexpr int ATTEND = POINT + OUTSIDE_SEEN;  // the first of them
 constexpr int OUTPUT_COUNT = ATTEND + ATTEND_OPTIONS;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.

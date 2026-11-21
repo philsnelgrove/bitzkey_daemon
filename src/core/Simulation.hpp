@@ -447,6 +447,10 @@ inline double SHOWN_LEARNING = 1.0;
 // Watched: a caller that knows it is attended to (its sense watched) repeats its last call, sounds and point alike, until
 // none watches it, one that read its finger is less surprised by the thing, or it flees or cries out. 0 for off.
 inline double WATCHED_REPEAT = 1.0;
+// Known: when the one calling or pointing is one it knows (an acquaintance, a parent or its young), an animal attends
+// unbidden, its own choice passed over and untaught, with chance KNOWN_ATTEND times its sociability; strangers it
+// still chooses whether to heed. 0 for off.
+inline double KNOWN_ATTEND = 1.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1692,6 +1696,10 @@ public:
         std::array<std::array<long long, CALL_COUNT>, OUTSIDE_SEEN> sounds{};
         // Attention: turns one had someone to attend to, a caller heard or one seen pointing, and how often it attended.
         long long attend_chances = 0, attended = 0;
+        long long forced = 0;  // turns it attended unbidden, to one it knew (see KNOWN_ATTEND)
+        // Each hearer that read a finger, by whether it knew the caller: how many, and how much less surprised, summed.
+        long long known_judged = 0, stranger_judged = 0;
+        double known_understood = 0.0, stranger_understood = 0.0;
     };
     const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
@@ -1859,6 +1867,7 @@ public:
         int pointed = -1, pointed_from = -1;  // the thing the one it attends to pointed at, and who, -1 none (see POINTING)
         int attend_to = -1;  // whom it may turn its attention to: the one it attends to still, else the loudest caller heard, else the nearest seen pointing
         bool watched = false;  // one attends to it (see WATCHED_REPEAT)
+        bool attend_known = false;  // the one it may attend to is one it knows (see KNOWN_ATTEND)
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1872,6 +1881,8 @@ public:
     void gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now);
     // How willing it is to learn from another (see SHOWN_LEARNING).
     static double willing_to_learn(const Bitzkey& agent);
+    // Whether one knows another: an acquaintance, either parent, or its young.
+    static bool recognises(const Bitzkey& one, const Bitzkey& other);
 
     // A hunter's view of its territory: how crowded with rivals, and whether its prey are common enough to hunt.
     void survey(Bitzkey& agent);
