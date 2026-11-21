@@ -423,6 +423,13 @@ inline double ECHO = 2.0;
 // taught INTENT times the share of its hearers who then did that. Which sounds ask for what is left to them. 0 for none.
 inline double INTENT = 1.0;
 inline double WISH_LEARNING = 1.0;
+// Pointing: as it calls, a caller points at one of the 21 outside things it foresees (the Point outputs, by their odds,
+// as it picks a sound), and those who hear it as their loudest sense where to look, how close the thing pointed at is to
+// them, but not what it is. When they next choose, how much less surprised by that thing they are than as they heard it
+// is how well it was understood: each Point output is taught by that, at POINTING of its learning rate, and the call
+// (its sounds) UNDERSTOOD times it. Which sounds go with which thing is left to them. 0 for none.
+inline double POINTING = 1.0;
+inline double UNDERSTOOD = 4.0;  // a hearer's surprise falls by a few hundredths: 4 brings it near Intent's share
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1215,6 +1222,17 @@ struct Bitzkey {
     int intent_met = 0;
     double wish_advantage = 0.0;
     bool wish_judged = false;
+    // Pointing: the thing it pointed at as it last called (-1 none) and the turn, and the same of the call before (a
+    // hearer reads the finger of a call made last turn, though its caller may have called again since); and as its held
+    // call was made. As a hearer: the caller whose finger it read, the thing, the turn, and how surprised by that thing
+    // it then was (-1 when it foresaw nothing). As a caller, how much less surprised its hearers were, summed, and how many.
+    int point = -1, point_turn = -1, prior_point = -1, prior_point_turn = -1;
+    int held_point = -1;
+    int pointed_by = -1, pointed_thing = -1, pointed_turn = -1;
+    double pointed_off = -1.0;
+    double understood_sum = 0.0;
+    int understood_count = 0;
+    int pointed_at(int turn) const { return point_turn == turn ? point : prior_point_turn == turn ? prior_point : -1; }
     // Its last calls (see CALL_HABIT): what it sensed, each sense held in a byte, and the call, sound by sound (-1 none).
     struct CallHabit {
         std::array<std::int8_t, INPUT_SIZE> senses{};
@@ -1642,6 +1660,16 @@ public:
         }
     };
     const std::array<IntentTally, 4>& intent_tally() const { return intent_tally_; }
+    // Pointing, since the world began or was loaded, by the caller's species: calls that pointed, as their hearers' turn
+    // was judged; at each thing, how often, how many of those had a hearer who read the finger, how much less surprised
+    // by it they were, summed, and how often each first sound went with it.
+    struct PointTally {
+        long long calls = 0;
+        std::array<long long, OUTSIDE_SEEN> points{}, judged{};
+        std::array<double, OUTSIDE_SEEN> understood{};
+        std::array<std::array<long long, CALL_COUNT>, OUTSIDE_SEEN> sounds{};
+    };
+    const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
     // who chose as its hearers did but heard no call, or heard another's loudest; and how many of them did its intent.
     struct IntentWindow {
@@ -1804,6 +1832,7 @@ public:
         int heard_from = -1, heard_call = -1;  // the loudest caller of its kind it heard, and its call
         int loudest_from = -1, loudest_call = -1;  // the loudest caller of any kind it heard, and its call
         std::array<int, MAX_SOUNDS> loudest_sounds{-1, -1, -1};  // that call's sounds, 0..4, -1 none (as heard)
+        int pointed = -1;  // the thing that caller pointed at, -1 none (see POINTING)
         bool panic = false;
         bool frozen = false;  // in primal fear, frozen: it does nothing this turn
     };
@@ -1813,6 +1842,8 @@ public:
         std::vector<int> calls;  // the calls open to it, silence first (Brain.hpp's Call)
         Situation situation;
     };
+    // Pointing: how much less surprised by the thing each caller pointed at its hearers now are (see POINTING).
+    void gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now);
 
     // A hunter's view of its territory: how crowded with rivals, and whether its prey are common enough to hunt.
     void survey(Bitzkey& agent);
@@ -2371,6 +2402,7 @@ private:
     // Calls that helped, since the world began (not saved): by species, call, and what came of it, an escape or a meal.
     std::array<std::array<long long, 4>, 4> followers_lost_{};
     std::array<IntentTally, 4> intent_tally_{};
+    std::array<PointTally, 4> point_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood

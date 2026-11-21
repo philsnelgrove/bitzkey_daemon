@@ -1638,6 +1638,46 @@ Json Probe::language(Simulation& world) const {
         result[std::string(species_name(species))]["intent"] = {
             {"hearers", tally.hearers}, {"met", ratio(static_cast<double>(tally.met), static_cast<double>(tally.hearers))},
             {"by_chance", tally.hearers > 0 ? Json(intent_chance) : Json(nullptr)}, {"intended", intended}, {"done", done}};
+        // Pointing, since the world began or was loaded: at each thing, how often its callers pointed, how much less
+        // surprised by it their hearers then were, and which first sounds went with it; and how much the first sound
+        // tells of the thing pointed at (mutual information, bits), against what as many calls would show by chance.
+        const Simulation::PointTally& points = world.point_tally()[static_cast<std::size_t>(species)];
+        Json things = Json::object();
+        long long with_sound = 0;
+        std::array<long long, CALL_COUNT> point_by_sound{};
+        std::array<long long, OUTSIDE_SEEN> point_by_thing{};
+        int things_used = 0, sounds_used = 0;
+        for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            const auto at = static_cast<std::size_t>(thing);
+            for (int sound = 0; sound < CALL_COUNT; ++sound) {
+                point_by_thing[at] += points.sounds[at][static_cast<std::size_t>(sound)];
+                point_by_sound[static_cast<std::size_t>(sound)] += points.sounds[at][static_cast<std::size_t>(sound)];
+            }
+            with_sound += point_by_thing[at];
+            things_used += point_by_thing[at] > 0;
+            if (points.points[at] == 0) continue;
+            Json sounds = Json::array();
+            for (const long long count : points.sounds[at]) sounds.push_back(count);
+            things[std::string(OUTPUTS[static_cast<std::size_t>(POINT + thing)].substr(6))] = {  // past "point_"
+                {"points", points.points[at]}, {"judged", points.judged[at]},
+                {"understood", points.judged[at] > 0 ? Json(points.understood[at] / static_cast<double>(points.judged[at])) : Json(nullptr)},
+                {"first_sounds", sounds}};
+        }
+        for (const long long count : point_by_sound) sounds_used += count > 0;
+        double information = 0.0;
+        for (std::size_t thing = 0; thing < point_by_thing.size(); ++thing) {
+            for (std::size_t sound = 0; sound < point_by_sound.size(); ++sound) {
+                const double joint = static_cast<double>(points.sounds[thing][sound]);
+                if (joint <= 0) continue;
+                information += joint / static_cast<double>(with_sound) *
+                               std::log2(joint * static_cast<double>(with_sound) / (static_cast<double>(point_by_thing[thing]) * static_cast<double>(point_by_sound[sound])));
+            }
+        }
+        const double chance_information = with_sound > 0 ? (things_used - 1) * (sounds_used - 1) / (2.0 * static_cast<double>(with_sound) * std::log(2.0)) : 0.0;
+        result[std::string(species_name(species))]["pointing"] = {
+            {"calls", points.calls}, {"things", things},
+            {"sound_tells_thing_bits", with_sound > 0 ? Json(information) : Json(nullptr)},
+            {"by_chance_bits", with_sound > 0 ? Json(chance_information) : Json(nullptr)}};
     }
     return {{"turn", world.turn()}, {"species", result}};
 }

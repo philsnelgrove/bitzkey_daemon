@@ -2066,5 +2066,9 @@
 "Intent": "意图",
 "how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "呼叫从听到者中随后做了呼叫者最希望之事(靠近、离开、逃跑、休息、进食、交易或战斗)的比例中学到多少;其愿望从他者行为对它的影响中习得;0 为无",
 "Wish learning": "愿望学习",
-"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "呼叫者学习它想要听者做什么的程度:听者随后的每个行为,按它自己这一回合相对预期的结果来评价,作为其学习的一部分;0 为无"
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "呼叫者学习它想要听者做什么的程度:听者随后的每个行为,按它自己这一回合相对预期的结果来评价,作为其学习的一部分;0 为无",
+"Pointing": "指点",
+"how much a caller learns what to point at as it calls: those who hear it sense how close the thing it points at is to them, not what it is, and each thing is valued by how much less surprised by it they then were, as a share of its learning; 0 for none": "呼叫者在呼叫时学习指向什么的程度：听者感知所指之物离自己多近，但不知道它是什么；每样东西按其随后让听者少惊讶了多少来评价，作为其学习的一部分；0 表示无",
+"Understood": "听懂",
+"how much a call is taught by how much less surprised by the thing its caller pointed at its hearers then were, so sounds that tell what is pointed at are favoured; 0 for none": "呼叫按呼叫者所指之物随后让听者少惊讶了多少来学习的程度，使能说出所指为何的声音受到青睐；0 表示无"
 }

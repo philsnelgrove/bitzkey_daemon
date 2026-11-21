@@ -2066,5 +2066,9 @@
 "Intent": "意図",
 "how much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none": "鳴き声を聞いた者のうち、鳴いた者が最も望んだこと(近づく・離れる・逃げる・休む・食べる・取引する・戦う)をその後した割合から、その鳴き声がどれだけ学ぶか。望みは他者の行いが自分にどう働いたかから学ぶ。0で無し",
 "Wish learning": "望みの学習",
-"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "鳴いた者が聞き手に何を望むかをどれだけ学ぶか。聞き手がその後した各行いを、自分の番が予想に比べてどうだったかで評価し、学習の一部とする。0で無し"
+"how much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none": "鳴いた者が聞き手に何を望むかをどれだけ学ぶか。聞き手がその後した各行いを、自分の番が予想に比べてどうだったかで評価し、学習の一部とする。0で無し",
+"Pointing": "指さし",
+"how much a caller learns what to point at as it calls: those who hear it sense how close the thing it points at is to them, not what it is, and each thing is valued by how much less surprised by it they then were, as a share of its learning; 0 for none": "呼ぶ者が鳴くときに何を指すかをどれだけ学ぶか。聞き手は指されたものが自分からどれだけ近いかを感じるが、それが何かはわからない。各ものは、その後それが聞き手をどれだけ驚かせなくなったかで、学習の割合として評価される。0でなし",
+"Understood": "伝わった",
+"how much a call is taught by how much less surprised by the thing its caller pointed at its hearers then were, so sounds that tell what is pointed at are favoured; 0 for none": "呼ぶ者が指したものに聞き手がその後どれだけ驚かなくなったかで、鳴き声がどれだけ教えられるか。何を指しているかを伝える音が好まれる。0でなし"
 }

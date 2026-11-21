@@ -1861,6 +1861,7 @@ std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
         for (int sound = 0; sound < CALL_COUNT; ++sound) quiet[static_cast<std::size_t>(utterance_sense(place, sound))] = 0.0;
     }
     for (int part = 0; part < VOICE_SENSES; ++part) quiet[static_cast<std::size_t>(voice_sense(part))] = 0.0;
+    for (int part = 0; part < POINT_SENSES; ++part) quiet[static_cast<std::size_t>(SensePointed + part)] = 0.0;
     const CallTag own = call_tag(agent, agent);  // heard, its call carries its own tag
     const auto hear = [&own](Senses& senses, int place, int sound) {
         for (int part = 0; part < VOICE_SENSES; ++part) senses[static_cast<std::size_t>(voice_sense(part))] = own[static_cast<std::size_t>(part)];
@@ -1957,11 +1958,12 @@ void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::arr
     // From its call, as from an action untraced: what came of the turn, and the best call open now; each of its sounds alike.
     // Feeling for its listeners, or wanting something of them, it holds the lesson a turn, till their turn is judged (see
     // settle_call).
-    if (CALL_EMPATHY > 0 || INTENT > 0 || WISH_LEARNING > 0) {
+    if (CALL_EMPATHY > 0 || INTENT > 0 || WISH_LEARNING > 0 || POINTING > 0 || UNDERSTOOD > 0) {
         agent.call_senses = senses;
         agent.call_outputs = outputs;
         agent.held_call_target = target;
         agent.held_intent = agent.intent;
+        agent.held_point = agent.pointed_at(turn_ - 1);
         agent.call_held = rate > 0;
         return;
     }
@@ -1984,6 +1986,9 @@ void Simulation::settle_call(Bitzkey& agent) {
     if (relieved) target += NAMING_RELIEF;
     if (agent.call_listeners > 0) target += CALL_EMPATHY * agent.feeling(Empathy) * agent.call_credit / agent.call_listeners;
     if (agent.call_listeners > 0 && agent.held_intent >= 0) target += INTENT * agent.intent_met / static_cast<double>(agent.call_listeners);
+    const bool pointed = agent.held_point >= 0 && agent.understood_count > 0;
+    const double understood = pointed ? agent.understood_sum / agent.understood_count : 0.0;  // how much less surprised, on average
+    target += UNDERSTOOD * understood;
     target = limited_value(target);
     const auto lesson = [&](int output, double value, double share) {
         if (gpu_) queue_lesson(agent, agent.call_senses, output, value, share, false, 0.0);
@@ -1998,6 +2003,39 @@ void Simulation::settle_call(Bitzkey& agent) {
         for (int wish = 0; wish < WISHES; ++wish) {
             if (agent.wishes_done & (1U << wish)) lesson(WISH + wish, value, rate * WISH_LEARNING);
         }
+    }
+    // What it pointed at: valued by how well its hearers then understood it.
+    if (POINTING > 0 && pointed) lesson(POINT + agent.held_point, limited_value(UNDERSTOOD * understood), rate * POINTING);
+}
+
+void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now) {
+    // Each caller, of each who read its finger last turn: how much less surprised by the thing pointed at that one is now,
+    // against its foresight made as it heard, than it was as it heard, against its foresight from before.
+    for (Bitzkey* agent : agents) {
+        agent->understood_sum = 0.0;
+        agent->understood_count = 0;
+    }
+    if (POINTING <= 0 && UNDERSTOOD <= 0) return;
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        const Bitzkey& hearer = *agents[index];
+        if (hearer.pointed_turn != turn_ - 1 || hearer.pointed_off < 0 || !hearer.has_foresaw || hearer.pointed_thing < 0) continue;
+        Bitzkey* caller = find_agent(hearer.pointed_by);
+        if (!caller || !caller->alive() || caller == &hearer) continue;
+        const auto thing = static_cast<std::size_t>(hearer.pointed_thing);
+        const double off = std::clamp(std::abs(now[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[thing])] - hearer.foresaw[thing]), 0.0, 1.0);
+        caller->understood_sum += hearer.pointed_off - off;
+        ++caller->understood_count;
+    }
+    for (const Bitzkey* caller : agents) {  // for the probe: each held call that pointed, as its hearers' turn is judged
+        if (!caller->call_held || caller->held_point < 0) continue;
+        PointTally& tally = point_tally_[static_cast<std::size_t>(caller->species)];
+        const auto thing = static_cast<std::size_t>(caller->held_point);
+        ++tally.calls;
+        ++tally.points[thing];
+        if (const int sound = held_first_sound(*caller); sound >= 0) ++tally.sounds[thing][static_cast<std::size_t>(sound)];
+        if (caller->understood_count == 0) continue;
+        ++tally.judged[thing];
+        tally.understood[thing] += caller->understood_sum / caller->understood_count;
     }
 }
 
@@ -2444,6 +2482,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         call_targets[index] = CALL_BASELINE <= 0 ? limited_value(agent.call_whole)
                                                  : limited_value((1 - CALL_BASELINE) * agent.call_whole + CALL_BASELINE * agent.call_part);
     }
+    gauge_understanding(agents, plans);  // how well each one's pointing was understood
     credit_callers(agents, targets);  // what each one's call did to those who heard it, before any learns
     const auto taught = [&](std::size_t index) {  // whether it learns from its last turn: not one it had no choice in, by the rule
         return agents[index]->has_last_senses && (FORCED_LESSONS || !agents[index]->last_forced || agents[index]->last_panicked);  // a panicked flight teaches
@@ -2667,6 +2706,15 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             }
             agent.outside_surprise = sum / OUTSIDE_SEEN;
         }
+        if (POINTING > 0 && !idle[index] && situation.pointed >= 0) {  // a finger read: how surprised by that thing as it heard
+            const auto thing = static_cast<std::size_t>(situation.pointed);
+            agent.pointed_by = situation.loudest_from;
+            agent.pointed_thing = situation.pointed;
+            agent.pointed_turn = turn_;
+            agent.pointed_off = agent.has_foresaw
+                ? std::clamp(std::abs(plans[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[thing])] - agent.foresaw[thing]), 0.0, 1.0)
+                : -1.0;
+        }
         if (!idle[index]) {  // what it foresees now, to be surprised by next turn
             for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) agent.foresaw[static_cast<std::size_t>(thing)] = values[index][OUTSIDE + thing];
             agent.has_foresaw = true;
@@ -2745,6 +2793,21 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 for (int wish = 1; wish < WISHES; ++wish) {
                     if (values[index][WISH + wish] > values[index][WISH + agent.intent]) agent.intent = wish;
                 }
+            }
+            if (POINTING > 0 && agent.call >= FirstCall) {  // and what it points at, by its brain's odds, as it picks a sound
+                std::array<int, OUTSIDE_SEEN> outputs{};
+                for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) outputs[static_cast<std::size_t>(thing)] = POINT + thing;
+                double roll = whim(agent.identifier ^ 0x504F494E, turn_);
+                int picked = outputs[0];
+                for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
+                    roll -= chance;
+                    picked = output;
+                    if (roll < 0) break;
+                }
+                agent.prior_point = agent.point;
+                agent.prior_point_turn = agent.point_turn;
+                agent.point = picked - POINT;
+                agent.point_turn = turn_;
             }
             // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
             // more for the fearful), hunger and pain.
@@ -3952,6 +4015,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             s.known_steps = distance(nearest->x, nearest->y, agent.x, agent.y);
             senses[SenseKnownEast] = std::clamp(static_cast<double>(nearest->x - agent.x) / sight, -1.0, 1.0);
             senses[SenseKnownSouth] = std::clamp(static_cast<double>(nearest->y - agent.y) / sight, -1.0, 1.0);
+        }
+    }
+    if (caller && POINTING > 0) {  // its finger: where the thing it pointed at lies for this one, not what it is
+        if (const int thing = caller->pointed_at(turn_ - 1); thing >= 0) {
+            s.pointed = thing;
+            senses[SensePointed + PointedAny] = 1.0;
+            senses[SensePointed + PointedCloseness] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(thing)]];
         }
     }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);

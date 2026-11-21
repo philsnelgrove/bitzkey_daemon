@@ -3878,7 +3878,7 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     hearer.last_choice = Offer;
     CHECK(simulation.deeds_of(hearer, caller) == (1U << WishTrade));
     CHECK(OUTPUTS[WISH] == "wish_near");
-    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "wish_fight");
+    CHECK(OUTPUTS[WISH + WISHES - 1] == "wish_fight");
     // In a world: callers hold an intent, and their hearers' deeds are tallied against it.
     struct Keep { double intent = INTENT, wishes = WISH_LEARNING; ~Keep() { INTENT = intent; WISH_LEARNING = wishes; } } keep;
     INTENT = 1.0;
@@ -3924,6 +3924,59 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     const long long counted = window.heard.hearers;
     for (int turn = 0; turn < 10; ++turn) herd.take_turn();
     CHECK(window.heard.hearers == counted);  // closed, it counts no more
+}
+
+TEST_CASE("pointing: a caller points at one outside thing, its hearers read the finger, and how well they understood is tallied") {
+    CHECK(OUTPUTS[POINT] == "point_threat");
+    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "point_comfort");
+    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN);
+    CHECK(SENSES[SensePointed + PointedAny] == "pointed");
+    CHECK(SENSES[SensePointed + PointedCloseness] == "pointed_closeness");
+    Simulation lone = world(20);
+    Bitzkey& caller = lone.add_agent(encode_dna(Species::Grazer), 10, 10);
+    caller.point = 4;
+    caller.point_turn = 10;
+    caller.prior_point = 2;
+    caller.prior_point_turn = 9;
+    CHECK(caller.pointed_at(10) == 4);
+    CHECK(caller.pointed_at(9) == 2);  // a call before, read though it has called again
+    CHECK(caller.pointed_at(8) == -1);
+    struct Keep { double pointing = POINTING, understood = UNDERSTOOD; ~Keep() { POINTING = pointing; UNDERSTOOD = understood; } } keep;
+    POINTING = 1.0;
+    UNDERSTOOD = 4.0;
+    Simulation herd = world(20);
+    for (int index = 0; index < 12; ++index) herd.add_agent(encode_dna(Species::Grazer, {{"intellect", 7}, {"sight", 7}}), 4 + index % 4, 4 + index / 4);
+    herd.add_agent(encode_dna(Species::Predator), 10, 10);
+    bool pointed = false, read = false;
+    for (int turn = 0; turn < 60; ++turn) {
+        herd.take_turn();
+        for (const Bitzkey* agent : herd.living()) {
+            CHECK(agent->point < OUTSIDE_SEEN);
+            if (agent->point >= 0) {
+                pointed = true;
+                CHECK(agent->point_turn <= agent->call_turn);  // only a call points
+            }
+            if (agent->point_turn >= 0 && agent->point_turn == agent->call_turn) CHECK(agent->last_call >= FirstCall);
+            if (agent->pointed_turn >= 0) {
+                read = true;
+                CHECK(agent->pointed_thing >= 0);
+                CHECK(agent->pointed_off <= 1.0);
+            }
+        }
+    }
+    CHECK(pointed);
+    CHECK(read);
+    const Simulation::PointTally& tally = herd.point_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.calls > 0);
+    long long points = 0, judged = 0;
+    for (std::size_t thing = 0; thing < tally.points.size(); ++thing) {
+        points += tally.points[thing];
+        judged += tally.judged[thing];
+        CHECK(tally.judged[thing] <= tally.points[thing]);
+        CHECK(std::abs(tally.understood[thing]) <= static_cast<double>(tally.judged[thing]));  // each within -1..1
+    }
+    CHECK(points == tally.calls);
+    CHECK(judged > 0);
 }
 
 TEST_CASE("a call carries a tag every hearer reads: the caller's colours, alike to its own and as they are, pitch, harshness and urgency") {
