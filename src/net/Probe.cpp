@@ -1188,6 +1188,36 @@ Json Probe::intent(Simulation& world, bool start, bool stop) {
             for (int wish = 0; wish < WISHES; ++wish) deeds[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = matched_deeds[static_cast<std::size_t>(wish)] / weight;
             entry["distance_matched"] = {{"lift", matched / weight}, {"deeds", deeds}, {"hearers_matched", weight}};
         }
+        // The same matching within those who saw a hunter as they chose, and those who saw none: if a call's pull
+        // were only a shared danger, it would vanish among hearers and bystanders who alike saw (or missed) a hunter.
+        const auto match = [&](const std::array<Simulation::IntentTally, 5>& heard_bands, const std::array<Simulation::IntentTally, 5>& other_bands) {
+            double w_sum = 0.0, lift_sum = 0.0;
+            long long hearers = 0, bystanders = 0;
+            std::array<double, WISHES> deed_sum{};
+            for (std::size_t band = 0; band < heard_bands.size(); ++band) {
+                const Simulation::IntentTally& heard = heard_bands[band];
+                const Simulation::IntentTally& other = other_bands[band];
+                hearers += heard.hearers;
+                bystanders += other.hearers;
+                if (heard.hearers == 0 || other.hearers == 0) continue;
+                const double w = static_cast<double>(heard.hearers);
+                w_sum += w;
+                lift_sum += w * (static_cast<double>(heard.met) / static_cast<double>(heard.hearers) - static_cast<double>(other.met) / static_cast<double>(other.hearers));
+                for (int wish = 0; wish < WISHES; ++wish) {
+                    const auto at = static_cast<std::size_t>(wish);
+                    deed_sum[at] += w * (static_cast<double>(heard.done[at]) / static_cast<double>(heard.hearers) - static_cast<double>(other.done[at]) / static_cast<double>(other.hearers));
+                }
+            }
+            Json row = {{"hearers", hearers}, {"bystanders_heard_another", bystanders}};
+            if (w_sum > 0) {
+                Json deeds = Json::object();
+                for (int wish = 0; wish < WISHES; ++wish) deeds[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = deed_sum[static_cast<std::size_t>(wish)] / w_sum;
+                row["distance_matched"] = {{"lift", lift_sum / w_sum}, {"deeds", deeds}, {"hearers_matched", w_sum}};
+            }
+            return row;
+        };
+        entry["by_hunter"] = {{"hunter_in_sight", match(window.heard_by_hunter[1], window.other_by_hunter[1])},
+                              {"no_hunter", match(window.heard_by_hunter[0], window.other_by_hunter[0])}};
         if (window.heard.hearers > 0 && window.unheard.hearers > 0) {
             entry["lift_over_unheard"] = static_cast<double>(window.heard.met) / static_cast<double>(window.heard.hearers) -
                                          static_cast<double>(window.unheard.met) / static_cast<double>(window.unheard.hearers);

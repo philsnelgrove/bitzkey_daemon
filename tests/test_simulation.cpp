@@ -3912,6 +3912,11 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     long long by_band = 0;  // and under how far it stood
     for (const auto& tally : window.heard_by_band) by_band += tally.hearers;
     CHECK(by_band == window.heard.hearers);
+    long long by_hunter = 0, other_by_hunter = 0;  // and under whether it saw a hunter, hearers and bystanders alike
+    for (const auto& bands : window.heard_by_hunter) for (const auto& tally : bands) by_hunter += tally.hearers;
+    for (const auto& bands : window.other_by_hunter) for (const auto& tally : bands) other_by_hunter += tally.hearers;
+    CHECK(by_hunter == window.heard.hearers);
+    CHECK(other_by_hunter == window.other.hearers);
     CHECK(Simulation::distance_band(1.0) == 0);
     CHECK(Simulation::distance_band(3.0) == 2);
     CHECK(Simulation::distance_band(12.0) == 4);

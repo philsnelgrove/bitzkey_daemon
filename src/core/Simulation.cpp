@@ -2065,6 +2065,7 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
             if (const int sound = held_first_sound(*caller); sound >= 0) window.heard_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
             const int band = distance_band(distance(listener.was_x, listener.was_y, caller->was_x, caller->was_y));  // as they stood when they chose
             window.heard_by_band[static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
+            window.heard_by_hunter[listener.last_senses[SenseThreatCloseness] > 0 ? 1 : 0][static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
         }
     }
     if (!gathering_intent_ || !wishing) return;
@@ -2083,6 +2084,7 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
             if (const int sound = held_first_sound(*caller); sound >= 0) window.other_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
             const int band = distance_band(distance(other->was_x, other->was_y, caller->was_x, caller->was_y));
             window.other_by_band[static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
+            window.other_by_hunter[other->last_senses[SenseThreatCloseness] > 0 ? 1 : 0][static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
         }
     }
 }

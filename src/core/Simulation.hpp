@@ -1650,6 +1650,9 @@ public:
         std::array<IntentTally, CALL_COUNT> heard_by_sound{}, other_by_sound{};
         // And by how far each stood from the caller (see distance_band), so they are compared at the same distance.
         std::array<IntentTally, 5> heard_by_band{}, other_by_band{};
+        // And by whether each saw a hunter itself as it chose ([1]) or not ([0]), by distance, so a danger caller and
+        // hearer share is not taken for the call's effect.
+        std::array<std::array<IntentTally, 5>, 2> heard_by_hunter{}, other_by_hunter{};
     };
     // Distance bands: within 1.5 cells, 2.5, 4.5, 8.5, and beyond (only hearers reach so far).
     static int distance_band(double apart) { return apart <= 1.5 ? 0 : apart <= 2.5 ? 1 : apart <= 4.5 ? 2 : apart <= 8.5 ? 3 : 4; }
