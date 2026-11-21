@@ -2001,6 +2001,11 @@ void Simulation::settle_call(Bitzkey& agent) {
     }
 }
 
+int Simulation::held_first_sound(const Bitzkey& caller) {
+    const int sound = caller.call_outputs[0] - call_output(FirstCall);
+    return sound >= 0 && sound < CALL_COUNT ? sound : -1;
+}
+
 unsigned Simulation::deeds_of(const Bitzkey& hearer, const Bitzkey& caller) const {
     const int choice = hearer.last_choice;
     unsigned deeds = 0;
@@ -2053,14 +2058,12 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
         if (caller->held_intent < 0) continue;
         const bool met = (deeds >> caller->held_intent) & 1U;
         caller->intent_met += met;
-        const auto count = [&](IntentTally& tally, unsigned done, bool did) {
-            ++tally.hearers;
-            tally.met += did;
-            ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
-            for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (done >> wish) & 1U;
-        };
-        count(intent_tally_[static_cast<std::size_t>(caller->species)], deeds, met);
-        if (gathering_intent_) count(intent_window_[static_cast<std::size_t>(caller->species)].heard, deeds, met);
+        intent_tally_[static_cast<std::size_t>(caller->species)].count(caller->held_intent, deeds);
+        if (gathering_intent_) {
+            IntentWindow& window = intent_window_[static_cast<std::size_t>(caller->species)];
+            window.heard.count(caller->held_intent, deeds);
+            if (const int sound = held_first_sound(*caller); sound >= 0) window.heard_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
+        }
     }
     if (!gathering_intent_ || !wishing) return;
     // Bystanders, for the probe: those of each caller's kind near it, choosing when its hearers did, who didn't heed it.
@@ -2073,11 +2076,10 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
                 continue;
             }
             const unsigned deeds = deeds_of(*other, *caller);
-            IntentTally& tally = other->call_heeded < 0 ? window.unheard : window.other;
-            ++tally.hearers;
-            tally.met += (deeds >> caller->held_intent) & 1U;
-            ++tally.intended[static_cast<std::size_t>(caller->held_intent)];
-            for (int wish = 0; wish < WISHES; ++wish) tally.done[static_cast<std::size_t>(wish)] += (deeds >> wish) & 1U;
+            (other->call_heeded < 0 ? window.unheard : window.other).count(caller->held_intent, deeds);
+            if (const int sound = held_first_sound(*caller); sound >= 0 && other->call_heeded >= 0) {
+                window.other_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
+            }
         }
     }
 }

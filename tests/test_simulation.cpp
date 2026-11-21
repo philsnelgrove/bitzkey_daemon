@@ -3906,6 +3906,9 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     CHECK(window.heard.hearers == tally.hearers);  // the window opened as the world began
     CHECK(window.unheard.hearers + window.other.hearers > 0);  // and bystanders were found beside the hearers
     CHECK(window.unheard.met <= window.unheard.hearers);
+    long long by_sound = 0;  // every hearer counted under its caller's first sound
+    for (const auto& tally : window.heard_by_sound) by_sound += tally.hearers;
+    CHECK(by_sound == window.heard.hearers);
     herd.gather_intent(false);
     const long long counted = window.heard.hearers;
     for (int turn = 0; turn < 10; ++turn) herd.take_turn();

@@ -1631,13 +1631,23 @@ public:
     // with each intent, how many did each deed, and how many did their caller's intent.
     struct IntentTally {
         long long hearers = 0, met = 0;
-        std::array<long long, WISHES> intended{}, done{};
+        std::array<long long, WISHES> intended{}, done{}, met_by{};  // met_by: of those with each intent, how many did it
+        void count(int intent, unsigned deeds) {
+            const bool did = (deeds >> intent) & 1U;
+            ++hearers;
+            met += did;
+            ++intended[static_cast<std::size_t>(intent)];
+            met_by[static_cast<std::size_t>(intent)] += did;
+            for (int wish = 0; wish < WISHES; ++wish) done[static_cast<std::size_t>(wish)] += (deeds >> wish) & 1U;
+        }
     };
     const std::array<IntentTally, 4>& intent_tally() const { return intent_tally_; }
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
     // who chose as its hearers did but heard no call, or heard another's loudest; and how many of them did its intent.
     struct IntentWindow {
         IntentTally heard, unheard, other;
+        // The same by the caller's first sound: its hearers, and bystanders who heard another's call.
+        std::array<IntentTally, CALL_COUNT> heard_by_sound{}, other_by_sound{};
     };
     static constexpr int BYSTANDER_REACH = 8;
     void gather_intent(bool on) { gathering_intent_ = on; if (on) intent_window_ = {}; }
@@ -1645,6 +1655,7 @@ public:
     const std::array<IntentWindow, 4>& intent_window() const { return intent_window_; }
     // The deeds of `hearer`'s last choice, as `caller`'s wishes name them, a bit for each (see INTENT).
     unsigned deeds_of(const Bitzkey& hearer, const Bitzkey& caller) const;
+    static int held_first_sound(const Bitzkey& caller);  // the first sound (0..4) of its held call, or -1
     // An offer made, accepted or not, for the probe: the last GIFT_LOG of them, oldest first, not saved.
     struct Trade {
         int turn, offerer, owner, wanted, offered;

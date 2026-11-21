@@ -1135,6 +1135,29 @@ Json Probe::intent(Simulation& world, bool start, bool stop) {
         for (int wish = 0; wish < WISHES; ++wish) intended[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = window.heard.intended[static_cast<std::size_t>(wish)];
         Json entry = {{"hearers", group(window.heard)}, {"bystanders_unheard", group(window.unheard)},
                       {"bystanders_heard_another", group(window.other)}, {"intended", intended}};
+        // By the caller's first sound: what its hearers did against bystanders who heard another's call, and for each
+        // intent, how often each did it (met) and the difference (lift, hearers less bystanders).
+        Json by_sound = Json::object();
+        for (int sound = 0; sound < CALL_COUNT; ++sound) {
+            const Simulation::IntentTally& heard = window.heard_by_sound[static_cast<std::size_t>(sound)];
+            const Simulation::IntentTally& other = window.other_by_sound[static_cast<std::size_t>(sound)];
+            if (heard.hearers == 0) continue;
+            Json by_intent = Json::object();
+            for (int wish = 0; wish < WISHES; ++wish) {
+                const auto at = static_cast<std::size_t>(wish);
+                if (heard.intended[at] == 0) continue;
+                const double heard_met = static_cast<double>(heard.met_by[at]) / static_cast<double>(heard.intended[at]);
+                Json row = {{"hearers", heard.intended[at]}, {"hearers_met", heard_met}, {"bystanders", other.intended[at]}};
+                if (other.intended[at] > 0) {
+                    const double other_met = static_cast<double>(other.met_by[at]) / static_cast<double>(other.intended[at]);
+                    row["bystanders_met"] = other_met;
+                    row["lift"] = heard_met - other_met;
+                }
+                by_intent[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = row;
+            }
+            by_sound["call_" + std::to_string(sound + 1)] = {{"hearers", group(heard)}, {"bystanders_heard_another", group(other)}, {"by_intent", by_intent}};
+        }
+        entry["by_sound"] = by_sound;
         if (window.heard.hearers > 0 && window.unheard.hearers > 0) {
             entry["lift_over_unheard"] = static_cast<double>(window.heard.met) / static_cast<double>(window.heard.hearers) -
                                          static_cast<double>(window.unheard.met) / static_cast<double>(window.unheard.hearers);
