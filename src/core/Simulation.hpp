@@ -1648,7 +1648,11 @@ public:
         IntentTally heard, unheard, other;
         // The same by the caller's first sound: its hearers, and bystanders who heard another's call.
         std::array<IntentTally, CALL_COUNT> heard_by_sound{}, other_by_sound{};
+        // And by how far each stood from the caller (see distance_band), so they are compared at the same distance.
+        std::array<IntentTally, 5> heard_by_band{}, other_by_band{};
     };
+    // Distance bands: within 1.5 cells, 2.5, 4.5, 8.5, and beyond (only hearers reach so far).
+    static int distance_band(double apart) { return apart <= 1.5 ? 0 : apart <= 2.5 ? 1 : apart <= 4.5 ? 2 : apart <= 8.5 ? 3 : 4; }
     static constexpr int BYSTANDER_REACH = 8;
     void gather_intent(bool on) { gathering_intent_ = on; if (on) intent_window_ = {}; }
     bool gathering_intent() const { return gathering_intent_; }

@@ -3909,6 +3909,12 @@ TEST_CASE("intent: a hearer's deeds are read as its caller's wishes name them, a
     long long by_sound = 0;  // every hearer counted under its caller's first sound
     for (const auto& tally : window.heard_by_sound) by_sound += tally.hearers;
     CHECK(by_sound == window.heard.hearers);
+    long long by_band = 0;  // and under how far it stood
+    for (const auto& tally : window.heard_by_band) by_band += tally.hearers;
+    CHECK(by_band == window.heard.hearers);
+    CHECK(Simulation::distance_band(1.0) == 0);
+    CHECK(Simulation::distance_band(3.0) == 2);
+    CHECK(Simulation::distance_band(12.0) == 4);
     herd.gather_intent(false);
     const long long counted = window.heard.hearers;
     for (int turn = 0; turn < 10; ++turn) herd.take_turn();

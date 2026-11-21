@@ -2063,6 +2063,8 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
             IntentWindow& window = intent_window_[static_cast<std::size_t>(caller->species)];
             window.heard.count(caller->held_intent, deeds);
             if (const int sound = held_first_sound(*caller); sound >= 0) window.heard_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
+            const int band = distance_band(distance(listener.was_x, listener.was_y, caller->was_x, caller->was_y));  // as they stood when they chose
+            window.heard_by_band[static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
         }
     }
     if (!gathering_intent_ || !wishing) return;
@@ -2077,9 +2079,10 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
             }
             const unsigned deeds = deeds_of(*other, *caller);
             (other->call_heeded < 0 ? window.unheard : window.other).count(caller->held_intent, deeds);
-            if (const int sound = held_first_sound(*caller); sound >= 0 && other->call_heeded >= 0) {
-                window.other_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
-            }
+            if (other->call_heeded < 0) continue;
+            if (const int sound = held_first_sound(*caller); sound >= 0) window.other_by_sound[static_cast<std::size_t>(sound)].count(caller->held_intent, deeds);
+            const int band = distance_band(distance(other->was_x, other->was_y, caller->was_x, caller->was_y));
+            window.other_by_band[static_cast<std::size_t>(band)].count(caller->held_intent, deeds);
         }
     }
 }

@@ -1158,6 +1158,36 @@ Json Probe::intent(Simulation& world, bool start, bool stop) {
             by_sound["call_" + std::to_string(sound + 1)] = {{"hearers", group(heard)}, {"bystanders_heard_another", group(other)}, {"by_intent", by_intent}};
         }
         entry["by_sound"] = by_sound;
+        // By distance from the caller as they chose: hearers against bystanders who heard another's call at the same
+        // distance; and, over the bands both reach, the lift in doing the intent and in each deed, weighed by hearers.
+        constexpr std::array<const char*, 5> BANDS = {"within_1", "within_2", "within_4", "within_8", "beyond_8"};
+        Json by_distance = Json::object();
+        double weight = 0.0, matched = 0.0;
+        std::array<double, WISHES> matched_deeds{};
+        for (std::size_t band = 0; band < BANDS.size(); ++band) {
+            const Simulation::IntentTally& heard = window.heard_by_band[band];
+            const Simulation::IntentTally& other = window.other_by_band[band];
+            if (heard.hearers == 0 && other.hearers == 0) continue;
+            Json row = {{"hearers", group(heard)}, {"bystanders_heard_another", group(other)}};
+            if (heard.hearers > 0 && other.hearers > 0) {
+                const double lift = static_cast<double>(heard.met) / static_cast<double>(heard.hearers) - static_cast<double>(other.met) / static_cast<double>(other.hearers);
+                row["lift"] = lift;
+                const double w = static_cast<double>(heard.hearers);
+                weight += w;
+                matched += w * lift;
+                for (int wish = 0; wish < WISHES; ++wish) {
+                    const auto at = static_cast<std::size_t>(wish);
+                    matched_deeds[at] += w * (static_cast<double>(heard.done[at]) / static_cast<double>(heard.hearers) - static_cast<double>(other.done[at]) / static_cast<double>(other.hearers));
+                }
+            }
+            by_distance[BANDS[band]] = row;
+        }
+        entry["by_distance"] = by_distance;
+        if (weight > 0) {
+            Json deeds = Json::object();
+            for (int wish = 0; wish < WISHES; ++wish) deeds[std::string(OUTPUTS[static_cast<std::size_t>(WISH + wish)].substr(5))] = matched_deeds[static_cast<std::size_t>(wish)] / weight;
+            entry["distance_matched"] = {{"lift", matched / weight}, {"deeds", deeds}, {"hearers_matched", weight}};
+        }
         if (window.heard.hearers > 0 && window.unheard.hearers > 0) {
             entry["lift_over_unheard"] = static_cast<double>(window.heard.met) / static_cast<double>(window.heard.hearers) -
                                          static_cast<double>(window.unheard.met) / static_cast<double>(window.unheard.hearers);
