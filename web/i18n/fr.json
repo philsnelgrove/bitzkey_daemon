@@ -2104,5 +2104,15 @@
 "ADDRESS": "S'adresser",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "Aller près d'un individu qu'il connaît (sinon d'un de son espèce) et lui dire son cri à lui seul, juste assez fort pour être entendu.",
 "spoke to one": "a parlé à un autre",
-"went to speak to one": "est allé parler à un autre"
+"went to speak to one": "est allé parler à un autre",
+"LEARN": "Apprendre",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "Interpellé, redire le mot à celui qui l'a dit en montrant ce qu'il pense qu'il veut dire ; deviner juste instruit les deux.",
+"said a word back": "a redit un mot",
+"went to say a word back": "est allé redire un mot",
+"Learn gain": "Gain d'apprentissage",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "celui qui, interpellé, redit le mot et montre ce que montrait l'orateur instruit les mots des deux autant de fois ce qu'il a compris (au moins la justesse d'apprentissage) ; 0 pour aucun apprentissage",
+"Learn match": "Justesse d'apprentissage",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "le moins qu'une bonne réponse compte comme compris, avant le gain d'apprentissage, pour qu'elle apprenne toujours quelque chose",
+"Address retries": "Nouvelles tentatives d'adresse",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "combien de fois celui qui s'est adressé seul à un autre, sans recevoir de bonne réponse, peut redire le même mot et montrer de nouveau ; plus il est sociable, plus il y est tenu ; 0 pour aucune"
 }

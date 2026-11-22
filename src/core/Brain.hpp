@@ -187,8 +187,8 @@ enum Sense : int {
 enum Action : int { Eat, Forage, Browse, Uproot, Scavenge, Feast, Rest, Court, Breed, Hunt, Attack, Defend, Flee, Herd,
                     GoNorth, GoSouth, GoEast, GoWest, WalkNorth, WalkSouth, WalkEast, WalkWest, Revisit, FeedYoung, Teach,
                     TakeMeat, TakeFruit, DropMeat, DropFruit, EatPile, EatCarried,
-                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, MakeBow, MakeWagon, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook, Construct, EatSeed, PlantSeed, BuildRoad, EatMarrow, Fertilize, Skin, Demand, Steal, Give, Offer, Shoot, Practise, Tutor, Hitch, Unhitch, StoreFood, CraftArrows, Address };
-constexpr int ACTION_COUNT = 72;
+                    TakeStone, TakeBone, TakeWood, DropStone, DropBone, DropWood, Dress, MakeBoneAxe, MakeBoneArmour, MakeClub, MakeWoodArmour, MakeStoneAxe, MakeBow, MakeWagon, TakeGear, DropWeapon, DropArmour, Cut, Dig, LightFire, FeedFire, Cook, Construct, EatSeed, PlantSeed, BuildRoad, EatMarrow, Fertilize, Skin, Demand, Steal, Give, Offer, Shoot, Practise, Tutor, Hitch, Unhitch, StoreFood, CraftArrows, Address, Learn };
+constexpr int ACTION_COUNT = 73;
 // Alongside its action, every animal that thinks keeps silent or calls: the alert, to its herd, of a hunter (grazers)
 // or a fresh kill (hunters) it sees, or one of five calls that mean only what its kind come to make of them, heard by
 // all close enough. A brain values them as it values its actions, after them, and learns them the same way.
@@ -268,7 +268,7 @@ constexpr std::array<std::string_view, ACTION_COUNT> ACTIONS = {
     "eat", "forage", "browse", "uproot", "scavenge", "feast", "rest", "court", "breed", "hunt", "attack", "defend",
     "flee", "herd", "go_north", "go_south", "go_east", "go_west", "walk_north", "walk_south", "walk_east", "walk_west",
     "revisit", "feed_young", "teach", "take_meat", "take_fruit", "drop_meat", "drop_fruit", "eat_pile", "eat_carried",
-    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "make_bow", "make_wagon", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed", "build_road", "eat_marrow", "fertilize", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store_food", "craft_arrows", "address"};
+    "take_stone", "take_bone", "take_wood", "drop_stone", "drop_bone", "drop_wood", "dress", "make_bone_axe", "make_bone_armour", "make_club", "make_wood_armour", "make_stone_axe", "make_bow", "make_wagon", "take_gear", "drop_weapon", "drop_armour", "cut", "dig", "light_fire", "feed_fire", "cook", "construct", "eat_seed", "plant_seed", "build_road", "eat_marrow", "fertilize", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store_food", "craft_arrows", "address", "learn"};
 // A brain's outputs by name: its actions, then silence and the calls, then its memory's gates and values to write, then what it
 // foresees, then a call's later sounds, then what it foresees of the outside, then its wishes of its hearers.
 constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {

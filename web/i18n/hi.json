@@ -2104,5 +2104,15 @@
 "ADDRESS": "संबोधन",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "किसी परिचित (नहीं तो अपनी जाति के किसी) के पास जाकर अपनी पुकार केवल उसी से कहना, बस इतनी ऊँची कि सुनी जा सके।",
 "spoke to one": "किसी से बात की",
-"went to speak to one": "किसी से बात करने गया"
+"went to speak to one": "किसी से बात करने गया",
+"LEARN": "सीखना",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "संबोधित होने पर, शब्द उसी को लौटाकर कहना जिसने कहा था, और उस पर इशारा करना जिसका अर्थ वह समझता है; सही अनुमान दोनों को सिखाता है।",
+"said a word back": "एक शब्द लौटाया",
+"went to say a word back": "शब्द लौटाने गया",
+"Learn gain": "सीखने का लाभ",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "संबोधित होने पर जो शब्द लौटाकर उसी पर इशारा करे जिस पर वक्ता ने किया था, वह दोनों के शब्दों को अपनी समझ का इतने गुना सिखाता है (कम से कम सीखने का मेल); 0 कोई सीखना नहीं",
+"Learn match": "सीखने का मेल",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "सही अनुमान को समझा हुआ मानने की न्यूनतम मात्रा, सीखने के लाभ से पहले, ताकि सही अनुमान हमेशा कुछ सिखाए",
+"Address retries": "संबोधन के पुनः प्रयास",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "जिसने किसी से अकेले में बात की और उत्तर में सही अनुमान नहीं मिला, वह कितनी बार वही शब्द कहकर फिर इशारा कर सकता है; जितना मिलनसार, उतना ही अधिक विवश; 0 कोई नहीं"
 }

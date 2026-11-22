@@ -384,6 +384,16 @@ inline double CALL_COST = 0.0;  // hunger for each sound of a call: two sounds c
 // bench, 0.2 against being understood at 15 halved calling and kept, on all nine seeds, more of what calls tell; 0.25 and
 // above silenced some populations wholly. 0 for none.
 inline double CALL_EFFORT = 0.2;
+// Learning a word (the user's idea, see the action Learn): one spoken to alone may say the sounds back to the speaker,
+// pointing at what it guesses they mean, offered with a chance of the higher of its curiosity and intellect. A right
+// guess (the thing the speaker pointed at) is worth LEARN_GAIN times what the learner understood of it, at least
+// LEARN_MATCH: added to the speaker's lesson for that call and its point, and to the learner's for its own. 0 for none.
+inline double LEARN_GAIN = 3.0;
+inline double LEARN_MATCH = 0.1;
+// Trying again (the user's idea): one that addressed another with a word and a point, and two turns on has had no
+// right guess said back, may address it again with the same word and point, up to ADDRESS_RETRIES times: offered as
+// a choice, and with a chance of its sociability compelled, its own choice set aside and untaught.
+inline int ADDRESS_RETRIES = 3;
 inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
@@ -1233,6 +1243,17 @@ struct Bitzkey {
     int address_turn = NEVER_ADDRESSED; // the last turn it addressed one (see Address): its call that turn was for that one alone
     int address_to = -1;                // whom, if it stood beside it as it spoke; -1: it hadn't come near, so none heard
     bool spoke_alone() const { return address_turn == call_turn; }  // its last call was said to one alone
+    int learn_turn = -1;                // the last turn it said a word back to learn it (see Learn)
+    int learn_from = -1;                // to whom: the one who had said it
+    bool learn_correct = false;         // whether it then pointed at what that one had pointed at
+    double learn_gain = 0.0;            // what a right guess was worth, taught with its own call (see LEARN_GAIN)
+    double learn_bonus = 0.0;           // this turn: what right guesses of its words were worth, taught with its call
+    double word_understood = 0.0;       // this turn: how much less surprised it is by what the one it heard pointed at
+    int word_turn = -1;                 // the last turn it addressed one with a word and a point (see ADDRESS_RETRIES)
+    int word_call = -1;                 // that word's first sound, as a call
+    std::array<int, MAX_SOUNDS - 1> word_sounds{-1, -1};  // and its later sounds
+    int word_point = -1;                // what it pointed at
+    int word_tries = 0;                 // how many times it has said it again, unanswered
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
@@ -1284,6 +1305,7 @@ struct Bitzkey {
     // it then was (-1 when it foresaw nothing). As a caller, how much less surprised its hearers were, summed, and how many.
     int point = -1, point_turn = -1, prior_point = -1, prior_point_turn = -1;
     int held_point = -1;
+    double held_learn = 0.0;  // with its held call: what its guess was worth, said back right (see Learn)
     int pointed_by = -1, pointed_thing = -1, pointed_turn = -1;
     double pointed_off = -1.0;
     double understood_sum = 0.0;
@@ -1851,6 +1873,10 @@ public:
         Bitzkey* practise_on = nullptr;  // and the nearest plant in sight, to practise on
         Bitzkey* pupil = nullptr;        // one beside it worth tutoring
         Bitzkey* addressee = nullptr;    // whom it would address: the nearest it knows in sight, else the nearest of its kind
+        Bitzkey* learn_by = nullptr;     // one who spoke to it alone and pointed, whose word it may say back (see Learn)
+        int learn_thing = -1, learn_call = -1;  // what that one pointed at, and its call
+        std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and its later sounds
+        Bitzkey* retry_to = nullptr;     // one it addressed with a word, not yet answered right, to say it again to
         int lesson = -1;                 // in which craft, or CRAFT_COUNT for archery
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight
@@ -2060,7 +2086,8 @@ public:
     bool can_add(const Bitzkey& agent, int craft) const;  // carries a part the work on its square still lacks
     void add_to_work(Bitzkey& agent, int action);
     void use_parts(Bitzkey& agent, int craft, const Parts* exactly = nullptr);  // spent in that order, friends who gave sharing in it
-    void craft_arrows(Bitzkey& agent, Bitzkey& archer);  // a wood at hand made into arrows for the archer's bow
+    void craft_arrows(Bitzkey& agent, Bitzkey& archer);
+    bool speak_beside(Bitzkey& agent, const Bitzkey& other);  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken

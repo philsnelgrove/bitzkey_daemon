@@ -2104,5 +2104,15 @@
 "ADDRESS": "Dirigirse",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "Acercarse a uno que conoce (si no, a uno de su especie) y decirle solo a él su llamada, apenas lo bastante alto para ser oída.",
 "spoke to one": "habló a uno",
-"went to speak to one": "fue a hablar a uno"
+"went to speak to one": "fue a hablar a uno",
+"LEARN": "Aprender",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "Cuando le hablan, devolver la palabra a quien la dijo, señalando lo que cree que significa; acertar enseña a los dos.",
+"said a word back": "devolvió una palabra",
+"went to say a word back": "fue a devolver una palabra",
+"Learn gain": "Ganancia de aprender",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "quien, al hablarle, devuelve la palabra y señala lo que señaló el hablante enseña las palabras de ambos tantas veces lo que entendió (al menos el acierto de aprender); 0 para no aprender",
+"Learn match": "Acierto de aprender",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "lo mínimo que un acierto cuenta como entendido, antes de la ganancia de aprender, para que acertar siempre enseñe algo",
+"Address retries": "Reintentos al dirigirse",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "cuántas veces quien se dirigió a otro a solas y no recibió un acierto por respuesta puede decir la misma palabra y señalar de nuevo; cuanto más sociable, más probable que deba; 0 para ninguna"
 }

@@ -92,6 +92,7 @@ constexpr std::array<ActionAbout, ACTION_COUNT> ABOUT = {{
     {StoreFood, 0, "Carry the food it holds to its herd's store, the pile, fire or shelter nearest the herd's middle, and put it down."},
     {CraftArrows, 5, "Make arrows from a wood at hand, filling its own bow again, or the bow of one beside it."},
     {Address, 3, "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard."},
+    {Learn, 3, "Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them."},
 }};
 constexpr bool each_action_once() {
     for (int action = 0; action < ACTION_COUNT; ++action) {

@@ -2104,5 +2104,15 @@
 "ADDRESS": "Звернутися",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "Підійти до знайомого (а як нема, до когось свого виду) і сказати свій поклик лише йому, якраз так гучно, щоб почув.",
 "spoke to one": "заговорив до когось",
-"went to speak to one": "пішов заговорити до когось"
+"went to speak to one": "пішов заговорити до когось",
+"LEARN": "Вчитися",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "Коли до нього звернулися, повторити слово тому, хто його сказав, і вказати на те, що воно, на його думку, означає; влучна здогадка навчає обох.",
+"said a word back": "повторив слово",
+"went to say a word back": "пішов повторити слово",
+"Learn gain": "Виграш навчання",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "той, до кого звернулися, хто повторить слово й вкаже на те, на що вказав мовець, навчає слів обох у стільки разів більше, ніж зрозумів (щонайменше влучність навчання); 0 без навчання",
+"Learn match": "Влучність навчання",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "найменше, що влучна здогадка зараховується як зрозуміле, до виграшу навчання, щоб влучна здогадка завжди чогось навчала",
+"Address retries": "Повторні звертання",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "скільки разів той, хто звернувся до іншого наодинці й не почув влучної здогадки у відповідь, може знову сказати те саме слово й вказати; що товариськіший, то певніше мусить; 0 без"
 }

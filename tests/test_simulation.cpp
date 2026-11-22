@@ -2790,6 +2790,136 @@ TEST_CASE("addressing: an animal goes beside one it knows and says its call to t
     (void)kin_stranger;
 }
 
+TEST_CASE("learning a word: spoken to alone by one who pointed, a curious one may say the word back, beside the speaker") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    learner.mind[Curiosity] = TRAIT_MAX;  // curious to the full: always offered
+    simulation.index_cells();
+    speaker.call = FirstCall + 2;
+    speaker.sounds = {0, -1};
+    speaker.call_turn = speaker.address_turn = simulation.turn() - 1;
+    speaker.address_to = learner.identifier;
+    speaker.point = 4;
+    speaker.point_turn = simulation.turn() - 1;
+    auto sensed = simulation.sense(learner);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Learn) != sensed.options.end());
+    CHECK(sensed.situation.learn_by == &speaker);
+    CHECK(sensed.situation.learn_thing == 4);
+    CHECK(sensed.situation.learn_call == FirstCall + 2);
+    CHECK(sensed.situation.learn_sounds[0] == 0);
+    simulation.act(learner, Learn, sensed.situation);
+    CHECK(learner.last_action == "said a word back");
+    CHECK(learner.address_to == speaker.identifier);  // said to the speaker alone
+    CHECK(std::abs(learner.x - speaker.x) + std::abs(learner.y - speaker.y) == 1);
+    speaker.point_turn = simulation.turn() - 5;  // a word with no finger to it: nothing to guess at
+    auto unpointed = simulation.sense(learner);
+    CHECK(std::find(unpointed.options.begin(), unpointed.options.end(), Learn) == unpointed.options.end());
+    speaker.point_turn = simulation.turn() - 1;
+    speaker.address_turn = NEVER_ADDRESSED;  // called aloud to all, not to it alone: not offered either
+    auto aloud = simulation.sense(learner);
+    CHECK(std::find(aloud.options.begin(), aloud.options.end(), Learn) == aloud.options.end());
+}
+
+TEST_CASE("learning a word: a right guess is worth the learn gain to both, at least the learn match, a wrong one nothing") {
+    const int gpu = USE_GPU;
+    USE_GPU = 0;  // its lessons learnt at once, on the CPU
+    Simulation simulation = world(40);
+    USE_GPU = gpu;
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    speaker.mind[Intellect] = TRAIT_MAX;  // one that learns, whatever the tests' rules
+    simulation.index_cells();
+    learner.learn_turn = simulation.turn() - 1;
+    learner.learn_from = speaker.identifier;
+    learner.learn_correct = true;
+    std::vector<Bitzkey*> agents{&speaker, &learner};
+    std::vector<Simulation::Sensed> now{simulation.sense(speaker), simulation.sense(learner)};
+    simulation.gauge_understanding(agents, now);
+    CHECK(learner.learn_gain == doctest::Approx(LEARN_GAIN * LEARN_MATCH));  // it read no finger: the least a right guess counts
+    CHECK(speaker.learn_bonus == doctest::Approx(LEARN_GAIN * LEARN_MATCH));
+    learner.learn_correct = false;
+    simulation.gauge_understanding(agents, now);
+    CHECK(speaker.learn_bonus == 0.0);  // a wrong guess: nothing
+    // The speaker's held call and point, settled with and without a right guess: the right guess teaches them higher.
+    const auto settled = [&](bool right) {
+        learner.learn_correct = right;
+        simulation.gauge_understanding(agents, now);
+        speaker.call_senses = now[0].senses;
+        speaker.call_outputs = {call_output(FirstCall + 2), -1, -1};
+        speaker.held_call_target = 0.0;
+        speaker.held_point = 4;
+        speaker.held_learn = 0.0;
+        speaker.understood_sum = 0.0;
+        speaker.understood_count = 1;  // one hearer, no less surprised
+        speaker.call_held = true;
+        const auto before = std::make_shared<Brain>(*speaker.brain);
+        simulation.settle_call(speaker);
+        const Values values = speaker.brain->values(speaker.call_senses);
+        speaker.brain = before;
+        return std::pair{values[call_output(FirstCall + 2)], values[POINT + 4]};
+    };
+    const auto [call_wrong, point_wrong] = settled(false);
+    const auto [call_right, point_right] = settled(true);
+    CHECK(call_right > call_wrong);
+    CHECK(point_right > point_wrong);
+}
+
+TEST_CASE("trying again: a word said to one alone and not answered right may be said again, the same word and point, up to the retries") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    const auto said = [&] {  // its word, said to the listener alone two turns ago
+        speaker.word_turn = speaker.address_turn = simulation.turn() - 2;
+        speaker.address_to = listener.identifier;
+        speaker.word_call = FirstCall + 1;
+        speaker.word_sounds = {2, -1};
+        speaker.word_point = 5;
+    };
+    said();
+    auto sensed = simulation.sense(speaker);
+    CHECK(sensed.situation.retry_to == &listener);
+    CHECK(sensed.situation.addressee == &listener);  // whom it would address is the one it is teaching
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Address) != sensed.options.end());
+    listener.learn_turn = simulation.turn() - 1;  // answered with a right guess: nothing to try again
+    listener.learn_from = speaker.identifier;
+    listener.learn_correct = true;
+    CHECK(simulation.sense(speaker).situation.retry_to == nullptr);
+    listener.learn_correct = false;  // a wrong guess: it tries again
+    CHECK(simulation.sense(speaker).situation.retry_to == &listener);
+    speaker.word_tries = ADDRESS_RETRIES;  // tried as often as it may
+    CHECK(simulation.sense(speaker).situation.retry_to == nullptr);
+    speaker.word_tries = 0;
+    speaker.word_turn = simulation.turn() - 3;  // too long ago
+    CHECK(simulation.sense(speaker).situation.retry_to == nullptr);
+}
+
+TEST_CASE("trying again: the fully sociable must, saying its word and pointing as before, its own choice untaught") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& listener = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    speaker.mind[Sociability] = TRAIT_MAX;
+    simulation.index_cells();
+    speaker.word_turn = speaker.address_turn = simulation.turn() - 1;  // two turns before the one about to be taken
+    speaker.address_to = listener.identifier;
+    speaker.word_call = FirstCall + 1;
+    speaker.word_sounds = {2, -1};
+    speaker.word_point = 5;
+    simulation.advance();
+    REQUIRE(speaker.alive());
+    if (speaker.last_choice == Address) {  // awake and unafraid, it said it again
+        CHECK(speaker.last_forced);
+        CHECK(speaker.call == FirstCall + 1);
+        CHECK(speaker.sounds[0] == 2);
+        CHECK(speaker.point == 5);
+        CHECK(speaker.word_tries == 1);
+        CHECK(speaker.address_to == listener.identifier);
+    } else {
+        MESSAGE("the speaker could not choose this turn: " << ACTIONS[static_cast<std::size_t>(speaker.last_choice)]);
+    }
+}
+
 TEST_CASE("an animal addressing one always says something: silence and the alert are not among its calls") {
     Simulation simulation = world(40);
     Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);

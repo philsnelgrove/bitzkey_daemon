@@ -1986,6 +1986,7 @@ void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::arr
         agent.held_call_target = target;
         agent.held_intent = agent.intent;
         agent.held_point = agent.pointed_at(turn_ - 1);
+        agent.held_learn = agent.learn_correct && agent.learn_turn == turn_ - 1 ? agent.learn_gain : 0.0;
         agent.call_held = rate > 0;
         return;
     }
@@ -2041,6 +2042,9 @@ void Simulation::settle_call(Bitzkey& agent) {
     const bool pointed = agent.held_point >= 0 && agent.understood_count > 0;
     const double understood = pointed ? agent.understood_sum / agent.understood_count : 0.0;  // how much less surprised, on average
     target += UNDERSTOOD * understood;
+    // Its word said back and guessed right: as the one who said it (learn_bonus), and as the one who said it back.
+    const double learnt = agent.learn_bonus + agent.held_learn;
+    target += learnt;
     target = limited_value(target);
     const auto lesson = [&](int output, double value, double share) {
         if (gpu_) queue_lesson(agent, agent.call_senses, output, value, share, false, 0.0);
@@ -2057,7 +2061,8 @@ void Simulation::settle_call(Bitzkey& agent) {
         }
     }
     // What it pointed at: valued by how well its hearers then understood it.
-    if (POINTING > 0 && pointed) lesson(POINT + agent.held_point, limited_value(UNDERSTOOD * understood), rate * POINTING);
+    if (POINTING > 0 && agent.held_point >= 0 && (pointed || learnt != 0.0))
+        lesson(POINT + agent.held_point, limited_value(UNDERSTOOD * understood + learnt), rate * POINTING);
 }
 
 void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now) {
@@ -2066,6 +2071,8 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
     for (Bitzkey* agent : agents) {
         agent->understood_sum = 0.0;
         agent->understood_count = 0;
+        agent->learn_bonus = 0.0;
+        agent->word_understood = 0.0;
     }
     if (POINTING <= 0 && UNDERSTOOD <= 0) return;
     for (const Bitzkey* agent : agents) {  // for the probe: whether each chose to attend last turn, when it could
@@ -2079,7 +2086,7 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         tally.attended += agent->attend_choice == AttendYes;
     }
     for (std::size_t index = 0; index < agents.size(); ++index) {
-        const Bitzkey& hearer = *agents[index];
+        Bitzkey& hearer = *agents[index];
         if (hearer.pointed_turn != turn_ - 1 || hearer.pointed_off < 0 || !hearer.has_foresaw || hearer.pointed_thing < 0) continue;
         Bitzkey* caller = find_agent(hearer.pointed_by);
         if (!caller || !caller->alive() || caller == &hearer) continue;
@@ -2087,6 +2094,7 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         const double off = std::clamp(std::abs(now[index].senses[static_cast<std::size_t>(OUTSIDE_SENSES[thing])] - hearer.foresaw[thing]), 0.0, 1.0);
         caller->understood_sum += hearer.pointed_off - off;
         ++caller->understood_count;
+        hearer.word_understood = hearer.pointed_off - off;
         PointTally& tally = point_tally_[static_cast<std::size_t>(caller->species)];  // for the probe: by whether it knew the caller
         if (recognises(hearer, *caller)) {
             ++tally.known_judged;
@@ -2095,6 +2103,13 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
             ++tally.stranger_judged;
             tally.stranger_understood += hearer.pointed_off - off;
         }
+    }
+    for (Bitzkey* learner : agents) {  // a word said back last turn, and guessed right: worth as much to the one who said it
+        if (LEARN_GAIN <= 0 || learner->learn_turn != turn_ - 1 || !learner->learn_correct) continue;
+        const double understood = learner->pointed_by == learner->learn_from ? learner->word_understood : 0.0;
+        learner->learn_gain = LEARN_GAIN * std::max(LEARN_MATCH, understood);
+        Bitzkey* speaker = find_agent(learner->learn_from);
+        if (speaker && speaker->alive() && speaker != learner) speaker->learn_bonus += learner->learn_gain;
     }
     for (const Bitzkey* caller : agents) {  // for the probe: each held call that pointed, as its hearers' turn is judged
         if (!caller->call_held || caller->held_point < 0) continue;
@@ -2622,6 +2637,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             situation.hunter = nullptr;  // it runs from the fire
             situation.panic = true;
             options = {Flee};
+        } else if (situation.retry_to && std::find(options.begin(), options.end(), Address) != options.end() &&
+                   whim(agent.identifier ^ 0x52455452, turn_) < agent.feeling(Sociability)) {
+            options = {Address};  // unanswered, it must say its word again, the more surely the more sociable it is
         }
         rolls[index] = rng().random();
         explores[index] = rng().random();
@@ -2850,6 +2868,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             if (CUES && (situation.panic || agent.struck_turn >= turn_ - 1)) {
                 forced = agent.own_cry();
                 agent.call_kind = 1;
+            } else if (choice == Address && situation.retry_to && agent.word_call >= FirstCall) {  // its word again, as it said it
+                forced = agent.word_call;
+                agent.sounds = agent.word_sounds;
+            } else if (choice == Learn && situation.learn_by) {  // the word it heard, said back as it was said
+                forced = situation.learn_call;
+                agent.sounds = situation.learn_sounds;
             } else if (repeating) {
                 forced = previous_call;
                 agent.sounds = previous_sounds;
@@ -2933,6 +2957,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 int picked = outputs[0];
                 if (repeated && agent.point >= 0 && agent.point_turn == turn_ - 1) {
                     picked = POINT + agent.point;  // the same thing again
+                } else if (choice == Address && situation.retry_to && agent.word_point >= 0) {
+                    picked = POINT + agent.word_point;  // what it pointed at as it first said the word
                 } else {
                     for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
                         roll -= chance;
@@ -2944,6 +2970,20 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.prior_point_turn = agent.point_turn;
                 agent.point = picked - POINT;
                 agent.point_turn = turn_;
+            }
+            if (choice == Address && agent.call >= FirstCall && agent.point_turn == turn_) {  // a word said to one, with its point
+                const bool again = situation.retry_to && agent.call == agent.word_call;
+                agent.word_tries = again ? agent.word_tries + 1 : 0;
+                agent.word_turn = turn_;
+                agent.word_call = agent.call;
+                agent.word_sounds = agent.sounds;
+                agent.word_point = agent.point;
+            }
+            if (choice == Learn && situation.learn_by && agent.call == situation.learn_call) {  // and whether it guessed right
+                agent.learn_turn = turn_;
+                agent.learn_from = situation.learn_by->identifier;
+                agent.learn_correct = agent.point_turn == turn_ && agent.point == situation.learn_thing;
+                agent.learn_gain = 0.0;
             }
             // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
             // more for the fearful), hunger and pain.
@@ -3814,6 +3854,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         if (!s.addressee) s.addressee = const_cast<Bitzkey*>(kind);
+        // Its word, said to one alone two turns ago and not since answered with a right guess: it may say it again.
+        if (ADDRESS_RETRIES > 0 && agent.word_turn == turn_ - 2 && agent.address_turn == agent.word_turn && agent.address_to >= 0 &&
+            agent.word_tries < ADDRESS_RETRIES) {
+            Bitzkey* other = find_agent(agent.address_to);
+            if (other && other->alive() && other != &agent && distance(other->x, other->y, agent.x, agent.y) <= sight &&
+                !(other->learn_turn == turn_ - 1 && other->learn_from == agent.identifier && other->learn_correct)) {
+                s.retry_to = other;
+                s.addressee = other;
+            }
+        }
     }
     available[Address] = s.addressee != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
@@ -4123,6 +4173,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 if (sound >= 0) spoken(FirstCall + sound);
             }
             senses[SensePointed + Addressed] = 1.0;
+            const int thing = POINTING > 0 && LEARN_GAIN > 0 ? addressed->pointed_at(turn_ - 1) : -1;
+            if (thing >= 0 && addressed->call >= FirstCall) {  // a word it may say back, pointing at what it guesses it means
+                s.learn_by = const_cast<Bitzkey*>(addressed);
+                s.learn_thing = thing;
+                s.learn_call = addressed->call;
+                s.learn_sounds = addressed->sounds;
+                if (whim(agent.identifier ^ 0x4C45524E, turn_) < std::max(agent.feeling(Curiosity), agent.intelligence())) {
+                    sensed.options.push_back(Learn);  // the more curious or the cleverer, the likelier to try
+                }
+            }
         }
     }
     if (caller) {
@@ -5945,19 +6005,12 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Tutor:
             tutor(agent, *s.pupil, s.lesson);
             break;
-        case Address: {
-            // Up to one it would speak to, no nearer than beside it, and its call said to that one alone, just loud
-            // enough: heard by that one only, and only if it got beside it (see hear in sense).
-            const Bitzkey& other = *s.addressee;
-            const Cell there = spot(other);
-            const int away = distance(there.x, there.y, agent.x, agent.y);
-            if (away > 1) move_toward(agent, there.x, there.y, std::min(agent.pace(), away - 1));
-            agent.address_turn = turn_;
-            const bool lives = in_reach(other) ? other.alive() : other.was_alive;
-            agent.address_to = lives && distance(there.x, there.y, agent.x, agent.y) <= 1 ? other.identifier : -1;
-            agent.last_action = agent.address_to >= 0 ? "spoke to one" : "went to speak to one";
+        case Address:
+            agent.last_action = speak_beside(agent, *s.addressee) ? "spoke to one" : "went to speak to one";
             break;
-        }
+        case Learn:
+            agent.last_action = speak_beside(agent, *s.learn_by) ? "said a word back" : "went to say a word back";
+            break;
         case TakeMeat:
             take_meat(agent, s);
             break;
@@ -7489,6 +7542,18 @@ void Simulation::use_parts(Bitzkey& agent, int craft, const Parts* exactly) {
         }
         if (craft >= 0) note_first("helped_craft", helper->species, helper->identifier, ACTIONS[static_cast<std::size_t>(MakeBoneAxe + craft)]);
     }
+}
+
+bool Simulation::speak_beside(Bitzkey& agent, const Bitzkey& other) {
+    // Up to the other, no nearer than beside it, and its call this turn said to that one alone, just loud enough: heard
+    // by that one only, and only if it got beside it (see hear in sense).
+    const Cell there = spot(other);
+    const int away = distance(there.x, there.y, agent.x, agent.y);
+    if (away > 1) move_toward(agent, there.x, there.y, std::min(agent.pace(), away - 1));
+    agent.address_turn = turn_;
+    const bool lives = in_reach(other) ? other.alive() : other.was_alive;
+    agent.address_to = lives && distance(there.x, there.y, agent.x, agent.y) <= 1 ? other.identifier : -1;
+    return agent.address_to >= 0;
 }
 
 void Simulation::craft_arrows(Bitzkey& agent, Bitzkey& archer) {

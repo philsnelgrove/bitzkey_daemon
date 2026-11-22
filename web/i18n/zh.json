@@ -2104,5 +2104,15 @@
 "ADDRESS": "搭话",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "走到一个认识的个体身边（否则走到同类身边），只对它说出自己的叫声，音量刚好能被听见。",
 "spoke to one": "对一个个体说了话",
-"went to speak to one": "走去和一个个体说话"
+"went to speak to one": "走去和一个个体说话",
+"LEARN": "学词",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "被搭话时，把词说回给说话者，并指向它猜的词义；猜对了，双方都学到。",
+"said a word back": "说回了一个词",
+"went to say a word back": "走去说回一个词",
+"Learn gain": "学词收益",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "被搭话者若说回该词并指向说话者所指之物，就以其理解的这么多倍教双方的词（至少为学词命中）；0 为不学",
+"Learn match": "学词命中",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "猜对至少算作理解的量，在学词收益之前，使猜对总能教会些什么",
+"Address retries": "搭话重试次数",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "单独搭话后未得到猜对回应者，可以再次说同一个词并指同一物的次数；越合群越不得不再试；0 为不重试"
 }

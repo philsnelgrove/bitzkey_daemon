@@ -1356,7 +1356,7 @@ Json Probe::language(Simulation& world) const {
         double understood = 0.0;  // how much nearer what they saw their own calls brought callers' foresight (Speak as heard)
         long long understood_calls = 0;
         struct {  // calls said to one alone (see Address): how many, how many came beside that one, who heard one, and speak as heard
-            long long calls = 0, reached = 0, hearers = 0, understood_calls = 0, broadcast_understood_calls = 0;
+            long long calls = 0, reached = 0, hearers = 0, understood_calls = 0, broadcast_understood_calls = 0, said_back = 0, guessed = 0, retries = 0, compelled = 0;
             double understood = 0.0, broadcast_understood = 0.0;
         } address;
         std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
@@ -1373,12 +1373,20 @@ Json Probe::language(Simulation& world) const {
             ++choices;
             for (std::size_t at = 0; at < FEATURES.size(); ++at) base[at] += feature[at];
             if (senses[SensePointed + Addressed] > 0) ++address.hearers;
+            if (agent->learn_turn == agent->call_turn && agent->learn_turn >= 0) {  // a word said back as it last chose (see Learn)
+                ++address.said_back;
+                address.guessed += agent->learn_correct;
+            }
             if (agent->last_call >= FirstCall && agent->last_call < FirstCall + CALL_COUNT) {
                 const auto call = static_cast<std::size_t>(agent->last_call - FirstCall);
                 ++uses[call];
                 const bool private_call = agent->spoke_alone();
                 if (private_call) {
                     ++address.calls;
+                    if (agent->word_turn == agent->call_turn && agent->word_tries > 0) {  // a word said again, unanswered
+                        ++address.retries;
+                        address.compelled += agent->last_forced;
+                    }
                     if (agent->address_to >= 0) ++address.reached;
                 }
                 if (agent->call_understood != 0.0) {
@@ -1634,6 +1642,10 @@ Json Probe::language(Simulation& world) const {
             {"addressing", {{"calls", address.calls}, {"share_of_calls", ratio(static_cast<double>(address.calls), static_cast<double>(made))},
                             {"reached_share", ratio(static_cast<double>(address.reached), static_cast<double>(address.calls))},
                             {"hearers_addressed_share", ratio(static_cast<double>(address.hearers), static_cast<double>(choices))},
+                            {"words_said_back", address.said_back}, {"said_back_share_of_addressed", ratio(static_cast<double>(address.said_back), static_cast<double>(address.hearers))},
+                            {"guessed_right_share", ratio(static_cast<double>(address.guessed), static_cast<double>(address.said_back))},
+                            {"retries", address.retries}, {"retry_share_of_addressed", ratio(static_cast<double>(address.retries), static_cast<double>(address.calls))},
+                            {"retries_compelled_share", ratio(static_cast<double>(address.compelled), static_cast<double>(address.retries))},
                             {"understood_addressed", address.understood_calls > 0 ? Json(address.understood / static_cast<double>(address.understood_calls)) : Json(nullptr)},
                             {"understood_broadcast", address.broadcast_understood_calls > 0 ? Json(address.broadcast_understood / static_cast<double>(address.broadcast_understood_calls)) : Json(nullptr)}}},
             {"conventions", {{"neighbour_pairs", pairs}, {"neighbours_same", ratio(static_cast<double>(same), static_cast<double>(pairs))},

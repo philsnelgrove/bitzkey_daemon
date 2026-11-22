@@ -2104,5 +2104,15 @@
 "ADDRESS": "Ansprechen",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "Zu einem Bekannten (sonst einem seiner Art) hingehen und ihm allein seinen Ruf sagen, gerade laut genug, um gehört zu werden.",
 "spoke to one": "sprach einen an",
-"went to speak to one": "ging, um einen anzusprechen"
+"went to speak to one": "ging, um einen anzusprechen",
+"LEARN": "Lernen",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "Angesprochen, das Wort dem zurücksagen, der es sagte, und auf das zeigen, was es vermutlich bedeutet; richtig geraten, lernen beide.",
+"said a word back": "sagte ein Wort zurück",
+"went to say a word back": "ging, um ein Wort zurückzusagen",
+"Learn gain": "Lerngewinn",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "wer angesprochen das Wort zurücksagt und auf das zeigt, worauf der Sprecher zeigte, lehrt beider Wörter so viel mal, wie es verstand (mindestens der Lerntreffer); 0 für kein Lernen",
+"Learn match": "Lerntreffer",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "das Mindeste, das ein richtiges Raten als verstanden zählt, vor dem Lerngewinn, damit richtiges Raten immer etwas lehrt",
+"Address retries": "Ansprech-Wiederholungen",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "wie oft einer, der einen anderen allein ansprach und keine richtige Vermutung zur Antwort bekam, dasselbe Wort mit demselben Zeigen noch einmal sagen darf; je geselliger, desto eher muss er; 0 für keine"
 }

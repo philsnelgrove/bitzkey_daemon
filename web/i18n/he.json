@@ -2104,5 +2104,15 @@
 "ADDRESS": "פנייה",
 "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "לגשת אל מכר (אחרת אל בן מינו) ולומר את קריאתו לו בלבד, בקול רם די הצורך כדי להישמע.",
 "spoke to one": "דיבר אל אחד",
-"went to speak to one": "הלך לדבר אל אחד"
+"went to speak to one": "הלך לדבר אל אחד",
+"LEARN": "ללמוד",
+"Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them.": "כשפונים אליו, להחזיר את המילה למי שאמר אותה ולהצביע על מה שהוא משער שהיא אומרת; ניחוש נכון מלמד את שניהם.",
+"said a word back": "החזיר מילה",
+"went to say a word back": "הלך להחזיר מילה",
+"Learn gain": "רווח הלמידה",
+"spoken to, one that says the word back and points at what the speaker pointed at teaches both their words this many times what it understood (at least the learn match); 0 for no learning": "מי שפונים אליו, מחזיר את המילה ומצביע על מה שהדובר הצביע עליו, מלמד את המילים של שניהם פי כך ממה שהבין (לפחות התאמת הלמידה); 0 בלי למידה",
+"Learn match": "התאמת הלמידה",
+"the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "המינימום שניחוש נכון נחשב כמובן, לפני רווח הלמידה, כך שניחוש נכון תמיד מלמד משהו",
+"Address retries": "ניסיונות פנייה חוזרים",
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "כמה פעמים מי שפנה אל אחר לבדו ולא קיבל ניחוש נכון בתשובה רשאי לומר שוב את אותה מילה ולהצביע שוב; ככל שהוא חברותי יותר, כך סביר יותר שיחויב; 0 בלי"
 }
