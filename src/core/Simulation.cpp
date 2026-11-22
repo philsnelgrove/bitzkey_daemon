@@ -1808,6 +1808,7 @@ void Simulation::learn(Bitzkey& agent, double target, double outcome, bool repla
         }
     }
     if (rate > 0) learn_from_parent(agent, target, call_target, rate);
+    if (rate > 0) hushed_by_parent(agent, rate);
     if (rate > 0) read_body_language(agent, target, call_target, rate);
     copy_cue(agent);
     if (replay && DIARY_ENTRIES > 0 && !agent.diary.empty() && rate > 0) {  // one diary entry, in turn
@@ -1995,10 +1996,39 @@ void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::arr
     }
 }
 
+void Simulation::teach_call_harm(Bitzkey& agent) {
+    // Struck soon after it called: the call it made is taught the harm, against what it sensed as it made it.
+    if (CALL_HARM <= 0 || agent.struck_turn < 0 || agent.struck_turn <= agent.harm_taught_turn) return;
+    agent.harm_taught_turn = agent.struck_turn;
+    if (agent.voiced_turn < 0 || agent.voiced_turn > agent.struck_turn || agent.struck_turn - agent.voiced_turn > CALL_HARM_TURNS) return;
+    if (agent.habits.empty() || !agent.brain) return;
+    const double rate = learning_rate(agent);
+    if (rate <= 0) return;
+    const Bitzkey::CallHabit& said = agent.habits.back();  // its last call, as it sensed it then
+    Senses senses{};
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) {  // back from how its brain read it, in sixtieths
+        const double read = said.senses[static_cast<std::size_t>(sense)] / 60.0;
+        const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+        senses[static_cast<std::size_t>(sense)] = reading == SignedReading ? read : reading == SparseReading ? read / 2.0 : (read + 1.0) / 2.0;
+    }
+    std::array<int, MAX_SOUNDS> outputs{call_output(FirstCall + said.said[0]), -1, -1};
+    for (int place = 1; place < MAX_SOUNDS; ++place) {  // each place after the first: the sound it added, or its stop
+        outputs[static_cast<std::size_t>(place)] = sound_output(place, said.said[static_cast<std::size_t>(place)]);
+        if (said.said[static_cast<std::size_t>(place)] < 0) break;
+    }
+    const double value = limited_value(-CALL_HARM);
+    for (const int output : outputs) {
+        if (output < 0) continue;
+        if (gpu_) queue_lesson(agent, senses, output, value, rate, false, 0.0);
+        else learning_brain(agent).learn(senses, output, value, rate);
+    }
+}
+
 void Simulation::settle_call(Bitzkey& agent) {
     const bool relieved = agent.relieved;  // one who heard it was then less surprised: the itch passes
     agent.relieved = false;
     if (relieved) agent.itch = 0.0;
+    teach_call_harm(agent);
     if (!agent.call_held) return;
     agent.call_held = false;
     const double rate = learning_rate(agent);
@@ -2881,6 +2911,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.last_call = agent.call;
             agent.last_sounds = agent.sounds;
             agent.call_turn = turn_;
+            if (agent.call >= FirstCall) agent.voiced_turn = turn_;
+            {  // how much it would now rather keep quiet than make its best sound (see PARENT_HUSH)
+                double best_sound = values[index][call_output(FirstCall)];
+                for (int c = FirstCall + 1; c < CALL_OPTIONS; ++c) best_sound = std::max(best_sound, values[index][call_output(c)]);
+                agent.quiet_wish = values[index][call_output(Silent)] - best_sound;
+            }
             if (INTENT > 0 && agent.call >= FirstCall) {
                 agent.intent = 0;
                 for (int wish = 1; wish < WISHES; ++wish) {
@@ -3260,6 +3296,27 @@ void Simulation::learn_from_parent(Bitzkey& child, double target, double call_ta
         }
     }
     lesson(child.last_senses, parent->last_choice, target);
+}
+
+void Simulation::hushed_by_parent(Bitzkey& child, double rate) {
+    // A young one that called with a parent in sight is taught, of that call, how much its parent would now rather keep
+    // quiet than call: only a parent that has itself come to prefer quiet hushes.
+    if (PARENT_HUSH <= 0 || CHILD_CALL_LEARNING <= 0 || !child.infant() || child.last_call < FirstCall) return;
+    const Bitzkey* hushing = nullptr;
+    for (const int id : {child.mother, child.father}) {
+        const Bitzkey* parent = id >= 0 ? find_agent(id) : nullptr;
+        if (!parent || !parent->alive() || parent->quiet_wish <= 0) continue;
+        if (distance(parent->x, parent->y, child.x, child.y) > sight_now(*parent)) continue;  // it must see its young call
+        if (!hushing || parent->quiet_wish > hushing->quiet_wish) hushing = parent;
+    }
+    if (!hushing) return;
+    const double value = limited_value(-PARENT_HUSH * hushing->quiet_wish);
+    const double share = rate * CHILD_CALL_LEARNING;
+    for (const int output : utterance_outputs(child)) {
+        if (output < 0) continue;
+        if (gpu_) queue_lesson(child, child.last_senses, output, value, share, false, 0.0);
+        else child.own_brain().learn(child.last_senses, output, value, share);
+    }
 }
 
 void Simulation::read_body_language(Bitzkey& listener, double target, double call_target, double rate) {

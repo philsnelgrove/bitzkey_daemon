@@ -2092,5 +2092,11 @@
 "Habituation": "अभ्यस्तता",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "कोई पशु चीज़ों का कितना आदी होता है: बाहर की हर चीज़ इतनी इस बात से महसूस होती है कि वह हाल की तुलना में कितनी पास है, और बाकी उसकी सीधी निकटता से; बंद के लिए 0",
 "Habituation rate": "अभ्यस्तता की दर",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "कोई पशु अपने आसपास का कितनी जल्दी आदी होता है: हर चीज़ हाल में कितनी पास रही, इसकी उसकी समझ हर बारी रास्ते का कितना हिस्सा तय करती है"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "कोई पशु अपने आसपास का कितनी जल्दी आदी होता है: हर चीज़ हाल में कितनी पास रही, इसकी उसकी समझ हर बारी रास्ते का कितना हिस्सा तय करती है",
+"Harm after calling": "पुकारने के बाद हानि",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "पुकारने के कुछ ही बाद चोट लगे तो पशु की पुकार को हानि सिखाई जाती है, शून्य से इतनी नीचे, पुकारते समय उसने जो महसूस किया उसके सापेक्ष; पुकारना शिकारियों को खींचता है या नहीं, यह उन पर छोड़ा गया है; कोई नहीं के लिए 0",
+"Harm after calling: turns": "पुकारने के बाद हानि: बारियाँ",
+"how many turns after calling a strike still teaches the call its harm": "पुकारने के कितनी बारियों बाद तक चोट पुकार को उसकी हानि सिखाती है",
+"Hushing": "चुप कराना",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "माता-पिता की नज़र में पुकारने वाले बच्चे को उस पुकार के बारे में सिखाया जाता है कि उसके माता-पिता अब पुकारने के बजाय चुप रहना कितना पसंद करेंगे, इतना; केवल वही माता-पिता चुप कराते हैं जो खुद चुप्पी पसंद करने लगे हैं; कोई नहीं के लिए 0"
 }

@@ -2092,5 +2092,11 @@
 "Habituation": "Звикання",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "наскільки тварина звикає до речей: кожну річ зовні вона відчуває в цій мірі за тим, наскільки та ближча, ніж була останнім часом, а решту — за простою близькістю; 0 вимкнено",
 "Habituation rate": "Швидкість звикання",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "як швидко тварина звикає до того, що навколо: частка шляху, яку щоходу проходить її відчуття того, наскільки близько останнім часом була кожна річ"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "як швидко тварина звикає до того, що навколо: частка шляху, яку щоходу проходить її відчуття того, наскільки близько останнім часом була кожна річ",
+"Harm after calling": "Шкода після поклику",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "якщо тварину вдарили невдовзі після поклику, її поклик навчається шкоди, на стільки нижче нуля, відносно того, що вона відчувала, кличучи; чи приваблює поклик мисливців, залишено їм; 0 жодної",
+"Harm after calling: turns": "Шкода після поклику: ходи",
+"how many turns after calling a strike still teaches the call its harm": "скільки ходів після поклику удар ще навчає поклик його шкоди",
+"Hushing": "Утихомирення",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "маля, що кличе на очах у батька чи матері, навчається з цього поклику, наскільки той тепер волів би мовчати, ніж кликати, на стільки; утихомирює лише той, хто сам став віддавати перевагу тиші; 0 жодного"
 }

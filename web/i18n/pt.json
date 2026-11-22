@@ -2092,5 +2092,11 @@
 "Habituation": "Habituação",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "quanto um animal se habitua às coisas: cada coisa de fora é sentida, nesta medida, por quanto está mais perto do que tem estado ultimamente, e pela simples proximidade no resto; 0 para desligado",
 "Habituation rate": "Ritmo de habituação",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "quão depressa um animal se habitua ao que o rodeia: a parte do caminho que o seu sentido de quão perto cada coisa tem estado percorre a cada turno"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "quão depressa um animal se habitua ao que o rodeia: a parte do caminho que o seu sentido de quão perto cada coisa tem estado percorre a cada turno",
+"Harm after calling": "Dano após chamar",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "atingido pouco depois de chamar, ao chamado de um animal é ensinado o dano, tanto abaixo de zero, face ao que sentia ao chamar; se chamar atrai caçadores fica a cargo deles; 0 para nenhum",
+"Harm after calling: turns": "Dano após chamar: turnos",
+"how many turns after calling a strike still teaches the call its harm": "quantos turnos depois de chamar um golpe ainda ensina ao chamado o seu dano",
+"Hushing": "Silenciar",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "uma cria que chama à vista de um progenitor aprende, desse chamado, quanto o progenitor preferiria agora calar a chamar, nesta medida; só silencia um progenitor que passou a preferir o silêncio; 0 para nenhum"
 }

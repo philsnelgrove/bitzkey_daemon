@@ -2092,5 +2092,11 @@
 "Habituation": "Accoutumance",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "à quel point un animal s'habitue aux choses : chaque chose du dehors est perçue, d'autant, selon combien elle est plus proche que ces derniers temps, et selon sa simple proximité pour le reste ; 0 pour désactivé",
 "Habituation rate": "Vitesse d'accoutumance",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "à quelle vitesse un animal s'habitue à ce qui l'entoure : la part du chemin que son sens de la proximité récente de chaque chose parcourt à chaque tour"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "à quelle vitesse un animal s'habitue à ce qui l'entoure : la part du chemin que son sens de la proximité récente de chaque chose parcourt à chaque tour",
+"Harm after calling": "Dommage après l'appel",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "frappé peu après avoir appelé, l'appel d'un animal apprend le dommage, d'autant sous zéro, face à ce qu'il percevait en appelant ; que l'appel attire les chasseurs leur est laissé ; 0 pour aucun",
+"Harm after calling: turns": "Dommage après l'appel : tours",
+"how many turns after calling a strike still teaches the call its harm": "combien de tours après l'appel un coup enseigne encore à l'appel son dommage",
+"Hushing": "Faire taire",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "un petit qui appelle sous les yeux d'un parent apprend, de cet appel, combien ce parent préférerait maintenant se taire qu'appeler, d'autant ; seul un parent venu à préférer le silence fait taire ; 0 pour aucun"
 }

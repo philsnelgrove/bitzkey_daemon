@@ -2092,5 +2092,11 @@
 "Habituation": "习惯化",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "动物对事物习惯的程度：外界每样东西按此程度以它比近来更近多少来感知，其余按其本身的远近感知；0 表示关闭",
 "Habituation rate": "习惯化速度",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "动物多快习惯周围的事物：它对每样东西近来有多近的感觉每回合移动的比例"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "动物多快习惯周围的事物：它对每样东西近来有多近的感觉每回合移动的比例",
+"Harm after calling": "呼叫后的伤害",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "呼叫后不久受到攻击，动物的呼叫会被教以这份伤害，低于零这么多，对照它呼叫时的感知；呼叫是否招来猎手由猎手决定；0 表示无",
+"Harm after calling: turns": "呼叫后的伤害：回合数",
+"how many turns after calling a strike still teaches the call its harm": "呼叫后多少回合内的攻击仍会教给该呼叫其伤害",
+"Hushing": "噤声",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "在父母视线内呼叫的幼崽，会就该呼叫学到父母此刻有多宁愿安静而不呼叫，按此程度；只有自己已偏好安静的父母才会让它噤声；0 表示无"
 }

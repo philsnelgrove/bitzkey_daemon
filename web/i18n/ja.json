@@ -2092,5 +2092,11 @@
 "Habituation": "慣れ",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "動物が物事にどれだけ慣れるか：外のものはそれぞれ、最近よりどれだけ近いかでこの分だけ感じられ、残りはそのままの近さで感じられる；0でオフ",
 "Habituation rate": "慣れの速さ",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "動物が周りのものにどれだけ速く慣れるか：各ものが最近どれだけ近かったかの感覚が、毎ターン進む割合"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "動物が周りのものにどれだけ速く慣れるか：各ものが最近どれだけ近かったかの感覚が、毎ターン進む割合",
+"Harm after calling": "鳴いた後の害",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "鳴いてすぐ攻撃されると、その鳴き声に害がこの分だけゼロ未満として、鳴いたときに感じていたことに対して教えられる。鳴くことが狩る者を引き寄せるかは彼らに任される；0でなし",
+"Harm after calling: turns": "鳴いた後の害：ターン数",
+"how many turns after calling a strike still teaches the call its harm": "鳴いてから何ターン後までの攻撃が、鳴き声にその害を教えるか",
+"Hushing": "黙らせる",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "親に見られながら鳴いた子は、その鳴き声について、親がいま鳴くより黙っていたいとどれだけ思っているかをこの分だけ教えられる。静けさを好むようになった親だけが黙らせる；0でなし"
 }

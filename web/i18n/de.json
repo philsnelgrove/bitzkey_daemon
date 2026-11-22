@@ -2092,5 +2092,11 @@
 "Habituation": "Gewöhnung",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "wie sehr sich ein Tier an Dinge gewöhnt: jedes Ding draußen wird so stark danach wahrgenommen, wie viel näher es ist als zuletzt, und für den Rest nach seiner bloßen Nähe; 0 für aus",
 "Habituation rate": "Gewöhnungsrate",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "wie schnell sich ein Tier an seine Umgebung gewöhnt: der Anteil des Weges, den sein Gespür dafür, wie nah jedes Ding zuletzt war, pro Zug zurücklegt"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "wie schnell sich ein Tier an seine Umgebung gewöhnt: der Anteil des Weges, den sein Gespür dafür, wie nah jedes Ding zuletzt war, pro Zug zurücklegt",
+"Harm after calling": "Schaden nach dem Rufen",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "wird ein Tier bald nach seinem Ruf getroffen, lernt sein Ruf den Schaden, so weit unter null, gegenüber dem, was es beim Rufen wahrnahm; ob Rufen Jäger anlockt, bleibt den Jägern überlassen; 0 für keinen",
+"Harm after calling: turns": "Schaden nach dem Rufen: Züge",
+"how many turns after calling a strike still teaches the call its harm": "wie viele Züge nach dem Rufen ein Treffer den Ruf noch seinen Schaden lehrt",
+"Hushing": "Zum Schweigen bringen",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "ein Junges, das ruft, während ein Elternteil es sieht, lernt von diesem Ruf, wie sehr sein Elternteil jetzt lieber schweigen als rufen würde, so stark; nur ein Elternteil, das selbst Stille vorzieht, bringt es zum Schweigen; 0 für keins"
 }

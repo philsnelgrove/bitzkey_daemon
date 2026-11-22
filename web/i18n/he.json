@@ -2092,5 +2092,11 @@
 "Habituation": "הסתגלות",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "כמה בעל חיים מתרגל לדברים: כל דבר בחוץ נחוש, במידה הזאת, לפי כמה הוא קרוב יותר ממה שהיה לאחרונה, ובשאר לפי קרבתו הפשוטה; 0 לכבוי",
 "Habituation rate": "קצב הסתגלות",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "כמה מהר בעל חיים מתרגל למה שסביבו: החלק מהדרך שתחושתו לגבי כמה קרוב היה כל דבר לאחרונה עוברת בכל תור"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "כמה מהר בעל חיים מתרגל למה שסביבו: החלק מהדרך שתחושתו לגבי כמה קרוב היה כל דבר לאחרונה עוברת בכל תור",
+"Harm after calling": "נזק אחרי קריאה",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "נפגע זמן קצר אחרי שקרא, קריאתו של בעל החיים לומדת את הנזק, כך וכך מתחת לאפס, מול מה שחש כשקרא; האם קריאה מושכת ציידים נשאר בידיהם; 0 לאף אחד",
+"Harm after calling: turns": "נזק אחרי קריאה: תורות",
+"how many turns after calling a strike still teaches the call its harm": "כמה תורות אחרי הקריאה מכה עוד מלמדת את הקריאה את נזקה",
+"Hushing": "השתקה",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "צעיר שקורא כשהורה רואה אותו לומד, מאותה קריאה, כמה הורהו היה מעדיף עכשיו לשתוק מאשר לקרוא, במידה הזאת; רק הורה שבא להעדיף שקט משתיק; 0 לאף אחד"
 }

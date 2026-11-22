@@ -284,6 +284,55 @@ TEST_CASE("an animal gets used to what lingers, and a newcomer stands out") {
     CHECK(simulation.sense(grazer).senses[SenseThreatCloseness] > later);  // the hunter, new, at full
 }
 
+TEST_CASE("struck soon after calling, an animal's call is taught the harm") {
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.index_cells();
+    const Senses senses = simulation.sense(grazer).senses;
+    grazer.call = FirstCall;
+    grazer.sounds = {-1, -1};
+    Simulation::keep_habit(grazer, senses);  // the call remembered as it sensed it
+    const int output = call_output(FirstCall);
+    const double floor = LEARNING_FLOOR;
+    LEARNING_FLOOR = 1.0;  // one that learns, whatever the tests' rules
+    const double before = grazer.brain->values(senses)[output];
+    grazer.voiced_turn = simulation.turn();
+    grazer.struck_turn = simulation.turn() + 2;  // soon after
+    simulation.teach_call_harm(grazer);
+    const double after = grazer.brain->values(senses)[output];
+    CHECK(after < before);
+    simulation.teach_call_harm(grazer);  // the same strike teaches once
+    CHECK(grazer.brain->values(senses)[output] == after);
+    grazer.struck_turn = simulation.turn() + CALL_HARM_TURNS + 1;  // struck too long after it called: nothing
+    simulation.teach_call_harm(grazer);
+    CHECK(grazer.brain->values(senses)[output] == after);
+    LEARNING_FLOOR = floor;
+}
+TEST_CASE("a parent that has come to prefer quiet hushes its calling young, one that has not leaves it be") {
+    GrazersAsOthers infancy;  // grazers with a childhood
+    const double feeble_youth = FEEBLE_YOUTH;
+    FEEBLE_YOUTH = 0.1;  // young are infants for a tenth of their lives, as in a world
+    Simulation simulation = world();
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    Bitzkey& young = simulation.add_agent(encode_dna(Species::Grazer), 5, 6);
+    young.mother = parent.identifier;
+    young.age = 0;
+    REQUIRE(young.infant());
+    simulation.index_cells();
+    young.last_senses = simulation.sense(young).senses;
+    young.last_call = FirstCall;
+    young.last_sounds = {-1, -1};
+    const int output = call_output(FirstCall);
+    const double before = young.brain->values(young.last_senses)[output];
+    parent.quiet_wish = -0.5;  // it would rather call: no hush
+    simulation.hushed_by_parent(young, 0.05);
+    CHECK(young.brain->values(young.last_senses)[output] == before);
+    parent.quiet_wish = 0.8;  // it would rather keep quiet
+    simulation.hushed_by_parent(young, 0.05);
+    CHECK(young.brain->values(young.last_senses)[output] < before);
+    FEEBLE_YOUTH = feeble_youth;
+}
+
 TEST_CASE("memory brings an animal back to where it fed and warns it where it was struck") {
     Simulation simulation = world();
     Bitzkey& eater = simulation.add_agent(encode_dna(Species::Grazer, {{"memory", 7}}), 5, 5);

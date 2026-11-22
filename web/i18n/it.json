@@ -2092,5 +2092,11 @@
 "Habituation": "Assuefazione",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "quanto un animale si abitua alle cose: ogni cosa di fuori è percepita, di tanto, per quanto è più vicina di quanto sia stata di recente, e per il resto per la sua semplice vicinanza; 0 per spento",
 "Habituation rate": "Ritmo di assuefazione",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "quanto in fretta un animale si abitua a ciò che ha intorno: la parte del percorso che il suo senso di quanto ogni cosa sia stata vicina di recente compie a ogni turno"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "quanto in fretta un animale si abitua a ciò che ha intorno: la parte del percorso che il suo senso di quanto ogni cosa sia stata vicina di recente compie a ogni turno",
+"Harm after calling": "Danno dopo il richiamo",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "colpito poco dopo aver chiamato, al richiamo di un animale viene insegnato il danno, tanto sotto lo zero, rispetto a ciò che percepiva chiamando; se chiamare attiri i cacciatori è lasciato a loro; 0 per nessuno",
+"Harm after calling: turns": "Danno dopo il richiamo: turni",
+"how many turns after calling a strike still teaches the call its harm": "quanti turni dopo il richiamo un colpo insegna ancora al richiamo il suo danno",
+"Hushing": "Zittire",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "un piccolo che chiama sotto gli occhi di un genitore impara, di quel richiamo, quanto il genitore ora preferirebbe tacere che chiamare, di tanto; zittisce solo un genitore giunto a preferire il silenzio; 0 per nessuno"
 }

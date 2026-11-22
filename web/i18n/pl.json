@@ -2092,5 +2092,11 @@
 "Habituation": "Przyzwyczajenie",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "jak bardzo zwierzę przyzwyczaja się do rzeczy: każda rzecz na zewnątrz jest odczuwana w tej mierze według tego, o ile jest bliżej niż ostatnio, a w reszcie według samej bliskości; 0 wyłączone",
 "Habituation rate": "Tempo przyzwyczajenia",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "jak szybko zwierzę przyzwyczaja się do otoczenia: część drogi, jaką co turę pokonuje jego wyczucie, jak blisko ostatnio była każda rzecz"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "jak szybko zwierzę przyzwyczaja się do otoczenia: część drogi, jaką co turę pokonuje jego wyczucie, jak blisko ostatnio była każda rzecz",
+"Harm after calling": "Szkoda po wołaniu",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "uderzone wkrótce po wołaniu, wołanie zwierzęcia uczy się szkody, o tyle poniżej zera, względem tego, co czuło, wołając; czy wołanie przyciąga łowców, zostaje im; 0 brak",
+"Harm after calling: turns": "Szkoda po wołaniu: tury",
+"how many turns after calling a strike still teaches the call its harm": "ile tur po wołaniu cios wciąż uczy wołanie jego szkody",
+"Hushing": "Uciszanie",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "młode, które woła na oczach rodzica, uczy się z tego wołania, jak bardzo rodzic wolałby teraz milczeć niż wołać, w tej mierze; ucisza tylko rodzic, który sam zaczął woleć ciszę; 0 brak"
 }

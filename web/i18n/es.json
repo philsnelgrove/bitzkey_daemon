@@ -2092,5 +2092,11 @@
 "Habituation": "Habituación",
 "how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "cuánto se acostumbra un animal a las cosas: cada cosa de fuera se percibe en esta medida por cuánto más cerca está de lo que ha estado últimamente, y por su simple cercanía en el resto; 0 para desactivado",
 "Habituation rate": "Ritmo de habituación",
-"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "qué tan rápido se acostumbra un animal a lo que le rodea: la parte del camino que su sentido de lo cerca que ha estado cada cosa últimamente avanza cada turno"
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "qué tan rápido se acostumbra un animal a lo que le rodea: la parte del camino que su sentido de lo cerca que ha estado cada cosa últimamente avanza cada turno",
+"Harm after calling": "Daño tras llamar",
+"struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none": "golpeado poco después de llamar, a la llamada de un animal se le enseña el daño, tanto por debajo de nada, frente a lo que percibía al llamar; si llamar atrae cazadores queda en manos de ellos; 0 para ninguno",
+"Harm after calling: turns": "Daño tras llamar: turnos",
+"how many turns after calling a strike still teaches the call its harm": "cuántos turnos después de llamar un golpe aún enseña a la llamada su daño",
+"Hushing": "Acallar",
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "una cría que llama con un progenitor a la vista aprende, de esa llamada, cuánto preferiría ahora su progenitor callar que llamar, en esta medida; solo acalla un progenitor que ha llegado a preferir el silencio; 0 para ninguno"
 }

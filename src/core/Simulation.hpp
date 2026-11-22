@@ -415,7 +415,7 @@ inline double SPEAK_AS_HEARD = 15.0;
 // before that thing surprised it most; when the same thing next surprises it most and it calls, the remembered
 // sound at each place comes readier among the five, as if valued ECHO higher. Silence, the alert and stopping keep
 // their own odds, so it changes which sound, never whether it calls or how long. Needs NAMING's surprise. 0 for none.
-inline double ECHO = 2.0;
+inline double ECHO = 0.0;  // 2 until 3.224: on the call bench it halved what calls tell in a cluttered world
 // Intent: a caller's wishes (the Wish outputs) say what it expects to gain were one who heard it to come nearer, go
 // further off, flee, rest, eat, trade or fight. When its call is heard, each wish one of its hearers then fulfilled is
 // taught, at WISH_LEARNING of its learning rate, by how the caller's own turn went against what it expected; so what it
@@ -465,6 +465,15 @@ inline double ARENA_PAYOFF = 0.0;
 // weighed HABITUATION against its plain nearness. What lingers fades; what is new stands out. Never wholly gone below 1.
 inline double HABITUATION = 0.8;
 inline double HABITUATION_RATE = 0.1;
+// Harm after calling (the user's idea): struck within CALL_HARM_TURNS turns after it last called, an animal's call is
+// taught the harm, CALL_HARM below nothing, against what it sensed as it called (its last call habit). Whether calling
+// draws hunters is left to the hunters; this only lets a caller learn it when it does. 0 for none.
+inline double CALL_HARM = 1.0;
+inline int CALL_HARM_TURNS = 5;
+// Hushing (the user's idea): a young one that calls with a parent in sight is taught, of that call, how much its parent
+// now prefers keeping quiet to calling (its brain's silence against its best sound), PARENT_HUSH times, as a child's
+// lesson (CHILD_CALL_LEARNING). Only a parent that has itself come to prefer quiet hushes; what it prefers is learnt. 0 for none.
+inline double PARENT_HUSH = 1.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1214,6 +1223,9 @@ struct Bitzkey {
     bool heard_danger = false;          // and whether a hunter was in sight
     int answer_to = -1, answer_call = -1, answer_turn = -1;  // the last caller of any kind it heard, its call and when, till answered or a day passes
     int struck_turn = -1;               // the last turn it was struck
+    int voiced_turn = -1;               // the last turn it made a call (not silence)
+    int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
+    double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
     std::array<std::int8_t, ACTION_COUNT> cues = [] { std::array<std::int8_t, ACTION_COUNT> none{}; none.fill(-1); return none; }();  // its cue for each action, -1: its first, by chance
     int cry = -1;                       // the sound it cries out in pain or panic; -1: its first, by chance
@@ -1644,10 +1656,12 @@ public:
     // A child hearing its parent call: the call, in the parent's situation, valued as its own best call, to copy;
     // and what the parent then did, in its own senses holding the call, valued as its own turn, to take in.
     void learn_from_parent(Bitzkey& child, double target, double call_target, double rate);
+    void hushed_by_parent(Bitzkey& child, double rate);  // a young one's call taught its parent's wish for quiet (PARENT_HUSH)
     void read_body_language(Bitzkey& listener, double target, double call_target, double rate);  // see BODY_LANGUAGE
     void copy_cue(Bitzkey& listener);  // see CUES
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
+    void teach_call_harm(Bitzkey& agent);  // struck soon after calling: its call taught the harm (CALL_HARM)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);
