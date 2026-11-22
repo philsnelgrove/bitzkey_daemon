@@ -2114,5 +2114,15 @@
 "Learn match": "सीखने का मेल",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "सही अनुमान को समझा हुआ मानने की न्यूनतम मात्रा, सीखने के लाभ से पहले, ताकि सही अनुमान हमेशा कुछ सिखाए",
 "Address retries": "संबोधन के पुनः प्रयास",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "जिसने किसी से अकेले में बात की और उत्तर में सही अनुमान नहीं मिला, वह कितनी बार वही शब्द कहकर फिर इशारा कर सकता है; जितना मिलनसार, उतना ही अधिक विवश; 0 कोई नहीं"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "जिसने किसी से अकेले में बात की और उत्तर में सही अनुमान नहीं मिला, वह कितनी बार वही शब्द कहकर फिर इशारा कर सकता है; जितना मिलनसार, उतना ही अधिक विवश; 0 कोई नहीं",
+"Longing": "लालसा",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "किसी साथी, आग, आश्रय या अपनी सबसे बड़ी खुशी की चीज़ से बिछड़ने पर जीव उसकी कितनी लालसा करता है, जितनी उसे परवाह थी उसके अंश के रूप में; 0 कोई नहीं",
+"Longing fade": "लालसा का क्षय",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "हर बारी लालसा का कितना अंश घटता है; जितना धैर्यवान (साथी के लिए जितना वफ़ादार), उतना धीमे",
+"Longing unease": "लालसा की बेचैनी",
+"unease each turn for each unit of longing, felt till it fades or is met": "लालसा की हर इकाई पर हर बारी बेचैनी, जब तक वह घट न जाए या पूरी न हो",
+"Longing joy": "लालसा की खुशी",
+"joy at reaching what it longed for, for each unit of longing": "जिसकी लालसा थी उस तक पहुँचने की खुशी, लालसा की हर इकाई पर",
+"Map blind": "मानचित्र-अंध",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "प्रयोगों के लिए: 1 मानसिक मानचित्र की इंद्रियाँ और पिछले भोजन तक लौटने का रास्ता रोक देता है, ताकि केवल उसकी अपनी स्मृति याद रखे कि चीज़ें कहाँ हैं"
 }

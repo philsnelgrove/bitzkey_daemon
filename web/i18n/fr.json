@@ -2114,5 +2114,15 @@
 "Learn match": "Justesse d'apprentissage",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "le moins qu'une bonne réponse compte comme compris, avant le gain d'apprentissage, pour qu'elle apprenne toujours quelque chose",
 "Address retries": "Nouvelles tentatives d'adresse",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "combien de fois celui qui s'est adressé seul à un autre, sans recevoir de bonne réponse, peut redire le même mot et montrer de nouveau ; plus il est sociable, plus il y est tenu ; 0 pour aucune"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "combien de fois celui qui s'est adressé seul à un autre, sans recevoir de bonne réponse, peut redire le même mot et montrer de nouveau ; plus il est sociable, plus il y est tenu ; 0 pour aucune",
+"Longing": "Nostalgie",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "avec quelle force un animal se languit d'un compagnon, d'un feu, d'un abri ou de la chose de sa plus grande joie une fois séparé, en part de ce qui lui importait ; 0 pour aucune",
+"Longing fade": "Effacement de la nostalgie",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "quelle part d'une nostalgie s'efface à chaque tour, plus lentement s'il est patient (pour un compagnon, loyal)",
+"Longing unease": "Malaise de la nostalgie",
+"unease each turn for each unit of longing, felt till it fades or is met": "malaise à chaque tour pour chaque unité de nostalgie, ressenti jusqu'à ce qu'elle s'efface ou soit comblée",
+"Longing joy": "Joie des retrouvailles",
+"joy at reaching what it longed for, for each unit of longing": "joie de retrouver ce qu'il regrettait, pour chaque unité de nostalgie",
+"Map blind": "Carte aveugle",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "pour les expériences : 1 retire les sens de la carte mentale et le chemin vers le dernier repas, pour que seule sa mémoire garde où sont les choses"
 }

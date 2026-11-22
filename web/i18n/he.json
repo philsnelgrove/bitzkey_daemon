@@ -2114,5 +2114,15 @@
 "Learn match": "התאמת הלמידה",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "המינימום שניחוש נכון נחשב כמובן, לפני רווח הלמידה, כך שניחוש נכון תמיד מלמד משהו",
 "Address retries": "ניסיונות פנייה חוזרים",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "כמה פעמים מי שפנה אל אחר לבדו ולא קיבל ניחוש נכון בתשובה רשאי לומר שוב את אותה מילה ולהצביע שוב; ככל שהוא חברותי יותר, כך סביר יותר שיחויב; 0 בלי"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "כמה פעמים מי שפנה אל אחר לבדו ולא קיבל ניחוש נכון בתשובה רשאי לומר שוב את אותה מילה ולהצביע שוב; ככל שהוא חברותי יותר, כך סביר יותר שיחויב; 0 בלי",
+"Longing": "געגועים",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "עד כמה חיה מתגעגעת לבן לוויה, לאש, למחסה או לדבר שהסב לה את השמחה הגדולה ביותר משנפרדה ממנו, כחלק ממידת אכפתיותה; 0 בלי",
+"Longing fade": "דעיכת הגעגועים",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "כמה מהגעגועים דועכים בכל תור, לאט יותר ככל שהוא סבלני יותר (לבן לוויה: נאמן יותר)",
+"Longing unease": "אי־נוחות הגעגועים",
+"unease each turn for each unit of longing, felt till it fades or is met": "אי־נוחות בכל תור לכל יחידת געגועים, מורגשת עד שהם דועכים או מתמלאים",
+"Longing joy": "שמחת הגעגועים",
+"joy at reaching what it longed for, for each unit of longing": "שמחה בהגעה למה שהתגעגע אליו, לכל יחידת געגועים",
+"Map blind": "עיוור למפה",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "לניסויים: 1 מסתיר את חושי המפה הפנימית ואת הדרך חזרה לארוחה האחרונה, כך שרק זיכרונו יכול לשמור היכן הדברים"
 }

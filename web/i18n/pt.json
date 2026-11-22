@@ -2114,5 +2114,15 @@
 "Learn match": "Acerto de aprender",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "o mínimo que um acerto conta como entendido, antes do ganho de aprender, para que acertar sempre ensine algo",
 "Address retries": "Novas tentativas de se dirigir",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "quantas vezes quem se dirigiu a outro a sós, sem receber um acerto em resposta, pode dizer a mesma palavra e apontar de novo; quanto mais sociável, mais provável que tenha de o fazer; 0 para nenhuma"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "quantas vezes quem se dirigiu a outro a sós, sem receber um acerto em resposta, pode dizer a mesma palavra e apontar de novo; quanto mais sociável, mais provável que tenha de o fazer; 0 para nenhuma",
+"Longing": "Saudade",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "com que força um animal sente saudade de um companheiro, de um fogo, de um abrigo ou da coisa da sua maior alegria quando separado dela, como parte de quanto se importava; 0 para nenhuma",
+"Longing fade": "Esmorecer da saudade",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "quanto de uma saudade esmorece a cada turno, mais devagar quanto mais paciente (para um companheiro, leal) for",
+"Longing unease": "Inquietação da saudade",
+"unease each turn for each unit of longing, felt till it fades or is met": "inquietação a cada turno por cada unidade de saudade, sentida até esmorecer ou ser satisfeita",
+"Longing joy": "Alegria da saudade",
+"joy at reaching what it longed for, for each unit of longing": "alegria ao alcançar aquilo de que tinha saudade, por cada unidade de saudade",
+"Map blind": "Cego ao mapa",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "para experiências: 1 retém os sentidos do mapa mental e o caminho de volta à última refeição, para que só a própria memória guarde onde estão as coisas"
 }

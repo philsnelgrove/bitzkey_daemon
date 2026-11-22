@@ -339,7 +339,12 @@ constexpr int POINT_SENSES = 6;
 constexpr int SensePointed = SenseVoice + VOICE_SENSES;
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
-constexpr int SenseImagined = SensePointed + POINT_SENSES;
+// Then its longing (see Simulation's LONGING): how strong, 0..1, and for what kind of thing, 1 for its kind and 0 for the
+// rest: a companion, a fire, a shelter, or the thing it was nearest at its greatest joy. Never where: that it must remember.
+enum LongingSense : int { LongingStrength, LongingCompanion, LongingFire, LongingShelter, LongingJoy };
+constexpr int LONGING_SENSES = 5;
+constexpr int SenseLonging = SensePointed + POINT_SENSES;
+constexpr int SenseImagined = SenseLonging + LONGING_SENSES;
 constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 // A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
@@ -393,11 +398,12 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "voice_ring_likeness", "voice_dot_likeness", "voice_social_likeness", "voice_ring_red", "voice_ring_green",
     "voice_ring_blue", "voice_dot_red", "voice_dot_green", "voice_dot_blue", "voice_social_red", "voice_social_green",
     "voice_social_blue", "voice_pitch", "voice_harshness", "voice_urgency", "pointed", "pointed_closeness",
-    "attending", "sees_pointing", "watched", "addressed", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
+    "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion", "longing_fire", "longing_shelter",
+    "longing_joy", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 66> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 71> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
@@ -407,7 +413,8 @@ constexpr std::array<std::string_view, 66> SPARSE_SENSES = {
     "bow_carried", "archery",
     "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
     "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
-    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched", "addressed"};
+    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion",
+    "longing_fire", "longing_shelter", "longing_joy"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
 inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};

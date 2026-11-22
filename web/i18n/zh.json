@@ -2114,5 +2114,15 @@
 "Learn match": "学词命中",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "猜对至少算作理解的量，在学词收益之前，使猜对总能教会些什么",
 "Address retries": "搭话重试次数",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "单独搭话后未得到猜对回应者，可以再次说同一个词并指同一物的次数；越合群越不得不再试；0 为不重试"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "单独搭话后未得到猜对回应者，可以再次说同一个词并指同一物的次数；越合群越不得不再试；0 为不重试",
+"Longing": "思念",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "与同伴、火、庇护所或带来最大快乐之物分离后思念它的强度，按其在意程度的比例；0 为无",
+"Longing fade": "思念消退",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "每回合思念消退多少；越有耐心（对同伴则越忠诚）消退越慢",
+"Longing unease": "思念之不安",
+"unease each turn for each unit of longing, felt till it fades or is met": "每单位思念每回合的不安，持续到消退或得偿",
+"Longing joy": "思念得偿之乐",
+"joy at reaching what it longed for, for each unit of longing": "到达所思念之物的快乐，按每单位思念计",
+"Map blind": "屏蔽地图",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "实验用：1 屏蔽心中地图的感知和回到上一顿饭处的路，只让它自己的记忆记住东西在哪"
 }

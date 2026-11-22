@@ -2114,5 +2114,15 @@
 "Learn match": "Влучність навчання",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "найменше, що влучна здогадка зараховується як зрозуміле, до виграшу навчання, щоб влучна здогадка завжди чогось навчала",
 "Address retries": "Повторні звертання",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "скільки разів той, хто звернувся до іншого наодинці й не почув влучної здогадки у відповідь, може знову сказати те саме слово й вказати; що товариськіший, то певніше мусить; 0 без"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "скільки разів той, хто звернувся до іншого наодинці й не почув влучної здогадки у відповідь, може знову сказати те саме слово й вказати; що товариськіший, то певніше мусить; 0 без",
+"Longing": "Туга",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "як сильно тварина тужить за товаришем, вогнем, сховком чи річчю своєї найбільшої радості, розлучившись із нею, як частка того, наскільки дорожила; 0 без",
+"Longing fade": "Згасання туги",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "скільки туги згасає щоходу, повільніше, що терплячіша (для товариша: що вірніша) тварина",
+"Longing unease": "Неспокій туги",
+"unease each turn for each unit of longing, felt till it fades or is met": "неспокій щоходу за кожну одиницю туги, відчутний, доки вона не згасне чи не здійсниться",
+"Longing joy": "Радість туги",
+"joy at reaching what it longed for, for each unit of longing": "радість досягти того, за чим тужила, за кожну одиницю туги",
+"Map blind": "Сліпий до мапи",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "для експериментів: 1 приховує чуття уявної мапи й дорогу до останньої їжі, щоб лише власна пам'ять тримала, де що є"
 }

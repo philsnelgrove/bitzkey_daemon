@@ -2114,5 +2114,15 @@
 "Learn match": "学びの一致",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "正しい推測を理解とみなす最小量。学びの利得の前に掛かり、正しい推測は必ず何かを教える",
 "Address retries": "話しかけの再試行",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "一頭だけに話しかけ、正しい推測が返ってこなかった者が、同じ言葉と指さしを繰り返せる回数。社交的なほど繰り返さずにいられない。0 で無し"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "一頭だけに話しかけ、正しい推測が返ってこなかった者が、同じ言葉と指さしを繰り返せる回数。社交的なほど繰り返さずにいられない。0 で無し",
+"Longing": "恋しさ",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "仲間・火・隠れ家・最大の喜びをもたらしたものから離れたとき、どれほど恋しく思うか。どれだけ大切だったかに対する割合。0 で無し",
+"Longing fade": "恋しさの薄れ",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "毎ターン恋しさがどれだけ薄れるか。辛抱強いほど（仲間なら忠実なほど）ゆっくり",
+"Longing unease": "恋しさの落ち着かなさ",
+"unease each turn for each unit of longing, felt till it fades or is met": "恋しさ1単位ごとの毎ターンの落ち着かなさ。薄れるか満たされるまで感じる",
+"Longing joy": "恋しさが満ちる喜び",
+"joy at reaching what it longed for, for each unit of longing": "恋しかったものにたどり着いた喜び。恋しさ1単位ごと",
+"Map blind": "地図を伏せる",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "実験用：1 で心の地図の感覚と最後の食事への帰り道を伏せ、物の在りかを自分の記憶だけで保たせる"
 }

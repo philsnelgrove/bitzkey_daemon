@@ -1359,6 +1359,11 @@ Json Probe::language(Simulation& world) const {
             long long calls = 0, reached = 0, hearers = 0, understood_calls = 0, broadcast_understood_calls = 0, said_back = 0, guessed = 0, retries = 0, compelled = 0;
             double understood = 0.0, broadcast_understood = 0.0;
         } address;
+        struct {  // longings (see LONGING): who longs, for what, how strongly; turns nearer and further; met and faded in their lives
+            long long longing = 0, closer = 0, farther = 0, reached = 0, faded = 0;
+            std::array<long long, 5> kinds{};
+            double strength = 0.0;
+        } longs;
         std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
         std::array<long long, MAX_SOUNDS> lengths{};
         for (const Bitzkey* agent : world.living()) {
@@ -1373,6 +1378,15 @@ Json Probe::language(Simulation& world) const {
             ++choices;
             for (std::size_t at = 0; at < FEATURES.size(); ++at) base[at] += feature[at];
             if (senses[SensePointed + Addressed] > 0) ++address.hearers;
+            if (agent->longing_kind != NoLonging) {
+                ++longs.longing;
+                ++longs.kinds[static_cast<std::size_t>(agent->longing_kind)];
+                longs.strength += agent->longing;
+            }
+            longs.closer += agent->longing_closer;
+            longs.farther += agent->longing_farther;
+            longs.reached += agent->longings_reached;
+            longs.faded += agent->longings_faded;
             if (agent->learn_turn == agent->call_turn && agent->learn_turn >= 0) {  // a word said back as it last chose (see Learn)
                 ++address.said_back;
                 address.guessed += agent->learn_correct;
@@ -1639,6 +1653,12 @@ Json Probe::language(Simulation& world) const {
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"speak_as_heard", understood_calls > 0 ? Json(understood / static_cast<double>(understood_calls)) : Json(nullptr)},
+            {"longing", {{"longing_share", ratio(static_cast<double>(longs.longing), static_cast<double>(choices))},
+                         {"companion", longs.kinds[LongCompanion]}, {"fire", longs.kinds[LongFire]}, {"shelter", longs.kinds[LongShelter]}, {"joy", longs.kinds[LongJoy]},
+                         {"mean_strength", longs.longing > 0 ? Json(longs.strength / static_cast<double>(longs.longing)) : Json(nullptr)},
+                         {"closer_share", ratio(static_cast<double>(longs.closer), static_cast<double>(longs.closer + longs.farther))},
+                         {"reached_in_lives", longs.reached}, {"faded_in_lives", longs.faded},
+                         {"reached_share", ratio(static_cast<double>(longs.reached), static_cast<double>(longs.reached + longs.faded))}}},
             {"addressing", {{"calls", address.calls}, {"share_of_calls", ratio(static_cast<double>(address.calls), static_cast<double>(made))},
                             {"reached_share", ratio(static_cast<double>(address.reached), static_cast<double>(address.calls))},
                             {"hearers_addressed_share", ratio(static_cast<double>(address.hearers), static_cast<double>(choices))},

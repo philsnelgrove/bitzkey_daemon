@@ -2114,5 +2114,15 @@
 "Learn match": "Lerntreffer",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "das Mindeste, das ein richtiges Raten als verstanden zählt, vor dem Lerngewinn, damit richtiges Raten immer etwas lehrt",
 "Address retries": "Ansprech-Wiederholungen",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "wie oft einer, der einen anderen allein ansprach und keine richtige Vermutung zur Antwort bekam, dasselbe Wort mit demselben Zeigen noch einmal sagen darf; je geselliger, desto eher muss er; 0 für keine"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "wie oft einer, der einen anderen allein ansprach und keine richtige Vermutung zur Antwort bekam, dasselbe Wort mit demselben Zeigen noch einmal sagen darf; je geselliger, desto eher muss er; 0 für keine",
+"Longing": "Sehnsucht",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "wie stark ein Tier sich nach einem Gefährten, einem Feuer, einem Unterschlupf oder dem Ding seiner größten Freude sehnt, wenn es davon getrennt ist, als Anteil daran, wie viel es ihm bedeutete; 0 für keine",
+"Longing fade": "Verblassen der Sehnsucht",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "wie viel einer Sehnsucht jede Runde verblasst, langsamer, je geduldiger (bei einem Gefährten: je treuer) es ist",
+"Longing unease": "Unruhe der Sehnsucht",
+"unease each turn for each unit of longing, felt till it fades or is met": "Unruhe je Runde für jede Einheit Sehnsucht, gefühlt, bis sie verblasst oder erfüllt wird",
+"Longing joy": "Freude der Sehnsucht",
+"joy at reaching what it longed for, for each unit of longing": "Freude beim Erreichen dessen, wonach es sich sehnte, für jede Einheit Sehnsucht",
+"Map blind": "Kartenblind",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "für Versuche: 1 verbirgt die Sinne der inneren Karte und den Weg zurück zur letzten Mahlzeit, sodass nur das eigene Gedächtnis halten kann, wo Dinge sind"
 }

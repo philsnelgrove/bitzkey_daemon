@@ -2114,5 +2114,15 @@
 "Learn match": "Trafność nauki",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "najmniej, ile trafne zgadnięcie liczy się jako zrozumienie, przed zyskiem z nauki, by trafne zgadnięcie zawsze czegoś uczyło",
 "Address retries": "Ponowienia zwracania się",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "ile razy ten, kto zwrócił się do innego w cztery oczy i nie dostał trafnej odpowiedzi, może powtórzyć to samo słowo i wskazać znowu; im towarzyski, tym pewniej musi; 0 bez"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "ile razy ten, kto zwrócił się do innego w cztery oczy i nie dostał trafnej odpowiedzi, może powtórzyć to samo słowo i wskazać znowu; im towarzyski, tym pewniej musi; 0 bez",
+"Longing": "Tęsknota",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "jak mocno zwierzę tęskni za towarzyszem, ogniem, schronieniem lub rzeczą swojej największej radości po rozstaniu, jako część tego, jak bardzo mu zależało; 0 bez",
+"Longing fade": "Wygasanie tęsknoty",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "ile tęsknoty wygasa w każdej turze, wolniej, im cierpliwsze (przy towarzyszu: im wierniejsze) jest",
+"Longing unease": "Niepokój tęsknoty",
+"unease each turn for each unit of longing, felt till it fades or is met": "niepokój w każdej turze na każdą jednostkę tęsknoty, odczuwany, aż wygaśnie lub zostanie zaspokojona",
+"Longing joy": "Radość tęsknoty",
+"joy at reaching what it longed for, for each unit of longing": "radość z dotarcia do tego, za czym tęsknił, na każdą jednostkę tęsknoty",
+"Map blind": "Ślepy na mapę",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "do eksperymentów: 1 ukrywa zmysły mapy w głowie i drogę do ostatniego posiłku, by tylko własna pamięć mogła trzymać, gdzie są rzeczy"
 }

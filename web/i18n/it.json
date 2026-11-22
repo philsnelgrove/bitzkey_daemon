@@ -2114,5 +2114,15 @@
 "Learn match": "Esattezza dell'imparare",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "il minimo che un'ipotesi giusta conta come capito, prima del guadagno dell'imparare, così che indovinare insegni sempre qualcosa",
 "Address retries": "Ritentativi del rivolgersi",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "quante volte chi si è rivolto a un altro da solo, senza ricevere un'ipotesi giusta in risposta, può ripetere la stessa parola e indicare di nuovo; più è socievole, più è probabile che debba; 0 per nessuno"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "quante volte chi si è rivolto a un altro da solo, senza ricevere un'ipotesi giusta in risposta, può ripetere la stessa parola e indicare di nuovo; più è socievole, più è probabile che debba; 0 per nessuno",
+"Longing": "Nostalgia",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "quanto intensamente un animale sente la mancanza di un compagno, un fuoco, un riparo o la cosa della sua gioia più grande una volta separato, in proporzione a quanto ci teneva; 0 per nessuna",
+"Longing fade": "Affievolirsi della nostalgia",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "quanto di una nostalgia si affievolisce ogni turno, più lentamente quanto più è paziente (per un compagno, leale)",
+"Longing unease": "Inquietudine della nostalgia",
+"unease each turn for each unit of longing, felt till it fades or is met": "inquietudine ogni turno per ogni unità di nostalgia, sentita finché si affievolisce o è soddisfatta",
+"Longing joy": "Gioia della nostalgia",
+"joy at reaching what it longed for, for each unit of longing": "gioia nel raggiungere ciò di cui sentiva la mancanza, per ogni unità di nostalgia",
+"Map blind": "Cieco alla mappa",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "per esperimenti: 1 nasconde i sensi della mappa mentale e la via del ritorno all'ultimo pasto, così che solo la sua memoria possa tenere dove sono le cose"
 }

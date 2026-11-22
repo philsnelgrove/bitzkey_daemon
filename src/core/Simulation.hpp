@@ -394,6 +394,18 @@ inline double LEARN_MATCH = 0.1;
 // right guess said back, may address it again with the same word and point, up to ADDRESS_RETRIES times: offered as
 // a choice, and with a chance of its sociability compelled, its own choice set aside and untaught.
 inline int ADDRESS_RETRIES = 3;
+// Longing (the user's idea, a want that persists): parted from a companion it cares for, a friendly fire it was beside,
+// a shelter it was in, or the thing it was nearest at its greatest recent joy, an animal longs for it: LONGING times
+// how much it cared. The longing fades each turn by LONGING_FADE, slower the more patient it is (loyal, for a
+// companion); while it lasts it is felt as LONGING_UNEASE a turn for each unit, and reaching the thing again brings
+// LONGING_JOY for each. One at a time, a stronger one taking the place of a weaker. Its brain senses how strongly it
+// longs and for what kind of thing, never where: the way back is for its memory to hold.
+inline double LONGING = 1.0;
+inline double LONGING_FADE = 0.05;
+inline double LONGING_UNEASE = 0.1;
+inline double LONGING_JOY = 1.0;
+inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
+enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
 inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
@@ -1254,6 +1266,21 @@ struct Bitzkey {
     std::array<int, MAX_SOUNDS - 1> word_sounds{-1, -1};  // and its later sounds
     int word_point = -1;                // what it pointed at
     int word_tries = 0;                 // how many times it has said it again, unanswered
+    int longing_kind = NoLonging;       // what kind of thing it longs for (see LONGING)
+    double longing = 0.0;               // how strongly, fading
+    int longing_for = -1;               // the companion longed for, or the outside thing (an index of OUTSIDE_SENSES)
+    int longing_x = -1, longing_y = -1; // the fire or shelter longed for, for the world to know when it is reached
+    int longing_turn = -1;              // when it began
+    int longing_away = -1;              // how far it was from it last turn, -1 not known
+    int longing_closer = 0, longing_farther = 0;  // turns it came nearer to it, and went further, while longing
+    int longings_reached = 0, longings_faded = 0; // in its life: longings met, and longings let fade
+    int beside_companion = -1;          // last turn: the companion in sight it cared for most
+    double beside_care = 0.0;           // and how much
+    int fire_x = -1, fire_y = -1;       // last turn: the friendly fire it saw
+    int shelter_x = -1, shelter_y = -1; // the shelter it was last under, till it is out of sight
+    int joy_thing = -1;                 // the outside thing nearest at its greatest recent joy
+    double joy_best = 0.0;              // that joy, fading
+    bool joy_seen = false;              // whether that thing was in sight last turn
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
@@ -1913,6 +1940,7 @@ public:
         Bitzkey* fletch_for = nullptr;  // whose bow it would make arrows for: its own, else one beside it
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         double spared = 0.0;  // the exposure kept off it by a shelter, a fire or a parent, which leaves it none
+        double longing_unease = 0.0, longing_relief = 0.0;  // its longing felt this turn, and the joy of meeting it (LONGING)
         int inside = 0;  // 2 resting in a shelter, 1 standing in one
         double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
         int young_near = 0;  // its own young, still infants, within its sight
@@ -2087,7 +2115,8 @@ public:
     void add_to_work(Bitzkey& agent, int action);
     void use_parts(Bitzkey& agent, int craft, const Parts* exactly = nullptr);  // spent in that order, friends who gave sharing in it
     void craft_arrows(Bitzkey& agent, Bitzkey& archer);
-    bool speak_beside(Bitzkey& agent, const Bitzkey& other);  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
+    bool speak_beside(Bitzkey& agent, const Bitzkey& other);
+    void long_for(Bitzkey& agent, Situation& s, Senses& senses, int sight);  // its longing: met, faded, begun (LONGING)  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken

@@ -2920,6 +2920,71 @@ TEST_CASE("trying again: the fully sociable must, saying its word and pointing a
     }
 }
 
+TEST_CASE("longing: parted from a companion it cares for, an animal longs for it, felt and sensed but never located, till met or faded") {
+    Simulation simulation = world(60);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    animal.known.push_back(Acquaintance{friend_.identifier, 0.9, 0});
+    simulation.index_cells();
+    auto together = simulation.sense(animal);  // in sight: no longing, only remembered as beside it
+    CHECK(animal.longing_kind == NoLonging);
+    CHECK(animal.beside_companion == friend_.identifier);
+    CHECK(together.senses[SenseLonging + LongingStrength] == 0.0);
+    friend_.x = 50;  // gone off, out of sight
+    simulation.index_cells();
+    auto parted = simulation.sense(animal);
+    CHECK(animal.longing_kind == LongCompanion);
+    CHECK(animal.longing_for == friend_.identifier);
+    const double first = animal.longing;
+    CHECK(first > 0.0);
+    CHECK(first <= LONGING * 0.9 + 1e-9);  // as much as it cared, faded a little this turn at most
+    CHECK(parted.senses[SenseLonging + LongingStrength] == doctest::Approx(std::min(1.0, first)));
+    CHECK(parted.senses[SenseLonging + LongingCompanion] == 1.0);
+    CHECK(parted.senses[SenseLonging + LongingFire] == 0.0);
+    CHECK(parted.situation.longing_unease == doctest::Approx(LONGING_UNEASE * first));
+    simulation.sense(animal);  // a turn apart: it fades
+    CHECK(animal.longing < first);
+    CHECK(animal.longing_kind == LongCompanion);
+    const double before = animal.longing;
+    friend_.x = 11;  // back beside it
+    simulation.index_cells();
+    auto met = simulation.sense(animal);
+    CHECK(animal.longing_kind == NoLonging);
+    CHECK(animal.longings_reached == 1);
+    CHECK(met.situation.longing_relief == doctest::Approx(LONGING_JOY * before));
+    CHECK(met.senses[SenseLonging + LongingStrength] == 0.0);
+    // Left alone long enough, a longing fades away.
+    friend_.x = 50;
+    simulation.index_cells();
+    for (int turn = 0; turn < 200 && animal.longings_faded == 0; ++turn) simulation.sense(animal);
+    CHECK(animal.longings_faded == 1);
+    CHECK(animal.longing_kind == NoLonging);
+}
+
+TEST_CASE("longing: off, nothing is longed for; and the map blind rule withholds the mental map and the way back to a meal") {
+    struct KeepRules { double longing = LONGING; int blind = MAP_BLIND; ~KeepRules() { LONGING = longing; MAP_BLIND = blind; } } keep;
+    Simulation simulation = world(60);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    animal.known.push_back(Acquaintance{friend_.identifier, 0.9, 0});
+    LONGING = 0.0;
+    simulation.index_cells();
+    simulation.sense(animal);
+    friend_.x = 50;
+    simulation.index_cells();
+    simulation.sense(animal);
+    CHECK(animal.longing_kind == NoLonging);
+    animal.places.push_back(MapPlace{1, 1, 0, {true, true, true, true}, {0.9, 0.9, 0.9, 0.9}, {}, {}});
+    animal.food_memory = Place{12, 12};
+    MAP_BLIND = 0;
+    auto seeing = simulation.sense(animal);
+    CHECK(seeing.senses[SenseMapFood] > 0.0);
+    MAP_BLIND = 1;
+    auto blind = simulation.sense(animal);
+    CHECK(blind.senses[SenseMapFood] == 0.0);
+    CHECK(std::find(blind.options.begin(), blind.options.end(), Revisit) == blind.options.end());
+}
+
 TEST_CASE("an animal addressing one always says something: silence and the alert are not among its calls") {
     Simulation simulation = world(40);
     Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);

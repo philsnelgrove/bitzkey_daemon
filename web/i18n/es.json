@@ -2114,5 +2114,15 @@
 "Learn match": "Acierto de aprender",
 "the least a right guess counts as understood, before the learn gain, so a right guess always teaches something": "lo mínimo que un acierto cuenta como entendido, antes de la ganancia de aprender, para que acertar siempre enseñe algo",
 "Address retries": "Reintentos al dirigirse",
-"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "cuántas veces quien se dirigió a otro a solas y no recibió un acierto por respuesta puede decir la misma palabra y señalar de nuevo; cuanto más sociable, más probable que deba; 0 para ninguna"
+"how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none": "cuántas veces quien se dirigió a otro a solas y no recibió un acierto por respuesta puede decir la misma palabra y señalar de nuevo; cuanto más sociable, más probable que deba; 0 para ninguna",
+"Longing": "Añoranza",
+"how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none": "con qué fuerza un animal añora a un compañero, un fuego, un refugio o la cosa de su mayor alegría al separarse de ello, como parte de cuánto le importaba; 0 para ninguna",
+"Longing fade": "Desvanecer de la añoranza",
+"how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is": "cuánto de una añoranza se desvanece cada turno, más despacio cuanto más paciente (con un compañero, cuanto más leal) sea",
+"Longing unease": "Inquietud de la añoranza",
+"unease each turn for each unit of longing, felt till it fades or is met": "inquietud cada turno por cada unidad de añoranza, sentida hasta que se desvanece o se cumple",
+"Longing joy": "Alegría de la añoranza",
+"joy at reaching what it longed for, for each unit of longing": "alegría al alcanzar lo que añoraba, por cada unidad de añoranza",
+"Map blind": "Ciego al mapa",
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "para experimentos: 1 retiene los sentidos del mapa mental y el camino de vuelta a la última comida, para que solo su propia memoria guarde dónde están las cosas"
 }
