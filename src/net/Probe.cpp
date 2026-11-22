@@ -1355,6 +1355,10 @@ Json Probe::language(Simulation& world) const {
         long long habit_calls = 0;
         double understood = 0.0;  // how much nearer what they saw their own calls brought callers' foresight (Speak as heard)
         long long understood_calls = 0;
+        struct {  // calls said to one alone (see Address): how many, how many came beside that one, who heard one, and speak as heard
+            long long calls = 0, reached = 0, hearers = 0, understood_calls = 0, broadcast_understood_calls = 0;
+            double understood = 0.0, broadcast_understood = 0.0;
+        } address;
         std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
         std::array<long long, MAX_SOUNDS> lengths{};
         for (const Bitzkey* agent : world.living()) {
@@ -1368,9 +1372,19 @@ Json Probe::language(Simulation& world) const {
                 senses[SenseKinNear] > 0, goods, senses[SenseNight] > 0};
             ++choices;
             for (std::size_t at = 0; at < FEATURES.size(); ++at) base[at] += feature[at];
+            if (senses[SensePointed + Addressed] > 0) ++address.hearers;
             if (agent->last_call >= FirstCall && agent->last_call < FirstCall + CALL_COUNT) {
                 const auto call = static_cast<std::size_t>(agent->last_call - FirstCall);
                 ++uses[call];
+                const bool private_call = agent->spoke_alone();
+                if (private_call) {
+                    ++address.calls;
+                    if (agent->address_to >= 0) ++address.reached;
+                }
+                if (agent->call_understood != 0.0) {
+                    (private_call ? address.understood : address.broadcast_understood) += agent->call_understood;
+                    ++(private_call ? address.understood_calls : address.broadcast_understood_calls);
+                }
                 for (std::size_t at = 0; at < FEATURES.size(); ++at) with[call][at] += feature[at];
                 callers.emplace_back(agent, static_cast<int>(call));
                 std::string key = std::to_string(call + 1);
@@ -1617,6 +1631,11 @@ Json Probe::language(Simulation& world) const {
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"speak_as_heard", understood_calls > 0 ? Json(understood / static_cast<double>(understood_calls)) : Json(nullptr)},
+            {"addressing", {{"calls", address.calls}, {"share_of_calls", ratio(static_cast<double>(address.calls), static_cast<double>(made))},
+                            {"reached_share", ratio(static_cast<double>(address.reached), static_cast<double>(address.calls))},
+                            {"hearers_addressed_share", ratio(static_cast<double>(address.hearers), static_cast<double>(choices))},
+                            {"understood_addressed", address.understood_calls > 0 ? Json(address.understood / static_cast<double>(address.understood_calls)) : Json(nullptr)},
+                            {"understood_broadcast", address.broadcast_understood_calls > 0 ? Json(address.broadcast_understood / static_cast<double>(address.broadcast_understood_calls)) : Json(nullptr)}}},
             {"conventions", {{"neighbour_pairs", pairs}, {"neighbours_same", ratio(static_cast<double>(same), static_cast<double>(pairs))},
                              {"parent_young_pairs", kin_pairs}, {"parent_young_same", ratio(static_cast<double>(kin_same), static_cast<double>(kin_pairs))},
                              {"same_by_chance", made > 0 ? Json(same_by_chance) : Json(nullptr)}}},

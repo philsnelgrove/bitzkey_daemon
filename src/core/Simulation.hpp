@@ -35,6 +35,7 @@
 namespace bitzkey {
 
 constexpr int GRID_SIZE = 100;
+constexpr int NEVER_ADDRESSED = -1000000;  // an animal's address_turn until it first addresses one: no call's turn
 // A new world from the setup panel: twice as wide as it is tall, as a globe has it.
 constexpr int DEFAULT_WIDTH = 200;
 constexpr int DEFAULT_HEIGHT = 100;
@@ -1229,6 +1230,9 @@ struct Bitzkey {
     int answer_to = -1, answer_call = -1, answer_turn = -1;  // the last caller of any kind it heard, its call and when, till answered or a day passes
     int struck_turn = -1;               // the last turn it was struck
     int voiced_turn = -1;               // the last turn it made a call (not silence)
+    int address_turn = NEVER_ADDRESSED; // the last turn it addressed one (see Address): its call that turn was for that one alone
+    int address_to = -1;                // whom, if it stood beside it as it spoke; -1: it hadn't come near, so none heard
+    bool spoke_alone() const { return address_turn == call_turn; }  // its last call was said to one alone
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
@@ -1846,6 +1850,7 @@ public:
         Bitzkey* shoot_at = nullptr;     // with a bow: the prey it would hunt in sight, else the nearest foe
         Bitzkey* practise_on = nullptr;  // and the nearest plant in sight, to practise on
         Bitzkey* pupil = nullptr;        // one beside it worth tutoring
+        Bitzkey* addressee = nullptr;    // whom it would address: the nearest it knows in sight, else the nearest of its kind
         int lesson = -1;                 // in which craft, or CRAFT_COUNT for archery
         std::optional<Cell> grass;
         std::optional<Cell> meat_pile, fruit_pile;  // the nearest of each in sight

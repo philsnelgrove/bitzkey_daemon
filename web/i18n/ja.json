@@ -2100,5 +2100,9 @@
 "Hushing": "黙らせる",
 "a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "親に見られながら鳴いた子は、その鳴き声について、親がいま鳴くより黙っていたいとどれだけ思っているかをこの分だけ教えられる。静けさを好むようになった親だけが黙らせる；0でなし",
 "Call effort": "鳴く労力",
-"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "鳴くたびに、その労力の分だけ、理解されることとは別に、どれだけ低く教えられるか。感じるだけで体では払わない；0でなし"
+"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "鳴くたびに、その労力の分だけ、理解されることとは別に、どれだけ低く教えられるか。感じるだけで体では払わない；0でなし",
+"ADDRESS": "話しかける",
+"Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard.": "知り合い（いなければ同じ種の者）のそばへ行き、その相手だけに聞こえるほどの声で鳴き声を伝える。",
+"spoke to one": "一頭に話しかけた",
+"went to speak to one": "話しかけに向かった"
 }

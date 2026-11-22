@@ -2864,7 +2864,10 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.call = forced;
             } else {
                 std::vector<int> outputs;
-                for (const int call : plans[index].calls) outputs.push_back(call_output(call));
+                for (const int call : plans[index].calls) {  // addressing one, it says something: one of the five sounds
+                    if (choice != Address || call >= FirstCall) outputs.push_back(call_output(call));
+                }
+                if (outputs.empty()) outputs.push_back(call_output(Silent));
                 Values tilted;
                 const Values* weighed = &values[index];
                 if (CUES) {  // the cue of what it does favoured, the more for the sociable
@@ -3795,6 +3798,24 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     available[Teach] = s.student != nullptr;
     available[Tutor] = s.pupil != nullptr;
+    {  // whom it would address: the nearest in sight it knows (an acquaintance, a parent or its young), else the nearest of its kind
+        const Bitzkey* kind = nullptr;
+        int known_away = sight + 1, kind_away = sight + 1;
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || !other->brain) continue;
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away > sight) continue;
+            if (away < known_away && recognises(agent, *other)) {
+                known_away = away;
+                s.addressee = other;
+            } else if (away < kind_away && other->species == agent.species) {
+                kind_away = away;
+                kind = other;
+            }
+        }
+        if (!s.addressee) s.addressee = const_cast<Bitzkey*>(kind);
+    }
+    available[Address] = s.addressee != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -3956,7 +3977,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseStandoutEsteem] = best;
             senses[SenseStandoutCloseness] = near;
             double heard = 0.0;  // its voice known among the rest, and from where, in sight or out of it
-            if (standout->call >= FirstCall && standout->call_turn == turn_ - 1 && away <= call_reach(*standout)) {
+            if (standout->call >= FirstCall && standout->call_turn == turn_ - 1 && away <= call_reach(*standout) &&
+                !standout->spoke_alone()) {  // not a call said to another alone
                 heard = 1 - static_cast<double>(away) / (call_reach(*standout) + 1);
             }
             senses[SenseStandoutHeard] = heard;
@@ -4024,6 +4046,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     const Bitzkey* caller = nullptr;  // the loudest it heard of all
+    const Bitzkey* addressed = nullptr;  // one who spoke to it alone from beside it last turn, heard over all others
     {  // the calls made about it last turn, by any kind, each as its loudest caller made it
         std::array<double, CALL_COUNT> loudest{};
         double loudest_of_all = 0.0;
@@ -4034,6 +4057,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         // heard at its loudness).
         double kin_loudest = 0.0;  // the loudest of its own kind, to credit should the call help
         const auto hear = [&](const Bitzkey* other, int reach) {
+            if (other->spoke_alone()) {  // said to one alone: none else hears it
+                if (other->address_to == agent.identifier && (!addressed || other->identifier < addressed->identifier)) addressed = other;
+                return;
+            }
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away > reach) return;
             const double loudness = 1 - static_cast<double>(away) / (reach + 1);
@@ -4075,6 +4102,27 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             for (Bitzkey* other : around(agent, furthest)) {
                 if (other->call >= FirstCall && other->call_turn == turn_ - 1) hear(other, call_reach(*other));
             }
+        }
+        if (addressed) {  // spoken to: that call is the one it hears, whatever else was louder
+            constexpr double ADDRESS_LOUDNESS = 0.5;  // as a call with a reach of one, from beside it
+            caller = addressed;
+            if (addressed->species == agent.species) {
+                s.heard_from = addressed->identifier;
+                s.heard_call = addressed->call;
+            }
+            const auto spoken = [&](int call) {
+                loudest[static_cast<std::size_t>(call - FirstCall)] = ADDRESS_LOUDNESS;
+                senses[heard_sense(call, HeardLoudness)] = ADDRESS_LOUDNESS;
+                senses[heard_sense(call, HeardEast)] =
+                    std::clamp(static_cast<double>(py_mod(addressed->x - agent.x + width_ / 2, width_) - width_ / 2), -1.0, 1.0);
+                senses[heard_sense(call, HeardSouth)] = std::clamp(static_cast<double>(addressed->y - agent.y), -1.0, 1.0);
+                senses[heard_sense(call, HeardKin)] = addressed->species == agent.species;
+            };
+            spoken(addressed->call);
+            for (const int sound : addressed->sounds) {
+                if (sound >= 0) spoken(FirstCall + sound);
+            }
+            senses[SensePointed + Addressed] = 1.0;
         }
     }
     if (caller) {
@@ -5897,6 +5945,19 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Tutor:
             tutor(agent, *s.pupil, s.lesson);
             break;
+        case Address: {
+            // Up to one it would speak to, no nearer than beside it, and its call said to that one alone, just loud
+            // enough: heard by that one only, and only if it got beside it (see hear in sense).
+            const Bitzkey& other = *s.addressee;
+            const Cell there = spot(other);
+            const int away = distance(there.x, there.y, agent.x, agent.y);
+            if (away > 1) move_toward(agent, there.x, there.y, std::min(agent.pace(), away - 1));
+            agent.address_turn = turn_;
+            const bool lives = in_reach(other) ? other.alive() : other.was_alive;
+            agent.address_to = lives && distance(there.x, there.y, agent.x, agent.y) <= 1 ? other.identifier : -1;
+            agent.last_action = agent.address_to >= 0 ? "spoke to one" : "went to speak to one";
+            break;
+        }
         case TakeMeat:
             take_meat(agent, s);
             break;

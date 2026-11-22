@@ -2749,6 +2749,63 @@ TEST_CASE("a call is heard by those within its reach, the louder the nearer, and
     CHECK(simulation.sense(near).senses[heard_sense(call, HeardLoudness)] == 0.0);
 }
 
+TEST_CASE("addressing: an animal goes beside one it knows and says its call to that one alone, heard over louder calls") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& kin_stranger = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);  // nearer, but unknown
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 10, 12);       // further, but known
+    speaker.known.push_back(Acquaintance{friend_.identifier, REGARD_STRONG, 0});
+    simulation.index_cells();
+    auto sensed = simulation.sense(speaker);
+    CHECK(std::find(sensed.options.begin(), sensed.options.end(), Address) != sensed.options.end());
+    CHECK(sensed.situation.addressee == &friend_);  // one it knows before a nearer stranger
+    simulation.act(speaker, Address, sensed.situation);
+    CHECK(std::abs(speaker.x - friend_.x) + std::abs(speaker.y - friend_.y) == 1);  // beside it, no nearer
+    CHECK(speaker.address_to == friend_.identifier);
+    CHECK(speaker.last_action == "spoke to one");
+    // Its call, said that turn, heard the next: by the one addressed alone, over a louder call close by.
+    Bitzkey& shouter = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), friend_.x + 1, friend_.y);
+    Bitzkey& bystander = simulation.add_agent(encode_dna(Species::Grazer), speaker.x - 1, speaker.y);
+    simulation.index_cells();
+    speaker.call = FirstCall + 1;
+    speaker.sounds = {3, -1};
+    speaker.call_turn = speaker.address_turn = simulation.turn() - 1;
+    shouter.call = FirstCall + 4;
+    shouter.call_turn = simulation.turn() - 1;
+    const auto heard = simulation.sense(friend_);
+    CHECK(heard.senses[SensePointed + Addressed] == 1.0);
+    CHECK(heard.senses[heard_sense(FirstCall + 1, HeardLoudness)] == doctest::Approx(0.5));
+    CHECK(heard.senses[heard_sense(FirstCall + 3, HeardLoudness)] == doctest::Approx(0.5));  // its second sound
+    CHECK(heard.senses[utterance_sense(0, 1)] == 1.0);  // the whisper is the call it takes in, not the shout
+    CHECK(heard.senses[utterance_sense(0, 4)] == 0.0);
+    CHECK(heard.situation.loudest_from == speaker.identifier);
+    CHECK(heard.situation.heard_from == speaker.identifier);
+    const auto overheard = simulation.sense(bystander);  // right beside the speaker, yet it hears only the shout
+    CHECK(overheard.senses[SensePointed + Addressed] == 0.0);
+    CHECK(overheard.senses[heard_sense(FirstCall + 1, HeardLoudness)] == 0.0);
+    CHECK(overheard.situation.loudest_from == shouter.identifier);
+    speaker.address_to = -1;  // had it not come beside its friend, none would hear it
+    CHECK(simulation.sense(friend_).senses[SensePointed + Addressed] == 0.0);
+    CHECK(simulation.sense(friend_).situation.loudest_from == shouter.identifier);
+    (void)kin_stranger;
+}
+
+TEST_CASE("an animal addressing one always says something: silence and the alert are not among its calls") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    for (int turn = 0; turn < 40; ++turn) {
+        for (int action = 0; action < ACTION_COUNT; ++action) speaker.brain->output_biases[action] = action == Address ? 50.0 : -50.0;
+        speaker.brain->output_biases[call_output(Silent)] = 50.0;  // it would rather keep quiet
+        simulation.advance();
+        if (!speaker.alive()) break;
+        if (speaker.last_choice == Address && speaker.call_turn == simulation.turn() - 1 && speaker.call_kind == 0) {
+            CHECK(speaker.call >= FirstCall);
+        }
+    }
+}
+
 TEST_CASE("an animal calls alongside its action: silence and the five calls always open, the alert when it has news") {
     CHECK(std::find(ACTIONS.begin(), ACTIONS.end(), "alert") == ACTIONS.end());  // no longer an action
     CHECK(OUTPUTS[call_output(AlertCall)] == "alert");
