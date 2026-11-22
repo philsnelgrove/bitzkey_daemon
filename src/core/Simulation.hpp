@@ -411,6 +411,7 @@ inline int ADDRESS_RETRIES = 3;
 // longs and for what kind of thing, never where: the way back is for its memory to hold.
 inline double LONGING = 1.0;
 inline double LONGING_FADE = 0.05;
+inline int LONGING_PARTING = 5;  // a companion out of sight this many turns running, before it is longed for
 inline double LONGING_UNEASE = 0.1;
 inline double LONGING_JOY = 1.0;
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
@@ -1287,6 +1288,9 @@ struct Bitzkey {
     int longing_closer = 0, longing_farther = 0;  // turns it came nearer to it, and went further, while longing
     int longings_reached = 0, longings_faded = 0; // in its life: longings met, and longings let fade
     int beside_companion = -1;          // last turn: the companion in sight it cared for most
+    int missing = -1;                   // a companion gone from its sight, not yet back (see LONGING_PARTING)
+    double missing_care = 0.0;          // how much it cared for it
+    int missing_for = 0;                // and for how many turns it has been gone
     double beside_care = 0.0;           // and how much
     int fire_x = -1, fire_y = -1;       // last turn: the friendly fire it saw
     int shelter_x = -1, shelter_y = -1; // the shelter it was last under, till it is out of sight

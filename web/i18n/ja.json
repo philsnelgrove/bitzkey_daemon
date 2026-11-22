@@ -2128,5 +2128,7 @@
 "Learn corrected": "正された学び",
 "a wrong guess, corrected by the speaker saying its word and pointing again, is worth this share of a right one, taught as the right pairing; 0 for nothing": "話し手が言葉と指さしを繰り返して正した誤った推測は、正しい推測のこの割合の価値があり、正しい組み合わせとして教わる。0 で無し",
 "Learn insight": "学びの洞察",
-"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "知性を掛けた確率で、言葉を言い返す者が話し手の意図を読み取り即座に指さす。最も賢い者は必ず。0 で推測のみ"
+"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "知性を掛けた確率で、言葉を言い返す者が話し手の意図を読み取り即座に指さす。最も賢い者は必ず。0 で推測のみ",
+"Longing parting": "恋しさまでの別れ",
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "仲間が戻らずに視界から外れていなければならないターン数。それを過ぎて初めて恋しくなる。出入りする群れの仲間は恋しがられない。1 で即座"
 }

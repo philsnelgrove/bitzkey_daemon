@@ -2992,9 +2992,23 @@ TEST_CASE("longing: parted from a companion it cares for, an animal longs for it
     CHECK(animal.longing_kind == NoLonging);
     CHECK(animal.beside_companion == friend_.identifier);
     CHECK(together.senses[SenseLonging + LongingStrength] == 0.0);
-    friend_.x = 50;  // gone off, out of sight
+    friend_.x = 50;  // gone off, out of sight: missed at first, not yet longed for
     simulation.index_cells();
-    auto parted = simulation.sense(animal);
+    for (int turn = 1; turn < LONGING_PARTING; ++turn) {
+        simulation.sense(animal);
+        CHECK(animal.longing_kind == NoLonging);
+        CHECK(animal.missing == friend_.identifier);
+    }
+    friend_.x = 11;  // back before the parting: nothing to long for
+    simulation.index_cells();
+    simulation.sense(animal);
+    CHECK(animal.missing == -1);
+    CHECK(animal.longing_kind == NoLonging);
+    friend_.x = 50;  // gone again, and this time it stays gone
+    simulation.index_cells();
+    for (int turn = 1; turn < LONGING_PARTING; ++turn) simulation.sense(animal);
+    CHECK(animal.longing_kind == NoLonging);
+    auto parted = simulation.sense(animal);  // the parting's last turn: now it longs
     CHECK(animal.longing_kind == LongCompanion);
     CHECK(animal.longing_for == friend_.identifier);
     const double first = animal.longing;

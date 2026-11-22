@@ -2128,5 +2128,7 @@
 "Learn corrected": "纠正后学词",
 "a wrong guess, corrected by the speaker saying its word and pointing again, is worth this share of a right one, taught as the right pairing; 0 for nothing": "猜错后，说话者重说该词并再次指出加以纠正，其价值为猜对的这一份额，并作为正确的配对被教会；0 为无",
 "Learn insight": "学词悟性",
-"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "按其智力相乘的概率，说回词者领会说话者所指并立即指出：最聪明的总能做到；0 为仅凭猜测"
+"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "按其智力相乘的概率，说回词者领会说话者所指并立即指出：最聪明的总能做到；0 为仅凭猜测",
+"Longing parting": "思念前的分离",
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "同伴须离开视线且不回来的回合数，之后才会思念它：进进出出的群伴不会被思念；1 为立即"
 }

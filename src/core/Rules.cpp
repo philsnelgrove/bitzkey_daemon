@@ -243,6 +243,7 @@ std::vector<Rule> make_rules() {
         {"ADDRESS_RETRIES", "Mind", "Address retries", "how many times one that spoke to another alone, and was not answered with a right guess, may say the same word and point again; the more sociable it is, the likelier it must; 0 for none", 0, 10, 1, true, &ADDRESS_RETRIES},
         {"LONGING", "Mind", "Longing", "how strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none", 0.0, 3.0, 0.1, false, &LONGING},
         {"LONGING_FADE", "Mind", "Longing fade", "how much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is", 0.0, 0.5, 0.01, false, &LONGING_FADE},
+        {"LONGING_PARTING", "Mind", "Longing parting", "turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once", 1, 50, 1, true, &LONGING_PARTING},
         {"LONGING_UNEASE", "Mind", "Longing unease", "unease each turn for each unit of longing, felt till it fades or is met", 0.0, 2.0, 0.05, false, &LONGING_UNEASE},
         {"LONGING_JOY", "Mind", "Longing joy", "joy at reaching what it longed for, for each unit of longing", 0.0, 5.0, 0.1, false, &LONGING_JOY},
         {"MAP_BLIND", "Mind", "Map blind", "for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are", 0, 1, 1, true, &MAP_BLIND},

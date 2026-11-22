@@ -7635,6 +7635,7 @@ void Simulation::long_for(Bitzkey& agent, Situation& s, Senses& senses, int sigh
     int companion = -1;
     double care = 0.0;
     bool kept = false;  // the one it cared for most last turn still in sight
+    bool back = false;  // the one it misses, in sight again
     for (const Bitzkey* other : around(agent, sight)) {
         if (other == &agent || !other->alive() || !other->brain || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
         const bool kin = other->identifier == agent.mother || other->identifier == agent.father || other->mother == agent.identifier ||
@@ -7642,14 +7643,32 @@ void Simulation::long_for(Bitzkey& agent, Situation& s, Senses& senses, int sigh
         const double regard = kin ? 1.0 : raw_regard_for(agent, *other);
         if (regard < REGARD_STRONG) continue;
         if (other->identifier == agent.beside_companion) kept = true;
+        if (other->identifier == agent.missing) back = true;
         if (regard > care) {
             care = regard;
             companion = other->identifier;
         }
     }
-    if (agent.beside_companion >= 0 && !kept) {
-        const Bitzkey* gone = find_agent(agent.beside_companion);
-        if (gone && gone->alive()) begin(LongCompanion, agent.beside_care, agent.beside_companion, -1, -1);
+    // Gone from its sight, a companion is missed; only gone LONGING_PARTING turns running, not back, is it longed for.
+    if (agent.beside_companion >= 0 && !kept && agent.beside_companion != agent.missing &&
+        (agent.missing < 0 || agent.beside_care > agent.missing_care)) {
+        agent.missing = agent.beside_companion;
+        agent.missing_care = agent.beside_care;
+        agent.missing_for = 0;
+    }
+    if (agent.missing >= 0) {
+        const Bitzkey* gone = find_agent(agent.missing);
+        const bool lost = !gone || !gone->alive();
+        if (!lost && !back && ++agent.missing_for >= std::max(1, LONGING_PARTING)) {
+            begin(LongCompanion, agent.missing_care, agent.missing, -1, -1);
+            agent.missing = -1;
+        } else if (lost || back) {
+            agent.missing = -1;  // back again, or gone for good: nothing to long for
+        }
+        if (agent.missing < 0) {
+            agent.missing_care = 0.0;
+            agent.missing_for = 0;
+        }
     }
     agent.beside_companion = companion;
     agent.beside_care = care;
