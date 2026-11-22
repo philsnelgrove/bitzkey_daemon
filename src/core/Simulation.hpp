@@ -390,6 +390,15 @@ inline double CALL_EFFORT = 0.2;
 // LEARN_MATCH: added to the speaker's lesson for that call and its point, and to the learner's for its own. 0 for none.
 inline double LEARN_GAIN = 3.0;
 inline double LEARN_MATCH = 0.1;
+// A wrong guess, corrected (the user's idea): when the speaker then says its word and points again to the learner
+// (see ADDRESS_RETRIES), the learner's word said back is taught LEARN_CORRECTED times what a right guess at the
+// least would be (LEARN_GAIN x LEARN_MATCH), and its point at the thing the speaker meant the same: the right pairing.
+inline double LEARN_CORRECTED = 0.5;
+// Insight (the user's idea): with chance LEARN_INSIGHT times its intellect, one saying a word back reads what the
+// speaker meant and points at that at once; the cleverest always get it on the first try. Both gains, of a right
+// guess and of a corrected one, are multiplied by the learner's intellect and the speaker's, each 0..7 counted at
+// least 1 (the user's choice): from 1 for two dull ones to 49 for two of the sharpest.
+inline double LEARN_INSIGHT = 1.0;
 // Trying again (the user's idea): one that addressed another with a word and a point, and two turns on has had no
 // right guess said back, may address it again with the same word and point, up to ADDRESS_RETRIES times: offered as
 // a choice, and with a chance of its sociability compelled, its own choice set aside and untaught.
@@ -1259,6 +1268,9 @@ struct Bitzkey {
     int learn_from = -1;                // to whom: the one who had said it
     bool learn_correct = false;         // whether it then pointed at what that one had pointed at
     double learn_gain = 0.0;            // what a right guess was worth, taught with its own call (see LEARN_GAIN)
+    int learn_call = -1;                // the word's first sound it said back, as a call
+    double corrected_gain = 0.0;        // this turn: its wrong guess corrected, what that was worth (see LEARN_CORRECTED)
+    int corrected_thing = -1;           // and the thing the speaker meant
     double learn_bonus = 0.0;           // this turn: what right guesses of its words were worth, taught with its call
     double word_understood = 0.0;       // this turn: how much less surprised it is by what the one it heard pointed at
     int word_turn = -1;                 // the last turn it addressed one with a word and a point (see ADDRESS_RETRIES)

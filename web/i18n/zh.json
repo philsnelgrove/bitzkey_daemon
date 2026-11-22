@@ -2124,5 +2124,9 @@
 "Longing joy": "思念得偿之乐",
 "joy at reaching what it longed for, for each unit of longing": "到达所思念之物的快乐，按每单位思念计",
 "Map blind": "屏蔽地图",
-"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "实验用：1 屏蔽心中地图的感知和回到上一顿饭处的路，只让它自己的记忆记住东西在哪"
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "实验用：1 屏蔽心中地图的感知和回到上一顿饭处的路，只让它自己的记忆记住东西在哪",
+"Learn corrected": "纠正后学词",
+"a wrong guess, corrected by the speaker saying its word and pointing again, is worth this share of a right one, taught as the right pairing; 0 for nothing": "猜错后，说话者重说该词并再次指出加以纠正，其价值为猜对的这一份额，并作为正确的配对被教会；0 为无",
+"Learn insight": "学词悟性",
+"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "按其智力相乘的概率，说回词者领会说话者所指并立即指出：最聪明的总能做到；0 为仅凭猜测"
 }

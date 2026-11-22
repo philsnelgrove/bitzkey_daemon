@@ -2836,8 +2836,13 @@ TEST_CASE("learning a word: a right guess is worth the learn gain to both, at le
     std::vector<Bitzkey*> agents{&speaker, &learner};
     std::vector<Simulation::Sensed> now{simulation.sense(speaker), simulation.sense(learner)};
     simulation.gauge_understanding(agents, now);
-    CHECK(learner.learn_gain == doctest::Approx(LEARN_GAIN * LEARN_MATCH));  // it read no finger: the least a right guess counts
-    CHECK(speaker.learn_bonus == doctest::Approx(LEARN_GAIN * LEARN_MATCH));
+    // It read no finger: the least a right guess counts, times both their intellects, each at least 1.
+    const double minds = std::max(1, static_cast<int>(learner.mind[Intellect])) * static_cast<double>(TRAIT_MAX);
+    CHECK(learner.learn_gain == doctest::Approx(LEARN_GAIN * LEARN_MATCH * minds));
+    CHECK(speaker.learn_bonus == doctest::Approx(LEARN_GAIN * LEARN_MATCH * minds));
+    learner.mind[Intellect] = 0;  // the dullest counts as 1
+    simulation.gauge_understanding(agents, now);
+    CHECK(speaker.learn_bonus == doctest::Approx(LEARN_GAIN * LEARN_MATCH * TRAIT_MAX));
     learner.learn_correct = false;
     simulation.gauge_understanding(agents, now);
     CHECK(speaker.learn_bonus == 0.0);  // a wrong guess: nothing
@@ -2863,6 +2868,63 @@ TEST_CASE("learning a word: a right guess is worth the learn gain to both, at le
     const auto [call_right, point_right] = settled(true);
     CHECK(call_right > call_wrong);
     CHECK(point_right > point_wrong);
+}
+
+TEST_CASE("learning a word: a wrong guess, corrected by the speaker saying it again, is worth a share, taught as the right pairing") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    learner.learn_turn = simulation.turn() - 2;  // said back, wrongly, two turns ago
+    learner.learn_from = speaker.identifier;
+    learner.learn_correct = false;
+    learner.learn_call = FirstCall + 1;
+    speaker.word_turn = simulation.turn() - 1;  // and the speaker said it again to it last turn
+    speaker.word_tries = 1;
+    speaker.word_call = FirstCall + 1;
+    speaker.word_point = 6;
+    speaker.address_to = learner.identifier;
+    std::vector<Bitzkey*> agents{&speaker, &learner};
+    std::vector<Simulation::Sensed> now{simulation.sense(speaker), simulation.sense(learner)};
+    simulation.gauge_understanding(agents, now);
+    const double minds = std::max(1, static_cast<int>(learner.mind[Intellect])) * static_cast<double>(std::max(1, static_cast<int>(speaker.mind[Intellect])));
+    CHECK(learner.corrected_gain == doctest::Approx(LEARN_CORRECTED * LEARN_GAIN * LEARN_MATCH * minds));
+    CHECK(learner.corrected_thing == 6);  // the thing the speaker meant
+    speaker.word_call = FirstCall + 3;  // another word said: no correction of this one
+    simulation.gauge_understanding(agents, now);
+    CHECK(learner.corrected_gain == 0.0);
+    speaker.word_call = FirstCall + 1;
+    learner.learn_correct = true;  // guessed right: nothing to correct
+    simulation.gauge_understanding(agents, now);
+    CHECK(learner.corrected_gain == 0.0);
+}
+
+TEST_CASE("learning a word: the cleverest saying a word back always point at what the speaker meant") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    learner.mind[Intellect] = TRAIT_MAX;
+    learner.mind[Curiosity] = TRAIT_MAX;
+    simulation.index_cells();
+    int tries = 0, right = 0;
+    for (int turn = 0; turn < 60; ++turn) {
+        speaker.call = FirstCall + 2;  // its word, said to the learner alone last turn, pointing at a thing
+        speaker.sounds = {0, -1};
+        speaker.call_turn = speaker.address_turn = simulation.turn();
+        speaker.address_to = learner.identifier;
+        speaker.point = 3;
+        speaker.point_turn = simulation.turn();
+        for (int action = 0; action < ACTION_COUNT; ++action) learner.brain->output_biases[action] = action == Learn ? 50.0 : -50.0;
+        simulation.advance();
+        if (!learner.alive() || !speaker.alive()) break;
+        if (learner.learn_turn == simulation.turn() && learner.last_choice == Learn) {
+            ++tries;
+            right += learner.learn_correct;
+        }
+    }
+    MESSAGE("said back " << tries << " times, right " << right);
+    CHECK(tries > 0);
+    CHECK(right == tries);
 }
 
 TEST_CASE("trying again: a word said to one alone and not answered right may be said again, the same word and point, up to the retries") {

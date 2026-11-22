@@ -2124,5 +2124,9 @@
 "Longing joy": "恋しさが満ちる喜び",
 "joy at reaching what it longed for, for each unit of longing": "恋しかったものにたどり着いた喜び。恋しさ1単位ごと",
 "Map blind": "地図を伏せる",
-"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "実験用：1 で心の地図の感覚と最後の食事への帰り道を伏せ、物の在りかを自分の記憶だけで保たせる"
+"for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are": "実験用：1 で心の地図の感覚と最後の食事への帰り道を伏せ、物の在りかを自分の記憶だけで保たせる",
+"Learn corrected": "正された学び",
+"a wrong guess, corrected by the speaker saying its word and pointing again, is worth this share of a right one, taught as the right pairing; 0 for nothing": "話し手が言葉と指さしを繰り返して正した誤った推測は、正しい推測のこの割合の価値があり、正しい組み合わせとして教わる。0 で無し",
+"Learn insight": "学びの洞察",
+"chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "知性を掛けた確率で、言葉を言い返す者が話し手の意図を読み取り即座に指さす。最も賢い者は必ず。0 で推測のみ"
 }

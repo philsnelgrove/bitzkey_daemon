@@ -2044,7 +2044,7 @@ void Simulation::settle_call(Bitzkey& agent) {
     target += UNDERSTOOD * understood;
     // Its word said back and guessed right: as the one who said it (learn_bonus), and as the one who said it back.
     const double learnt = agent.learn_bonus + agent.held_learn;
-    target += learnt;
+    target += learnt + agent.corrected_gain;  // and its wrong guess, corrected: worth a share
     target = limited_value(target);
     const auto lesson = [&](int output, double value, double share) {
         if (gpu_) queue_lesson(agent, agent.call_senses, output, value, share, false, 0.0);
@@ -2063,7 +2063,17 @@ void Simulation::settle_call(Bitzkey& agent) {
     // What it pointed at: valued by how well its hearers then understood it.
     if (POINTING > 0 && agent.held_point >= 0 && (pointed || learnt != 0.0))
         lesson(POINT + agent.held_point, limited_value(UNDERSTOOD * understood + learnt), rate * POINTING);
+    // Corrected: the thing the speaker meant, taught as its point for that word.
+    if (POINTING > 0 && agent.corrected_thing >= 0 && agent.corrected_gain > 0)
+        lesson(POINT + agent.corrected_thing, limited_value(agent.corrected_gain), rate * POINTING);
 }
+
+namespace {
+// What two minds bring to a word learnt between them (the user's idea): each one's intellect, 0..7, at least 1, multiplied.
+double minds_met(const Bitzkey& listener, const Bitzkey& speaker) {
+    return static_cast<double>(std::max(1, static_cast<int>(listener.mind[Intellect]))) * std::max(1, static_cast<int>(speaker.mind[Intellect]));
+}
+}  // namespace
 
 void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& now) {
     // Each caller, of each who read its finger last turn: how much less surprised by the thing pointed at that one is now,
@@ -2073,6 +2083,8 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         agent->understood_count = 0;
         agent->learn_bonus = 0.0;
         agent->word_understood = 0.0;
+        agent->corrected_gain = 0.0;
+        agent->corrected_thing = -1;
     }
     if (POINTING <= 0 && UNDERSTOOD <= 0) return;
     for (const Bitzkey* agent : agents) {  // for the probe: whether each chose to attend last turn, when it could
@@ -2107,9 +2119,18 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
     for (Bitzkey* learner : agents) {  // a word said back last turn, and guessed right: worth as much to the one who said it
         if (LEARN_GAIN <= 0 || learner->learn_turn != turn_ - 1 || !learner->learn_correct) continue;
         const double understood = learner->pointed_by == learner->learn_from ? learner->word_understood : 0.0;
-        learner->learn_gain = LEARN_GAIN * std::max(LEARN_MATCH, understood);
         Bitzkey* speaker = find_agent(learner->learn_from);
-        if (speaker && speaker->alive() && speaker != learner) speaker->learn_bonus += learner->learn_gain;
+        const bool there = speaker && speaker->alive() && speaker != learner;
+        learner->learn_gain = LEARN_GAIN * std::max(LEARN_MATCH, understood) * (there ? minds_met(*learner, *speaker) : std::max(1, static_cast<int>(learner->mind[Intellect])));
+        if (there) speaker->learn_bonus += learner->learn_gain;
+    }
+    for (Bitzkey* learner : agents) {  // a wrong guess said back two turns ago, and the speaker since said the word again to it
+        if (LEARN_CORRECTED <= 0 || LEARN_GAIN <= 0 || learner->learn_turn != turn_ - 2 || learner->learn_correct) continue;
+        const Bitzkey* speaker = find_agent(learner->learn_from);
+        if (!speaker || !speaker->alive() || speaker->word_turn != turn_ - 1 || speaker->word_tries <= 0 ||
+            speaker->address_to != learner->identifier || speaker->word_point < 0 || speaker->word_call != learner->learn_call) continue;
+        learner->corrected_gain = LEARN_CORRECTED * LEARN_GAIN * LEARN_MATCH * minds_met(*learner, *speaker);
+        learner->corrected_thing = speaker->word_point;
     }
     for (const Bitzkey* caller : agents) {  // for the probe: each held call that pointed, as its hearers' turn is judged
         if (!caller->call_held || caller->held_point < 0) continue;
@@ -2959,6 +2980,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                     picked = POINT + agent.point;  // the same thing again
                 } else if (choice == Address && situation.retry_to && agent.word_point >= 0) {
                     picked = POINT + agent.word_point;  // what it pointed at as it first said the word
+                } else if (choice == Learn && situation.learn_by && situation.learn_thing >= 0 &&
+                           whim(agent.identifier ^ 0x494E5349, turn_) < LEARN_INSIGHT * agent.intelligence()) {
+                    picked = POINT + situation.learn_thing;  // it sees what the speaker meant, the more surely the cleverer
                 } else {
                     for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
                         roll -= chance;
@@ -2984,6 +3008,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.learn_from = situation.learn_by->identifier;
                 agent.learn_correct = agent.point_turn == turn_ && agent.point == situation.learn_thing;
                 agent.learn_gain = 0.0;
+                agent.learn_call = agent.call;
             }
             // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
             // more for the fearful), hunger and pain.
