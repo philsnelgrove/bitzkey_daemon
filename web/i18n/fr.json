@@ -2088,5 +2088,9 @@
 "Arena blind": "Cécité de l'arène",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "pour les expériences : chance qu'un animal ayant entendu un appel ne perçoive aucune des choses du dehors ce tour-là, l'appel étant tout ce qu'il a ; 0 pour désactivé",
 "Arena payoff": "Gain de l'arène",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "pour les expériences : comment le tour d'un auditeur aveuglé s'est passé par rapport à ce qu'il attendait est enseigné à l'appel entendu, d'autant, en entier, sans pondération par le soin ou l'empathie ; 0 pour désactivé"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "pour les expériences : comment le tour d'un auditeur aveuglé s'est passé par rapport à ce qu'il attendait est enseigné à l'appel entendu, d'autant, en entier, sans pondération par le soin ou l'empathie ; 0 pour désactivé",
+"Habituation": "Accoutumance",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "à quel point un animal s'habitue aux choses : chaque chose du dehors est perçue, d'autant, selon combien elle est plus proche que ces derniers temps, et selon sa simple proximité pour le reste ; 0 pour désactivé",
+"Habituation rate": "Vitesse d'accoutumance",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "à quelle vitesse un animal s'habitue à ce qui l'entoure : la part du chemin que son sens de la proximité récente de chaque chose parcourt à chaque tour"
 }

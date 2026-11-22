@@ -460,6 +460,11 @@ inline double ARENA_BLIND = 0.0;
 // And shared payoff: how a blinded listener's turn went against what it expected of its choice is taught to the call it
 // heard, at ARENA_PAYOFF, whole: not weighed by the caller's care or empathy, as two who gain together. 0 for off.
 inline double ARENA_PAYOFF = 0.0;
+// Getting used to things (the user's idea): each animal keeps, for each outside thing, how near it has lately been (a
+// running mean, moving HABITUATION_RATE of the way each turn), and senses it by how much nearer it now is than that,
+// weighed HABITUATION against its plain nearness. What lingers fades; what is new stands out. Never wholly gone below 1.
+inline double HABITUATION = 0.8;
+inline double HABITUATION_RATE = 0.1;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1287,6 +1292,8 @@ struct Bitzkey {
     int blinded_turn = -1;
     double arena_credit = 0.0;
     int arena_listeners = 0;
+    // What it is used to (see HABITUATION): how near each outside thing has lately been. Saved.
+    std::array<double, OUTSIDE_SEEN> used_to{};
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
     // Its senses at the choices before its last, most recent first, back to the first its memory wasn't written at, and
     // no more than Memory steps: what learning back in time goes over. Whether its memory was written at its last choice.

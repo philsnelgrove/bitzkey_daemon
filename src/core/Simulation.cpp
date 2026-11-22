@@ -4156,6 +4156,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
+    // Getting used to things: each outside thing sensed by how much nearer it is than it has lately been, in part.
+    if (HABITUATION > 0) {
+        const double weight = std::min(1.0, HABITUATION);
+        const double rate = std::clamp(HABITUATION_RATE, 0.0, 1.0);
+        for (std::size_t seen = 0; seen < OUTSIDE_SENSES.size(); ++seen) {
+            double& level = senses[static_cast<std::size_t>(OUTSIDE_SENSES[seen])];
+            double& used = agent.used_to[seen];
+            const double fresh = std::max(0.0, level - used);
+            used += rate * (level - used);
+            level = (1.0 - weight) * level + weight * fresh;
+        }
+    }
     // The arena, for experiments only: the outside things past the first ARENA_THINGS unseen, and, with chance ARENA_BLIND,
     // one that heard a call sees none of them this turn, so the call is all it has to go by.
     if (ARENA_THINGS > 0) {

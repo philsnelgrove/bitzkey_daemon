@@ -2088,5 +2088,9 @@
 "Arena blind": "עיוורון הזירה",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "לניסויים: הסיכוי שחיה ששמעה קריאה לא תחוש באף אחד מהדברים שבחוץ באותו תור, כך שיש לה רק את הקריאה; 0 לכבוי",
 "Arena payoff": "תגמול הזירה",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "לניסויים: איך עבר תורו של מאזין מעוור לעומת מה שציפה נלמד לקריאה ששמע, במידה הזאת, במלואו, בלי שקלול לפי דאגה או אמפתיה; 0 לכבוי"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "לניסויים: איך עבר תורו של מאזין מעוור לעומת מה שציפה נלמד לקריאה ששמע, במידה הזאת, במלואו, בלי שקלול לפי דאגה או אמפתיה; 0 לכבוי",
+"Habituation": "הסתגלות",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "כמה בעל חיים מתרגל לדברים: כל דבר בחוץ נחוש, במידה הזאת, לפי כמה הוא קרוב יותר ממה שהיה לאחרונה, ובשאר לפי קרבתו הפשוטה; 0 לכבוי",
+"Habituation rate": "קצב הסתגלות",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "כמה מהר בעל חיים מתרגל למה שסביבו: החלק מהדרך שתחושתו לגבי כמה קרוב היה כל דבר לאחרונה עוברת בכל תור"
 }

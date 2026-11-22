@@ -2088,5 +2088,9 @@
 "Arena blind": "अखाड़े का अंधापन",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "प्रयोगों के लिए: संभावना कि पुकार सुनने वाला प्राणी उस बारी बाहर की कोई चीज़ महसूस न करे, ताकि उसके पास केवल पुकार हो; बंद के लिए 0",
 "Arena payoff": "अखाड़े का प्रतिफल",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "प्रयोगों के लिए: अंधे किए गए श्रोता की बारी उसकी अपेक्षा की तुलना में कैसी गई, यह उसकी सुनी पुकार को इतना सिखाया जाता है, पूरा, परवाह या सहानुभूति से तौले बिना; बंद के लिए 0"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "प्रयोगों के लिए: अंधे किए गए श्रोता की बारी उसकी अपेक्षा की तुलना में कैसी गई, यह उसकी सुनी पुकार को इतना सिखाया जाता है, पूरा, परवाह या सहानुभूति से तौले बिना; बंद के लिए 0",
+"Habituation": "अभ्यस्तता",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "कोई पशु चीज़ों का कितना आदी होता है: बाहर की हर चीज़ इतनी इस बात से महसूस होती है कि वह हाल की तुलना में कितनी पास है, और बाकी उसकी सीधी निकटता से; बंद के लिए 0",
+"Habituation rate": "अभ्यस्तता की दर",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "कोई पशु अपने आसपास का कितनी जल्दी आदी होता है: हर चीज़ हाल में कितनी पास रही, इसकी उसकी समझ हर बारी रास्ते का कितना हिस्सा तय करती है"
 }

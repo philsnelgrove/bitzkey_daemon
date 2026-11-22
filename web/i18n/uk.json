@@ -2088,5 +2088,9 @@
 "Arena blind": "Сліпота арени",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "для експериментів: імовірність, що тварина, яка почула поклик, того ходу не відчуває жодної речі ззовні, тож має лише поклик; 0 вимкнено",
 "Arena payoff": "Винагорода арени",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "для експериментів: як минув хід осліпленого слухача порівняно з очікуваним, навчає почутий поклик на стільки, повністю, без зважування турботою чи емпатією; 0 вимкнено"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "для експериментів: як минув хід осліпленого слухача порівняно з очікуваним, навчає почутий поклик на стільки, повністю, без зважування турботою чи емпатією; 0 вимкнено",
+"Habituation": "Звикання",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "наскільки тварина звикає до речей: кожну річ зовні вона відчуває в цій мірі за тим, наскільки та ближча, ніж була останнім часом, а решту — за простою близькістю; 0 вимкнено",
+"Habituation rate": "Швидкість звикання",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "як швидко тварина звикає до того, що навколо: частка шляху, яку щоходу проходить її відчуття того, наскільки близько останнім часом була кожна річ"
 }

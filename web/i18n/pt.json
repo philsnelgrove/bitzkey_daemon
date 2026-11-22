@@ -2088,5 +2088,9 @@
 "Arena blind": "Cegueira da arena",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "para experiências: probabilidade de um animal que ouviu um chamado não sentir nenhuma das coisas de fora nesse turno, ficando só com o chamado; 0 para desligado",
 "Arena payoff": "Recompensa da arena",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "para experiências: como correu o turno de um ouvinte cegado face ao que esperava é ensinado ao chamado que ouviu, nesta medida, inteiro, sem ponderar por cuidado ou empatia; 0 para desligado"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "para experiências: como correu o turno de um ouvinte cegado face ao que esperava é ensinado ao chamado que ouviu, nesta medida, inteiro, sem ponderar por cuidado ou empatia; 0 para desligado",
+"Habituation": "Habituação",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "quanto um animal se habitua às coisas: cada coisa de fora é sentida, nesta medida, por quanto está mais perto do que tem estado ultimamente, e pela simples proximidade no resto; 0 para desligado",
+"Habituation rate": "Ritmo de habituação",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "quão depressa um animal se habitua ao que o rodeia: a parte do caminho que o seu sentido de quão perto cada coisa tem estado percorre a cada turno"
 }

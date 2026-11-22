@@ -254,6 +254,8 @@ TEST_CASE("the arena keeps only the first outside things in its order") {
     simulation.add_agent(encode_dna(Species::Predator), 5, 7);
     simulation.grass_cell(5, 6) = 1;
     simulation.index_cells();
+    const double habituation = HABITUATION;
+    HABITUATION = 0.0;  // the same senses twice, not got used to
     const Senses plain = simulation.sense(grazer).senses;
     REQUIRE(plain[SenseGrassCloseness] > 0.0);
     REQUIRE(plain[SenseThreatCloseness] > 0.0);
@@ -261,8 +263,25 @@ TEST_CASE("the arena keeps only the first outside things in its order") {
     ARENA_THINGS = 1;  // grass alone
     const Senses arena = simulation.sense(grazer).senses;
     ARENA_THINGS = saved;
+    HABITUATION = habituation;
     CHECK(arena[SenseGrassCloseness] == plain[SenseGrassCloseness]);
     CHECK(arena[SenseThreatCloseness] == 0.0);
+}
+
+TEST_CASE("an animal gets used to what lingers, and a newcomer stands out") {
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.grass_cell(5, 6) = 1;
+    simulation.index_cells();
+    const double first = simulation.sense(grazer).senses[SenseGrassCloseness];
+    REQUIRE(first > 0.0);
+    double later = first;
+    for (int turn = 0; turn < 60; ++turn) later = simulation.sense(grazer).senses[SenseGrassCloseness];
+    CHECK(later < first * 0.5);                                  // the grass, always there, has faded
+    CHECK(later >= (1.0 - HABITUATION) * first - 1e-6);           // but never wholly
+    simulation.add_agent(encode_dna(Species::Predator), 5, 7);
+    simulation.index_cells();
+    CHECK(simulation.sense(grazer).senses[SenseThreatCloseness] > later);  // the hunter, new, at full
 }
 
 TEST_CASE("memory brings an animal back to where it fed and warns it where it was struck") {

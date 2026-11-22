@@ -2088,5 +2088,9 @@
 "Arena blind": "アリーナの盲目",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "実験用：鳴き声を聞いた動物がその番に外の物を何も感じない確率。頼れるのは鳴き声だけになる；0でオフ",
 "Arena payoff": "アリーナの報酬",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "実験用：目隠しされた聞き手の番が予想と比べてどうだったかを、聞いた鳴き声にこの分だけ、そのまま教える。思いやりや共感で重み付けしない；0でオフ"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "実験用：目隠しされた聞き手の番が予想と比べてどうだったかを、聞いた鳴き声にこの分だけ、そのまま教える。思いやりや共感で重み付けしない；0でオフ",
+"Habituation": "慣れ",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "動物が物事にどれだけ慣れるか：外のものはそれぞれ、最近よりどれだけ近いかでこの分だけ感じられ、残りはそのままの近さで感じられる；0でオフ",
+"Habituation rate": "慣れの速さ",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "動物が周りのものにどれだけ速く慣れるか：各ものが最近どれだけ近かったかの感覚が、毎ターン進む割合"
 }

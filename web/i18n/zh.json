@@ -2088,5 +2088,9 @@
 "Arena blind": "竞技场失明",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "实验用：听到呼叫的动物在该回合感知不到任何外界之物的概率，这样它只能凭呼叫；0 表示关闭",
 "Arena payoff": "竞技场回报",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "实验用：被遮蔽视线的听者这一回合相对其预期的结果，按此程度完整地教给它听到的呼叫，不按关爱或同理心加权；0 表示关闭"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "实验用：被遮蔽视线的听者这一回合相对其预期的结果，按此程度完整地教给它听到的呼叫，不按关爱或同理心加权；0 表示关闭",
+"Habituation": "习惯化",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "动物对事物习惯的程度：外界每样东西按此程度以它比近来更近多少来感知，其余按其本身的远近感知；0 表示关闭",
+"Habituation rate": "习惯化速度",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "动物多快习惯周围的事物：它对每样东西近来有多近的感觉每回合移动的比例"
 }

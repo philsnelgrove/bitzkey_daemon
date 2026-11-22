@@ -2088,5 +2088,9 @@
 "Arena blind": "Ślepota areny",
 "for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "do eksperymentów: szansa, że zwierzę, które usłyszało wołanie, nie czuje w tej turze żadnej rzeczy z zewnątrz, więc ma tylko wołanie; 0 wyłączone",
 "Arena payoff": "Nagroda areny",
-"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "do eksperymentów: jak tura oślepionego słuchacza poszła względem oczekiwań, uczy usłyszane wołanie o tyle, w całości, bez ważenia troską czy empatią; 0 wyłączone"
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "do eksperymentów: jak tura oślepionego słuchacza poszła względem oczekiwań, uczy usłyszane wołanie o tyle, w całości, bez ważenia troską czy empatią; 0 wyłączone",
+"Habituation": "Przyzwyczajenie",
+"how much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off": "jak bardzo zwierzę przyzwyczaja się do rzeczy: każda rzecz na zewnątrz jest odczuwana w tej mierze według tego, o ile jest bliżej niż ostatnio, a w reszcie według samej bliskości; 0 wyłączone",
+"Habituation rate": "Tempo przyzwyczajenia",
+"how fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn": "jak szybko zwierzę przyzwyczaja się do otoczenia: część drogi, jaką co turę pokonuje jego wyczucie, jak blisko ostatnio była każda rzecz"
 }
