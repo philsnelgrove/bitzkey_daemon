@@ -2082,5 +2082,11 @@
 "Watched repeat": "Répéter si observé",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "un appelant qui sait qu'on lui prête attention répète son appel et son geste jusqu'à ce que personne ne regarde, que l'un soit moins surpris par la chose, ou qu'il fuie ou crie ; 0 pour désactivé",
 "Known attend": "Écouter les connus",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "quand un être qu'il connaît (une connaissance, un parent ou son petit) appelle ou pointe, l'animal prête attention sans le choisir, avec cette chance fois sa sociabilité ; pour les inconnus il choisit toujours ; 0 pour désactivé"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "quand un être qu'il connaît (une connaissance, un parent ou son petit) appelle ou pointe, l'animal prête attention sans le choisir, avec cette chance fois sa sociabilité ; pour les inconnus il choisit toujours ; 0 pour désactivé",
+"Arena things": "Choses de l'arène",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "pour les expériences : les animaux ne perçoivent que ce nombre de choses du dehors, d'abord herbe, plante et troupeau, puis chasseur, puis le reste ; les autres comme rien ; 0 pour toutes",
+"Arena blind": "Cécité de l'arène",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "pour les expériences : chance qu'un animal ayant entendu un appel ne perçoive aucune des choses du dehors ce tour-là, l'appel étant tout ce qu'il a ; 0 pour désactivé",
+"Arena payoff": "Gain de l'arène",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "pour les expériences : comment le tour d'un auditeur aveuglé s'est passé par rapport à ce qu'il attendait est enseigné à l'appel entendu, d'autant, en entier, sans pondération par le soin ou l'empathie ; 0 pour désactivé"
 }

@@ -451,6 +451,15 @@ inline double WATCHED_REPEAT = 1.0;
 // unbidden, its own choice passed over and untaught, with chance KNOWN_ATTEND times its sociability; strangers it
 // still chooses whether to heed. 0 for off.
 inline double KNOWN_ATTEND = 1.0;
+// The arena, for experiments only (both 0, off, in any ordinary world): an animal senses only the first ARENA_THINGS of
+// the outside things in ARENA_ORDER (grass, plant, herd, then threat, then the rest as listed), the rest read as none;
+// and with chance ARENA_BLIND one that heard a call senses none of them that turn, so the call is all it has to go by.
+inline double ARENA_THINGS = 0.0;
+constexpr std::array<int, OUTSIDE_SEEN> ARENA_ORDER = {4, 5, 7, 0, 1, 2, 3, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+inline double ARENA_BLIND = 0.0;
+// And shared payoff: how a blinded listener's turn went against what it expected of its choice is taught to the call it
+// heard, at ARENA_PAYOFF, whole: not weighed by the caller's care or empathy, as two who gain together. 0 for off.
+inline double ARENA_PAYOFF = 0.0;
 // Cues and cries (CUES 1): each animal links each action to one of the five sounds, its cue for it, at first by chance,
 // and takes on another's, with chance CUE_COPY, when it hears and sees one of its kind call as it acts. Pain (struck
 // this turn or last) and panic make it cry out, a sound inherited from its mother that drifts with chance CRY_DRIFT at
@@ -1273,6 +1282,11 @@ struct Bitzkey {
     double silence_understood = 0.0;  // and hearing nothing, as silence is taught it, so that calling gains nothing in itself
     double call_credit = 0.0;  // its listeners' surprise this turn, each weighed by its care for it
     int call_listeners = 0;    // and how many they were
+    // The arena (see ARENA_PAYOFF): the turn it was last blinded, hearing a call; and, as a caller, its blinded
+    // listeners' surprise this turn, unweighed, and how many they were. Not saved: for experiments.
+    int blinded_turn = -1;
+    double arena_credit = 0.0;
+    int arena_listeners = 0;
     Held held{};                        // what its memory neurons hold, read back the next time it senses (Brain.hpp)
     // Its senses at the choices before its last, most recent first, back to the first its memory wasn't written at, and
     // no more than Memory steps: what learning back in time goes over. Whether its memory was written at its last choice.

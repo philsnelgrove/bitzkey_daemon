@@ -2082,5 +2082,11 @@
 "Watched repeat": "見られたら繰り返す",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "注意を向けられていると知る鳴き手は、誰も見なくなるか、誰かがそのものに驚かなくなるか、逃げるか叫ぶまで、鳴き声と指差しを繰り返す；0でオフ",
 "Known attend": "知り合いへの注意",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "知っている者（知り合い、親、子）が鳴くか指差すと、動物は選ばずに注意を向ける。確率はこの値×社交性；見知らぬ者には今まで通り自分で選ぶ；0でオフ"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "知っている者（知り合い、親、子）が鳴くか指差すと、動物は選ばずに注意を向ける。確率はこの値×社交性；見知らぬ者には今まで通り自分で選ぶ；0でオフ",
+"Arena things": "アリーナの物",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "実験用：動物は外の物をこの数だけ感じる。まず草、植物、群れ、次に捕食者、次に残り；その他はなしとして；0ですべて",
+"Arena blind": "アリーナの盲目",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "実験用：鳴き声を聞いた動物がその番に外の物を何も感じない確率。頼れるのは鳴き声だけになる；0でオフ",
+"Arena payoff": "アリーナの報酬",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "実験用：目隠しされた聞き手の番が予想と比べてどうだったかを、聞いた鳴き声にこの分だけ、そのまま教える。思いやりや共感で重み付けしない；0でオフ"
 }

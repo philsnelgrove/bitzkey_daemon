@@ -2007,6 +2007,7 @@ void Simulation::settle_call(Bitzkey& agent) {
     if (relieved) target += NAMING_RELIEF;
     if (agent.call_listeners > 0) target += CALL_EMPATHY * agent.feeling(Empathy) * agent.call_credit / agent.call_listeners;
     if (agent.call_listeners > 0 && agent.held_intent >= 0) target += INTENT * agent.intent_met / static_cast<double>(agent.call_listeners);
+    if (agent.arena_listeners > 0) target += ARENA_PAYOFF * agent.arena_credit / agent.arena_listeners;
     const bool pointed = agent.held_point >= 0 && agent.understood_count > 0;
     const double understood = pointed ? agent.understood_sum / agent.understood_count : 0.0;  // how much less surprised, on average
     target += UNDERSTOOD * understood;
@@ -2115,17 +2116,23 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
         Bitzkey* agent = agents[index];
         agent->call_credit = 0.0;
         agent->call_listeners = 0;
+        agent->arena_credit = 0.0;
+        agent->arena_listeners = 0;
         agent->wishes_done = 0;
         agent->intent_met = 0;
         agent->wish_judged = wishing && agent->call_held && agent->has_last_senses && agent->chosen_turn == turn_ - 1;
         agent->wish_advantage = agent->wish_judged ? targets[index] - agent->chosen_value : 0.0;
     }
-    if (CALL_EMPATHY <= 0 && !wishing) return;
+    if (CALL_EMPATHY <= 0 && !wishing && ARENA_PAYOFF <= 0) return;
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& listener = *agents[index];
         if (!listener.has_last_senses || listener.call_heeded < 0 || listener.chosen_turn != turn_ - 1) continue;
         Bitzkey* caller = find_agent(listener.call_heeded);
         if (!caller || !caller->alive() || !caller->call_held || caller == &listener) continue;
+        if (ARENA_PAYOFF > 0 && listener.blinded_turn == listener.chosen_turn) {  // the call was all it had: shared whole
+            caller->arena_credit += targets[index] - listener.chosen_value;
+            ++caller->arena_listeners;
+        }
         const double care = family(*caller, listener) ? 1.0 : std::max(0.25, regard_for(*caller, listener));
         if (CALL_EMPATHY > 0) caller->call_credit += care * (targets[index] - listener.chosen_value);
         ++caller->call_listeners;
@@ -4148,6 +4155,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 }
             }
         }
+    }
+    // The arena, for experiments only: the outside things past the first ARENA_THINGS unseen, and, with chance ARENA_BLIND,
+    // one that heard a call sees none of them this turn, so the call is all it has to go by.
+    if (ARENA_THINGS > 0) {
+        for (std::size_t kept = static_cast<std::size_t>(ARENA_THINGS); kept < ARENA_ORDER.size(); ++kept) {
+            senses[OUTSIDE_SENSES[static_cast<std::size_t>(ARENA_ORDER[kept])]] = 0.0;
+        }
+    }
+    if (ARENA_BLIND > 0 && caller && whim(agent.identifier ^ 0x424C4E44, turn_) < ARENA_BLIND) {
+        agent.blinded_turn = turn_;
+        for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) senses[OUTSIDE_SENSES[static_cast<std::size_t>(seen)]] = 0.0;
+        senses[SensePointed + PointedCloseness] = 0.0;
     }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);

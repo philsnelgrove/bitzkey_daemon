@@ -2082,5 +2082,11 @@
 "Watched repeat": "חזרה כשצופים",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "קורא שיודע שמקשיבים לו חוזר על קריאתו והצבעתו עד שאיש אינו צופה, מישהו מופתע פחות מהדבר, או שהוא בורח או צועק; 0 לכבוי",
 "Known attend": "הקשבה למוכרים",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "כשמישהו שהיא מכירה (מכר, הורה או צאצא) קורא או מצביע, החיה מקשיבה בלי לבחור, בסיכוי הזה כפול החברותיות שלה; לזרים היא עדיין בוחרת אם להקשיב; 0 לכבוי"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "כשמישהו שהיא מכירה (מכר, הורה או צאצא) קורא או מצביע, החיה מקשיבה בלי לבחור, בסיכוי הזה כפול החברותיות שלה; לזרים היא עדיין בוחרת אם להקשיב; 0 לכבוי",
+"Arena things": "דברי הזירה",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "לניסויים: החיות חשות רק במספר הזה של הדברים שבחוץ, קודם עשב, צמח ועדר, אחר כך צייד, אחר כך השאר; האחרים כאין; 0 לכולם",
+"Arena blind": "עיוורון הזירה",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "לניסויים: הסיכוי שחיה ששמעה קריאה לא תחוש באף אחד מהדברים שבחוץ באותו תור, כך שיש לה רק את הקריאה; 0 לכבוי",
+"Arena payoff": "תגמול הזירה",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "לניסויים: איך עבר תורו של מאזין מעוור לעומת מה שציפה נלמד לקריאה ששמע, במידה הזאת, במלואו, בלי שקלול לפי דאגה או אמפתיה; 0 לכבוי"
 }

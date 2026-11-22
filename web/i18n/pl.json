@@ -2082,5 +2082,11 @@
 "Watched repeat": "Powtarzanie, gdy obserwowany",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "wołający, który wie, że ktoś zwraca na niego uwagę, powtarza wołanie i wskazanie, aż nikt nie patrzy, ktoś jest mniej zaskoczony rzeczą, albo ucieka lub krzyczy; 0 wyłączone",
 "Known attend": "Uwaga dla znajomych",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "gdy ktoś, kogo zna (znajomy, rodzic lub jego młode), woła lub wskazuje, zwierzę zwraca uwagę bez wyboru, z tą szansą razy jego towarzyskość; przy obcych nadal samo wybiera; 0 wyłączone"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "gdy ktoś, kogo zna (znajomy, rodzic lub jego młode), woła lub wskazuje, zwierzę zwraca uwagę bez wyboru, z tą szansą razy jego towarzyskość; przy obcych nadal samo wybiera; 0 wyłączone",
+"Arena things": "Rzeczy areny",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "do eksperymentów: zwierzęta czują tylko tyle rzeczy z zewnątrz, najpierw trawę, roślinę i stado, potem łowcę, potem resztę; pozostałe jako nic; 0 wszystkie",
+"Arena blind": "Ślepota areny",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "do eksperymentów: szansa, że zwierzę, które usłyszało wołanie, nie czuje w tej turze żadnej rzeczy z zewnątrz, więc ma tylko wołanie; 0 wyłączone",
+"Arena payoff": "Nagroda areny",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "do eksperymentów: jak tura oślepionego słuchacza poszła względem oczekiwań, uczy usłyszane wołanie o tyle, w całości, bez ważenia troską czy empatią; 0 wyłączone"
 }

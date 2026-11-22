@@ -2082,5 +2082,11 @@
 "Watched repeat": "Повтор під наглядом",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "той, хто кличе і знає, що на нього звертають увагу, повторює поклик і вказівку, доки ніхто не дивиться, хтось менше дивується речі, або він тікає чи кричить; 0 вимкнено",
 "Known attend": "Увага до знайомих",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "коли той, кого вона знає (знайомий, батько чи мати або її дитинча), кличе чи вказує, тварина звертає увагу без вибору, з цією ймовірністю помноженою на її товариськість; щодо чужих вона й далі обирає сама; 0 вимкнено"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "коли той, кого вона знає (знайомий, батько чи мати або її дитинча), кличе чи вказує, тварина звертає увагу без вибору, з цією ймовірністю помноженою на її товариськість; щодо чужих вона й далі обирає сама; 0 вимкнено",
+"Arena things": "Речі арени",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "для експериментів: тварини відчувають лише стільки речей ззовні, спершу траву, рослину й стадо, потім мисливця, потім решту; інші як ніщо; 0 усі",
+"Arena blind": "Сліпота арени",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "для експериментів: імовірність, що тварина, яка почула поклик, того ходу не відчуває жодної речі ззовні, тож має лише поклик; 0 вимкнено",
+"Arena payoff": "Винагорода арени",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "для експериментів: як минув хід осліпленого слухача порівняно з очікуваним, навчає почутий поклик на стільки, повністю, без зважування турботою чи емпатією; 0 вимкнено"
 }

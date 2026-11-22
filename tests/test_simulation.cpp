@@ -248,6 +248,23 @@ TEST_CASE("kinship shuns herd-mates and partners of another social background") 
     CHECK(Simulation::willing(clannish, stranger));
 }
 
+TEST_CASE("the arena keeps only the first outside things in its order") {
+    Simulation simulation = world();
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
+    simulation.add_agent(encode_dna(Species::Predator), 5, 7);
+    simulation.grass_cell(5, 6) = 1;
+    simulation.index_cells();
+    const Senses plain = simulation.sense(grazer).senses;
+    REQUIRE(plain[SenseGrassCloseness] > 0.0);
+    REQUIRE(plain[SenseThreatCloseness] > 0.0);
+    const double saved = ARENA_THINGS;
+    ARENA_THINGS = 1;  // grass alone
+    const Senses arena = simulation.sense(grazer).senses;
+    ARENA_THINGS = saved;
+    CHECK(arena[SenseGrassCloseness] == plain[SenseGrassCloseness]);
+    CHECK(arena[SenseThreatCloseness] == 0.0);
+}
+
 TEST_CASE("memory brings an animal back to where it fed and warns it where it was struck") {
     Simulation simulation = world();
     Bitzkey& eater = simulation.add_agent(encode_dna(Species::Grazer, {{"memory", 7}}), 5, 5);

@@ -2082,5 +2082,11 @@
 "Watched repeat": "Wiederholen, wenn beobachtet",
 "a caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off": "ein Rufer, der weiß, dass man ihm Aufmerksamkeit schenkt, wiederholt Ruf und Fingerzeig, bis keiner mehr zusieht, einer weniger vom Ding überrascht ist oder er flieht oder aufschreit; 0 für aus",
 "Known attend": "Bekannten zuhören",
-"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "wenn ein Bekannter (ein Bekannter, ein Elternteil oder sein Junges) ruft oder zeigt, schenkt ein Tier ihm ungefragt Aufmerksamkeit, mit dieser Wahrscheinlichkeit mal seiner Geselligkeit; bei Fremden wählt es weiter selbst; 0 für aus"
+"when one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off": "wenn ein Bekannter (ein Bekannter, ein Elternteil oder sein Junges) ruft oder zeigt, schenkt ein Tier ihm ungefragt Aufmerksamkeit, mit dieser Wahrscheinlichkeit mal seiner Geselligkeit; bei Fremden wählt es weiter selbst; 0 für aus",
+"Arena things": "Arena-Dinge",
+"for experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all": "für Experimente: Tiere nehmen nur so viele der Dinge draußen wahr, zuerst Gras, Pflanze und Herde, dann Jäger, dann den Rest; die anderen als nichts; 0 für alle",
+"Arena blind": "Arena-Blindheit",
+"for experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off": "für Experimente: Wahrscheinlichkeit, dass ein Tier, das einen Ruf gehört hat, in diesem Zug keines der Dinge draußen wahrnimmt, sodass ihm nur der Ruf bleibt; 0 für aus",
+"Arena payoff": "Arena-Lohn",
+"for experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off": "für Experimente: wie der Zug eines geblendeten Zuhörers gegenüber seiner Erwartung verlief, wird dem gehörten Ruf so stark beigebracht, ganz, nicht gewichtet nach Fürsorge oder Mitgefühl; 0 für aus"
 }
