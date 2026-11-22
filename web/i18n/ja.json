@@ -2098,5 +2098,7 @@
 "Harm after calling: turns": "鳴いた後の害：ターン数",
 "how many turns after calling a strike still teaches the call its harm": "鳴いてから何ターン後までの攻撃が、鳴き声にその害を教えるか",
 "Hushing": "黙らせる",
-"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "親に見られながら鳴いた子は、その鳴き声について、親がいま鳴くより黙っていたいとどれだけ思っているかをこの分だけ教えられる。静けさを好むようになった親だけが黙らせる；0でなし"
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "親に見られながら鳴いた子は、その鳴き声について、親がいま鳴くより黙っていたいとどれだけ思っているかをこの分だけ教えられる。静けさを好むようになった親だけが黙らせる；0でなし",
+"Call effort": "鳴く労力",
+"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "鳴くたびに、その労力の分だけ、理解されることとは別に、どれだけ低く教えられるか。感じるだけで体では払わない；0でなし"
 }

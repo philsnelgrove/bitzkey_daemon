@@ -2098,5 +2098,7 @@
 "Harm after calling: turns": "Szkoda po wołaniu: tury",
 "how many turns after calling a strike still teaches the call its harm": "ile tur po wołaniu cios wciąż uczy wołanie jego szkody",
 "Hushing": "Uciszanie",
-"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "młode, które woła na oczach rodzica, uczy się z tego wołania, jak bardzo rodzic wolałby teraz milczeć niż wołać, w tej mierze; ucisza tylko rodzic, który sam zaczął woleć ciszę; 0 brak"
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "młode, które woła na oczach rodzica, uczy się z tego wołania, jak bardzo rodzic wolałby teraz milczeć niż wołać, w tej mierze; ucisza tylko rodzic, który sam zaczął woleć ciszę; 0 brak",
+"Call effort": "Wysiłek wołania",
+"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "o ile mniej każde wołanie jest uczone za wysiłek jego wydania, obok bycia zrozumianym; odczuwany, nie płacony ciałem; 0 brak"
 }

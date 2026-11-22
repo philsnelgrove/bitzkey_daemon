@@ -2098,5 +2098,7 @@
 "Harm after calling: turns": "Dommage après l'appel : tours",
 "how many turns after calling a strike still teaches the call its harm": "combien de tours après l'appel un coup enseigne encore à l'appel son dommage",
 "Hushing": "Faire taire",
-"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "un petit qui appelle sous les yeux d'un parent apprend, de cet appel, combien ce parent préférerait maintenant se taire qu'appeler, d'autant ; seul un parent venu à préférer le silence fait taire ; 0 pour aucun"
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "un petit qui appelle sous les yeux d'un parent apprend, de cet appel, combien ce parent préférerait maintenant se taire qu'appeler, d'autant ; seul un parent venu à préférer le silence fait taire ; 0 pour aucun",
+"Call effort": "Effort d'appel",
+"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "combien moins chaque appel est enseigné pour l'effort de le faire, à côté d'être compris ; ressenti, non payé par le corps ; 0 pour aucun"
 }

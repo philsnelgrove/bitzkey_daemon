@@ -2098,5 +2098,7 @@
 "Harm after calling: turns": "Dano após chamar: turnos",
 "how many turns after calling a strike still teaches the call its harm": "quantos turnos depois de chamar um golpe ainda ensina ao chamado o seu dano",
 "Hushing": "Silenciar",
-"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "uma cria que chama à vista de um progenitor aprende, desse chamado, quanto o progenitor preferiria agora calar a chamar, nesta medida; só silencia um progenitor que passou a preferir o silêncio; 0 para nenhum"
+"a young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none": "uma cria que chama à vista de um progenitor aprende, desse chamado, quanto o progenitor preferiria agora calar a chamar, nesta medida; só silencia um progenitor que passou a preferir o silêncio; 0 para nenhum",
+"Call effort": "Esforço de chamar",
+"how much less each call is taught for the effort of making it, beside being understood; felt, not paid in the body; 0 for none": "quanto menos cada chamado é ensinado pelo esforço de fazê-lo, ao lado de ser entendido; sentido, não pago no corpo; 0 para nenhum"
 }

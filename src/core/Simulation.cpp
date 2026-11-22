@@ -1961,7 +1961,7 @@ double Simulation::call_cost(const Bitzkey& agent) {
     if (agent.last_call >= FirstCall) {
         for (const int sound : agent.last_sounds) sounds += sound >= 0;
     }
-    return (0.5 + agent.feeling(Appetite)) * CALL_COST * sounds / 100;
+    return (0.5 + agent.feeling(Appetite)) * CALL_COST * sounds / 100 + (sounds > 0 ? CALL_EFFORT : 0.0);  // and its effort
 }
 
 double Simulation::copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target) {

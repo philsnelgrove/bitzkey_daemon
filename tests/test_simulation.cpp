@@ -3870,7 +3870,7 @@ TEST_CASE("each call teaches silence what keeping quiet would have brought: with
     caller.last_call = FirstCall + 1;
     caller.last_sounds = {3, -1};  // two sounds
     caller.habit_pull = 0.2;
-    const double cost = (0.5 + caller.feeling(Appetite)) * CALL_COST * 2 / 100;
+    const double cost = (0.5 + caller.feeling(Appetite)) * CALL_COST * 2 / 100 + CALL_EFFORT;  // its hunger and its effort
     caller.call_whole = 3.0;  // the whole turn, as its call would learn it
     CALL_BASELINE = 0.0;
     CHECK(*Simulation::silence_target(caller, 3.0) == doctest::Approx(3.0 - CALL_HABIT * 0.2 + cost));
@@ -3883,7 +3883,9 @@ TEST_CASE("each call teaches silence what keeping quiet would have brought: with
 
 TEST_CASE("by the call baseline a call learns only its own part: its pleasures and habit, less its cost; a copier takes the caller's") {
     struct KeepCost { double was = CALL_COST; ~KeepCost() { CALL_COST = was; } } keep_cost;  // as it was before 3.214, so the cost shows
+    struct KeepEffort { double was = CALL_EFFORT; ~KeepEffort() { CALL_EFFORT = was; } } keep_effort;
     CALL_COST = 0.3;
+    CALL_EFFORT = 0.0;
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 5, 5);
     caller.last_call = AlertCall;
@@ -3892,6 +3894,9 @@ TEST_CASE("by the call baseline a call learns only its own part: its pleasures a
     caller.last_call = FirstCall + 2;
     caller.last_sounds = {1, 4};  // three sounds
     CHECK(Simulation::call_cost(caller) == doctest::Approx(3 * alert_cost));
+    CALL_EFFORT = 0.2;  // the effort, once a call however long
+    CHECK(Simulation::call_cost(caller) == doctest::Approx(3 * alert_cost + 0.2));
+    CALL_EFFORT = 0.0;
     caller.last_call = Silent;
     CHECK(Simulation::call_cost(caller) == 0.0);
     Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 7}}), 6, 5);

@@ -378,6 +378,11 @@ inline int ALARM_REACH = 6;           // an alarmed animal knows where the hunte
 // one, and costs its caller this much hunger, as any call does, the alert among them.
 inline int CALL_REACH = 16;
 inline double CALL_COST = 0.0;  // hunger for each sound of a call: two sounds cost twice as much as one (0.3 until 3.214)
+// The effort of calling, felt but not spent: each call (the alert among them) is taught this much less than its own part,
+// beside what being understood gives it (speak as heard), and silence nothing. Its body pays nothing for it. On the call
+// bench, 0.2 against being understood at 15 halved calling and kept, on all nine seeds, more of what calls tell; 0.25 and
+// above silenced some populations wholly. 0 for none.
+inline double CALL_EFFORT = 0.2;
 inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
@@ -1675,7 +1680,7 @@ public:
     // The same for hearing nothing (the first of `heard`): what silence is taught beside a call, so that calls and silence
     // are weighed alike and calling gains nothing merely by being a call.
     static double understood_silence(const Bitzkey& agent, const std::vector<Values>& heard);
-    static double call_cost(const Bitzkey& agent);  // the hunger its last call's sounds cost, as wellbeing weighs it
+    static double call_cost(const Bitzkey& agent);  // the hunger its last call's sounds cost, as wellbeing weighs it, and its effort
     // A call another made, as one copying it values it (see Call baseline).
     static double copied_call_target(const Bitzkey& learner, const Bitzkey& caller, double call_target);
     void credit_callers(const std::vector<Bitzkey*>& agents, const std::vector<double>& targets);  // see CALL_EMPATHY
