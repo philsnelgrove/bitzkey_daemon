@@ -3189,6 +3189,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         }
         agent.has_last_senses = true;
         agent.last_senses = plans[index].senses;
+        agent.prior_choice = agent.last_choice;
         agent.last_choice = choice;
         agent.last_forced = options.size() == 1;
         agent.last_panicked = situation.panic;
@@ -4524,7 +4525,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     if (LEXICON_SIZE > 0 && caller && caller->call >= FirstCall) {  // a word it holds, heard: it knows what is meant
         agent.unknown_turn = turn_;  // till found among its words: a call it knows no meaning of (for the probe)
-        agent.unknown_deed = caller->last_choice;
+        agent.unknown_deed = caller->prior_choice;  // what it did the turn before it spoke, as a deed-word means
         for (LexiconWord& word : agent.lexicon) {
             if (!says(*caller, word.call, word.sounds)) continue;
             senses[SenseMeant + Meant] = 1.0;
@@ -4534,7 +4535,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             agent.meant_turn = turn_;  // to be judged next turn: did it heed it (see LEXICON_HEED)
             agent.meant_thing = word.thing;
             agent.meant_close = agent.was_close[static_cast<std::size_t>(word.thing)];
-            agent.meant_deed = caller->last_choice;
+            agent.meant_deed = caller->prior_choice;
             agent.meant_liked = family(agent, *caller) || regard_for(agent, *caller) > 0;
             agent.meant_by_deed = false;
             agent.unknown_turn = -1;

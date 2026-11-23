@@ -3292,7 +3292,7 @@ TEST_CASE("heeding a word: nearer the thing next turn is felt, and more for goin
     caller.call = FirstCall + 2;
     caller.sounds = {0, -1};
     caller.call_turn = simulation.turn() - 1;
-    caller.last_choice = Rest;
+    caller.prior_choice = Rest;  // resting the turn before it spoke, as a deed-word means
     auto heard = simulation.sense(hearer);
     REQUIRE(heard.situation.meant == 7);
     CHECK(hearer.meant_turn == simulation.turn());

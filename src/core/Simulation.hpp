@@ -1539,6 +1539,7 @@ struct Bitzkey {
     bool has_last_senses = false;
     Senses last_senses{};
     int last_choice = 0;
+    int prior_choice = 0;  // the decision before last_choice: what it was doing the turn before it last acted
     bool last_forced = false;  // whether it had no choice but last_choice
     bool last_panicked = false;  // whether that was a panicked flight, which teaches though it was no choice
     double last_wellbeing = 0.0;
