@@ -1468,6 +1468,11 @@ bool Simulation::heat(const Bitzkey& agent) const {
     return *until > end * YEAR_LENGTH && *until <= begin * YEAR_LENGTH;
 }
 
+double babble_urge(const Bitzkey& agent) {  // the young and sociable, the more (see BABBLE)
+    if (BABBLE <= 0 || BABBLE_AGE <= 0) return 0.0;
+    return BABBLE * agent.feeling(Sociability) * std::max(0.0, 1.0 - static_cast<double>(agent.age) / BABBLE_AGE);
+}
+
 int call_reach(const Bitzkey& caller) {
     return std::min(MAX_CALL_REACH, std::max(1, static_cast<int>(py_round(CALL_REACH * (0.5 + caller.physique(Size))))));
 }
@@ -2846,6 +2851,12 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             agent.boredom = std::clamp(agent.boredom + BOREDOM_RISE * (1.0 - fresh) - BOREDOM_RELIEF * fresh, 0.0, 1.0);
             agent.last_tried[static_cast<std::size_t>(choice)] = turn_ + 1;
         }
+        // The urge to speak: the young and sociable go up to one they may address, now and then, whatever they chose.
+        if (!peril && !idle[index] && choice != Address && std::find(options.begin(), options.end(), Address) != options.end() &&
+            whim(agent.identifier ^ 0x42414241, turn_) < babble_urge(agent) * agent.feeling(Sociability)) {
+            choice = Address;
+            situation.babble_addressed = true;
+        }
         agent.odds.fill(0.0);
         agent.odds_offered = 0;
         for (const auto& [option, chance] : odds) {
@@ -2987,6 +2998,18 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                     agent.call = output - ACTION_COUNT;
                     if (call_roll < 0) break;
                 }
+                // Silent by its brain's choice, the young may babble anyway: the call its brain liked best but silence.
+                if (agent.call == Silent && whim(agent.identifier ^ 0x42414242, turn_) < babble_urge(agent)) {
+                    int best = -1;
+                    for (const int output : outputs) {
+                        if (output == call_output(Silent)) continue;
+                        if (best < 0 || (*weighed)[static_cast<std::size_t>(output)] > (*weighed)[static_cast<std::size_t>(best)]) best = output;
+                    }
+                    if (best >= 0) {
+                        agent.call = best - ACTION_COUNT;
+                        situation.babbled = true;
+                    }
+                }
             }
             // A sound may run on: at each place after the first, it stops or adds one of the five, by its brain alone.
             for (int place = 1; forced < 0 && agent.call >= FirstCall && place < std::min(CALL_LENGTH, MAX_SOUNDS); ++place) {
@@ -3033,6 +3056,9 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.sounds2 = {-1, -1};
                 agent.echo_turn = turn_;
             }
+            // Answering: saying back or guessing the word of one that spoke to it, else calling back to its kind's loudest caller.
+            if ((echoed || (choice == Learn && situation.learn_by)) && situation.learn_by) situation.answers[1] = situation.learn_by->identifier;
+            else if (agent.call >= FirstCall && situation.heard_from >= 0 && situation.heard_from != agent.identifier) situation.answers[1] = situation.heard_from;
             agent.last_call = agent.call;
             agent.last_sounds = agent.sounds;
             agent.last_call2 = agent.call2;
@@ -3689,6 +3715,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     const int prey_sight = sight + (agent.species == Species::Predator ? PREDATOR_SIGHT : 0);
     const Seen seen = look_around(agent, sight, prey_sight);
     s.quarry = seen.quarry;
+    if (HUNTERS_HEAR && !s.quarry && (agent.species == Species::Predator || agent.species == Species::Omnivore)) {
+        // Prey it heard call last turn, out of sight: the nearest, the first met on a tie (see HUNTERS_HEAR).
+        int nearest = std::numeric_limits<int>::max();
+        for (Bitzkey* other : around(agent, MAX_CALL_REACH)) {
+            if (other->call < FirstCall || other->call_turn != turn_ - 1 || other->spoke_alone() || !other->alive() || !preys_on(agent, *other)) continue;
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away <= call_reach(*other) && (away < nearest || (away == nearest && other->identifier < s.quarry->identifier))) {
+                nearest = away;
+                s.quarry = other;
+            }
+        }
+    }
     s.hunter = seen.hunter;
     s.suitor = seen.suitor;
     const double call_range = agent.species == Species::Predator  ? MATING_CALL_RANGE
@@ -4284,7 +4322,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away > reach) return;
-            const double loudness = 1 - static_cast<double>(away) / (reach + 1);
+            const double loudness = (1 - static_cast<double>(away) / (reach + 1)) * attention(other->chatter);  // a chatterer, tuned out
             if (other->species == agent.species && loudness > kin_loudest) {
                 kin_loudest = loudness;
                 s.heard_from = other->identifier;
@@ -4325,7 +4363,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
         if (addressed) {  // spoken to: that call is the one it hears, whatever else was louder
-            constexpr double ADDRESS_LOUDNESS = 0.5;  // as a call with a reach of one, from beside it
+            const double ADDRESS_LOUDNESS = 0.5 * attention(addressed->chatter);  // as a call with a reach of one, from beside it
             caller = addressed;
             if (addressed->species == agent.species) {
                 s.heard_from = addressed->identifier;
@@ -4536,6 +4574,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             agent.meant_thing = word.thing;
             agent.meant_close = agent.was_close[static_cast<std::size_t>(word.thing)];
             agent.meant_deed = caller->prior_choice;
+            agent.word_from = caller->identifier;
             agent.meant_liked = family(agent, *caller) || regard_for(agent, *caller) > 0;
             agent.meant_by_deed = false;
             agent.unknown_turn = -1;
@@ -4554,10 +4593,19 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             agent.meant_turn = turn_;  // judged next turn: did it do the deed meant (see LEXICON_ACT)
             agent.meant_deed = word.thing;
             agent.meant_by_deed = true;
+            agent.word_from = caller->identifier;
             agent.meant_liked = family(agent, *caller) || regard_for(agent, *caller) > 0;
             agent.unknown_turn = -1;
             break;
         }
+    }
+    if (ANNOYANCE > 0 && caller && caller->species == agent.species && caller->call >= FirstCall) {  // the same again, from the same one
+        if (caller->identifier == agent.repeat_from && caller->call == agent.repeat_call && caller->sounds == agent.repeat_sounds) {
+            s.annoyed_by = caller->identifier;
+        }
+        agent.repeat_from = caller->identifier;
+        agent.repeat_call = caller->call;
+        agent.repeat_sounds = caller->sounds;
     }
     agent.meant_for_me = agent.meant_for_other = false;
     if (NAMES_SIZE > 0 && caller && caller->call >= FirstCall) {  // a name heard: its own, or of one it knows by it
@@ -4579,6 +4627,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 agent.called_turn = turn_;  // to be judged next turn: did it come nearer that one
                 agent.called_one = name.thing;
                 agent.called_close = near;
+                agent.word_from = caller->identifier;
             }
             break;
         }
@@ -4586,6 +4635,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (caller) {  // a call with its own name is for it; with a name it has for another, for that one (see CALL_WORDS)
         agent.meant_for_me = senses[SenseNamed + NamedMe] > 0;
         agent.meant_for_other = !agent.meant_for_me && agent.called_turn == turn_;
+        const double heed = attention(caller->chatter);  // a chatterer's words felt the less (see TUNE_OUT)
+        senses[SenseMeant + Meant] *= heed;
+        for (int deed = 0; deed < ACTION_COUNT; ++deed) senses[SenseMeantDeed + deed] *= heed;
+        senses[SenseNamed + Named] *= heed;
+        senses[SenseNamed + NamedMe] *= heed;
     }
     if (ARENA_BLIND > 0 && caller && whim(agent.identifier ^ 0x424C4E44, turn_) < ARENA_BLIND) {
         agent.blinded_turn = turn_;
@@ -4827,12 +4881,14 @@ void Simulation::heed_words(Bitzkey& agent, Situation& s, const Senses& senses) 
         agent.judged_thing = agent.meant_thing;
         agent.judged_deed = agent.meant_deed;
         s.word_reward = agent.word_reward;
+        if (agent.heeded || agent.acted_same) s.answers[0] = agent.word_from;  // it did as told: an answer (see ANSWERED_JOY)
     }
     if (last && agent.called_turn == turn_ - 1 && agent.called_one >= 0) {  // a name heard last turn: nearer that one?
         agent.name_heeded = one_closeness(agent, agent.called_one, sight_now(agent)) > agent.called_close;
         agent.name_reward = LEXICON_HEED * agent.name_heeded;
         agent.name_judged_turn = turn_;
         s.word_reward += agent.name_reward;
+        if (agent.name_heeded) s.answers[0] = agent.word_from;
     }
     agent.was_close = close;
     agent.close_turn = turn_;
@@ -6278,10 +6334,37 @@ void Simulation::die(Bitzkey& agent, std::string_view cause, const Bitzkey* kill
 // Actions
 
 void Simulation::act(Bitzkey& agent, int action, Situation& s) {
+    agent.chatter *= CHATTER_FADE;
+    if (s.annoyed_by >= 0) {  // said again what it said before: held the less well (see ANNOYANCE)
+        if (const Bitzkey* chatterer = find_agent(s.annoyed_by)) note_deed(agent, *chatterer, -1.0, ANNOYANCE, PlainDeed, true);
+        s.annoyed_by = -1;
+    }
+    InitiativeTally& initiative = initiative_tally_[static_cast<std::size_t>(agent.species)];
+    initiative.calls += agent.call >= FirstCall && agent.call_turn == turn_;
+    initiative.babbled += s.babbled;
+    initiative.babble_addressed += s.babble_addressed;
+    s.babbled = s.babble_addressed = false;
+    for (std::size_t kind = 0; kind < s.answers.size(); ++kind) {  // those it answered feel it (see ANSWERED_JOY)
+        const int from = s.answers[kind];
+        s.answers[kind] = -1;
+        Bitzkey* caller = from >= 0 && ANSWERED_JOY > 0 ? find_agent(from) : nullptr;
+        if (!caller || caller == &agent || !caller->alive()) continue;
+        if (caller->answered_turn != turn_) {
+            caller->answered_turn = turn_;
+            caller->answered_count = 0;
+        }
+        if (caller->answered_count >= ANSWERS_A_TURN) continue;
+        ++caller->answered_count;
+        caller->reward += ANSWERED_JOY * caller->feeling(Sociability);
+        ++(kind == 0 ? initiative_tally_[static_cast<std::size_t>(caller->species)].answered_heeded
+                     : initiative_tally_[static_cast<std::size_t>(caller->species)].answered_back);
+    }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
-        const int sounds = std::max(1, sounds_made(agent));  // each sound costs, in hunger and in stamina
+        // each sound costs, in hunger and in stamina, the dearer the more it has called of late (see HOARSE)
+        const double sounds = std::max(1, sounds_made(agent)) * (1.0 + HOARSE * agent.chatter);
         agent.hunger = std::min(100.0, agent.hunger + CALL_COST * sounds);
         agent.stamina = std::max(0.0, agent.stamina - fatigue(agent, CALL_FATIGUE * sounds));
+        agent.chatter += 1.0;
         if (agent.call == AlertCall && s.alert_to) alert(agent, *s.alert_to);
     }
     const std::size_t passed = agent.trail.size();

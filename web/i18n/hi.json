@@ -2156,5 +2156,21 @@
 "Deed-words size": "कर्म-शब्दों की संख्या",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "बुद्धि के प्रत्येक अंक पर और एक अधिक, कितने कर्म-शब्द एक प्राणी रख सकता है: जो कोई करता है उसके शब्द, अपनी ओर इशारा करते हुए बोले गए, और अनुमान का कार्य करते हुए शब्द दोहराकर सीखे गए; 0 यानी कोई नहीं",
 "Call words": "पुकार में शब्द",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "एक पुकार में अधिकतम शब्द: 2 से पहले शब्द के बाद दूसरा शब्द, ध्वनि-दर-ध्वनि चुना हुआ, जोड़ा जा सकता है; जिस पुकार में नाम हो वह उसी नाम वाले के लिए है; 1 यानी एक ही शब्द"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "एक पुकार में अधिकतम शब्द: 2 से पहले शब्द के बाद दूसरा शब्द, ध्वनि-दर-ध्वनि चुना हुआ, जोड़ा जा सकता है; जिस पुकार में नाम हो वह उसी नाम वाले के लिए है; 1 यानी एक ही शब्द",
+"Chatter fade": "बकबक का घटना",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "किसी जीव की बकबक, यानी हाल की उसकी पुकारों की गिनती, का कितना हिस्सा हर बारी बचता है; इससे पुकारना महँगा और कम सुना जाने वाला होता है",
+"Hoarseness": "गला बैठना",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "एक पुकार की कीमत 1 और इसे पुकारने वाले की बकबक से गुणा करके उतने गुना होती है: कभी-कभार पुकारना सस्ता है, लगातार पुकारना थकाता है; 0 यानी कुछ नहीं",
+"Tuning out": "अनसुना करना",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "सुनने वाले पुकार को, और उसके शब्दों, नामों और कर्म-शब्दों को, 1 बटा (1 और इसे पुकारने वाले की बकबक से गुणा) जितना ही सुनते-महसूस करते हैं; 0 यानी कुछ नहीं",
+"Annoyance": "खीज",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "अपनी जाति का कोई, जो पुकारने वाले को वही दोहराते सुने जो उसने पिछली बार उसे कहते सुना था, उसे कर्म के भार जितना कितना कम मानता है; 0 यानी कुछ नहीं",
+"Hunters hear": "शिकारी सुनते हैं",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1: जिस शिकारी को कोई शिकार न दिखे, वह पिछली बारी पुकारते सुने गए सबसे पास के शिकार के पीछे जाता है; 0: पुकारें शिकारियों को नहीं खींचतीं",
+"Babbling": "तुतलाना",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "संभावना, उसकी मिलनसारिता और यौवन से गुणा, कि जिस जीव के मस्तिष्क ने चुप्पी चुनी वह फिर भी पुकारे, चुप्पी के बाद मस्तिष्क की सबसे पसंदीदा पुकार; और फिर से मिलनसारिता से गुणा, कि वह किसी ऐसे के पास जाए जिससे बात कर सके; 0 यानी कुछ नहीं",
+"Babbling age": "तुतलाने की उम्र",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "बारियों में वह उम्र जिस तक तुतलाने की ललक, जन्म के समय की पूरी ताकत से घटकर शून्य हो जाती है",
+"Joy of being answered": "उत्तर पाने का आनंद",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "आनंद, उसकी मिलनसारिता से गुणा, जो पुकारने वाला हर उस सुनने वाले (एक बारी में अधिकतम तीन) के लिए महसूस करता है जो उत्तर दे: पलटकर पुकारे, उसका शब्द दोहराए, या वह करे जो उसके शब्द या नाम का अर्थ था; कुछ भी कहा गया हो; 0 यानी कुछ नहीं"
 }

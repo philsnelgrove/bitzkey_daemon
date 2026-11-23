@@ -383,7 +383,7 @@ inline double CALL_COST = 0.0;  // hunger for each sound of a call: two sounds c
 // beside what being understood gives it (speak as heard), and silence nothing. Its body pays nothing for it. On the call
 // bench, 0.2 against being understood at 15 halved calling and kept, on all nine seeds, more of what calls tell; 0.25 and
 // above silenced some populations wholly. 0 for none.
-inline double CALL_EFFORT = 0.2;
+inline double CALL_EFFORT = 0.05;
 // Learning a word (the user's idea, see the action Learn): one spoken to alone may say the sounds back to the speaker,
 // pointing at what it guesses they mean, offered to every one spoken to with a pointed word (whether it does is its own
 // choice). A right
@@ -472,7 +472,29 @@ struct LexiconWord {
     double regard = 0.0;                              // how much it regarded the one it settled it with
     int uses = 0;                                     // how often it has said or heard it since
 };
-inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
+inline double CALL_FATIGUE = 0.5;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
+// Chatter (the user's design): calls are cheap, but each animal's chatter, a count of its calls that fades by
+// CHATTER_FADE each turn, makes calling dearer and less heeded. A call costs 1 plus HOARSE times its chatter as
+// much (a hoarse throat); hearers hear it, and feel its words, names and deed-words, 1 over 1 plus TUNE_OUT times
+// its chatter as much (tuned out); one of its kind hearing it say again what it said before holds it ANNOYANCE
+// less well; and a hunter seeing no prey goes after prey it heard call (HUNTERS_HEAR).
+inline double CHATTER_FADE = 0.8;
+inline double HOARSE = 1.0;
+inline double TUNE_OUT = 1.0;
+inline double ANNOYANCE = 0.05;
+inline int HUNTERS_HEAR = 1;
+// Initiative (the user's design): the young babble, and being answered is a joy. An animal whose brain chose silence
+// calls anyway with chance BABBLE times its sociability times its youth (1 at birth, 0 from BABBLE_AGE turns on),
+// saying the call its brain liked best of all but silence; and with that chance times its sociability again it goes
+// up to one it may address and does. A caller feels ANSWERED_JOY times its sociability for each hearer, at most
+// ANSWERS_A_TURN, that answers it: calls back after hearing it loudest of its kind, guesses its word (says it back),
+// or does as its word or name meant. What was said, and what the answer was, are not weighed.
+inline double BABBLE = 0.3;
+inline int BABBLE_AGE = 24;
+inline double ANSWERED_JOY = 0.2;
+constexpr int ANSWERS_A_TURN = 3;
+double babble_urge(const Bitzkey& agent);  // the young and sociable's urge to speak (see BABBLE)
+inline double attention(double chatter) { return 1.0 / (1.0 + TUNE_OUT * chatter); }  // how far a chatterer is heeded
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
 inline int CALL_LENGTH = 3;
@@ -1312,6 +1334,11 @@ struct Bitzkey {
     int call_turn = -1;                 // the turn it called it
     int heard_from = -1;                // the loudest caller of its kind it heard when it last chose, -1 none
     int heard_call = -1;                // and its call
+    double chatter = 0.0;               // its calls of late, each fading by CHATTER_FADE a turn (see HOARSE, TUNE_OUT)
+    int repeat_from = -1, repeat_call = -1;  // the last call it heard of its kind, and who made it (see ANNOYANCE)
+    std::array<int, MAX_SOUNDS - 1> repeat_sounds{-1, -1};
+    int word_from = -1;                 // who said the word or name it last heard, to answer (see ANSWERED_JOY)
+    int answered_turn = -1, answered_count = 0;  // the turn it was last answered, and by how many then
     int heard_turn = -1;                // that turn
     double heard_hunger = 0.0;          // its hunger then
     bool heard_danger = false;          // and whether a hunter was in sight
@@ -1924,6 +1951,10 @@ public:
     const std::array<LexiconTally, 4>& lexicon_tally() const { return lexicon_tally_; }
     const std::array<LexiconTally, 4>& name_tally() const { return name_tally_; }  // the same, of names
     const std::array<LexiconTally, 4>& deed_tally() const { return deed_tally_; }  // and of deed-words
+    struct InitiativeTally {  // since the world began or was loaded (see BABBLE, ANSWERED_JOY)
+        long long calls = 0, babbled = 0, babble_addressed = 0, answered_back = 0, answered_heeded = 0;
+    };
+    const std::array<InitiativeTally, 4>& initiative_tally() const { return initiative_tally_; }
     static int deeds_capacity(const Bitzkey& agent);  // how many deed-words it can hold
     static int names_capacity(const Bitzkey& agent);  // how many names it can hold
     // The one it would point at (PointOne): `prefer` if in its sight, else the nearest it holds a name for, else the
@@ -2029,6 +2060,9 @@ public:
     void germinate();
 
     struct Situation {
+        int annoyed_by = -1;  // one of its kind that said again what it said before (see ANNOYANCE)
+        std::array<int, 2> answers{-1, -1};  // whom it answers: by doing as told, and by calling or saying back
+        bool babbled = false, babble_addressed = false;  // its call, or its going to speak, by the urge alone (see BABBLE)
         Bitzkey* mate = nullptr;
         std::vector<Cell> nurseries;
         Bitzkey* prey = nullptr;
@@ -2696,6 +2730,7 @@ private:
     std::array<LexiconTally, 4> lexicon_tally_{};
     std::array<LexiconTally, 4> name_tally_{};
     std::array<LexiconTally, 4> deed_tally_{};
+    std::array<InitiativeTally, 4> initiative_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood

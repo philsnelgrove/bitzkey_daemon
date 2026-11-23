@@ -2156,5 +2156,21 @@
 "Deed-words size": "Кількість слів дії",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "слова дії, які тварина може тримати на кожну точку інтелекту й ще одне: слова для того, що робиш, сказані, вказуючи на себе, і вивчені повторенням слова під час виконання здогадки; 0 — жодного",
 "Call words": "Слова в поклику",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "найбільше слів у поклику: 2 дозволяє після першого слова додати друге, обране звук за звуком; поклик з ім'ям — для того, кого так звуть; 1 — одне слово"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "найбільше слів у поклику: 2 дозволяє після першого слова додати друге, обране звук за звуком; поклик з ім'ям — для того, кого так звуть; 1 — одне слово",
+"Chatter fade": "Згасання балаканини",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "скільки балаканини тварини, тобто числа її недавніх покликів, лишається щоходу; вона робить поклик дорожчим і менш почутим",
+"Hoarseness": "Хрипота",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "поклик коштує в 1 плюс це помножене на балаканину того, хто кличе, разів більше: кликати час від часу дешево, кликати безупину втомлює; 0 — без цього",
+"Tuning out": "Пропускання повз вуха",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "слухачі чують поклик і відчувають його слова, імена й слова-дії в 1 поділити на 1 плюс це помножене на балаканину того, хто кличе, разів слабше; 0 — без цього",
+"Annoyance": "Роздратування",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "наскільки менше цінує, як вагу вчинку, хтось його виду, хто чує, як той, хто кличе, повторює те, що він чув від нього востаннє; 0 — без цього",
+"Hunters hear": "Мисливці чують",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1: мисливець, що не бачить здобичі, рушає за найближчою здобиччю, яку чув, як вона кликала минулого ходу; 0: поклики не приваблюють мисливців",
+"Babbling": "Белькотання",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "імовірність, помножена на його товариськість і молодість, що тварина, чий мозок обрав мовчання, все одно покличе — тим покликом, який мозок любив найбільше після мовчання; і, ще раз помножена на товариськість, що вона підійде до того, до кого може звернутися; 0 — без цього",
+"Babbling age": "Вік белькотання",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "вік у ходах, до якого потяг белькотати згасає зовсім, від повної сили при народженні",
+"Joy of being answered": "Радість відповіді",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "радість, помножена на його товариськість, яку відчуває той, хто кличе, за кожного слухача (щонайбільше трьох за хід), що відповідає йому: кличе у відповідь, повторює його слово або робить те, що означало його слово чи ім'я; хай що було сказано; 0 — без цього"
 }

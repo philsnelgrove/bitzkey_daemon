@@ -2156,5 +2156,21 @@
 "Deed-words size": "מספר מילות המעשה",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "מילות מעשה שבעל חיים יכול לזכור לכל נקודת תבונה ועוד אחת: מילים למה שעושים, נאמרות תוך הצבעה על עצמו ונלמדות באמירת המילה בחזרה תוך עשיית ניחוש; 0 לאף אחת",
 "Call words": "מילים בקריאה",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "מספר המילים המרבי בקריאה: 2 מאפשר להמשיך למילה שנייה אחרי הראשונה, הנבחרת צליל אחר צליל; קריאה שיש בה שם מיועדת לנקרא בו; 1 מילה אחת"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "מספר המילים המרבי בקריאה: 2 מאפשר להמשיך למילה שנייה אחרי הראשונה, הנבחרת צליל אחר צליל; קריאה שיש בה שם מיועדת לנקרא בו; 1 מילה אחת",
+"Chatter fade": "דעיכת הפטפוט",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "כמה מהפטפוט של בעל חיים, מספר קריאותיו לאחרונה, נשאר בכל תור; הוא מייקר את הקריאה ומפחית את תשומת הלב אליה",
+"Hoarseness": "צרידות",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "קריאה עולה פי 1 ועוד ערך זה כפול הפטפוט של הקורא: לקרוא מדי פעם זול, לקרוא בלי הפסקה מעייף; 0 לאף לא",
+"Tuning out": "התעלמות",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "השומעים שומעים קריאה, וחשים את מילותיה, שמותיה ומילות המעשה שבה, ב-1 חלקי 1 ועוד ערך זה כפול הפטפוט של הקורא; 0 לאף לא",
+"Annoyance": "מטרד",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "כמה פחות מעריך בן מינו, כמשקל של מעשה, קורא שהוא שומע חוזר על מה ששמע אותו אומר לאחרונה; 0 לאף לא",
+"Hunters hear": "ציידים שומעים",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1: צייד שאינו רואה טרף רודף אחר הטרף הקרוב ביותר ששמע קורא בתור הקודם; 0: קריאות אינן מושכות ציידים",
+"Babbling": "פטפוט תינוקות",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "הסיכוי, כפול חברותיותו וצעירותו, שבעל חיים שמוחו בחר בשתיקה יקרא בכל זאת, בקריאה שמוחו העדיף ביותר אחרי השתיקה; ושוב כפול חברותיותו, שיגש אל מי שהוא יכול לפנות אליו; 0 לאף לא",
+"Babbling age": "גיל הפטפוט",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "גיל בתורות שבו הדחף לפטפט דעך לגמרי, מעוצמתו המלאה בלידה",
+"Joy of being answered": "שמחת הקבלת מענה",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "שמחה, כפול חברותיותו, שחש קורא על כל שומע (לכל היותר שלושה בתור) שעונה לו: קורא בחזרה, חוזר על מילתו או עושה את מה שמילתו או שמו התכוונו; לא משנה מה נאמר; 0 לאף לא"
 }

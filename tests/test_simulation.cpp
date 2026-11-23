@@ -6283,3 +6283,83 @@ TEST_CASE("with no alerts, a grazer seeing a hunter has only silence and the fiv
     REQUIRE(alarmed.situation.hunter != nullptr);
     CHECK(alarmed.calls == std::vector<int>{Silent, FirstCall, FirstCall + 1, FirstCall + 2, FirstCall + 3, FirstCall + 4});
 }
+
+TEST_CASE("chatter: a chatterer's calls cost more and are heard less; the same again annoys; hunters hear prey call") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    simulation.index_cells();
+    caller.call = FirstCall + 1;
+    caller.sounds = {-1, -1};
+    caller.call_turn = simulation.turn() - 1;
+    const double fresh = simulation.sense(hearer).senses[heard_sense(FirstCall + 1, HeardLoudness)];
+    REQUIRE(fresh > 0);
+    caller.chatter = 2.0;
+    auto again = simulation.sense(hearer);  // the same call from the same one: annoying, and from a chatterer, quieter
+    CHECK(again.senses[heard_sense(FirstCall + 1, HeardLoudness)] == doctest::Approx(fresh * attention(2.0)));
+    CHECK(again.situation.annoyed_by == caller.identifier);
+    const double regard = simulation.regard_for(hearer, caller);
+    simulation.act(hearer, Rest, again.situation);
+    CHECK(simulation.regard_for(hearer, caller) < regard);
+    // A call costs the more, the more it has called of late.
+    Simulation::Situation none;
+    const auto spent = [&](bool calls, double chatter) {  // stamina left short of the same turn kept quiet
+        caller.call_turn = calls ? simulation.turn() : simulation.turn() - 5;
+        caller.stamina = 50.0;
+        caller.chatter = chatter;
+        simulation.act(caller, Rest, none);
+        return caller.stamina;
+    };
+    const double quiet = spent(false, 0.0);
+    const double fresh_cost = quiet - spent(true, 0.0);
+    CHECK(caller.chatter == doctest::Approx(1.0));
+    REQUIRE(fresh_cost > 0);
+    CHECK(quiet - spent(true, 3.0 / CHATTER_FADE) == doctest::Approx(fresh_cost * (1 + 3 * HOARSE)));  // 3 after fading
+    // A hunter that sees no prey goes after prey it heard call.
+    Simulation wide = world(60);
+    Bitzkey& hunter = wide.add_agent(encode_dna(Species::Predator, {{"sight", 0}}), 5, 5);
+    Bitzkey& prey = wide.add_agent(encode_dna(Species::Grazer), 5, 5 + std::min(12, call_reach(caller)));
+    wide.index_cells();
+    REQUIRE(wide.sense(hunter).situation.quarry == nullptr);
+    prey.call = FirstCall;
+    prey.sounds = {-1, -1};
+    prey.call_turn = wide.turn() - 1;
+    CHECK(wide.sense(hunter).situation.quarry == &prey);
+    HUNTERS_HEAR = 0;
+    CHECK(wide.sense(hunter).situation.quarry == nullptr);
+    HUNTERS_HEAR = 1;
+}
+
+TEST_CASE("initiative: the young babble what their brain likes best but silence, and a caller called back is answered") {
+    Simulation simulation = world(40);
+    Bitzkey& young = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& elder = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    young.mind[Sociability] = elder.mind[Sociability] = TRAIT_MAX;
+    elder.age = BABBLE_AGE;  // past babbling
+    for (Bitzkey* one : {&young, &elder}) {
+        for (int call = 0; call < CALL_OPTIONS; ++call) one->brain->output_biases[call_output(call)] = call == Silent ? 50.0 : call == FirstCall + 2 ? 10.0 : -50.0;
+    }
+    int babbled = 0;
+    for (int turn = 0; turn < 12; ++turn) {
+        young.age = 0;
+        simulation.advance();
+        if (!young.alive() || !elder.alive()) break;
+        babbled += young.call_turn == simulation.turn() && young.call == FirstCall + 2;
+    }
+    MESSAGE("babbled " << babbled);
+    CHECK(babbled > 0);  // its brain's favourite but silence, babbled or said going up to the elder
+    const auto& tally = simulation.initiative_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.babbled + tally.babble_addressed > 0);
+    CHECK(tally.babbled + tally.babble_addressed <= babbled);
+    CHECK(babble_urge(elder) == 0.0);  // grown, no urge
+    // Called back: the one it called to feels it, at most three a turn.
+    Simulation::Situation answering;
+    answering.answers = {-1, young.identifier};
+    const double before = young.reward;
+    const long long back = tally.answered_back;
+    simulation.act(elder, Rest, answering);
+    CHECK(young.reward == doctest::Approx(before + ANSWERED_JOY * young.feeling(Sociability)));
+    CHECK(tally.answered_back == back + 1);
+    CHECK(answering.answers[1] == -1);
+}

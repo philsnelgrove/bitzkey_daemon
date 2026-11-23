@@ -2156,5 +2156,21 @@
 "Deed-words size": "Numero di parole d'azione",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "parole d'azione che un animale può tenere per ogni punto di intelletto, e una in più: parole per ciò che si fa, dette indicando se stessi e imparate ripetendo la parola mentre si fa ciò che si indovina; 0 per nessuna",
 "Call words": "Parole per richiamo",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "il massimo di parole in un richiamo: 2 permette di proseguire con una seconda parola dopo la prima, scelta suono per suono; un richiamo con un nome è per chi porta quel nome; 1 una sola parola"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "il massimo di parole in un richiamo: 2 permette di proseguire con una seconda parola dopo la prima, scelta suono per suono; un richiamo con un nome è per chi porta quel nome; 1 una sola parola",
+"Chatter fade": "Dissolvenza del chiacchiericcio",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "quanto del chiacchiericcio di un animale, il conto dei suoi richiami recenti, resta a ogni turno; rende il richiamo più caro e meno ascoltato",
+"Hoarseness": "Raucedine",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "un richiamo costa 1 più questo per il chiacchiericcio di chi chiama volte tanto: chiamare ogni tanto costa poco, chiamare di continuo stanca; 0 per nessuna",
+"Tuning out": "Non dare ascolto",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "chi ascolta sente un richiamo, e ne avverte parole, nomi e parole d'azione, 1 su 1 più questo per il chiacchiericcio di chi chiama volte tanto; 0 per nessuno",
+"Annoyance": "Fastidio",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "quanto meno stima, come peso di un'azione, uno della sua specie che sente chi chiama ripetere ciò che gli ha sentito dire l'ultima volta; 0 per nessuno",
+"Hunters hear": "I cacciatori sentono",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1: un cacciatore che non vede prede insegue la preda più vicina che ha sentito chiamare il turno precedente; 0: i richiami non attirano cacciatori",
+"Babbling": "Lallazione",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "probabilità, per la sua socievolezza e la sua giovinezza, che un animale il cui cervello ha scelto il silenzio chiami comunque, con il richiamo che il suo cervello preferiva dopo il silenzio; e, di nuovo per la sua socievolezza, che si avvicini a uno a cui può rivolgersi; 0 per nessuna",
+"Babbling age": "Età della lallazione",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "età in turni entro cui l'impulso a lallare si è spento del tutto, dalla piena forza alla nascita",
+"Joy of being answered": "Gioia di ricevere risposta",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "gioia, per la sua socievolezza, che chi chiama prova per ogni ascoltatore (al massimo tre per turno) che gli risponde: richiama, ripete la sua parola o fa ciò che la sua parola o il suo nome intendeva; qualunque cosa sia stata detta; 0 per nessuna"
 }

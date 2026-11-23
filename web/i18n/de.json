@@ -2156,5 +2156,21 @@
 "Deed-words size": "Anzahl der Tatwörter",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "Tatwörter, die ein Tier je Punkt Intellekt und eines mehr behalten kann: Wörter für das, was man tut, gesagt, während man auf sich selbst zeigt, und gelernt, indem man das Wort zurücksagt und dabei eine Vermutung tut; 0 für keine",
 "Call words": "Wörter pro Ruf",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "die meisten Wörter, die ein Ruf enthalten kann: 2 lässt einen Ruf nach dem ersten Wort ein zweites anfügen, Laut für Laut gewählt; ein Ruf mit einem Namen gilt dem so Benannten; 1 ein einziges Wort"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "die meisten Wörter, die ein Ruf enthalten kann: 2 lässt einen Ruf nach dem ersten Wort ein zweites anfügen, Laut für Laut gewählt; ein Ruf mit einem Namen gilt dem so Benannten; 1 ein einziges Wort",
+"Chatter fade": "Abklingen des Geplappers",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "wie viel vom Geplapper eines Tieres, der Zahl seiner Rufe in letzter Zeit, jede Runde bleibt; es macht Rufen teurer und weniger beachtet",
+"Hoarseness": "Heiserkeit",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "ein Ruf kostet 1 plus dies mal das Geplapper des Rufers so viel: gelegentliches Rufen ist billig, ständiges Rufen ermüdet; 0 für keine",
+"Tuning out": "Weghören",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "Hörer hören einen Ruf und spüren seine Wörter, Namen und Tatwörter nur 1 durch 1 plus dies mal das Geplapper des Rufers so stark; 0 für keines",
+"Annoyance": "Ärger",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "wie sehr einer seiner Art, der einen Rufer wiederholen hört, was er ihn zuletzt sagen hörte, ihn weniger schätzt, als Gewicht einer Tat; 0 für keinen",
+"Hunters hear": "Jäger hören",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1: ein Jäger, der keine Beute sieht, verfolgt die nächste Beute, die er in der letzten Runde rufen hörte; 0: Rufe locken keine Jäger an",
+"Babbling": "Brabbeln",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "Chance, mal seiner Geselligkeit und seiner Jugend, dass ein Tier, dessen Gehirn Schweigen wählte, dennoch ruft, den Ruf, den sein Gehirn nach dem Schweigen am meisten mochte; und, nochmals mal seiner Geselligkeit, dass es zu einem geht, den es ansprechen darf; 0 für keines",
+"Babbling age": "Brabbelalter",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "Alter in Runden, bis zu dem der Drang zu brabbeln von voller Stärke bei der Geburt auf nichts abgeklungen ist",
+"Joy of being answered": "Freude, Antwort zu bekommen",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "Freude, mal seiner Geselligkeit, die ein Rufer für jeden Hörer (höchstens drei pro Runde) empfindet, der ihm antwortet: zurückruft, sein Wort nachspricht oder tut, was sein Wort oder Name meinte; gleich, was gesagt wurde; 0 für keine"
 }

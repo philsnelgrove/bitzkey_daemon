@@ -2156,5 +2156,21 @@
 "Deed-words size": "Nombre de mots d'action",
 "deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "mots d'action qu'un animal peut retenir par point d'intellect, et un de plus : des mots pour ce que l'on fait, dits en se désignant soi-même et appris en répétant le mot tout en faisant ce que l'on devine ; 0 pour aucun",
 "Call words": "Mots par appel",
-"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "le nombre maximal de mots d'un appel : 2 permet d'enchaîner un second mot après le premier, choisi son par son ; un appel contenant un nom s'adresse à celui qui le porte ; 1 un seul mot"
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "le nombre maximal de mots d'un appel : 2 permet d'enchaîner un second mot après le premier, choisi son par son ; un appel contenant un nom s'adresse à celui qui le porte ; 1 un seul mot",
+"Chatter fade": "Estompage du bavardage",
+"how much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded": "la part du bavardage d'un animal, le compte de ses appels récents, qui reste à chaque tour ; il rend l'appel plus coûteux et moins écouté",
+"Hoarseness": "Enrouement",
+"a call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none": "un appel coûte 1 plus ceci fois le bavardage de l'appelant fois plus : appeler de temps en temps coûte peu, appeler sans cesse fatigue ; 0 pour aucun",
+"Tuning out": "Faire la sourde oreille",
+"hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none": "les auditeurs entendent un appel, et en ressentent les mots, noms et mots d'action, 1 sur 1 plus ceci fois le bavardage de l'appelant fois autant ; 0 pour aucun",
+"Annoyance": "Agacement",
+"how far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none": "dans quelle mesure un de son espèce qui entend un appelant redire ce qu'il lui a entendu dire en dernier l'estime moins, comme poids d'un acte ; 0 pour aucun",
+"Hunters hear": "Les chasseurs entendent",
+"1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters": "1 : un chasseur qui ne voit aucune proie poursuit la proie la plus proche qu'il a entendue appeler au tour précédent ; 0 : les appels n'attirent aucun chasseur",
+"Babbling": "Babillage",
+"chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none": "chance, fois sa sociabilité et sa jeunesse, qu'un animal dont le cerveau a choisi le silence appelle quand même, de l'appel que son cerveau préférait après le silence ; et, fois sa sociabilité encore, qu'il aille vers un individu auquel il peut s'adresser ; 0 pour aucun",
+"Babbling age": "Âge du babillage",
+"turns of age by which the urge to babble has faded to nothing, from its full strength at birth": "âge en tours auquel l'envie de babiller s'est éteinte, depuis sa pleine force à la naissance",
+"Joy of being answered": "Joie d'obtenir une réponse",
+"joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none": "joie, fois sa sociabilité, qu'un appelant ressent pour chaque auditeur (trois au plus par tour) qui lui répond : rappelle, redit son mot ou fait ce que son mot ou nom voulait dire ; quoi qu'il ait dit ; 0 pour aucune"
 }

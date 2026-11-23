@@ -1895,6 +1895,12 @@ Json Probe::language(Simulation& world) const {
                        {"confirmed", made.confirmed}, {"overridden", made.overridden}, {"refused", made.refused}};
         }
         result[std::string(species_name(species))] = {
+            {"initiative", [&] {  // see BABBLE and ANSWERED_JOY
+                 const Simulation::InitiativeTally& got = world.initiative_tally()[static_cast<std::size_t>(species)];
+                 return Json{{"calls", got.calls}, {"babbled", got.babbled}, {"babble_share", ratio(static_cast<double>(got.babbled), static_cast<double>(got.calls))},
+                             {"babble_addressed", got.babble_addressed}, {"answered_back", got.answered_back}, {"answered_heeded", got.answered_heeded},
+                             {"answered_per_call", ratio(static_cast<double>(got.answered_back + got.answered_heeded), static_cast<double>(got.calls))}};
+             }()},
             {"choices", choices}, {"cues", cues}, {"lexicon", lexicon}, {"names", names}, {"deeds", deeds}, {"naming", naming}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
