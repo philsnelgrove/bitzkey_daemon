@@ -2130,5 +2130,15 @@
 "Learn insight": "Intuizione nell'imparare",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "probabilità, per il suo intelletto, che chi ripete una parola colga cosa intendeva chi parlava e lo indichi subito: i più svegli sempre; 0 solo indovinare",
 "Longing parting": "Separazione prima della nostalgia",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "turni in cui un compagno deve restare fuori vista, senza tornare, prima di mancare: i compagni di branco che vanno e vengono non mancano; 1 subito"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "turni in cui un compagno deve restare fuori vista, senza tornare, prima di mancare: i compagni di branco che vanno e vengono non mancano; 1 subito",
+"Lexicon size": "Dimensione del lessico",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "parole che un animale può tenere nel suo lessico per ogni punto di intelletto, e una in più; parole fissate per accordo, un'ipotesi giusta o una corretta; 0 per nessun lessico",
+"Lexicon speech": "Parlata del lessico",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "probabilità, per la sua socievolezza, che indicando una cosa per cui ha una parola, dica quella parola",
+"Lexicon family": "Lessico della famiglia",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "la stima che vale almeno una parola fissata in famiglia: una parola la cambia solo un amico o un familiare stimato più di chi l'ha fissata",
+"Lexicon witness": "Testimone del lessico",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "probabilità che uno della sua specie che vede una parola concordata la prenda nel proprio lessico, con la stessa regola",
+"Lexicon inheritance": "Eredità del lessico",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "quota delle parole di ciascun genitore, le più usate per prime, con cui comincia un neonato, come insegnate dalla famiglia"
 }

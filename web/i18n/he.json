@@ -2130,5 +2130,15 @@
 "Learn insight": "תובנה בלמידה",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "הסיכוי, כפול שכלו, שמי שמחזיר מילה יבין למה התכוון הדובר ויצביע עליו מיד: החכמים ביותר תמיד; 0 ניחוש בלבד",
 "Longing parting": "פרידה לפני געגועים",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "תורות שבן לוויה חייב להיות מחוץ לטווח הראייה, בלי לחזור, לפני שמתגעגעים אליו: בני העדר הנכנסים ויוצאים אינם חסרים; 1 מיד"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "תורות שבן לוויה חייב להיות מחוץ לטווח הראייה, בלי לחזור, לפני שמתגעגעים אליו: בני העדר הנכנסים ויוצאים אינם חסרים; 1 מיד",
+"Lexicon size": "גודל אוצר המילים",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "מילים שבעל חיים יכול להחזיק באוצר המילים שלו לכל נקודת אינטלקט, ועוד אחת; מילים שנקבעו בהסכמה, ניחוש נכון או שגוי שתוקן; 0 ללא אוצר מילים",
+"Lexicon speech": "דיבור מאוצר המילים",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "סיכוי, כפול חברותיותו, שבהצביעו על דבר שיש לו מילה עבורו, יאמר את המילה",
+"Lexicon family": "אוצר המילים של המשפחה",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "ההערכה שמילה שנקבעה עם המשפחה נחשבת לפחות: מילה משתנה רק בידי חבר או בן משפחה המוערך יותר ממי שקבע אותה",
+"Lexicon witness": "עד לאוצר המילים",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "סיכוי שאחד ממינו הרואה מילה מוסכמת יקלוט אותה לאוצר המילים שלו, באותו כלל",
+"Lexicon inheritance": "ירושת אוצר המילים",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "חלק ממילותיו של כל הורה, השימושיות ביותר תחילה, שאיתן מתחיל יילוד, כאילו לימדה אותן המשפחה"
 }

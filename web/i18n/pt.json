@@ -2130,5 +2130,15 @@
 "Learn insight": "Perspicácia ao aprender",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "probabilidade, vezes o seu intelecto, de quem devolve uma palavra perceber o que o falante quis dizer e apontá-lo logo: os mais espertos sempre; 0 só adivinhar",
 "Longing parting": "Separação antes da saudade",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "turnos que um companheiro tem de estar fora de vista, sem voltar, antes de deixar saudade: os da manada que vão e vêm não fazem falta; 1 de imediato"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "turnos que um companheiro tem de estar fora de vista, sem voltar, antes de deixar saudade: os da manada que vão e vêm não fazem falta; 1 de imediato",
+"Lexicon size": "Tamanho do léxico",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "palavras que um animal pode guardar no seu léxico por cada ponto de intelecto, e mais uma; palavras fixadas por acordo, um palpite certo ou um corrigido; 0 sem léxico",
+"Lexicon speech": "Fala do léxico",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "probabilidade, vezes a sua sociabilidade, de que ao apontar uma coisa para a qual tem uma palavra, diga essa palavra",
+"Lexicon family": "Léxico da família",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "a estima que conta no mínimo uma palavra fixada com a família: uma palavra só a muda um amigo ou familiar mais estimado do que quem a fixou",
+"Lexicon witness": "Testemunha do léxico",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "probabilidade de que um da sua espécie que vê uma palavra acordada a tome para o seu próprio léxico, sob a mesma regra",
+"Lexicon inheritance": "Herança do léxico",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "parte das palavras de cada progenitor, as mais usadas primeiro, com que um recém-nascido começa, como ensinadas pela família"
 }

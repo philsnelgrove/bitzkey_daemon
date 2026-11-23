@@ -2130,5 +2130,15 @@
 "Learn insight": "学びの洞察",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "知性を掛けた確率で、言葉を言い返す者が話し手の意図を読み取り即座に指さす。最も賢い者は必ず。0 で推測のみ",
 "Longing parting": "恋しさまでの別れ",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "仲間が戻らずに視界から外れていなければならないターン数。それを過ぎて初めて恋しくなる。出入りする群れの仲間は恋しがられない。1 で即座"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "仲間が戻らずに視界から外れていなければならないターン数。それを過ぎて初めて恋しくなる。出入りする群れの仲間は恋しがられない。1 で即座",
+"Lexicon size": "語彙の大きさ",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "知性1点ごとに語彙に持てる語の数、さらに1つ。合意で定まった語、正しい推測または訂正されたもの。0で語彙なし",
+"Lexicon speech": "語彙での発話",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "語を持つものを指すとき、その語を言う確率（社交性を掛ける）",
+"Lexicon family": "家族の語彙",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "家族と定めた語の最低の敬意：語を変えられるのは、定めた者より敬われる友か家族だけ",
+"Lexicon witness": "語彙の目撃",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "語が合意されるのを見た同種の者が、同じ規則でそれを自分の語彙に取り入れる確率",
+"Lexicon inheritance": "語彙の継承",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "新生児が持って生まれる各親の語の割合。よく使われたものから。家族に教わったものとして"
 }

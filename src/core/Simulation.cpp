@@ -1884,6 +1884,7 @@ std::vector<Senses> Simulation::hearing_itself(const Bitzkey& agent) {
     }
     for (int part = 0; part < VOICE_SENSES; ++part) quiet[static_cast<std::size_t>(voice_sense(part))] = 0.0;
     for (int part = 0; part < POINT_SENSES; ++part) quiet[static_cast<std::size_t>(SensePointed + part)] = 0.0;
+    for (int part = 0; part < LEXICON_SENSES; ++part) quiet[static_cast<std::size_t>(SenseMeant + part)] = 0.0;
     const CallTag own = call_tag(agent, agent);  // heard, its call carries its own tag
     const auto hear = [&own](Senses& senses, int place, int sound) {
         for (int part = 0; part < VOICE_SENSES; ++part) senses[static_cast<std::size_t>(voice_sense(part))] = own[static_cast<std::size_t>(part)];
@@ -2123,6 +2124,11 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
         const bool there = speaker && speaker->alive() && speaker != learner;
         learner->learn_gain = LEARN_GAIN * std::max(LEARN_MATCH, understood) * (there ? minds_met(*learner, *speaker) : std::max(1, static_cast<int>(learner->mind[Intellect])));
         if (there) speaker->learn_bonus += learner->learn_gain;
+        if (there) {  // agreed: the word goes into both their lexicons, and those who saw it
+            accord(*learner, *speaker, learner->learn_call, learner->learn_sounds, learner->learn_thing);
+            accord(*speaker, *learner, learner->learn_call, learner->learn_sounds, learner->learn_thing);
+            witness_word(*learner, *speaker, learner->learn_call, learner->learn_sounds, learner->learn_thing);
+        }
     }
     for (Bitzkey* learner : agents) {  // a wrong guess said back two turns ago, and the speaker since said the word again to it
         if (LEARN_CORRECTED <= 0 || LEARN_GAIN <= 0 || learner->learn_turn != turn_ - 2 || learner->learn_correct) continue;
@@ -2131,6 +2137,9 @@ void Simulation::gauge_understanding(const std::vector<Bitzkey*>& agents, const 
             speaker->address_to != learner->identifier || speaker->word_point < 0 || speaker->word_call != learner->learn_call) continue;
         learner->corrected_gain = LEARN_CORRECTED * LEARN_GAIN * LEARN_MATCH * minds_met(*learner, *speaker);
         learner->corrected_thing = speaker->word_point;
+        accord(*learner, *speaker, speaker->word_call, speaker->word_sounds, speaker->word_point);  // agreed, once corrected
+        accord(*const_cast<Bitzkey*>(speaker), *learner, speaker->word_call, speaker->word_sounds, speaker->word_point);
+        witness_word(*learner, *speaker, speaker->word_call, speaker->word_sounds, speaker->word_point);
     }
     for (const Bitzkey* caller : agents) {  // for the probe: each held call that pointed, as its hearers' turn is judged
         if (!caller->call_held || caller->held_point < 0) continue;
@@ -2994,6 +3003,22 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.prior_point_turn = agent.point_turn;
                 agent.point = picked - POINT;
                 agent.point_turn = turn_;
+                // A thing it has a word for: it says that word, the more surely the more sociable (see LEXICON_SPEAK);
+                // not when it cries out, says back another's word, or says its own again.
+                const bool cried = CUES && (situation.panic || agent.struck_turn >= turn_ - 1);
+                if (LEXICON_SIZE > 0 && LEXICON_SPEAK > 0 && !cried && !repeated && choice != Learn && !(choice == Address && situation.retry_to)) {
+                    for (LexiconWord& word : agent.lexicon) {
+                        if (word.thing != agent.point) continue;
+                        if (whim(agent.identifier ^ 0x4C455853, turn_) < LEXICON_SPEAK * agent.feeling(Sociability)) {
+                            agent.call = agent.last_call = word.call;
+                            agent.sounds = agent.last_sounds = word.sounds;
+                            agent.voiced_turn = turn_;
+                            agent.lexicon_spoke_turn = turn_;
+                            ++word.uses;
+                        }
+                        break;
+                    }
+                }
             }
             if (choice == Address && agent.call >= FirstCall && agent.point_turn == turn_) {  // a word said to one, with its point
                 const bool again = situation.retry_to && agent.call == agent.word_call;
@@ -3009,6 +3034,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 agent.learn_correct = agent.point_turn == turn_ && agent.point == situation.learn_thing;
                 agent.learn_gain = 0.0;
                 agent.learn_call = agent.call;
+                agent.learn_thing = situation.learn_thing;
+                agent.learn_sounds = agent.sounds;
             }
             // Its urgency, carried in its call's tag: the strongest of what stirs it, surprise, a threat in sight (the
             // more for the fearful), hunger and pain.
@@ -4366,10 +4393,21 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[OUTSIDE_SENSES[static_cast<std::size_t>(ARENA_ORDER[kept])]] = 0.0;
         }
     }
+    if (LEXICON_SIZE > 0 && caller && caller->call >= FirstCall) {  // a word it holds, heard: it knows what is meant
+        for (LexiconWord& word : agent.lexicon) {
+            if (word.call != caller->call || word.sounds != caller->sounds) continue;
+            senses[SenseMeant + Meant] = 1.0;
+            senses[SenseMeant + MeantCloseness] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(word.thing)]];
+            s.meant = word.thing;
+            ++word.uses;
+            break;
+        }
+    }
     if (ARENA_BLIND > 0 && caller && whim(agent.identifier ^ 0x424C4E44, turn_) < ARENA_BLIND) {
         agent.blinded_turn = turn_;
         for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) senses[OUTSIDE_SENSES[static_cast<std::size_t>(seen)]] = 0.0;
         senses[SensePointed + PointedCloseness] = 0.0;
+        senses[SenseMeant + MeantCloseness] = 0.0;
     }
     for (int trait = 0; trait < TEMPERAMENT_COUNT; ++trait) senses[SenseMind + trait] = agent.feeling(trait);
     gene_senses(agent.dna, senses);
@@ -4560,6 +4598,80 @@ void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
         }
     };
     if (!later(census)) census();
+}
+
+int Simulation::lexicon_capacity(const Bitzkey& agent) {
+    return LEXICON_SIZE <= 0 ? 0 : static_cast<int>(std::lround(LEXICON_SIZE * (1 + agent.mind[Intellect])));
+}
+
+void Simulation::accord(Bitzkey& who, const Bitzkey& teacher, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing, bool witnessed) {
+    const int room = lexicon_capacity(who);
+    if (room <= 0 || call < FirstCall || thing < 0 || thing >= OUTSIDE_SEEN || &who == &teacher || !who.alive()) return;
+    LexiconTally& tally = lexicon_tally_[static_cast<std::size_t>(who.species)];
+    const bool kin = family(who, teacher);
+    double regard = regard_for(who, teacher);
+    if (kin) regard = std::max(regard, LEXICON_FAMILY);
+    bool friendly = kin;  // a friend: one it knows and regards well
+    for (const Acquaintance& known : who.known) friendly = friendly || (known.identifier == teacher.identifier && known.regard > 0);
+    double held = -2.0;
+    bool clash = false;
+    for (LexiconWord& word : who.lexicon) {
+        const bool same_word = word.call == call && word.sounds == sounds;
+        if (same_word && word.thing == thing) {  // as it held it: held the more surely
+            word.regard = std::max(word.regard, regard);
+            ++word.uses;
+            ++tally.confirmed;
+            return;
+        }
+        if (same_word || word.thing == thing) {
+            clash = true;
+            held = std::max(held, word.regard);
+        }
+    }
+    if (clash) {  // only a friend or family member regarded more than whoever settled it changes its mind
+        if (!friendly || regard <= held) {
+            ++tally.refused;
+            return;
+        }
+        std::erase_if(who.lexicon, [&](const LexiconWord& word) { return (word.call == call && word.sounds == sounds) || word.thing == thing; });
+        ++tally.overridden;
+    }
+    while (static_cast<int>(who.lexicon.size()) >= room) {  // full: the word used least is forgotten
+        who.lexicon.erase(std::min_element(who.lexicon.begin(), who.lexicon.end(),
+                                           [](const LexiconWord& a, const LexiconWord& b) { return a.uses < b.uses; }));
+    }
+    who.lexicon.push_back(LexiconWord{call, sounds, thing, regard, 0});
+    ++(witnessed ? tally.witnessed : tally.agreed);
+}
+
+void Simulation::witness_word(const Bitzkey& learner, const Bitzkey& speaker, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing) {
+    // Those of the learner's kind who see a word agreed take it up, as taught by the one whose word it was.
+    if (LEXICON_SIZE <= 0 || LEXICON_WITNESS <= 0) return;
+    for (Bitzkey* other : around(learner, MAX_SIGHT)) {
+        if (other == &learner || other == &speaker || !other->alive() || other->species != learner.species) continue;
+        if (distance(other->x, other->y, learner.x, learner.y) > other->sight) continue;
+        if (whim(other->identifier ^ 0x57495453, turn_) >= LEXICON_WITNESS) continue;
+        accord(*other, speaker, call, sounds, thing, true);
+    }
+}
+
+void Simulation::inherit_words(Bitzkey& child, const Bitzkey& parent) {
+    if (LEXICON_SIZE <= 0 || LEXICON_INHERIT <= 0 || parent.lexicon.empty()) return;
+    std::vector<const LexiconWord*> words;
+    for (const LexiconWord& word : parent.lexicon) words.push_back(&word);
+    std::stable_sort(words.begin(), words.end(), [](const LexiconWord* a, const LexiconWord* b) { return a->uses > b->uses; });
+    const auto count = static_cast<std::size_t>(std::lround(LEXICON_INHERIT * static_cast<double>(words.size())));
+    const int room = lexicon_capacity(child);
+    for (std::size_t at = 0; at < std::min(count, words.size()); ++at) {
+        const LexiconWord& word = *words[at];
+        if (static_cast<int>(child.lexicon.size()) >= room) break;
+        const bool clash = std::any_of(child.lexicon.begin(), child.lexicon.end(), [&](const LexiconWord& held) {
+            return (held.call == word.call && held.sounds == word.sounds) || held.thing == word.thing;
+        });
+        if (clash) continue;
+        child.lexicon.push_back(LexiconWord{word.call, word.sounds, word.thing, LEXICON_FAMILY, 0});
+        ++lexicon_tally_[static_cast<std::size_t>(child.species)].inherited;
+    }
 }
 
 bool Simulation::family(const Bitzkey& one, const Bitzkey& other) {
@@ -8203,6 +8315,8 @@ void Simulation::give_birth(Bitzkey& mother) {
         child.mother = mother.identifier;
         child.father = young.father;
         child.mind = young.mind;
+        inherit_words(child, mother);  // a share of each parent's words (see LEXICON_INHERIT)
+        if (const Bitzkey* father = find_agent(young.father)) inherit_words(child, *father);
         if (CUES) {  // its mother's cry, or now and then another
             child.cry = mother.own_cry();
             if (whim(child.identifier ^ 0xC27, turn_) < CRY_DRIFT) child.cry = FirstCall + std::min(CALL_COUNT - 1, static_cast<int>(whim(~child.identifier ^ 0xC27, turn_) * CALL_COUNT));

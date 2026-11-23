@@ -2130,5 +2130,15 @@
 "Learn insight": "Wgląd w nauce",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "szansa, razy jego rozum, że powtarzający słowo pojmie, co mówiący miał na myśli, i od razu to wskaże: najbystrzejsi zawsze; 0 tylko zgadywanie",
 "Longing parting": "Rozstanie przed tęsknotą",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "tury, przez które towarzysz musi być poza zasięgiem wzroku, nie wracając, zanim się za nim zatęskni: towarzysze stada, co przychodzą i odchodzą, nie brakują; 1 od razu"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "tury, przez które towarzysz musi być poza zasięgiem wzroku, nie wracając, zanim się za nim zatęskni: towarzysze stada, co przychodzą i odchodzą, nie brakują; 1 od razu",
+"Lexicon size": "Rozmiar słownika",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "słowa, które zwierzę może zatrzymać w swoim słowniku na każdy punkt intelektu, i jedno więcej; słowa ustalone zgodą, trafnym zgadnięciem lub poprawionym; 0 bez słownika",
+"Lexicon speech": "Mowa ze słownika",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "szansa, razy jego towarzyskość, że wskazując rzecz, na którą ma słowo, powie to słowo",
+"Lexicon family": "Słownik rodziny",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "szacunek, za jaki co najmniej liczy się słowo ustalone z rodziną: słowo zmienia tylko przyjaciel lub krewny bardziej szanowany niż ten, kto je ustalił",
+"Lexicon witness": "Świadek słownika",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "szansa, że ktoś z jego gatunku, kto widzi uzgodnione słowo, przyjmie je do swojego słownika, na tej samej zasadzie",
+"Lexicon inheritance": "Dziedziczenie słownika",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "część słów każdego rodzica, najczęściej używanych najpierw, z którymi zaczyna noworodek, jakby nauczonych przez rodzinę"
 }

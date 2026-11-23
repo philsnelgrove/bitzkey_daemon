@@ -2130,5 +2130,15 @@
 "Learn insight": "Einsicht beim Lernen",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "Chance, mal seinem Verstand, dass einer, der ein Wort zurücksagt, erfasst, was der Sprecher meinte, und sofort darauf zeigt: die Klügsten immer; 0 nur Raten",
 "Longing parting": "Trennung vor der Sehnsucht",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "Runden, die ein Gefährte außer Sicht sein muss, ohne zurückzukehren, bevor man sich nach ihm sehnt: Herdengenossen, die kommen und gehen, fehlen nicht; 1 sofort"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "Runden, die ein Gefährte außer Sicht sein muss, ohne zurückzukehren, bevor man sich nach ihm sehnt: Herdengenossen, die kommen und gehen, fehlen nicht; 1 sofort",
+"Lexicon size": "Wortschatzgröße",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "Wörter, die ein Tier je Punkt Intellekt in seinem Wortschatz halten kann, und eines mehr; Wörter, durch Einigung festgelegt, ein richtiges Raten oder ein berichtigtes; 0 für keinen Wortschatz",
+"Lexicon speech": "Wortschatz-Sprechen",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "Chance, mal seiner Geselligkeit, dass es beim Zeigen auf ein Ding, für das es ein Wort hat, dieses Wort sagt",
+"Lexicon family": "Wortschatz der Familie",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "die Achtung, als die ein mit der Familie festgelegtes Wort mindestens zählt: ein Wort ändert nur ein Freund oder Familienmitglied, das höher geachtet wird als wer es festlegte",
+"Lexicon witness": "Wortschatz-Zeuge",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "Chance, dass einer seiner Art, der ein Wort vereinbart sieht, es in den eigenen Wortschatz aufnimmt, nach derselben Regel",
+"Lexicon inheritance": "Wortschatz-Erbe",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "Anteil der Wörter jedes Elternteils, die meistgebrauchten zuerst, mit denen ein Neugeborenes beginnt, als von der Familie gelehrt"
 }

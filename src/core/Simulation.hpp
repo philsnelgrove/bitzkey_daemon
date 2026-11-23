@@ -385,7 +385,8 @@ inline double CALL_COST = 0.0;  // hunger for each sound of a call: two sounds c
 // above silenced some populations wholly. 0 for none.
 inline double CALL_EFFORT = 0.2;
 // Learning a word (the user's idea, see the action Learn): one spoken to alone may say the sounds back to the speaker,
-// pointing at what it guesses they mean, offered with a chance of the higher of its curiosity and intellect. A right
+// pointing at what it guesses they mean, offered to every one spoken to with a pointed word (whether it does is its own
+// choice). A right
 // guess (the thing the speaker pointed at) is worth LEARN_GAIN times what the learner understood of it, at least
 // LEARN_MATCH: added to the speaker's lesson for that call and its point, and to the learner's for its own. 0 for none.
 inline double LEARN_GAIN = 3.0;
@@ -416,6 +417,27 @@ inline double LONGING_UNEASE = 0.1;
 inline double LONGING_JOY = 1.0;
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
 enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
+// The lexicon (the user's design): each animal holds words it has settled by accord, a word said back with a right
+// guess, or a wrong one corrected: the word, the thing it means, and how much it regarded the one it settled it with.
+// It holds LEXICON_SIZE words for each point of intellect and one more; full, it forgets the word it has used least.
+// Mostly permanent: a word or thing it already holds is changed only by accord with a friend or family member it
+// regards more than the one who settled it (family counted at least LEXICON_FAMILY). Pointing at a thing it has a word
+// for, it says that word, with chance LEXICON_SPEAK times its sociability; hearing a word it holds, it senses that it
+// knows what is meant, and how close that thing is. Those of its kind who see a word agreed take it up too, with
+// chance LEXICON_WITNESS, under the same rule; and a newborn starts with LEXICON_INHERIT of each parent's words, the
+// most used first, as if taught by family. LEXICON_SIZE 0 for none.
+inline int LEXICON_SIZE = 4;
+inline double LEXICON_SPEAK = 1.0;
+inline double LEXICON_FAMILY = 0.5;
+inline double LEXICON_WITNESS = 1.0;
+inline double LEXICON_INHERIT = 0.5;
+struct LexiconWord {
+    int call = -1;                                    // its first sound, as a call
+    std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};   // and its later sounds, -1 where it stops
+    int thing = -1;                                   // what it means: an index of OUTSIDE_SENSES
+    double regard = 0.0;                              // how much it regarded the one it settled it with
+    int uses = 0;                                     // how often it has said or heard it since
+};
 inline double CALL_FATIGUE = 5.0;  // stamina for each sound of a call, as listed fatigue (an action is ACTION_FATIGUE)
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
 // The most sounds a call may run to, 1 to 3: past the first, each place may stop or add one of the five sounds.
@@ -1279,6 +1301,10 @@ struct Bitzkey {
     std::array<int, MAX_SOUNDS - 1> word_sounds{-1, -1};  // and its later sounds
     int word_point = -1;                // what it pointed at
     int word_tries = 0;                 // how many times it has said it again, unanswered
+    int learn_thing = -1;               // the thing the one it said a word back to had pointed at
+    std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and the later sounds of the word it said back
+    std::vector<LexiconWord> lexicon;   // the words it has settled (see LEXICON_SIZE)
+    int lexicon_spoke_turn = -1;        // the last turn it said a word from its lexicon
     int longing_kind = NoLonging;       // what kind of thing it longs for (see LONGING)
     double longing = 0.0;               // how strongly, fading
     int longing_for = -1;               // the companion longed for, or the outside thing (an index of OUTSIDE_SENSES)
@@ -1811,6 +1837,15 @@ public:
         double known_understood = 0.0, stranger_understood = 0.0;
     };
     const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
+    struct LexiconTally {  // since the world began or was loaded: words taken into lexicons, and how
+        long long agreed = 0, witnessed = 0, inherited = 0, confirmed = 0, overridden = 0, refused = 0;
+    };
+    const std::array<LexiconTally, 4>& lexicon_tally() const { return lexicon_tally_; }
+    static int lexicon_capacity(const Bitzkey& agent);  // how many words it can hold
+    // A word settled with `teacher` (or seen settled, `witnessed`), taken into `who`'s lexicon as the rule allows.
+    void accord(Bitzkey& who, const Bitzkey& teacher, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing, bool witnessed = false);
+    void inherit_words(Bitzkey& child, const Bitzkey& parent);  // a newborn's share of a parent's words
+    void witness_word(const Bitzkey& learner, const Bitzkey& speaker, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing);
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
     // who chose as its hearers did but heard no call, or heard another's loudest; and how many of them did its intent.
     struct IntentWindow {
@@ -1919,6 +1954,7 @@ public:
         Bitzkey* learn_by = nullptr;     // one who spoke to it alone and pointed, whose word it may say back (see Learn)
         int learn_thing = -1, learn_call = -1;  // what that one pointed at, and its call
         std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and its later sounds
+        int meant = -1;                  // the thing the word it heard means, from its lexicon; -1 none
         Bitzkey* retry_to = nullptr;     // one it addressed with a word, not yet answered right, to say it again to
         int lesson = -1;                 // in which craft, or CRAFT_COUNT for archery
         std::optional<Cell> grass;
@@ -2559,6 +2595,7 @@ private:
     std::array<std::array<long long, 4>, 4> followers_lost_{};
     std::array<IntentTally, 4> intent_tally_{};
     std::array<PointTally, 4> point_tally_{};
+    std::array<LexiconTally, 4> lexicon_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood

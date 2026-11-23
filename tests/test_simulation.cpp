@@ -2983,6 +2983,129 @@ TEST_CASE("trying again: the fully sociable must, saying its word and pointing a
     }
 }
 
+TEST_CASE("the lexicon: a word agreed by a right guess goes into both lexicons, and those of its kind who saw it") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    Bitzkey& onlooker = simulation.add_agent(encode_dna(Species::Grazer), 13, 10);
+    Bitzkey& far_off = simulation.add_agent(encode_dna(Species::Grazer), 35, 35);
+    simulation.index_cells();
+    learner.learn_turn = simulation.turn() - 1;  // said back last turn, rightly
+    learner.learn_from = speaker.identifier;
+    learner.learn_correct = true;
+    learner.learn_call = FirstCall + 2;
+    learner.learn_sounds = {1, -1};
+    learner.learn_thing = 5;
+    std::vector<Bitzkey*> agents{&speaker, &learner, &onlooker, &far_off};
+    std::vector<Simulation::Sensed> now{simulation.sense(speaker), simulation.sense(learner), simulation.sense(onlooker), simulation.sense(far_off)};
+    simulation.gauge_understanding(agents, now);
+    for (const Bitzkey* one : {&learner, &speaker, &onlooker}) {
+        REQUIRE(one->lexicon.size() == 1);
+        CHECK(one->lexicon[0].call == FirstCall + 2);
+        CHECK(one->lexicon[0].sounds == std::array<int, MAX_SOUNDS - 1>{1, -1});
+        CHECK(one->lexicon[0].thing == 5);
+    }
+    CHECK(far_off.lexicon.empty());  // out of sight: it saw nothing
+    const auto& tally = simulation.lexicon_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.agreed == 2);
+    CHECK(tally.witnessed == 1);
+    simulation.gauge_understanding(agents, now);  // the same word for the same thing again: held the more surely
+    CHECK(learner.lexicon.size() == 1);
+    CHECK(learner.lexicon[0].uses == 1);
+}
+
+TEST_CASE("the lexicon: a word held is changed only by a friend or family member regarded more than whoever settled it") {
+    Simulation simulation = world(40);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& stranger = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    Bitzkey& acquaintance = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 13, 10);
+    learner.known.push_back(Acquaintance{acquaintance.identifier, 0.2, 0});
+    learner.known.push_back(Acquaintance{friend_.identifier, 0.9, 0});
+    learner.lexicon.push_back(LexiconWord{FirstCall + 1, {-1, -1}, 6, 0.4, 3});  // settled with one it regarded at 0.4
+    simulation.accord(learner, stranger, FirstCall + 3, {-1, -1}, 6);  // a stranger's word for the same thing: refused
+    CHECK(learner.lexicon[0].call == FirstCall + 1);
+    simulation.accord(learner, acquaintance, FirstCall + 3, {-1, -1}, 6);  // a friend, but regarded less
+    CHECK(learner.lexicon[0].call == FirstCall + 1);
+    simulation.accord(learner, acquaintance, FirstCall + 1, {-1, -1}, 9);  // the same word for another thing: refused too
+    CHECK(learner.lexicon.size() == 1);
+    CHECK(learner.lexicon[0].thing == 6);
+    simulation.accord(learner, friend_, FirstCall + 3, {-1, -1}, 6);  // a friend regarded more: it changes its mind
+    REQUIRE(learner.lexicon.size() == 1);
+    CHECK(learner.lexicon[0].call == FirstCall + 3);
+    CHECK(learner.lexicon[0].regard == doctest::Approx(0.9));
+    const auto& tally = simulation.lexicon_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.refused == 3);
+    CHECK(tally.overridden == 1);
+    simulation.accord(learner, stranger, FirstCall + 4, {0, -1}, 2);  // a new word for a new thing: any one may teach it
+    CHECK(learner.lexicon.size() == 2);
+}
+
+TEST_CASE("the lexicon: full, it forgets the word used least; and a newborn starts with a share of its parents' words") {
+    Simulation simulation = world(40);
+    Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& teacher = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    parent.mind[Intellect] = 0.0;  // room for LEXICON_SIZE words
+    const int room = Simulation::lexicon_capacity(parent);
+    CHECK(room == LEXICON_SIZE);
+    for (int thing = 0; thing < room; ++thing) simulation.accord(parent, teacher, FirstCall + thing % CALL_COUNT, {thing / CALL_COUNT, -1}, thing);
+    REQUIRE(static_cast<int>(parent.lexicon.size()) == room);
+    for (LexiconWord& word : parent.lexicon) word.uses = 10 + word.thing;
+    parent.lexicon[1].uses = 0;  // the least used
+    simulation.accord(parent, teacher, FirstCall, {4, 4}, 15);
+    CHECK(static_cast<int>(parent.lexicon.size()) == room);
+    CHECK(std::none_of(parent.lexicon.begin(), parent.lexicon.end(), [](const LexiconWord& w) { return w.thing == 1; }));
+    child.mother = parent.identifier;
+    simulation.inherit_words(child, parent);
+    const auto share = static_cast<std::size_t>(std::lround(LEXICON_INHERIT * room));
+    REQUIRE(child.lexicon.size() == share);
+    CHECK(child.lexicon[0].thing == room - 1);  // the most used first
+    CHECK(child.lexicon[0].regard == doctest::Approx(LEXICON_FAMILY));
+}
+
+TEST_CASE("the lexicon: hearing a word it holds, it senses what is meant; pointing at a thing it has a word for, it says it") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    simulation.index_cells();
+    hearer.lexicon.push_back(LexiconWord{FirstCall + 2, {0, -1}, 4, 0.5, 0});
+    caller.call = FirstCall + 2;
+    caller.sounds = {0, -1};
+    caller.call_turn = simulation.turn() - 1;
+    auto sensed = simulation.sense(hearer);
+    CHECK(sensed.senses[SenseMeant + Meant] == 1.0);
+    CHECK(sensed.senses[SenseMeant + MeantCloseness] == sensed.senses[OUTSIDE_SENSES[4]]);
+    CHECK(sensed.situation.meant == 4);
+    caller.sounds = {1, -1};  // another word: not one it holds
+    auto other = simulation.sense(hearer);
+    CHECK(other.senses[SenseMeant + Meant] == 0.0);
+    CHECK(other.situation.meant == -1);
+
+    Simulation speaking = world(40);
+    Bitzkey& speaker = speaking.add_agent(encode_dna(Species::Grazer), 10, 10);
+    speaking.add_agent(encode_dna(Species::Grazer), 13, 10);
+    speaker.lexicon.push_back(LexiconWord{FirstCall + 3, {2, 1}, 0, 0.5, 0});
+    for (int thing = 1; thing < OUTSIDE_SEEN; ++thing) speaker.lexicon.push_back(LexiconWord{FirstCall + 3, {thing % CALL_COUNT, thing / CALL_COUNT}, thing, 0.5, 0});
+    int spoke = 0;
+    for (int turn = 0; turn < 40; ++turn) {
+        speaker.mind[Sociability] = TRAIT_MAX;
+        for (int output = 0; output < OUTPUT_COUNT; ++output) {
+            if (output >= ACTION_COUNT && output < ACTION_COUNT + CALL_OPTIONS) speaker.brain->output_biases[output] = output == call_output(FirstCall) ? 50.0 : -50.0;
+        }
+        speaking.advance();
+        if (!speaker.alive()) break;
+        if (speaker.lexicon_spoke_turn != speaking.turn()) continue;
+        ++spoke;
+        const auto word = std::find_if(speaker.lexicon.begin(), speaker.lexicon.end(), [&](const LexiconWord& w) { return w.thing == speaker.point; });
+        REQUIRE(word != speaker.lexicon.end());
+        CHECK(speaker.call == word->call);  // its word for what it pointed at
+        CHECK(speaker.sounds == word->sounds);
+    }
+    MESSAGE("spoke a word from its lexicon " << spoke << " times");
+    CHECK(spoke > 0);
+}
+
 TEST_CASE("longing: parted from a companion it cares for, an animal longs for it, felt and sensed but never located, till met or faded") {
     Simulation simulation = world(60);
     Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);

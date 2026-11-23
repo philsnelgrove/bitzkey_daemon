@@ -2130,5 +2130,15 @@
 "Learn insight": "Perspicacité d'apprentissage",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "chance, fois son intelligence, que celui qui redit un mot saisisse ce que voulait dire l'orateur et le montre aussitôt : les plus vifs toujours ; 0 pour deviner seulement",
 "Longing parting": "Séparation avant la nostalgie",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "tours qu'un compagnon doit rester hors de vue, sans revenir, avant qu'on se languisse de lui : les membres du troupeau qui vont et viennent ne manquent pas ; 1 aussitôt"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "tours qu'un compagnon doit rester hors de vue, sans revenir, avant qu'on se languisse de lui : les membres du troupeau qui vont et viennent ne manquent pas ; 1 aussitôt",
+"Lexicon size": "Taille du lexique",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "mots qu'un animal peut garder dans son lexique pour chaque point d'intellect, et un de plus ; mots fixés par accord, une bonne devinette ou une erreur corrigée ; 0 pour aucun lexique",
+"Lexicon speech": "Parole du lexique",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "chance, fois sa sociabilité, qu'en montrant une chose pour laquelle il a un mot, il dise ce mot",
+"Lexicon family": "Lexique de la famille",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "l'estime que vaut au moins un mot fixé en famille : un mot n'est changé que par un ami ou un parent plus estimé que celui qui l'a fixé",
+"Lexicon witness": "Témoin du lexique",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "chance qu'un de son espèce qui voit un mot convenu le prenne dans son propre lexique, selon la même règle",
+"Lexicon inheritance": "Héritage du lexique",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "part des mots de chaque parent, les plus utilisés d'abord, avec laquelle commence un nouveau-né, comme enseignés par la famille"
 }

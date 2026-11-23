@@ -2130,5 +2130,15 @@
 "Learn insight": "सीखने की अंतर्दृष्टि",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "संभावना, उसकी बुद्धि से गुणा, कि शब्द लौटाने वाला समझ ले कि वक्ता का आशय क्या था और तुरंत उस पर इशारा करे: सबसे चतुर हमेशा; 0 केवल अनुमान",
 "Longing parting": "लालसा से पहले बिछोह",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "कितनी बारी साथी बिना लौटे नज़र से बाहर रहे, तब उसकी लालसा हो: आते-जाते झुंड के साथी याद नहीं आते; 1 तुरंत"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "कितनी बारी साथी बिना लौटे नज़र से बाहर रहे, तब उसकी लालसा हो: आते-जाते झुंड के साथी याद नहीं आते; 1 तुरंत",
+"Lexicon size": "शब्दकोश का आकार",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "बुद्धि के हर अंक पर एक जानवर अपने शब्दकोश में कितने शब्द रख सकता है, और एक अधिक; सहमति से तय शब्द, सही अनुमान या सुधारा गया; 0 कोई शब्दकोश नहीं",
+"Lexicon speech": "शब्दकोश से बोलना",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "संभावना, उसकी मिलनसारिता से गुणा, कि जिस चीज़ के लिए उसके पास शब्द है उसकी ओर इशारा करते हुए वह वही शब्द बोले",
+"Lexicon family": "परिवार का शब्दकोश",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "परिवार के साथ तय शब्द कम से कम कितने सम्मान का माना जाए: शब्द केवल वही मित्र या परिजन बदलता है जिसका सम्मान तय करने वाले से अधिक हो",
+"Lexicon witness": "शब्दकोश का साक्षी",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "संभावना कि उसकी जाति का कोई, जो किसी शब्द पर सहमति होते देखे, उसे उसी नियम से अपने शब्दकोश में ले ले",
+"Lexicon inheritance": "शब्दकोश की विरासत",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "हर माता-पिता के शब्दों का हिस्सा, सबसे अधिक प्रयुक्त पहले, जिनसे नवजात शुरू करता है, मानो परिवार ने सिखाए हों"
 }

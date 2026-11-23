@@ -2130,5 +2130,15 @@
 "Learn insight": "学词悟性",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "按其智力相乘的概率，说回词者领会说话者所指并立即指出：最聪明的总能做到；0 为仅凭猜测",
 "Longing parting": "思念前的分离",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "同伴须离开视线且不回来的回合数，之后才会思念它：进进出出的群伴不会被思念；1 为立即"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "同伴须离开视线且不回来的回合数，之后才会思念它：进进出出的群伴不会被思念；1 为立即",
+"Lexicon size": "词汇量",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "每点智力动物可在词汇中保存的词数，外加一个；词由共识确定：猜对或被纠正；0 为没有词汇",
+"Lexicon speech": "用词汇说话",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "指向一个它有词可称的事物时说出该词的几率，乘以其社交性",
+"Lexicon family": "家族词汇",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "与家人确定的词至少算作的敬重：只有比确定该词者更受敬重的朋友或家人才能改变它",
+"Lexicon witness": "词汇见证",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "同类见到一个词被约定时，按同一规则将其收入自己词汇的几率",
+"Lexicon inheritance": "词汇传承",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "新生儿起始拥有的每位亲代词汇的份额，最常用的优先，视同家人所教"
 }

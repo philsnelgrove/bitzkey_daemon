@@ -2130,5 +2130,15 @@
 "Learn insight": "Прозріння в навчанні",
 "chance, times its intellect, that one saying a word back reads what the speaker meant and points at it at once: the cleverest always do; 0 for guessing alone": "імовірність, помножена на розум, що той, хто повторює слово, збагне, що мав на увазі мовець, і одразу вкаже на те: найкмітливіші завжди; 0 лише здогадка",
 "Longing parting": "Розлука перед тугою",
-"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "ходи, які товариш має бути поза зором, не повертаючись, перш ніж за ним затужать: товариші з гурту, що приходять і йдуть, не бракують; 1 одразу"
+"turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once": "ходи, які товариш має бути поза зором, не повертаючись, перш ніж за ним затужать: товариші з гурту, що приходять і йдуть, не бракують; 1 одразу",
+"Lexicon size": "Розмір словника",
+"words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon": "слова, які тварина може тримати у своєму словнику на кожну одиницю інтелекту, і ще одне; слова, усталені згодою, правильною здогадкою чи виправленою; 0 без словника",
+"Lexicon speech": "Мовлення зі словника",
+"chance, times its sociability, that pointing at a thing it has a word for, it says that word": "імовірність, помножена на товариськість, що вказуючи на річ, для якої має слово, воно скаже це слово",
+"Lexicon family": "Словник родини",
+"the regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it": "повага, якою щонайменше вважається слово, усталене з родиною: слово змінює лише друг чи родич, якого шанують більше, ніж того, хто його усталив",
+"Lexicon witness": "Свідок словника",
+"chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "імовірність, що хтось його виду, хто бачить узгоджене слово, візьме його до власного словника за тим самим правилом",
+"Lexicon inheritance": "Спадок словника",
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "частка слів кожного з батьків, найуживаніші першими, з якими починає новонароджений, ніби навчений родиною"
 }

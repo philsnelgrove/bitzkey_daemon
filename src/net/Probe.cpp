@@ -1649,8 +1649,45 @@ Json Probe::language(Simulation& world) const {
         } else if (living_count > 0) {
             naming = {{"mean_itch", itch_sum / static_cast<double>(living_count)}, {"tellings", 0}};
         }
+        // The lexicon (see LEXICON_SIZE): who holds words, how many, who said or heard one as they last chose, and how
+        // far they agree: for each thing two or more hold a word for, the share holding its commonest word.
+        Json lexicon = nullptr;
+        {
+            long long holders = 0, words = 0, spoke = 0, heard = 0, alive = 0, agreeing = 0, counted = 0;
+            std::array<std::map<long long, long long>, OUTSIDE_SEEN> by_thing{};
+            for (const Bitzkey* agent : world.living()) {
+                if (agent->species != species) continue;
+                ++alive;
+                holders += !agent->lexicon.empty();
+                words += static_cast<long long>(agent->lexicon.size());
+                spoke += agent->lexicon_spoke_turn >= 0 && agent->lexicon_spoke_turn == agent->call_turn;
+                heard += agent->has_last_senses && agent->last_senses[SenseMeant + Meant] > 0;
+                for (const LexiconWord& word : agent->lexicon) {
+                    if (word.thing < 0 || word.thing >= OUTSIDE_SEEN) continue;
+                    ++by_thing[static_cast<std::size_t>(word.thing)][word.call * 100LL + (word.sounds[0] + 1) * 10 + word.sounds[1] + 1];
+                }
+            }
+            Json agreement = Json::object();
+            for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                long long sum = 0, most = 0;
+                for (const auto& [word, count] : by_thing[static_cast<std::size_t>(thing)]) { sum += count; most = std::max(most, count); }
+                if (sum < 2) continue;
+                agreeing += most;
+                counted += sum;
+                agreement[std::string(OUTPUTS[static_cast<std::size_t>(OUTSIDE + thing)].substr(8))] = {{"holders", sum}, {"commonest_share", static_cast<double>(most) / static_cast<double>(sum)},
+                                                                                                       {"words", by_thing[static_cast<std::size_t>(thing)].size()}};
+            }
+            const Simulation::LexiconTally& made = world.lexicon_tally()[static_cast<std::size_t>(species)];
+            lexicon = {{"holders_share", ratio(static_cast<double>(holders), static_cast<double>(alive))},
+                       {"mean_words", ratio(static_cast<double>(words), static_cast<double>(alive))},
+                       {"spoke_word_share", ratio(static_cast<double>(spoke), static_cast<double>(alive))},
+                       {"heard_known_share", ratio(static_cast<double>(heard), static_cast<double>(alive))},
+                       {"agreement", ratio(static_cast<double>(agreeing), static_cast<double>(counted))}, {"by_thing", agreement},
+                       {"agreed", made.agreed}, {"witnessed", made.witnessed}, {"inherited", made.inherited},
+                       {"confirmed", made.confirmed}, {"overridden", made.overridden}, {"refused", made.refused}};
+        }
         result[std::string(species_name(species))] = {
-            {"choices", choices}, {"cues", cues}, {"naming", naming}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
+            {"choices", choices}, {"cues", cues}, {"lexicon", lexicon}, {"naming", naming}, {"calling_share", ratio(static_cast<double>(made), static_cast<double>(choices))}, {"calls", calls}, {"lift_spread", spread},
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"speak_as_heard", understood_calls > 0 ? Json(understood / static_cast<double>(understood_calls)) : Json(nullptr)},
