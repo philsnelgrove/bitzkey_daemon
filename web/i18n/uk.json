@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "Доречний вчинок на слово",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "радість за кожен спосіб, у який його вчинок, коли воно почуло знайоме слово, був доречним: наблизилося до речі, якщо власне життя визнало її доброю, або віддалилося, якщо поганою; і зробило те, що робив мовець",
 "Lexicon worth rate": "Темп оцінки",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "як швидко тварина вчиться з власного життя, як їй ведеться ближче до кожної речі, порівняно з далі"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "як швидко тварина вчиться з власного життя, як їй ведеться ближче до кожної речі, порівняно з далі",
+"Duty sway": "Вплив почуття обов'язку",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "наскільки почуття обов'язку схиляє того, кому родина чи шанований сказав слово: дія мовця стає стільки разів імовірнішою, скільки його обов'язок у цьому степені (обов'язок 1 — випадок, 0 уникає її)",
+"Duty felt": "Відчутий обов'язок",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "наскільки почуття обов'язку забарвлює радість зробити те, що сказала родина чи шанований: помножено на 1 плюс це помножене на обов'язок мінус 1, неспокій для бунтаря",
+"Names size": "Кількість імен",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "імена, які тварина може тримати на кожну точку інтелекту й ще одне: слова кожне для однієї тварини, дані матір'ю при народженні й узгоджені, вказуючи на неї; 0 — без імен",
+"Deed-words size": "Кількість слів дії",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "слова дії, які тварина може тримати на кожну точку інтелекту й ще одне: слова для того, що робиш, сказані, вказуючи на себе, і вивчені повторенням слова під час виконання здогадки; 0 — жодного",
+"Call words": "Слова в поклику",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "найбільше слів у поклику: 2 дозволяє після першого слова додати друге, обране звук за звуком; поклик з ім'ям — для того, кого так звуть; 1 — одне слово"
 }

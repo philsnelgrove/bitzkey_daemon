@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "शब्द के अनुरूप कर्म",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "हर उस तरीके का आनंद जिसमें जाना-पहचाना शब्द सुनकर उसका कर्म उचित था: अपने जीवन ने उस चीज़ को अच्छा पाया तो पास गया, बुरा पाया तो दूर; और उसने वही किया जो बोलने वाले ने किया",
 "Lexicon worth rate": "मूल्य सीखने की दर",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "कोई जानवर अपने जीवन से कितनी जल्दी सीखता है कि हर चीज़ के पास उसका हाल कैसा रहता है, दूर की तुलना में"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "कोई जानवर अपने जीवन से कितनी जल्दी सीखता है कि हर चीज़ के पास उसका हाल कैसा रहता है, दूर की तुलना में",
+"Duty sway": "कर्तव्य का प्रभाव",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "परिवार या किसी सम्मानित से कोई शब्द सुनने वाले को कर्तव्य-भाव कितना झुकाता है: वक्ता का कार्य उसके कर्तव्य की इस घात जितने गुना अधिक संभावित होता है (कर्तव्य 1 संयोग है, 0 उससे बचता है)",
+"Duty felt": "अनुभूत कर्तव्य",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "परिवार या सम्मानित के कहे अनुसार करने के आनंद को कर्तव्य-भाव कितना रंगता है: 1 जोड़ यह गुणा कर्तव्य घटा 1 गुना, विद्रोही के लिए बेचैनी",
+"Names size": "नामों की संख्या",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "बुद्धि के प्रत्येक अंक पर और एक अधिक, कितने नाम एक प्राणी रख सकता है: हर एक किसी एक प्राणी का शब्द, जन्म पर माँ द्वारा दिया गया और उसकी ओर इशारा करके सहमति से तय; 0 यानी कोई नाम नहीं",
+"Deed-words size": "कर्म-शब्दों की संख्या",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "बुद्धि के प्रत्येक अंक पर और एक अधिक, कितने कर्म-शब्द एक प्राणी रख सकता है: जो कोई करता है उसके शब्द, अपनी ओर इशारा करते हुए बोले गए, और अनुमान का कार्य करते हुए शब्द दोहराकर सीखे गए; 0 यानी कोई नहीं",
+"Call words": "पुकार में शब्द",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "एक पुकार में अधिकतम शब्द: 2 से पहले शब्द के बाद दूसरा शब्द, ध्वनि-दर-ध्वनि चुना हुआ, जोड़ा जा सकता है; जिस पुकार में नाम हो वह उसी नाम वाले के लिए है; 1 यानी एक ही शब्द"
 }

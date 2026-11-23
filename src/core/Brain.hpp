@@ -247,11 +247,27 @@ enum AttendOutput : int { AttendYes, AttendNo };
 constexpr int ATTEND_OPTIONS = 2;
 constexpr int AttendForced = ATTEND_OPTIONS;  // not an output: turned to one it knows, unbidden (see KNOWN_ATTEND), so untaught
 constexpr int ATTEND = POINT + OUTSIDE_SEEN;  // the first of them
-constexpr int OUTPUT_COUNT = ATTEND + ATTEND_OPTIONS;
+// Pointing at one animal (names, the user's design): last of all its outputs, how a caller values pointing, as it
+// calls, at one animal in its sight rather than a kind of thing: the nearest it holds a name for, else the nearest of
+// its kind. That point is numbered PointOne, after the 21 things.
+constexpr int POINT_ONE = ATTEND + ATTEND_OPTIONS;
+constexpr int PointOne = OUTSIDE_SEEN;
+// And pointing at itself (deed-words, the user's design): what it is doing as it calls. Numbered PointSelf.
+constexpr int POINT_SELF = POINT_ONE + 1;
+constexpr int PointSelf = OUTSIDE_SEEN + 1;
+constexpr int point_output(int point) { return point == PointOne ? POINT_ONE : point == PointSelf ? POINT_SELF : POINT + point; }
+// A second word (the user's design, see Simulation's CALL_WORDS): after its first word a call may go on to a second, a
+// first sound and up to two more, in places four to six, each valued apart: stopping there, or each of the five sounds.
+constexpr int SECOND_WORD = POINT_SELF + 1;
+constexpr int word2_output(int place, int sound) { return SECOND_WORD + place * SOUND_CHOICES + 1 + sound; }  // place 0..2
+constexpr int OUTPUT_COUNT = SECOND_WORD + MAX_SOUNDS * SOUND_CHOICES;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
 constexpr int sound_output(int place, int sound) { return MORE_SOUNDS + (place - 1) * SOUND_CHOICES + 1 + sound; }
 // Whether an output values a second or third sound (not stopping): a new brain holds back from them as from calling.
-constexpr bool later_sound(int output) { return output >= MORE_SOUNDS && output < OUTSIDE && (output - MORE_SOUNDS) % SOUND_CHOICES != 0; }
+constexpr bool later_sound(int output) {
+    return (output >= MORE_SOUNDS && output < OUTSIDE && (output - MORE_SOUNDS) % SOUND_CHOICES != 0) ||
+           (output >= SECOND_WORD && output < OUTPUT_COUNT && (output - SECOND_WORD) % SOUND_CHOICES != 0);  // and a second word's
+}
 using Foresight = std::array<double, FORESEEN>;
 static_assert(SenseMapFood == SenseMemory + MEMORY_NEURONS);
 constexpr int MAX_MEMORY_STEPS = 4;  // the furthest back Memory steps may reach
@@ -302,6 +318,10 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     for (int output = 0; output < OUTSIDE_SEEN; ++output) names[POINT + output] = points[output];
     names[ATTEND + AttendYes] = "attend";
     names[ATTEND + AttendNo] = "ignore";
+    names[POINT_ONE] = "point_one";
+    names[POINT_SELF] = "point_self";
+    constexpr std::array<std::string_view, MAX_SOUNDS * SOUND_CHOICES> second = {"fourth_stop", "fourth_call_1", "fourth_call_2", "fourth_call_3", "fourth_call_4", "fourth_call_5", "fifth_stop", "fifth_call_1", "fifth_call_2", "fifth_call_3", "fifth_call_4", "fifth_call_5", "sixth_stop", "sixth_call_1", "sixth_call_2", "sixth_call_3", "sixth_call_4", "sixth_call_5"};
+    for (int output = 0; output < MAX_SOUNDS * SOUND_CHOICES; ++output) names[SECOND_WORD + output] = second[output];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -349,7 +369,17 @@ constexpr int SenseLonging = SensePointed + POINT_SENSES;
 enum LexiconSense : int { Meant, MeantCloseness };
 constexpr int LEXICON_SENSES = 2;
 constexpr int SenseMeant = SenseLonging + LONGING_SENSES;
-constexpr int SenseImagined = SenseMeant + LEXICON_SENSES;
+// Then a name it holds, heard (see Simulation's NAMES_SIZE): 1 when the loudest call it heard is one; how close the one
+// so named is, 0 out of sight; how it regards that one, -1 to 1; and 1 when the name is its own.
+enum NameSense : int { Named, NamedCloseness, NamedRegard, NamedMe };
+constexpr int NAME_SENSES = 4;
+constexpr int SenseNamed = SenseMeant + LEXICON_SENSES;
+// Then a deed-word it holds, heard (see Simulation's DEEDS_SIZE): 1 for the deed it means, one sense for each action.
+constexpr int SenseMeantDeed = SenseNamed + NAME_SENSES;
+// Then the second word of the loudest call heard, sound by sound, as the first (see CALL_WORDS): places four to six.
+constexpr int SenseUtterance2 = SenseMeantDeed + ACTION_COUNT;
+constexpr int utterance2_sense(int place, int sound) { return SenseUtterance2 + CALL_COUNT * place + sound; }
+constexpr int SenseImagined = SenseUtterance2 + MAX_SOUNDS * CALL_COUNT;
 constexpr int IMAGINED_BITS = 7;  // enough to number every action (65 since archery)
 static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 // A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
@@ -368,7 +398,7 @@ constexpr bool signed_sense(int sense) {
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
            sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
-           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense >= SenseImagined;
+           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense == SenseNamed + NamedRegard || sense >= SenseImagined;
 }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
@@ -404,11 +434,13 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "voice_ring_blue", "voice_dot_red", "voice_dot_green", "voice_dot_blue", "voice_social_red", "voice_social_green",
     "voice_social_blue", "voice_pitch", "voice_harshness", "voice_urgency", "pointed", "pointed_closeness",
     "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion", "longing_fire", "longing_shelter",
-    "longing_joy", "meant", "meant_closeness", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
+    "longing_joy", "meant", "meant_closeness", "named", "named_closeness", "named_regard", "named_me",
+    "meant_eat", "meant_forage", "meant_browse", "meant_uproot", "meant_scavenge", "meant_feast", "meant_rest", "meant_court", "meant_breed", "meant_hunt", "meant_attack", "meant_defend", "meant_flee", "meant_herd", "meant_go_north", "meant_go_south", "meant_go_east", "meant_go_west", "meant_walk_north", "meant_walk_south", "meant_walk_east", "meant_walk_west", "meant_revisit", "meant_feed_young", "meant_teach", "meant_take_meat", "meant_take_fruit", "meant_drop_meat", "meant_drop_fruit", "meant_eat_pile", "meant_eat_carried", "meant_take_stone", "meant_take_bone", "meant_take_wood", "meant_drop_stone", "meant_drop_bone", "meant_drop_wood", "meant_dress", "meant_make_bone_axe", "meant_make_bone_armour", "meant_make_club", "meant_make_wood_armour", "meant_make_stone_axe", "meant_make_bow", "meant_make_wagon", "meant_take_gear", "meant_drop_weapon", "meant_drop_armour", "meant_cut", "meant_dig", "meant_light_fire", "meant_feed_fire", "meant_cook", "meant_construct", "meant_eat_seed", "meant_plant_seed", "meant_build_road", "meant_eat_marrow", "meant_fertilize", "meant_skin", "meant_demand", "meant_steal", "meant_give", "meant_offer", "meant_shoot", "meant_practise", "meant_tutor", "meant_hitch", "meant_unhitch", "meant_store_food", "meant_craft_arrows", "meant_address", "meant_learn",
+    "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 73> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 164> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
@@ -419,7 +451,9 @@ constexpr std::array<std::string_view, 73> SPARSE_SENSES = {
     "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
     "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
     "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion",
-    "longing_fire", "longing_shelter", "longing_joy", "meant", "meant_closeness"};
+    "longing_fire", "longing_shelter", "longing_joy", "meant", "meant_closeness", "named", "named_closeness", "named_me",
+    "meant_eat", "meant_forage", "meant_browse", "meant_uproot", "meant_scavenge", "meant_feast", "meant_rest", "meant_court", "meant_breed", "meant_hunt", "meant_attack", "meant_defend", "meant_flee", "meant_herd", "meant_go_north", "meant_go_south", "meant_go_east", "meant_go_west", "meant_walk_north", "meant_walk_south", "meant_walk_east", "meant_walk_west", "meant_revisit", "meant_feed_young", "meant_teach", "meant_take_meat", "meant_take_fruit", "meant_drop_meat", "meant_drop_fruit", "meant_eat_pile", "meant_eat_carried", "meant_take_stone", "meant_take_bone", "meant_take_wood", "meant_drop_stone", "meant_drop_bone", "meant_drop_wood", "meant_dress", "meant_make_bone_axe", "meant_make_bone_armour", "meant_make_club", "meant_make_wood_armour", "meant_make_stone_axe", "meant_make_bow", "meant_make_wagon", "meant_take_gear", "meant_drop_weapon", "meant_drop_armour", "meant_cut", "meant_dig", "meant_light_fire", "meant_feed_fire", "meant_cook", "meant_construct", "meant_eat_seed", "meant_plant_seed", "meant_build_road", "meant_eat_marrow", "meant_fertilize", "meant_skin", "meant_demand", "meant_steal", "meant_give", "meant_offer", "meant_shoot", "meant_practise", "meant_tutor", "meant_hitch", "meant_unhitch", "meant_store_food", "meant_craft_arrows", "meant_address", "meant_learn",
+    "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
 inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};

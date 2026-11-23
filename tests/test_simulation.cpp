@@ -2928,6 +2928,108 @@ TEST_CASE("learning a word: the cleverest saying a word back always point at wha
     CHECK(right == tries);
 }
 
+TEST_CASE("deed-words: addressed with a word pointing at the speaker itself, one choosing to speak says it back as it acts; a right guess is settled") {
+    Simulation simulation = world(40);
+    Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& learner = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    int echoes = 0, right = 0;
+    for (int turn = 0; turn < 40 && learner.deeds.empty(); ++turn) {
+        speaker.call = FirstCall + 2;  // its word, said to the learner alone, pointing at itself as it rested
+        speaker.sounds = {0, -1};
+        speaker.call_turn = speaker.address_turn = simulation.turn();
+        speaker.address_to = learner.identifier;
+        speaker.point = PointSelf;
+        speaker.point_one = Rest;
+        speaker.point_turn = simulation.turn();
+        for (int action = 0; action < ACTION_COUNT; ++action) learner.brain->output_biases[action] = action == Rest ? 50.0 : -50.0;
+        for (int call = 0; call < CALL_OPTIONS; ++call) learner.brain->output_biases[call_output(call)] = call >= FirstCall ? 50.0 : -50.0;
+        simulation.advance();
+        if (!learner.alive() || !speaker.alive()) break;
+        if (learner.echo_turn == simulation.turn()) {
+            ++echoes;
+            CHECK(learner.call == FirstCall + 2);  // the word, said back
+            CHECK(learner.point == PointSelf);
+            right += learner.learn_correct;
+        }
+    }
+    MESSAGE("said back " << echoes << " times, right " << right);
+    REQUIRE(echoes > 0);
+    CHECK(right > 0);
+    REQUIRE_FALSE(learner.deeds.empty());
+    CHECK(learner.deeds[0].thing == Rest);
+    CHECK(std::any_of(speaker.deeds.begin(), speaker.deeds.end(), [](const LexiconWord& w) { return w.thing == Rest; }));
+}
+
+TEST_CASE("deed-words: hearing one it holds, it senses the deed meant; doing it next turn is doing as said, and duty follows the word") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    simulation.index_cells();
+    hearer.deeds.push_back(LexiconWord{FirstCall + 4, {1, 1}, Flee, 0.5, 0});
+    caller.call = FirstCall + 4;
+    caller.sounds = {1, 1};
+    caller.call_turn = simulation.turn() - 1;
+    caller.last_choice = Rest;  // resting as it says "flee"
+    const Senses heard = simulation.sense(hearer).senses;
+    CHECK(heard[SenseMeantDeed + Flee] == 1.0);
+    CHECK(heard[SenseMeantDeed + Rest] == 0.0);
+    CHECK(hearer.meant_deed == Flee);  // what the word means, not what the speaker does
+    CHECK(hearer.meant_by_deed);
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.last_choice = Flee;
+    hearer.meant_liked = false;
+    auto judged = simulation.sense(hearer);
+    CHECK(hearer.judged_by_deed);
+    CHECK(hearer.acted_same);
+    CHECK_FALSE(hearer.heeded);
+    CHECK(judged.situation.word_reward == doctest::Approx(LEXICON_ACT));
+    simulation.accord(hearer, caller, FirstCall + 1, {-1, -1}, PointSelf, false, Rest);  // a deed-word settled goes with the deeds
+    CHECK(hearer.deeds.size() == 2);
+    CHECK(hearer.lexicon.empty());
+}
+
+TEST_CASE("two words: a call's second word is heard and taught as its first; a name with a deed-word is an order for the one named") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Grazer), 13, 11);
+    simulation.index_cells();
+    hearer.deeds.push_back(LexiconWord{FirstCall + 4, {1, -1}, Flee, 0.5, 0});
+    hearer.names.push_back(LexiconWord{FirstCall + 2, {-1, -1}, other.identifier, 0.5, 0});
+    hearer.own_call = FirstCall + 3;
+    hearer.own_sounds = {0, 0};
+    caller.call_turn = simulation.turn() - 1;
+    caller.call = FirstCall;  // a word it doesn't hold, then "flee"
+    caller.sounds = {-1, -1};
+    caller.call2 = FirstCall + 4;
+    caller.sounds2 = {1, -1};
+    Senses heard = simulation.sense(hearer).senses;
+    CHECK(heard[utterance2_sense(0, 4)] == 1.0);
+    CHECK(heard[utterance2_sense(1, 1)] == 1.0);
+    CHECK(heard[SenseMeantDeed + Flee] == 1.0);  // the deed-word, heard as the second word
+    CHECK_FALSE(hearer.meant_for_other);
+    caller.call = FirstCall + 2;  // the other's name, then "flee": an order for that one
+    heard = simulation.sense(hearer).senses;
+    CHECK(heard[SenseNamed + Named] == 1.0);
+    CHECK(hearer.meant_for_other);
+    CHECK_FALSE(hearer.meant_for_me);
+    caller.call = FirstCall + 3;  // its own name, then "flee": for it
+    caller.sounds = {0, 0};
+    heard = simulation.sense(hearer).senses;
+    CHECK(heard[SenseNamed + NamedMe] == 1.0);
+    CHECK(hearer.meant_for_me);
+    CHECK_FALSE(hearer.meant_for_other);
+    // Taught: the second word's sounds, or its stop after the first.
+    caller.last_call = FirstCall + 1;
+    caller.last_sounds = {-1, -1};
+    caller.last_call2 = -1;
+    CHECK(Simulation::utterance2_outputs(caller) == std::array<int, MAX_SOUNDS>{word2_output(0, -1), -1, -1});
+    caller.last_call2 = FirstCall + 2;
+    caller.last_sounds2 = {3, -1};
+    CHECK(Simulation::utterance2_outputs(caller) == std::array<int, MAX_SOUNDS>{word2_output(0, 2), word2_output(1, 3), word2_output(2, -1)});
+}
+
 TEST_CASE("trying again: a word said to one alone and not answered right may be said again, the same word and point, up to the retries") {
     Simulation simulation = world(40);
     Bitzkey& speaker = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
@@ -3064,6 +3166,81 @@ TEST_CASE("the lexicon: full, it forgets the word used least; and a newborn star
     CHECK(child.lexicon[0].regard == doctest::Approx(LEXICON_FAMILY));
 }
 
+TEST_CASE("names: a mother names her newborn with her last call, and family in sight learn it; a taken name is not reused") {
+    Simulation simulation = world(40);
+    Bitzkey& mother = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& sister = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    Bitzkey& twin = simulation.add_agent(encode_dna(Species::Grazer), 11, 11);
+    sister.mother = child.mother = twin.mother = mother.identifier;
+    simulation.index_cells();
+    mother.last_call = FirstCall + 3;
+    mother.last_sounds = {1, -1};
+    simulation.name_at_birth(child, mother);
+    CHECK(child.own_call == FirstCall + 3);
+    CHECK(child.own_sounds == std::array<int, MAX_SOUNDS - 1>{1, -1});
+    REQUIRE(mother.names.size() == 1);
+    CHECK(mother.names[0].thing == child.identifier);
+    REQUIRE(sister.names.size() == 1);  // family in sight
+    CHECK(sister.names[0].thing == child.identifier);
+    simulation.name_at_birth(twin, mother);  // the same call again: taken, so another
+    CHECK(twin.own_call >= FirstCall);
+    CHECK_FALSE((twin.own_call == child.own_call && twin.own_sounds == child.own_sounds));
+    CHECK(mother.names.size() == 2);
+}
+
+TEST_CASE("names: hearing a name it holds, it senses how close and how regarded that one is, and its own name as its own") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& named = simulation.add_agent(encode_dna(Species::Grazer), 14, 10);
+    simulation.index_cells();
+    hearer.names.push_back(LexiconWord{FirstCall + 1, {2, -1}, named.identifier, 0.5, 0});
+    caller.call = FirstCall + 1;
+    caller.sounds = {2, -1};
+    caller.call_turn = simulation.turn() - 1;
+    const Senses heard = simulation.sense(hearer).senses;
+    CHECK(heard[SenseNamed + Named] == 1.0);
+    CHECK(heard[SenseNamed + NamedCloseness] > 0.0);
+    CHECK(heard[SenseNamed + NamedMe] == 0.0);
+    CHECK(hearer.called_one == named.identifier);
+    hearer.own_call = FirstCall + 1;  // now the name is its own
+    hearer.own_sounds = {2, -1};
+    const Senses own = simulation.sense(hearer).senses;
+    CHECK(own[SenseNamed + NamedMe] == 1.0);
+    // A turn on, nearer the one named: heeded, felt as LEXICON_HEED.
+    hearer.close_turn = hearer.called_turn = simulation.turn() - 1;
+    hearer.called_close = 0.0;
+    hearer.meant_turn = -1;
+    auto judged = simulation.sense(hearer);
+    CHECK(hearer.name_heeded);
+    CHECK(judged.situation.word_reward == doctest::Approx(LEXICON_HEED));
+}
+
+TEST_CASE("names: settled by accord pointing at one; full, the dead are forgotten first; and the one pointed at is in sight") {
+    Simulation simulation = world(40);
+    Bitzkey& holder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& teacher = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
+    simulation.index_cells();
+    holder.mind[Intellect] = 0.0;
+    const int room = Simulation::names_capacity(holder);
+    REQUIRE(room == NAMES_SIZE);
+    std::vector<Bitzkey*> others;
+    for (int at = 0; at < room; ++at) others.push_back(&simulation.add_agent(encode_dna(Species::Grazer), 13 + at, 12));
+    simulation.index_cells();
+    for (int at = 0; at < room; ++at) simulation.accord(holder, teacher, FirstCall + at, {-1, -1}, PointOne, false, others[static_cast<std::size_t>(at)]->identifier);
+    REQUIRE(static_cast<int>(holder.names.size()) == room);
+    for (LexiconWord& name : holder.names) name.uses = 5;
+    others[2]->health = 0;  // dead: its name goes first, though used as much
+    Bitzkey& newcomer = simulation.add_agent(encode_dna(Species::Grazer), 10, 12);
+    simulation.index_cells();
+    simulation.accord(holder, teacher, FirstCall, {3, -1}, PointOne, false, newcomer.identifier);
+    CHECK(static_cast<int>(holder.names.size()) == room);
+    CHECK(std::none_of(holder.names.begin(), holder.names.end(), [&](const LexiconWord& n) { return n.thing == others[2]->identifier; }));
+    CHECK(simulation.one_to_point_at(holder, -1) == newcomer.identifier);  // the nearest it has a name for
+    CHECK(simulation.one_to_point_at(holder, teacher.identifier) == teacher.identifier);  // or the one preferred, in sight
+}
+
 TEST_CASE("the lexicon: hearing a word it holds, it senses what is meant; pointing at a thing it has a word for, it says it") {
     Simulation simulation = world(40);
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
@@ -3144,6 +3321,43 @@ TEST_CASE("heeding a word: nearer the thing next turn is felt, and more for goin
     hearer.meant_close = hearer.was_close[7] + 0.2;
     auto fled = simulation.sense(hearer);
     CHECK(fled.situation.word_reward == doctest::Approx(LEXICON_ACT));
+}
+
+TEST_CASE("sense of duty rises with loyalty, kinship and sociability, falls with dominance, and colours doing as one it heeds said") {
+    Simulation simulation = world(40);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    hearer.mind[Loyalty] = hearer.mind[Kinship] = hearer.mind[Sociability] = 7.0;
+    hearer.mind[Dominance] = 0.0;
+    CHECK(Simulation::duty(hearer) == doctest::Approx(TRAIT_MAX));
+    hearer.mind[Dominance] = 3.5;
+    CHECK(Simulation::duty(hearer) == doctest::Approx(TRAIT_MAX / 2.0));
+    hearer.mind[Dominance] = 7.0;
+    CHECK(Simulation::duty(hearer) == doctest::Approx(0.0));  // a rebel
+    hearer.mind[Dominance] = 0.0;
+    hearer.mind[Loyalty] = hearer.mind[Kinship] = hearer.mind[Sociability] = 1.0;
+    CHECK(Simulation::duty(hearer) == doctest::Approx(1.0));  // left to chance
+    // Did as told by one it regards well: the deed's joy times 1 plus DUTY_FELT times its duty less 1.
+    simulation.index_cells();
+    hearer.mind[Loyalty] = hearer.mind[Kinship] = hearer.mind[Sociability] = 7.0;
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.meant_thing = 7;
+    hearer.meant_close = hearer.was_close[7];  // neither nearer nor further
+    hearer.meant_deed = hearer.last_choice = Rest;
+    hearer.meant_liked = true;
+    auto dutiful = simulation.sense(hearer);
+    CHECK(hearer.judged_liked);
+    CHECK(dutiful.situation.word_reward == doctest::Approx(LEXICON_ACT * (1.0 + DUTY_FELT * (TRAIT_MAX - 1.0))));
+    hearer.mind[Dominance] = 7.0;  // a rebel feels it as unease
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.meant_close = hearer.was_close[7];
+    hearer.meant_liked = true;
+    auto rebel = simulation.sense(hearer);
+    CHECK(rebel.situation.word_reward == doctest::Approx(LEXICON_ACT * (1.0 - DUTY_FELT)));
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;  // told by a stranger: as before
+    hearer.meant_close = hearer.was_close[7];
+    hearer.meant_liked = false;
+    auto stranger = simulation.sense(hearer);
+    CHECK(stranger.situation.word_reward == doctest::Approx(LEXICON_ACT));
 }
 
 TEST_CASE("heeding a word: an animal learns how it fares going nearer each thing, and further") {
@@ -4531,8 +4745,11 @@ TEST_CASE("pointing: a caller points at one outside thing, its hearers read the 
     CHECK(OUTPUTS[POINT] == "point_threat");
     CHECK(OUTPUTS[ATTEND - 1] == "point_comfort");
     CHECK(OUTPUTS[ATTEND + AttendYes] == "attend");
-    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "ignore");
-    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN + ATTEND_OPTIONS);
+    CHECK(OUTPUTS[ATTEND + AttendNo] == "ignore");
+    CHECK(OUTPUTS[POINT_ONE] == "point_one");  // and pointing at one animal (see NAMES_SIZE)
+    CHECK(OUTPUTS[POINT_SELF] == "point_self");  // and at itself (see DEEDS_SIZE)
+    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "sixth_call_5");  // then a second word's sounds (see CALL_WORDS)
+    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN + ATTEND_OPTIONS + 2 + MAX_SOUNDS * SOUND_CHOICES);
     CHECK(SENSES[SensePointed + PointedAny] == "pointed");
     CHECK(SENSES[SensePointed + PointedCloseness] == "pointed_closeness");
     CHECK(SENSES[SensePointed + Attending] == "attending");
@@ -4571,7 +4788,8 @@ TEST_CASE("pointing: a caller points at one outside thing, its hearers read the 
                 CHECK(agent->attend_turn >= agent->pointed_turn - 1);
                 CHECK(agent->pointed_by >= 0);
             }
-            CHECK(agent->point < OUTSIDE_SEEN);
+            CHECK(agent->point <= PointSelf);
+            if (agent->point == PointOne) CHECK(agent->point_one >= 0);
             if (agent->point >= 0) {
                 pointed = true;
                 CHECK(agent->point_turn <= agent->call_turn);  // only a call points

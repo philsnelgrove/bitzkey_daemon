@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "Czyn stosowny do słowa",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "radość za każdy sposób, w jaki to, co zrobiło, słysząc znane słowo, było stosowne: zbliżyło się do rzeczy, jeśli jego własne życie uznało ją za dobrą, lub oddaliło, jeśli za złą; i zrobiło to, co mówiący",
 "Lexicon worth rate": "Tempo oceny",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "jak szybko zwierzę uczy się z własnego życia, jak mu się wiedzie bliżej każdej rzeczy, w porównaniu z dalej"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "jak szybko zwierzę uczy się z własnego życia, jak mu się wiedzie bliżej każdej rzeczy, w porównaniu z dalej",
+"Duty sway": "Siła poczucia obowiązku",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "jak mocno poczucie obowiązku kieruje tym, komu rodzina lub ktoś ceniony powie słowo: czyn mówiącego staje się tyle razy bardziej prawdopodobny, ile wynosi jego obowiązek do tej potęgi (obowiązek 1 to przypadek, 0 go unika)",
+"Duty felt": "Odczuwany obowiązek",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "jak bardzo poczucie obowiązku zabarwia radość z robienia tego, co powiedziała rodzina lub ktoś ceniony: razy 1 plus to razy obowiązek minus 1, niepokój dla buntownika",
+"Names size": "Liczba imion",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "imiona, jakie zwierzę może zapamiętać na każdy punkt intelektu i jedno więcej: słowa, każde dla jednego zwierzęcia, nadane przez matkę przy narodzinach i ustalane w zgodzie, wskazując na nie; 0 to brak imion",
+"Deed-words size": "Liczba słów czynności",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "słowa czynności, jakie zwierzę może zapamiętać na każdy punkt intelektu i jedno więcej: słowa na to, co się robi, mówione wskazując na siebie i uczone przez powtórzenie słowa podczas wykonywania domysłu; 0 to brak",
+"Call words": "Słowa w zawołaniu",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "najwięcej słów w zawołaniu: 2 pozwala po pierwszym słowie dodać drugie, wybierane dźwięk po dźwięku; zawołanie z imieniem jest do tego, kto je nosi; 1 jedno słowo"
 }

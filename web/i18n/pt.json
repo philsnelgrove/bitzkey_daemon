@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "Ato adequado à palavra",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "alegria por cada maneira em que o que fez ao ouvir uma palavra conhecida foi adequado: aproximou-se da coisa se a sua própria vida a achou boa, ou afastou-se se má; e fez o que fazia quem falou",
 "Lexicon worth rate": "Ritmo de avaliação",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "com que rapidez um animal aprende da sua própria vida como se dá perto de cada coisa, em comparação com longe"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "com que rapidez um animal aprende da sua própria vida como se dá perto de cada coisa, em comparação com longe",
+"Duty sway": "Influência do dever",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "quanto o senso de dever influencia quem ouve uma palavra da família ou de alguém que estima: o ato de quem fala fica tantas vezes mais provável quanto o seu dever elevado a esta potência (dever 1 é acaso, 0 evita-o)",
+"Duty felt": "Dever sentido",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "quanto o senso de dever tinge a alegria de fazer o que a família ou alguém estimado disse: vezes 1 mais isto vezes o seu dever menos 1, inquietação para um rebelde",
+"Names size": "Quantidade de nomes",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "nomes que um animal pode guardar por cada ponto de intelecto, e mais um: palavras cada uma para um animal, dadas pela mãe ao nascer e fixadas por acordo, apontando para ele; 0 para nenhum",
+"Deed-words size": "Quantidade de palavras de ação",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "palavras de ação que um animal pode guardar por cada ponto de intelecto, e mais uma: palavras para o que se faz, ditas apontando para si e aprendidas repetindo a palavra enquanto faz o que adivinha; 0 para nenhuma",
+"Call words": "Palavras por chamado",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "o máximo de palavras num chamado: 2 permite seguir com uma segunda palavra após a primeira, escolhida som a som; um chamado com um nome é para quem assim se chama; 1 uma só palavra"
 }

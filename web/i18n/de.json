@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "Passende Tat zum Wort",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "Freude für jede Weise, in der sein Tun nach dem Hören eines bekannten Wortes passte: es ging dem Ding näher, wenn sein eigenes Leben das gut fand, oder weiter weg, wenn schlecht; und es tat, was der Sprecher tat",
 "Lexicon worth rate": "Lernrate des Werts",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "wie schnell ein Tier aus seinem eigenen Leben lernt, wie es ihm näher an jedem Ding ergeht, gegenüber weiter weg"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "wie schnell ein Tier aus seinem eigenen Leben lernt, wie es ihm näher an jedem Ding ergeht, gegenüber weiter weg",
+"Duty sway": "Pflichtgefühl-Einfluss",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "wie stark das Pflichtgefühl eines leitet, dem Familie oder ein Geschätzter mit einem Wort etwas sagt: die Tat des Sprechers wird so oft wahrscheinlicher wie sein Pflichtgefühl hoch diesem Wert (Pflicht 1 ist Zufall, 0 meidet sie)",
+"Duty felt": "Gefühlte Pflicht",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "wie sehr das Pflichtgefühl die Freude färbt, zu tun, was Familie oder ein Geschätzter sagte: mal 1 plus dieser Wert mal Pflicht weniger 1, Unbehagen für einen Rebellen",
+"Names size": "Anzahl der Namen",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "Namen, die ein Tier je Punkt Intellekt und einen mehr behalten kann: Wörter für je ein Tier, bei der Geburt von der Mutter gegeben und durch Einigung festgelegt, indem man auf dieses zeigt; 0 für keine Namen",
+"Deed-words size": "Anzahl der Tatwörter",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "Tatwörter, die ein Tier je Punkt Intellekt und eines mehr behalten kann: Wörter für das, was man tut, gesagt, während man auf sich selbst zeigt, und gelernt, indem man das Wort zurücksagt und dabei eine Vermutung tut; 0 für keine",
+"Call words": "Wörter pro Ruf",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "die meisten Wörter, die ein Ruf enthalten kann: 2 lässt einen Ruf nach dem ersten Wort ein zweites anfügen, Laut für Laut gewählt; ein Ruf mit einem Namen gilt dem so Benannten; 1 ein einziges Wort"
 }

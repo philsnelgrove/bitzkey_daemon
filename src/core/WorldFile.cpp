@@ -288,7 +288,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward, agent.judged_thing, agent.judged_deed, agent.unknown_turn, agent.unknown_deed, agent.unknown_judged_turn, agent.unknown_same ? 1 : 0}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"longing", {agent.longing_kind, agent.longing, agent.longing_for, agent.longing_x, agent.longing_y, agent.longing_turn, agent.longing_away, agent.longing_closer, agent.longing_farther, agent.longings_reached, agent.longings_faded, agent.beside_companion, agent.beside_care, agent.fire_x, agent.fire_y, agent.shelter_x, agent.shelter_y, agent.joy_thing, agent.joy_best, agent.joy_seen ? 1 : 0, agent.missing, agent.missing_care, agent.missing_for}}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"names", lexicon_record(agent.names)}, {"deeds", lexicon_record(agent.deeds)}, {"second_word", {agent.call2, agent.sounds2[0], agent.sounds2[1], agent.last_call2, agent.last_sounds2[0], agent.last_sounds2[1], agent.meant_for_me ? 1 : 0, agent.meant_for_other ? 1 : 0, agent.judged_for_me ? 1 : 0}}, {"deed_heed", {agent.deed_spoke_turn, agent.meant_by_deed ? 1 : 0, agent.judged_by_deed ? 1 : 0, agent.echo_turn}}, {"own_name", {agent.own_call, agent.own_sounds[0], agent.own_sounds[1]}}, {"name_heed", {agent.name_spoke_turn, agent.called_turn, agent.called_one, agent.called_close, agent.called_me_turn, agent.name_judged_turn, agent.name_heeded ? 1 : 0, agent.name_reward}}, {"word_one", agent.word_one}, {"learn_one", agent.learn_one}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward, agent.judged_thing, agent.judged_deed, agent.unknown_turn, agent.unknown_deed, agent.unknown_judged_turn, agent.unknown_same ? 1 : 0, agent.meant_liked ? 1 : 0, agent.judged_liked ? 1 : 0}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"longing", {agent.longing_kind, agent.longing, agent.longing_for, agent.longing_x, agent.longing_y, agent.longing_turn, agent.longing_away, agent.longing_closer, agent.longing_farther, agent.longings_reached, agent.longings_faded, agent.beside_companion, agent.beside_care, agent.fire_x, agent.fire_y, agent.shelter_x, agent.shelter_y, agent.joy_thing, agent.joy_best, agent.joy_seen ? 1 : 0, agent.missing, agent.missing_care, agent.missing_for}}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -309,13 +309,15 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
     if (agent.call_held) {  // its call's lesson, held till its listeners' turn is judged: by the outputs' names
         json outputs = json::array();
         for (const int output : agent.call_outputs) outputs.push_back(output >= 0 ? json(std::string(OUTPUTS[static_cast<std::size_t>(output)])) : json(nullptr));
-        record["held_call"] = {{"senses", numbers.senses(agent.call_senses)}, {"outputs", outputs}, {"target", agent.held_call_target}};
+        json outputs2 = json::array();
+        for (const int output : agent.call2_outputs) outputs2.push_back(output >= 0 ? json(std::string(OUTPUTS[static_cast<std::size_t>(output)])) : json(nullptr));
+        record["held_call"] = {{"senses", numbers.senses(agent.call_senses)}, {"outputs", outputs}, {"outputs2", outputs2}, {"target", agent.held_call_target}};
         if (agent.held_intent >= 0) record["held_call"]["intent"] = agent.held_intent;
         if (agent.held_point >= 0) record["held_call"]["point"] = agent.held_point;
         if (agent.held_learn != 0.0) record["held_call"]["learn"] = agent.held_learn;
     }
     if (agent.intent >= 0) record["intent"] = agent.intent;
-    if (agent.point >= 0 || agent.prior_point >= 0) record["point"] = {agent.point, agent.point_turn, agent.prior_point, agent.prior_point_turn};
+    if (agent.point >= 0 || agent.prior_point >= 0) record["point"] = {agent.point, agent.point_turn, agent.prior_point, agent.prior_point_turn, agent.point_one, agent.prior_point_one};
     if (agent.pointed_turn >= 0) record["pointed"] = {agent.pointed_by, agent.pointed_thing, agent.pointed_turn, agent.pointed_off};
     if (agent.attend_turn >= 0 || agent.attend_choice >= 0) record["attend"] = {agent.attending, agent.attend_turn, agent.attend_choice};
     json places = json::array();  // each [column, row, last, then for each season: seen, food, danger, comfort]
@@ -552,7 +554,56 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             agent->unknown_judged_turn = h.at(14).get<int>();
             agent->unknown_same = h.at(15).get<int>() != 0;
         }
+        if (h.size() > 17) {
+            agent->meant_liked = h.at(16).get<int>() != 0;
+            agent->judged_liked = h.at(17).get<int>() != 0;
+        }
     }
+    if (record.contains("names")) {  // see NAMES_SIZE: as the lexicon, each thing the one named
+        for (const json& w : record.at("names")) {
+            agent->names.push_back(LexiconWord{w.at(0).get<int>(), {w.at(1).get<int>(), w.at(2).get<int>()}, w.at(3).get<int>(), w.at(4).get<double>(), w.at(5).get<int>()});
+        }
+    }
+    if (record.contains("deeds")) {  // see DEEDS_SIZE: as the lexicon, each thing an action
+        for (const json& w : record.at("deeds")) {
+            agent->deeds.push_back(LexiconWord{w.at(0).get<int>(), {w.at(1).get<int>(), w.at(2).get<int>()}, w.at(3).get<int>(), w.at(4).get<double>(), w.at(5).get<int>()});
+        }
+    }
+    if (record.contains("second_word")) {  // see CALL_WORDS
+        const json& w = record.at("second_word");
+        agent->call2 = w.at(0).get<int>();
+        agent->sounds2 = {w.at(1).get<int>(), w.at(2).get<int>()};
+        agent->last_call2 = w.at(3).get<int>();
+        agent->last_sounds2 = {w.at(4).get<int>(), w.at(5).get<int>()};
+        agent->meant_for_me = w.at(6).get<int>() != 0;
+        agent->meant_for_other = w.at(7).get<int>() != 0;
+        agent->judged_for_me = w.at(8).get<int>() != 0;
+    }
+    if (record.contains("deed_heed")) {
+        const json& d = record.at("deed_heed");
+        agent->deed_spoke_turn = d.at(0).get<int>();
+        agent->meant_by_deed = d.at(1).get<int>() != 0;
+        agent->judged_by_deed = d.at(2).get<int>() != 0;
+        agent->echo_turn = d.at(3).get<int>();
+    }
+    if (record.contains("own_name")) {
+        const json& own = record.at("own_name");
+        agent->own_call = own.at(0).get<int>();
+        agent->own_sounds = {own.at(1).get<int>(), own.at(2).get<int>()};
+    }
+    if (record.contains("name_heed")) {
+        const json& n = record.at("name_heed");
+        agent->name_spoke_turn = n.at(0).get<int>();
+        agent->called_turn = n.at(1).get<int>();
+        agent->called_one = n.at(2).get<int>();
+        agent->called_close = n.at(3).get<double>();
+        agent->called_me_turn = n.at(4).get<int>();
+        agent->name_judged_turn = n.at(5).get<int>();
+        agent->name_heeded = n.at(6).get<int>() != 0;
+        agent->name_reward = n.at(7).get<double>();
+    }
+    agent->word_one = record.value("word_one", -1);
+    agent->learn_one = record.value("learn_one", -1);
     if (record.contains("lexicon")) {  // see LEXICON_SIZE: each word as call, its two later sounds, thing, regard, uses
         for (const json& w : record.at("lexicon")) {
             agent->lexicon.push_back(LexiconWord{w.at(0).get<int>(), {w.at(1).get<int>(), w.at(2).get<int>()}, w.at(3).get<int>(), w.at(4).get<double>(), w.at(5).get<int>()});
@@ -616,6 +667,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->point_turn = point.at(1).get<int>();
         agent->prior_point = point.at(2).get<int>();
         agent->prior_point_turn = point.at(3).get<int>();
+        if (point.size() > 5) {
+            agent->point_one = point.at(4).get<int>();
+            agent->prior_point_one = point.at(5).get<int>();
+        }
     }
     if (record.contains("pointed")) {  // the finger it last read, and how surprised by that thing it then was
         const json& pointed = record["pointed"];
@@ -664,6 +719,11 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             const json& name = held.at("outputs").at(place);
             const auto found = name.is_null() ? OUTPUTS.end() : std::find(OUTPUTS.begin(), OUTPUTS.end(), name.get<std::string>());
             agent->call_outputs[place] = found == OUTPUTS.end() ? -1 : static_cast<int>(found - OUTPUTS.begin());
+        }
+        for (std::size_t place = 0; held.contains("outputs2") && place < MAX_SOUNDS; ++place) {
+            const json& name = held.at("outputs2").at(place);
+            const auto found = name.is_null() ? OUTPUTS.end() : std::find(OUTPUTS.begin(), OUTPUTS.end(), name.get<std::string>());
+            agent->call2_outputs[place] = found == OUTPUTS.end() ? -1 : static_cast<int>(found - OUTPUTS.begin());
         }
         agent->call_held = true;
     }

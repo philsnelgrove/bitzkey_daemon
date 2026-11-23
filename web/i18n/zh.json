@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "合乎词语的行为",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "听到熟知的词后所做之事合宜的每一种方式所得的喜悦：若自身经历认为该物好就靠近，认为坏就远离；以及做了说话者所做的事",
 "Lexicon worth rate": "价值学习速度",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "动物从自身经历中学习靠近每样事物与远离相比境况如何的速度"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "动物从自身经历中学习靠近每样事物与远离相比境况如何的速度",
+"Duty sway": "责任感的影响",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "责任感对听到家人或所敬重者一句话的个体影响多大:说话者的行为可能性变为其责任感的此次幂倍(责任感1为随机,0则回避)",
+"Duty felt": "责任的感受",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "责任感对照家人或所敬重者所说去做的喜悦影响多大:乘以1加此值乘(责任感减1),对叛逆者则为不安",
+"Names size": "名字数量",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "每点智力加一个,动物能记住的名字数:每个词指一只动物,出生时由母亲取名,并通过指着它达成一致而确定;0为没有名字",
+"Deed-words size": "行为词数量",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "每点智力加一个,动物能记住的行为词数:表示自己正在做之事的词,指着自己说出,学习者一边做所猜的行为一边复述该词来学会;0为没有",
+"Call words": "叫声词数",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "一次叫声最多包含的词数:2表示在第一个词之后可以接第二个词,逐音选择;含有名字的叫声是对该名字的主人说的;1为单个词"
 }

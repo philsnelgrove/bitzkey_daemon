@@ -2146,5 +2146,15 @@
 "Lexicon fitting deed": "語にふさわしい行い",
 "joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "知っている語を聞いて取った行いがふさわしかった方法ごとの喜び：自分の生でそのものを良いと知れば近づき、悪いと知れば遠ざかった。そして話し手と同じことをした",
 "Lexicon worth rate": "価値を学ぶ速さ",
-"how fast an animal learns from its own life how it fares nearer each thing, against further": "動物が自分の生から、各ものの近くでどう過ごせるかを遠くと比べて学ぶ速さ"
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "動物が自分の生から、各ものの近くでどう過ごせるかを遠くと比べて学ぶ速さ",
+"Duty sway": "義務感の影響",
+"how strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it)": "家族や好意を持つ相手から言葉で告げられた者を義務感がどれだけ動かすか:話し手の行動が、義務感のこの値乗倍だけ起こりやすくなる(義務感1は偶然、0は避ける)",
+"Duty felt": "感じる義務",
+"how much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel": "家族や好意を持つ相手に言われた通りにする喜びを義務感がどれだけ彩るか:1+この値×(義務感−1)倍、反抗者には不快",
+"Names size": "名前の数",
+"names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names": "知性1点ごとに、さらに1つ多く、動物が覚えられる名前の数:それぞれ1匹の動物を指す言葉で、生まれたときに母親が与え、その相手を指さしながら合意で定まる。0で名前なし",
+"Deed-words size": "行動語の数",
+"deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none": "知性1点ごとに、さらに1つ多く、動物が覚えられる行動語の数:自分がしていることを表す言葉で、自分を指さしながら言い、推測した行動をしながら言い返して覚える。0でなし",
+"Call words": "呼び声の語数",
+"the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word": "呼び声に含められる最大の語数:2なら最初の語の後に、音を一つずつ選んで二つ目の語を続けられる。名前を含む呼び声はその名の者に向けたもの。1なら一語のみ"
 }

@@ -438,6 +438,33 @@ inline double LEXICON_INHERIT = 0.5;
 inline double LEXICON_HEED = 0.1;
 inline double LEXICON_ACT = 0.2;
 inline double LEXICON_WORTH_RATE = 0.05;
+// Sense of duty (the user's idea), a hidden trait from 0 to 7: TRAIT_MAX times the mean of its loyalty, kinship and
+// sociability, times one less its dominance. Told (a word it holds heard from one it regards well, or family) and the
+// teller's deed among its options, it is that many times as likely to do it, raised to DUTY_SWAY: 1 leaves it to
+// chance, 0 a rebel who shuns it. And doing it, its LEXICON_ACT for the deed is felt times 1 plus DUTY_FELT times its
+// duty less 1: more for the dutiful, less, or unease, for the rebel.
+inline double DUTY_SWAY = 1.0;
+inline double DUTY_FELT = 0.5;
+// Names (the user's design): each animal holds names, words each for one animal, NAMES_SIZE for each point of
+// intellect and one more, settled as words are: a name said pointing at that one (PointOne), said back pointing at the
+// same one, or corrected; overridden, witnessed and inherited by the same rules. Full, it forgets the dead first, then
+// the name used least. At birth its mother names it, with the call she last made if none she names has it, else
+// another; the newborn knows that name as its own, and family in sight learn it. Pointing at one it holds a name for,
+// it says the name as it says a word (LEXICON_SPEAK); hearing a name it holds, it senses how close that one is, how it
+// regards it, and whether the name is its own; next turn, nearer that one, it feels LEXICON_HEED. 0 for none.
+inline int NAMES_SIZE = 4;
+// Deed-words (the user's design): words each for a deed, DEEDS_SIZE for each point of intellect and one more, apart
+// from the words for things. A caller may point at itself (PointSelf): its word then means what it is doing. Pointing
+// so at a deed it has a word for, it says the word (LEXICON_SPEAK). One addressed with a deed-word, choosing to speak,
+// says it back as it does whatever it does: its guess, right if it is the speaker's deed; settled, corrected,
+// overridden, witnessed and inherited as words are. Hearing a deed-word it holds, it senses the deed meant, and duty
+// (DUTY_SWAY) and heeding's doing as said (LEXICON_ACT) follow that deed, not what the speaker happens to do. 0 for none.
+inline int DEEDS_SIZE = 4;
+// A second word (the user's design): after its first word, a call may go on to a second, chosen sound by sound by its
+// brain alone, as the first; hearers hear both, and a word of either may be one they hold, a thing, deed or name. A
+// call that holds a name the hearer has for another is an order for that one: duty does not sway the hearer; one that
+// holds its own name is for it. CALL_WORDS 1 for a single word, as before.
+inline int CALL_WORDS = 2;
 struct LexiconWord {
     int call = -1;                                    // its first sound, as a call
     std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};   // and its later sounds, -1 where it stops
@@ -1301,16 +1328,39 @@ struct Bitzkey {
     int learn_call = -1;                // the word's first sound it said back, as a call
     double corrected_gain = 0.0;        // this turn: its wrong guess corrected, what that was worth (see LEARN_CORRECTED)
     int corrected_thing = -1;           // and the thing the speaker meant
+    int corrected_one = -1;             // and, the thing PointOne, the one it named
     double learn_bonus = 0.0;           // this turn: what right guesses of its words were worth, taught with its call
     double word_understood = 0.0;       // this turn: how much less surprised it is by what the one it heard pointed at
     int word_turn = -1;                 // the last turn it addressed one with a word and a point (see ADDRESS_RETRIES)
     int word_call = -1;                 // that word's first sound, as a call
     std::array<int, MAX_SOUNDS - 1> word_sounds{-1, -1};  // and its later sounds
     int word_point = -1;                // what it pointed at
+    int word_one = -1;                  // and, pointing at one animal, which
     int word_tries = 0;                 // how many times it has said it again, unanswered
     int learn_thing = -1;               // the thing the one it said a word back to had pointed at
+    int learn_one = -1;                 // and, pointing at one animal, which
     std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and the later sounds of the word it said back
     std::vector<LexiconWord> lexicon;   // the words it has settled (see LEXICON_SIZE)
+    std::vector<LexiconWord> names;     // the names it has settled, each word's thing the named one (see NAMES_SIZE)
+    std::vector<LexiconWord> deeds;     // the deed-words it has settled, each word's thing an action (see DEEDS_SIZE)
+    int deed_spoke_turn = -1;           // the last turn it said a deed-word
+    bool meant_by_deed = false;         // whether the word it last heard (meant_turn) was a deed-word, meant_deed its deed
+    bool judged_by_deed = false;        // and the word it was last judged on
+    int echo_turn = -1;                 // the last turn it said a deed-word back, doing its guess
+    int call2 = -1, last_call2 = -1;    // its call's second word (see CALL_WORDS): first sound as a call, -1 none,
+    std::array<int, MAX_SOUNDS - 1> sounds2{-1, -1}, last_sounds2{-1, -1};  // and later sounds
+    std::array<int, MAX_SOUNDS> call2_outputs{-1, -1, -1};  // with its held call, the second word's outputs
+    bool meant_for_me = false, meant_for_other = false;  // the call it last heard held its own name; a name for another
+    bool judged_for_me = false;         // and the word it was last judged on came with its own name
+    int own_call = -1;                  // its own name, given at birth: first sound, as a call,
+    std::array<int, MAX_SOUNDS - 1> own_sounds{-1, -1};  // and later sounds
+    int name_spoke_turn = -1;           // the last turn it said a name
+    int called_turn = -1, called_one = -1;  // the last turn it heard a name it holds, and of whom
+    double called_close = 0.0;          // how close that one was then
+    int called_me_turn = -1;            // the last turn it heard its own name
+    int name_judged_turn = -1;          // the last turn it was judged on a name heard: whether it came nearer that one
+    bool name_heeded = false;
+    double name_reward = 0.0;           // what that was worth, felt that turn
     int lexicon_spoke_turn = -1;        // the last turn it said a word from its lexicon
     // Its own experience of each outside thing (see LEXICON_ACT): how it felt the turn after going nearer it, and further.
     std::array<double, OUTSIDE_SEEN> nearer_comfort{}, farther_comfort{};
@@ -1324,6 +1374,7 @@ struct Bitzkey {
     int judged_turn = -1;               // the last turn it was judged on a word heard, and how: (see LEXICON_HEED)
     bool heeded = false, acted_good = false, acted_same = false;
     int judged_thing = -1, judged_deed = -1;  // the thing and the speaker's deed it was judged on
+    bool meant_liked = false, judged_liked = false;  // whether the speaker was family or regarded well (see DUTY_SWAY)
     // For the probe's chance, near a speaker: the last turn it heard a call that was no word it holds, the caller's deed
     // then, and whether it did the same next turn (judged when unknown_judged_turn).
     int unknown_turn = -1, unknown_deed = -1, unknown_judged_turn = -1;
@@ -1404,6 +1455,11 @@ struct Bitzkey {
     double understood_sum = 0.0;
     int understood_count = 0;
     int pointed_at(int turn) const { return point_turn == turn ? point : prior_point_turn == turn ? prior_point : -1; }
+    int point_one = -1, prior_point_one = -1;  // the animal pointed at, when the point is PointOne; its deed, PointSelf
+    int pointed_one_at(int turn) const {
+        const auto meaning = [](int at) { return at == PointOne || at == PointSelf; };
+        return point_turn == turn ? (meaning(point) ? point_one : -1) : prior_point_turn == turn && meaning(prior_point) ? prior_point_one : -1;
+    }
     // Attention (see ATTENTION): whom it turned its attention to and the turn (-1 none), so it sees that one's finger the
     // turn after; and whether it chose to attend (AttendYes, AttendNo) as it last had someone to attend to, -1 none, with
     // the senses it chose by, to be taught by what came of its turn.
@@ -1862,14 +1918,24 @@ public:
     };
     const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
     struct LexiconTally {  // since the world began or was loaded: words taken into lexicons, and how
-        long long agreed = 0, witnessed = 0, inherited = 0, confirmed = 0, overridden = 0, refused = 0;
+        long long agreed = 0, witnessed = 0, inherited = 0, confirmed = 0, overridden = 0, refused = 0, named_at_birth = 0;
     };
     const std::array<LexiconTally, 4>& lexicon_tally() const { return lexicon_tally_; }
+    const std::array<LexiconTally, 4>& name_tally() const { return name_tally_; }  // the same, of names
+    const std::array<LexiconTally, 4>& deed_tally() const { return deed_tally_; }  // and of deed-words
+    static int deeds_capacity(const Bitzkey& agent);  // how many deed-words it can hold
+    static int names_capacity(const Bitzkey& agent);  // how many names it can hold
+    // The one it would point at (PointOne): `prefer` if in its sight, else the nearest it holds a name for, else the
+    // nearest of its kind; -1 none.
+    int one_to_point_at(const Bitzkey& agent, int prefer) const;
+    double one_closeness(const Bitzkey& agent, int one, int sight) const;  // how close that one is, 0 out of sight
+    void name_at_birth(Bitzkey& child, Bitzkey& mother);  // its mother names it (see NAMES_SIZE)
     static int lexicon_capacity(const Bitzkey& agent);  // how many words it can hold
     // A word settled with `teacher` (or seen settled, `witnessed`), taken into `who`'s lexicon as the rule allows.
-    void accord(Bitzkey& who, const Bitzkey& teacher, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing, bool witnessed = false);
+    // A thing PointOne is a name: `one` the one it names, into its names; PointSelf a deed-word, `one` the deed.
+    void accord(Bitzkey& who, const Bitzkey& teacher, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing, bool witnessed = false, int one = -1);
     void inherit_words(Bitzkey& child, const Bitzkey& parent);  // a newborn's share of a parent's words
-    void witness_word(const Bitzkey& learner, const Bitzkey& speaker, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing);
+    void witness_word(const Bitzkey& learner, const Bitzkey& speaker, int call, const std::array<int, MAX_SOUNDS - 1>& sounds, int thing, int one = -1);
     // The same over a window the probe opens, with bystanders: those of the caller's kind within BYSTANDER_REACH of it
     // who chose as its hearers did but heard no call, or heard another's loudest; and how many of them did its intent.
     struct IntentWindow {
@@ -1977,6 +2043,7 @@ public:
         Bitzkey* addressee = nullptr;    // whom it would address: the nearest it knows in sight, else the nearest of its kind
         Bitzkey* learn_by = nullptr;     // one who spoke to it alone and pointed, whose word it may say back (see Learn)
         int learn_thing = -1, learn_call = -1;  // what that one pointed at, and its call
+        int learn_one = -1;                     // and, pointing at one animal, which
         std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and its later sounds
         int meant = -1;                  // the thing the word it heard means, from its lexicon; -1 none
         double word_reward = 0.0;        // heeding the word it heard last turn, felt now (see LEXICON_HEED)
@@ -2076,6 +2143,8 @@ public:
     // The outputs its last call is learnt by: its first sound's (or silence's, or the alert's), then where it went on to,
     // or stopped, at each later place offered; -1 for places it never reached.
     static std::array<int, MAX_SOUNDS> utterance_outputs(const Bitzkey& agent);
+    static std::array<int, MAX_SOUNDS> utterance2_outputs(const Bitzkey& agent);  // its last call's second word, or its stop
+    static bool says(const Bitzkey& caller, int call, const std::array<int, MAX_SOUNDS - 1>& sounds);  // a word of its call
     static int sounds_made(const Bitzkey& agent);  // how many sounds its current call has, 0 silent or alerting
     void culture_seen(Bitzkey& seer, const Bitzkey& doer, Culture culture);  // the esteem its kind's culture gives the deed
     double regard_for(const Bitzkey& agent, const Bitzkey& other) const;  // of it, or else of its colour; 0 for neither
@@ -2378,6 +2447,7 @@ public:
     }
     void add_scruples(const Bitzkey& agent, Values& valued, const Situation& s) const;
     int sight_now(const Bitzkey& agent) const;  // its sight, less out of its own hours (OFF_HOURS_SIGHT)
+    static double duty(const Bitzkey& agent);  // sense of duty, 0..7: 1 is chance (see DUTY_SWAY)
     static double gluttony(const Bitzkey& agent);  // a half, plus half its appetite, less half its kinship, 0..1
     static double gluttony_unease(const Bitzkey& agent, double hunger_before);  // for a meal begun that hungry
     static double generosity(const Bitzkey& agent);  // the strongest of patience, sociability and empathy, less that of dominance, aggression and appetite
@@ -2623,6 +2693,8 @@ private:
     std::array<IntentTally, 4> intent_tally_{};
     std::array<PointTally, 4> point_tally_{};
     std::array<LexiconTally, 4> lexicon_tally_{};
+    std::array<LexiconTally, 4> name_tally_{};
+    std::array<LexiconTally, 4> deed_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;
     std::array<std::array<std::array<long long, 3>, CALL_COUNT>, 4> call_payoffs_{};  // escapes, meals, and calls understood
