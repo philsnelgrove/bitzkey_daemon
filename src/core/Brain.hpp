@@ -359,16 +359,21 @@ constexpr int POINT_SENSES = 6;
 constexpr int SensePointed = SenseVoice + VOICE_SENSES;
 // Imagining: last of all its senses, the action it pictures itself taking, a -1 or 1 for each bit of its number, or all 0
 // when it pictures nothing, as when it values its actions. Only its foresight is taught with them set.
-// Then its longing (see Simulation's LONGING): how strong, 0..1, and for what kind of thing, 1 for its kind and 0 for the
-// rest: a companion, a fire, a shelter, or the thing it was nearest at its greatest joy. Never where: that it must remember.
-enum LongingSense : int { LongingStrength, LongingCompanion, LongingFire, LongingShelter, LongingJoy };
-constexpr int LONGING_SENSES = 5;
-constexpr int SenseLonging = SensePointed + POINT_SENSES;
+// Then its goal (see Simulation's GOAL_JOY): 1 while it holds one; its urgency, 0..1; how close what it seeks is, 0 out
+// of sight or for a deed; for an animal sought, how it regards it, -1..1, and 1 for family; which need it serves, one
+// for each; then what it seeks: one of the outside things, one for each; 1 for an animal; or a deed, one for each.
+enum GoalSense : int { Goal, GoalUrgency, GoalCloseness, GoalOneRegard, GoalOneFamily, GoalNeed };
+constexpr int GOAL_NEEDS = 6;
+constexpr int GoalThing = GoalNeed + GOAL_NEEDS;
+constexpr int GoalOne = GoalThing + OUTSIDE_SEEN;
+constexpr int GoalDeed = GoalOne + 1;
+constexpr int GOAL_SENSES = GoalDeed + ACTION_COUNT;
+constexpr int SenseGoal = SensePointed + POINT_SENSES;
 // Then a word it holds in its lexicon, heard (see Simulation's LEXICON_SIZE): 1 when the loudest call it heard is one, and
 // its own closeness to the thing that word means, as it sees it.
 enum LexiconSense : int { Meant, MeantCloseness };
 constexpr int LEXICON_SENSES = 2;
-constexpr int SenseMeant = SenseLonging + LONGING_SENSES;
+constexpr int SenseMeant = SenseGoal + GOAL_SENSES;
 // Then a name it holds, heard (see Simulation's NAMES_SIZE): 1 when the loudest call it heard is one; how close the one
 // so named is, 0 out of sight; how it regards that one, -1 to 1; and 1 when the name is its own.
 enum NameSense : int { Named, NamedCloseness, NamedRegard, NamedMe };
@@ -398,7 +403,7 @@ constexpr bool signed_sense(int sense) {
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
            sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
-           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense == SenseNamed + NamedRegard || sense >= SenseImagined;
+           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense == SenseNamed + NamedRegard || sense == SenseGoal + GoalOneRegard || sense >= SenseImagined;
 }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
@@ -433,14 +438,14 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "voice_ring_likeness", "voice_dot_likeness", "voice_social_likeness", "voice_ring_red", "voice_ring_green",
     "voice_ring_blue", "voice_dot_red", "voice_dot_green", "voice_dot_blue", "voice_social_red", "voice_social_green",
     "voice_social_blue", "voice_pitch", "voice_harshness", "voice_urgency", "pointed", "pointed_closeness",
-    "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion", "longing_fire", "longing_shelter",
-    "longing_joy", "meant", "meant_closeness", "named", "named_closeness", "named_regard", "named_me",
+    "attending", "sees_pointing", "watched", "addressed", "goal", "goal_urgency", "goal_closeness", "goal_one_regard", "goal_one_family", "goal_need_hunger", "goal_need_fatigue", "goal_need_pain", "goal_need_fear", "goal_need_loneliness", "goal_need_discomfort", "goal_threat", "goal_prey", "goal_carrion", "goal_kill", "goal_grass", "goal_plant", "goal_mate", "goal_herd", "goal_parent", "goal_known", "goal_elder", "goal_foe", "goal_standout", "goal_meat_pile", "goal_fruit_pile", "goal_stone_pile", "goal_bone_pile", "goal_wood_pile", "goal_gear_pile", "goal_fire", "goal_comfort", "goal_one", "goal_deed_eat", "goal_deed_forage", "goal_deed_browse", "goal_deed_uproot", "goal_deed_scavenge", "goal_deed_feast", "goal_deed_rest", "goal_deed_court", "goal_deed_breed", "goal_deed_hunt", "goal_deed_attack", "goal_deed_defend", "goal_deed_flee", "goal_deed_herd", "goal_deed_go_north", "goal_deed_go_south", "goal_deed_go_east", "goal_deed_go_west", "goal_deed_walk_north", "goal_deed_walk_south", "goal_deed_walk_east", "goal_deed_walk_west", "goal_deed_revisit", "goal_deed_feed_young", "goal_deed_teach", "goal_deed_take_meat", "goal_deed_take_fruit", "goal_deed_drop_meat", "goal_deed_drop_fruit", "goal_deed_eat_pile", "goal_deed_eat_carried", "goal_deed_take_stone", "goal_deed_take_bone", "goal_deed_take_wood", "goal_deed_drop_stone", "goal_deed_drop_bone", "goal_deed_drop_wood", "goal_deed_dress", "goal_deed_make_bone_axe", "goal_deed_make_bone_armour", "goal_deed_make_club", "goal_deed_make_wood_armour", "goal_deed_make_stone_axe", "goal_deed_make_bow", "goal_deed_make_wagon", "goal_deed_take_gear", "goal_deed_drop_weapon", "goal_deed_drop_armour", "goal_deed_cut", "goal_deed_dig", "goal_deed_light_fire", "goal_deed_feed_fire", "goal_deed_cook", "goal_deed_construct", "goal_deed_eat_seed", "goal_deed_plant_seed", "goal_deed_build_road", "goal_deed_eat_marrow", "goal_deed_fertilize", "goal_deed_skin", "goal_deed_demand", "goal_deed_steal", "goal_deed_give", "goal_deed_offer", "goal_deed_shoot", "goal_deed_practise", "goal_deed_tutor", "goal_deed_hitch", "goal_deed_unhitch", "goal_deed_store_food", "goal_deed_craft_arrows", "goal_deed_address", "goal_deed_learn",
+    "meant", "meant_closeness", "named", "named_closeness", "named_regard", "named_me",
     "meant_eat", "meant_forage", "meant_browse", "meant_uproot", "meant_scavenge", "meant_feast", "meant_rest", "meant_court", "meant_breed", "meant_hunt", "meant_attack", "meant_defend", "meant_flee", "meant_herd", "meant_go_north", "meant_go_south", "meant_go_east", "meant_go_west", "meant_walk_north", "meant_walk_south", "meant_walk_east", "meant_walk_west", "meant_revisit", "meant_feed_young", "meant_teach", "meant_take_meat", "meant_take_fruit", "meant_drop_meat", "meant_drop_fruit", "meant_eat_pile", "meant_eat_carried", "meant_take_stone", "meant_take_bone", "meant_take_wood", "meant_drop_stone", "meant_drop_bone", "meant_drop_wood", "meant_dress", "meant_make_bone_axe", "meant_make_bone_armour", "meant_make_club", "meant_make_wood_armour", "meant_make_stone_axe", "meant_make_bow", "meant_make_wagon", "meant_take_gear", "meant_drop_weapon", "meant_drop_armour", "meant_cut", "meant_dig", "meant_light_fire", "meant_feed_fire", "meant_cook", "meant_construct", "meant_eat_seed", "meant_plant_seed", "meant_build_road", "meant_eat_marrow", "meant_fertilize", "meant_skin", "meant_demand", "meant_steal", "meant_give", "meant_offer", "meant_shoot", "meant_practise", "meant_tutor", "meant_hitch", "meant_unhitch", "meant_store_food", "meant_craft_arrows", "meant_address", "meant_learn",
     "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
-constexpr std::array<std::string_view, 164> SPARSE_SENSES = {
+constexpr std::array<std::string_view, 159> SPARSE_SENSES = {
     "prey_pregnant", "threat_near", "threat_danger", "carrion_closeness", "kill_closeness", "assailant_near",
     "counter_frailty", "alarm", "kill_alert", "young_near", "shore_north", "shore_south", "shore_east", "shore_west",
     "parent_closeness", "heard_call_5", "heard_call_5_kin", "map_comfort", "caller_known", "known_skill",
@@ -450,8 +455,8 @@ constexpr std::array<std::string_view, 164> SPARSE_SENSES = {
     "bow_carried", "archery",
     "heard_first_1", "heard_first_2", "heard_first_3", "heard_first_4", "heard_first_5",
     "heard_second_1", "heard_second_2", "heard_second_3", "heard_second_4", "heard_second_5",
-    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched", "addressed", "longing", "longing_companion",
-    "longing_fire", "longing_shelter", "longing_joy", "meant", "meant_closeness", "named", "named_closeness", "named_me",
+    "heard_third_1", "heard_third_2", "heard_third_3", "heard_third_4", "heard_third_5", "pointed", "pointed_closeness", "attending", "sees_pointing", "watched", "addressed",
+    "meant", "meant_closeness", "named", "named_closeness", "named_me",
     "meant_eat", "meant_forage", "meant_browse", "meant_uproot", "meant_scavenge", "meant_feast", "meant_rest", "meant_court", "meant_breed", "meant_hunt", "meant_attack", "meant_defend", "meant_flee", "meant_herd", "meant_go_north", "meant_go_south", "meant_go_east", "meant_go_west", "meant_walk_north", "meant_walk_south", "meant_walk_east", "meant_walk_west", "meant_revisit", "meant_feed_young", "meant_teach", "meant_take_meat", "meant_take_fruit", "meant_drop_meat", "meant_drop_fruit", "meant_eat_pile", "meant_eat_carried", "meant_take_stone", "meant_take_bone", "meant_take_wood", "meant_drop_stone", "meant_drop_bone", "meant_drop_wood", "meant_dress", "meant_make_bone_axe", "meant_make_bone_armour", "meant_make_club", "meant_make_wood_armour", "meant_make_stone_axe", "meant_make_bow", "meant_make_wagon", "meant_take_gear", "meant_drop_weapon", "meant_drop_armour", "meant_cut", "meant_dig", "meant_light_fire", "meant_feed_fire", "meant_cook", "meant_construct", "meant_eat_seed", "meant_plant_seed", "meant_build_road", "meant_eat_marrow", "meant_fertilize", "meant_skin", "meant_demand", "meant_steal", "meant_give", "meant_offer", "meant_shoot", "meant_practise", "meant_tutor", "meant_hitch", "meant_unhitch", "meant_store_food", "meant_craft_arrows", "meant_address", "meant_learn",
     "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5"};
 enum SenseReading : std::uint8_t { CentredReading, SignedReading, SparseReading };
@@ -459,6 +464,7 @@ inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};
     for (int sense = 0; sense < INPUT_SIZE; ++sense) {
         readings[static_cast<std::size_t>(sense)] = signed_sense(sense) ? SignedReading : CentredReading;
+        if (sense >= SenseGoal && sense < SenseGoal + GOAL_SENSES && sense != SenseGoal + GoalOneRegard) readings[static_cast<std::size_t>(sense)] = SparseReading;  // its goal
         for (const std::string_view name : SPARSE_SENSES) {
             if (SENSES[static_cast<std::size_t>(sense)] == name) readings[static_cast<std::size_t>(sense)] = SparseReading;
         }
@@ -471,7 +477,7 @@ static_assert([] {
         for (const std::uint8_t each : SENSE_READINGS) found += each == reading;
     }
     return found;
-}() == static_cast<int>(SPARSE_SENSES.size()));  // each a sense it has
+}() == static_cast<int>(SPARSE_SENSES.size()) + GOAL_SENSES - 1);  // each a sense it has, and the goal's
 inline double read_sense(int sense, double value) {
     const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
     return reading == SignedReading ? value : reading == SparseReading ? value * 2.0 : value * 2.0 - 1.0;

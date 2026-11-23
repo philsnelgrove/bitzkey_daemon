@@ -257,6 +257,31 @@ json lexicon_record(const std::vector<LexiconWord>& lexicon) {  // see LEXICON_S
     for (const LexiconWord& w : lexicon) words.push_back({w.call, w.sounds[0], w.sounds[1], w.thing, w.regard, w.uses});
     return words;
 }
+json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
+    json needs = json::array();
+    for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
+        needs.push_back(agent.needs[n]);
+        needs.push_back(agent.need_drift[n]);
+    }
+    json things = json::array(), deeds = json::array(), ones = json::array();
+    for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            if (agent.relief_things[n][thing] != 0.0) things.push_back({static_cast<int>(n), static_cast<int>(thing), agent.relief_things[n][thing]});
+        }
+        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+            if (agent.relief_deeds[n][deed] != 0.0) deeds.push_back({static_cast<int>(n), static_cast<int>(deed), agent.relief_deeds[n][deed]});
+        }
+    }
+    for (const ReliefOne& one : agent.relief_ones) {
+        json row = {one.one, one.close};
+        for (const double r : one.relief) row.push_back(r);
+        ones.push_back(row);
+    }
+    return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
+                       agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
+                       agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
+            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}};
+}
 
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
     json record = {
@@ -288,7 +313,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"names", lexicon_record(agent.names)}, {"deeds", lexicon_record(agent.deeds)}, {"second_word", {agent.call2, agent.sounds2[0], agent.sounds2[1], agent.last_call2, agent.last_sounds2[0], agent.last_sounds2[1], agent.meant_for_me ? 1 : 0, agent.meant_for_other ? 1 : 0, agent.judged_for_me ? 1 : 0}}, {"deed_heed", {agent.deed_spoke_turn, agent.meant_by_deed ? 1 : 0, agent.judged_by_deed ? 1 : 0, agent.echo_turn, agent.prior_choice}}, {"own_name", {agent.own_call, agent.own_sounds[0], agent.own_sounds[1]}}, {"name_heed", {agent.name_spoke_turn, agent.called_turn, agent.called_one, agent.called_close, agent.called_me_turn, agent.name_judged_turn, agent.name_heeded ? 1 : 0, agent.name_reward}}, {"word_one", agent.word_one}, {"chatter", {agent.chatter, static_cast<double>(agent.repeat_from), static_cast<double>(agent.repeat_call), static_cast<double>(agent.repeat_sounds[0]), static_cast<double>(agent.repeat_sounds[1]), static_cast<double>(agent.word_from), static_cast<double>(agent.answered_turn), static_cast<double>(agent.answered_count)}}, {"learn_one", agent.learn_one}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward, agent.judged_thing, agent.judged_deed, agent.unknown_turn, agent.unknown_deed, agent.unknown_judged_turn, agent.unknown_same ? 1 : 0, agent.meant_liked ? 1 : 0, agent.judged_liked ? 1 : 0}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"longing", {agent.longing_kind, agent.longing, agent.longing_for, agent.longing_x, agent.longing_y, agent.longing_turn, agent.longing_away, agent.longing_closer, agent.longing_farther, agent.longings_reached, agent.longings_faded, agent.beside_companion, agent.beside_care, agent.fire_x, agent.fire_y, agent.shelter_x, agent.shelter_y, agent.joy_thing, agent.joy_best, agent.joy_seen ? 1 : 0, agent.missing, agent.missing_care, agent.missing_for}}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"names", lexicon_record(agent.names)}, {"deeds", lexicon_record(agent.deeds)}, {"second_word", {agent.call2, agent.sounds2[0], agent.sounds2[1], agent.last_call2, agent.last_sounds2[0], agent.last_sounds2[1], agent.meant_for_me ? 1 : 0, agent.meant_for_other ? 1 : 0, agent.judged_for_me ? 1 : 0}}, {"deed_heed", {agent.deed_spoke_turn, agent.meant_by_deed ? 1 : 0, agent.judged_by_deed ? 1 : 0, agent.echo_turn, agent.prior_choice}}, {"own_name", {agent.own_call, agent.own_sounds[0], agent.own_sounds[1]}}, {"name_heed", {agent.name_spoke_turn, agent.called_turn, agent.called_one, agent.called_close, agent.called_me_turn, agent.name_judged_turn, agent.name_heeded ? 1 : 0, agent.name_reward}}, {"word_one", agent.word_one}, {"chatter", {agent.chatter, static_cast<double>(agent.repeat_from), static_cast<double>(agent.repeat_call), static_cast<double>(agent.repeat_sounds[0]), static_cast<double>(agent.repeat_sounds[1]), static_cast<double>(agent.word_from), static_cast<double>(agent.answered_turn), static_cast<double>(agent.answered_count)}}, {"learn_one", agent.learn_one}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward, agent.judged_thing, agent.judged_deed, agent.unknown_turn, agent.unknown_deed, agent.unknown_judged_turn, agent.unknown_same ? 1 : 0, agent.meant_liked ? 1 : 0, agent.judged_liked ? 1 : 0}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"goal", goal_record(agent)}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -622,32 +647,45 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             agent->lexicon.push_back(LexiconWord{w.at(0).get<int>(), {w.at(1).get<int>(), w.at(2).get<int>()}, w.at(3).get<int>(), w.at(4).get<double>(), w.at(5).get<int>()});
         }
     }
-    if (record.contains("longing")) {  // see LONGING
-        const json& l = record.at("longing");
-        agent->longing_kind = l.at(0).get<int>();
-        agent->longing = l.at(1).get<double>();
-        agent->longing_for = l.at(2).get<int>();
-        agent->longing_x = l.at(3).get<int>();
-        agent->longing_y = l.at(4).get<int>();
-        agent->longing_turn = l.at(5).get<int>();
-        agent->longing_away = l.at(6).get<int>();
-        agent->longing_closer = l.at(7).get<int>();
-        agent->longing_farther = l.at(8).get<int>();
-        agent->longings_reached = l.at(9).get<int>();
-        agent->longings_faded = l.at(10).get<int>();
-        agent->beside_companion = l.at(11).get<int>();
-        agent->beside_care = l.at(12).get<double>();
-        agent->fire_x = l.at(13).get<int>();
-        agent->fire_y = l.at(14).get<int>();
-        agent->shelter_x = l.at(15).get<int>();
-        agent->shelter_y = l.at(16).get<int>();
-        agent->joy_thing = l.at(17).get<int>();
-        agent->joy_best = l.at(18).get<double>();
-        agent->joy_seen = l.at(19).get<int>() != 0;
-        if (l.size() > 22) {
-            agent->missing = l.at(20).get<int>();
-            agent->missing_care = l.at(21).get<double>();
-            agent->missing_for = l.at(22).get<int>();
+    if (record.contains("goal")) {  // see GOAL_JOY
+        const json& g = record.at("goal");
+        const json& head = g.at("head");
+        agent->goal_kind = head.at(0).get<int>();
+        agent->goal_target = head.at(1).get<int>();
+        agent->goal_need = head.at(2).get<int>();
+        agent->goal_turn = head.at(3).get<int>();
+        agent->goal_urgency = head.at(4).get<double>();
+        agent->goal_close = head.at(5).get<double>();
+        agent->goals_formed = head.at(6).get<int>();
+        agent->goals_reached = head.at(7).get<int>();
+        agent->goals_abandoned = head.at(8).get<int>();
+        agent->goals_switched = head.at(9).get<int>();
+        agent->goals_dropped = head.at(10).get<int>();
+        agent->goal_reach_turns = head.at(11).get<long long>();
+        agent->has_needs = head.at(12).get<int>() != 0;
+        if (agent->goal_kind == GoalForDeed) {  // a deed no longer had: no goal
+            agent->goal_target = numbers.action(agent->goal_target);
+            if (agent->goal_target < 0) agent->goal_kind = NoGoal;
+        }
+        if (agent->goal_kind == GoalForThing && (agent->goal_target < 0 || agent->goal_target >= OUTSIDE_SEEN)) agent->goal_kind = NoGoal;
+        if (agent->goal_kind == NoGoal) agent->goal_target = agent->goal_need = -1;
+        const json& needs = g.at("needs");
+        for (std::size_t n = 0; n < GOAL_NEEDS && 2 * n + 1 < needs.size(); ++n) {
+            agent->needs[n] = needs.at(2 * n).get<double>();
+            agent->need_drift[n] = needs.at(2 * n + 1).get<double>();
+        }
+        for (const json& row : g.at("things")) {  // need, thing, relief
+            const int n = row.at(0).get<int>(), thing = row.at(1).get<int>();
+            if (n >= 0 && n < GOAL_NEEDS && thing >= 0 && thing < OUTSIDE_SEEN) agent->relief_things[static_cast<std::size_t>(n)][static_cast<std::size_t>(thing)] = row.at(2).get<double>();
+        }
+        for (const json& row : g.at("deeds")) {  // need, deed (by its saved number), relief
+            const int n = row.at(0).get<int>(), deed = numbers.action(row.at(1).get<int>());
+            if (n >= 0 && n < GOAL_NEEDS && deed >= 0) agent->relief_deeds[static_cast<std::size_t>(n)][static_cast<std::size_t>(deed)] = row.at(2).get<double>();
+        }
+        for (const json& row : g.at("ones")) {  // one, its closeness last turn, then its relief for each need
+            ReliefOne one{row.at(0).get<int>(), row.at(1).get<double>(), {}};
+            for (std::size_t n = 0; n < GOAL_NEEDS && n + 2 < row.size(); ++n) one.relief[n] = row.at(n + 2).get<double>();
+            agent->relief_ones.push_back(one);
         }
     }
     agent->harm_taught_turn = record.value("harm_taught_turn", -1);

@@ -10,7 +10,7 @@
 // Stored input by input, neighbouring threads, each a neuron, read neighbouring weights.
 // Its eligibility traces sit in a second buffer laid out the same way.
 
-const uint INPUTS = 356u;
+const uint INPUTS = 457u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
 const uint ACTIONS = 199u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight, then a call's later sounds, then foresight of the outside, then the wishes, then pointing, then attention, then pointing at one animal, then at itself, then a second word's sounds
 const uint MEMORY_NEURONS = 16u;

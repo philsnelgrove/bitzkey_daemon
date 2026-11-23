@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 543 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 548 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 543 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (226 rules)
+6. [Mind](#6-mind) (231 rules)
 7. [Food](#7-food) (83 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (11 rules)
@@ -1306,173 +1306,203 @@ How many times one that spoke to another alone, and was not answered with a righ
 
 Default **3**; from 0 to 10, in steps of 1.
 
-### 6.28 Longing (`LONGING`)
-
-How strongly an animal longs for a companion, a fire, a shelter or the thing of its greatest joy once parted from it, as a share of how much it cared; 0 for none.
-
-Default **1**; from 0 to 3, in steps of 0.1.
-
-#### 6.28.1 Longing fade (`LONGING_FADE`)
-
-How much of a longing fades each turn, slower the more patient (for a companion, the more loyal) it is.
-
-Default **0.05**; from 0 to 0.5, in steps of 0.01.
-
-#### 6.28.2 Longing parting (`LONGING_PARTING`)
-
-Turns a companion must be out of sight, without coming back, before it is longed for: herd-mates drifting in and out are not missed; 1 at once.
-
-Default **5**; from 1 to 50, in steps of 1.
-
-### 6.29 Longing unease (`LONGING_UNEASE`)
-
-Unease each turn for each unit of longing, felt till it fades or is met.
-
-Default **0.1**; from 0 to 2, in steps of 0.05.
-
-#### 6.29.1 Longing joy (`LONGING_JOY`)
-
-Joy at reaching what it longed for, for each unit of longing.
-
-Default **1**; from 0 to 5, in steps of 0.1.
-
-#### 6.29.2 Call words (`CALL_WORDS`)
-
-The most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word.
-
-Default **2**; from 1 to 2, in steps of 1.
-
-#### 6.29.3 Map blind (`MAP_BLIND`)
-
-For experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are.
-
-Default **0**; from 0 to 1, in steps of 1.
-
-#### 6.29.4 Call fatigue (`CALL_FATIGUE`)
-
-Stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10).
-
-Default **0.5**; from 0 to 50, in steps of 0.5.
-
-### 6.30 Lexicon size (`LEXICON_SIZE`)
+### 6.28 Lexicon size (`LEXICON_SIZE`)
 
 Words an animal can hold in its lexicon for each point of intellect, and one more; words settled by accord, a right guess or a corrected one; 0 for no lexicon.
 
 Default **4**; from 0 to 20, in steps of 1.
 
-#### 6.30.1 Lexicon speech (`LEXICON_SPEAK`)
+#### 6.28.1 Lexicon speech (`LEXICON_SPEAK`)
 
 Chance, times its sociability, that pointing at a thing it has a word for, it says that word.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-#### 6.30.2 Lexicon family (`LEXICON_FAMILY`)
+#### 6.28.2 Lexicon family (`LEXICON_FAMILY`)
 
 The regard a word settled with family counts as at least: a word is changed only by a friend or family member regarded more than whoever settled it.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.30.3 Lexicon witness (`LEXICON_WITNESS`)
+#### 6.28.3 Lexicon witness (`LEXICON_WITNESS`)
 
 Chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-#### 6.30.4 Lexicon inheritance (`LEXICON_INHERIT`)
+#### 6.28.4 Lexicon inheritance (`LEXICON_INHERIT`)
 
 Share of each parent's words, the most used first, that a newborn starts with, as if taught by family.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 6.31 Lexicon heed (`LEXICON_HEED`)
+### 6.29 Lexicon heed (`LEXICON_HEED`)
 
 Joy for one that heard a word it holds and by the next turn has come nearer the thing it means.
 
 Default **0.1**; from 0 to 2, in steps of 0.05.
 
-#### 6.31.1 Lexicon fitting deed (`LEXICON_ACT`)
+#### 6.29.1 Lexicon fitting deed (`LEXICON_ACT`)
 
 Joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.31.2 Lexicon worth rate (`LEXICON_WORTH_RATE`)
+#### 6.29.2 Lexicon worth rate (`LEXICON_WORTH_RATE`)
 
 How fast an animal learns from its own life how it fares nearer each thing, against further.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-### 6.32 Duty sway (`DUTY_SWAY`)
+### 6.30 Duty sway (`DUTY_SWAY`)
 
 How strongly a sense of duty sways one told by a word from family or one it regards well: the teller's deed is its duty to this power times as likely (duty 1 is chance, 0 shuns it).
 
 Default **1**; from 0 to 3, in steps of 0.1.
 
-#### 6.32.1 Duty felt (`DUTY_FELT`)
+#### 6.30.1 Duty felt (`DUTY_FELT`)
 
 How much a sense of duty colours the joy of doing as told by family or one it regards well: times 1 plus this times its duty less 1, unease for a rebel.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-### 6.33 Names size (`NAMES_SIZE`)
+### 6.31 Names size (`NAMES_SIZE`)
 
 Names an animal can hold for each point of intellect, and one more: words for one animal each, given by its mother at birth and settled by accord, pointing at that one; 0 for no names.
 
 Default **4**; from 0 to 20, in steps of 1.
 
-### 6.34 Deed-words size (`DEEDS_SIZE`)
+### 6.32 Deed-words size (`DEEDS_SIZE`)
 
 Deed-words an animal can hold for each point of intellect, and one more: words for what one does, said pointing at oneself and learnt by saying the word back while doing a guess; 0 for none.
 
 Default **4**; from 0 to 20, in steps of 1.
 
-### 6.35 Chatter fade (`CHATTER_FADE`)
+### 6.33 Chatter fade (`CHATTER_FADE`)
 
 How much of an animal's chatter, the count of its calls of late, is left each turn; it makes calling dearer and less heeded.
 
 Default **0.8**; from 0 to 0.99, in steps of 0.05.
 
-#### 6.35.1 Hoarseness (`HOARSE`)
+#### 6.33.1 Hoarseness (`HOARSE`)
 
 A call costs 1 plus this times its caller's chatter as much: calling now and then is cheap, calling on and on tires; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.35.2 Tuning out (`TUNE_OUT`)
+#### 6.33.2 Tuning out (`TUNE_OUT`)
 
 Hearers hear a call, and feel its words, names and deed-words, 1 over 1 plus this times its caller's chatter as much; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.35.3 Annoyance (`ANNOYANCE`)
+#### 6.33.3 Annoyance (`ANNOYANCE`)
 
 How far one of its kind that hears a caller say again what it last heard it say holds it less well, as a deed's weight; 0 for none.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.35.4 Hunters hear (`HUNTERS_HEAR`)
+#### 6.33.4 Hunters hear (`HUNTERS_HEAR`)
 
 1: a hunter that sees no prey goes after the nearest prey it heard call last turn; 0: calls draw no hunters.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 6.36 Babbling (`BABBLE`)
+### 6.34 Babbling (`BABBLE`)
 
 Chance, times its sociability and its youth, that an animal whose brain chose silence calls anyway, the call its brain liked best but silence; and times its sociability again, that it goes up to one it may address; 0 for none.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.1 Babbling age (`BABBLE_AGE`)
+#### 6.34.1 Babbling age (`BABBLE_AGE`)
 
 Turns of age by which the urge to babble has faded to nothing, from its full strength at birth.
 
 Default **24**; from 1 to 2000, in steps of 1.
 
-#### 6.36.2 Joy of being answered (`ANSWERED_JOY`)
+#### 6.34.2 Joy of being answered (`ANSWERED_JOY`)
 
 Joy, times its sociability, a caller feels for each hearer (at most three a turn) that answers it: calls back, says its word back, or does as its word or name meant; whatever was said; 0 for none.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
+
+### 6.35 Relief learning (`RELIEF_RATE`)
+
+How fast an animal learns, from its own life, how much each need eased after it came nearer each thing or companion, or did each deed; 0 for none.
+
+Default **0.05**; from 0 to 1, in steps of 0.01.
+
+#### 6.35.1 Relief inheritance (`RELIEF_INHERIT`)
+
+Share of what eased its parents' needs that a newborn starts with, as if it had learnt it.
+
+Default **0.5**; from 0 to 1, in steps of 0.05.
+
+#### 6.35.2 Goal threshold (`GOAL_MIN_RELIEF`)
+
+The least an animal must have found a thing, companion or deed eases its worst need to make it its goal.
+
+Default **0.01**; from 0 to 1, in steps of 0.005.
+
+#### 6.35.3 Goal urgency rise (`GOAL_RISE`)
+
+How much a goal's urgency rises each turn it is unmet, times the need it serves.
+
+Default **0.05**; from 0 to 1, in steps of 0.01.
+
+#### 6.35.4 Goal stubbornness (`GOAL_STUBBORNNESS`)
+
+How much more, times twice its patience, another goal must be worth to take the place of the one it holds.
+
+Default **0.5**; from 0 to 5, in steps of 0.1.
+
+#### 6.35.5 Goal patience (`GOAL_PATIENCE`)
+
+Turns a goal is held unmet, times a half and its patience, before it is given up.
+
+Default **48**; from 1 to 1000, in steps of 1.
+
+#### 6.35.6 Goal unease (`GOAL_UNEASE`)
+
+Unease each turn for each unit of a goal's urgency while it is unmet.
+
+Default **0.1**; from 0 to 2, in steps of 0.05.
+
+#### 6.35.7 Goal joy (`GOAL_JOY`)
+
+Joy at reaching a goal (beside what it sought, or the deed done), for each unit of its urgency.
+
+Default **1**; from 0 to 5, in steps of 0.1.
+
+#### 6.35.8 Giving up (`GOAL_GIVE_UP`)
+
+Unease at giving up a goal held too long.
+
+Default **0.2**; from 0 to 2, in steps of 0.05.
+
+#### 6.35.9 Goal progress (`GOAL_PROGRESS`)
+
+Comfort at each step nearer what it seeks, and as much unease at each step away.
+
+Default **0.05**; from 0 to 1, in steps of 0.01.
+
+### 6.36 Call words (`CALL_WORDS`)
+
+The most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word.
+
+Default **2**; from 1 to 2, in steps of 1.
+
+#### 6.36.1 Map blind (`MAP_BLIND`)
+
+For experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are.
+
+Default **0**; from 0 to 1, in steps of 1.
+
+#### 6.36.2 Call fatigue (`CALL_FATIGUE`)
+
+Stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10).
+
+Default **0.5**; from 0 to 50, in steps of 0.5.
 
 ### 6.37 Tutor cost (`TUTOR_COST`)
 

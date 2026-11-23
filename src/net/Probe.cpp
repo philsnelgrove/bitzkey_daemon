@@ -1359,11 +1359,6 @@ Json Probe::language(Simulation& world) const {
             long long calls = 0, reached = 0, hearers = 0, understood_calls = 0, broadcast_understood_calls = 0, said_back = 0, guessed = 0, retries = 0, compelled = 0, corrected = 0;
             double understood = 0.0, broadcast_understood = 0.0;
         } address;
-        struct {  // longings (see LONGING): who longs, for what, how strongly; turns nearer and further; met and faded in their lives
-            long long longing = 0, closer = 0, farther = 0, reached = 0, faded = 0;
-            std::array<long long, 5> kinds{};
-            double strength = 0.0;
-        } longs;
         std::map<std::string, Said> utterances;  // whole calls, as "2-5-1"
         std::array<long long, MAX_SOUNDS> lengths{};
         for (const Bitzkey* agent : world.living()) {
@@ -1379,15 +1374,6 @@ Json Probe::language(Simulation& world) const {
             for (std::size_t at = 0; at < FEATURES.size(); ++at) base[at] += feature[at];
             if (senses[SensePointed + Addressed] > 0) ++address.hearers;
             address.corrected += agent->corrected_gain > 0;  // a wrong guess corrected this turn (see LEARN_CORRECTED)
-            if (agent->longing_kind != NoLonging) {
-                ++longs.longing;
-                ++longs.kinds[static_cast<std::size_t>(agent->longing_kind)];
-                longs.strength += agent->longing;
-            }
-            longs.closer += agent->longing_closer;
-            longs.farther += agent->longing_farther;
-            longs.reached += agent->longings_reached;
-            longs.faded += agent->longings_faded;
             if (agent->learn_turn == agent->call_turn && agent->learn_turn >= 0) {  // a word said back as it last chose (see Learn)
                 ++address.said_back;
                 address.guessed += agent->learn_correct;
@@ -1905,12 +1891,6 @@ Json Probe::language(Simulation& world) const {
             {"call_lengths", {{"one", lengths[0]}, {"two", lengths[1]}, {"three", lengths[2]}}}, {"utterances", table},
             {"first_sound_holds", holds}, {"habit_pull", habit_calls > 0 ? Json(habit_pull / static_cast<double>(habit_calls)) : Json(nullptr)},
             {"speak_as_heard", understood_calls > 0 ? Json(understood / static_cast<double>(understood_calls)) : Json(nullptr)},
-            {"longing", {{"longing_share", ratio(static_cast<double>(longs.longing), static_cast<double>(choices))},
-                         {"companion", longs.kinds[LongCompanion]}, {"fire", longs.kinds[LongFire]}, {"shelter", longs.kinds[LongShelter]}, {"joy", longs.kinds[LongJoy]},
-                         {"mean_strength", longs.longing > 0 ? Json(longs.strength / static_cast<double>(longs.longing)) : Json(nullptr)},
-                         {"closer_share", ratio(static_cast<double>(longs.closer), static_cast<double>(longs.closer + longs.farther))},
-                         {"reached_in_lives", longs.reached}, {"faded_in_lives", longs.faded},
-                         {"reached_share", ratio(static_cast<double>(longs.reached), static_cast<double>(longs.reached + longs.faded))}}},
             {"addressing", {{"calls", address.calls}, {"share_of_calls", ratio(static_cast<double>(address.calls), static_cast<double>(made))},
                             {"reached_share", ratio(static_cast<double>(address.reached), static_cast<double>(address.calls))},
                             {"hearers_addressed_share", ratio(static_cast<double>(address.hearers), static_cast<double>(choices))},
@@ -2563,6 +2543,88 @@ Json Probe::society(Simulation& world) const {
     return {{"turn", world.turn()}, {"species", result}};
 }
 
+Json Probe::goals(Simulation& world) const {
+    // Goals (see GOAL_JOY), by species: who holds one, of what kind, for which need, how urgent; in their lives so far,
+    // goals formed, reached, given up, switched and let go, and the turns taken to reach one; and, of what the living have
+    // learnt eases each need, the things and deeds found best, on average, and companions.
+    static constexpr std::array<std::string_view, GOAL_NEEDS> NEED_NAMES = {"hunger", "fatigue", "pain", "fear", "loneliness", "discomfort"};
+    const auto ratio = [](double part, double whole) { return whole > 0 ? Json(part / whole) : Json(nullptr); };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        long long alive = 0, holding = 0, formed = 0, reached = 0, abandoned = 0, switched = 0, dropped = 0, reach_turns = 0;
+        std::array<long long, 4> kinds{};
+        std::array<long long, GOAL_NEEDS> for_need{}, worst{};
+        double urgency = 0.0;
+        std::map<std::string, long long> targets;
+        std::array<std::array<double, OUTSIDE_SEEN>, GOAL_NEEDS> things{};
+        std::array<std::array<double, ACTION_COUNT>, GOAL_NEEDS> deeds{};
+        std::array<double, GOAL_NEEDS> ones{};
+        long long ones_count = 0;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            ++alive;
+            formed += agent->goals_formed;
+            reached += agent->goals_reached;
+            abandoned += agent->goals_abandoned;
+            switched += agent->goals_switched;
+            dropped += agent->goals_dropped;
+            reach_turns += agent->goal_reach_turns;
+            if (agent->has_needs) {
+                const auto at = std::max_element(agent->needs.begin(), agent->needs.end());
+                if (*at >= GOAL_SATED) ++worst[static_cast<std::size_t>(at - agent->needs.begin())];
+            }
+            for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
+                for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) things[n][thing] += agent->relief_things[n][thing];
+                for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) deeds[n][deed] += agent->relief_deeds[n][deed];
+            }
+            for (const ReliefOne& one : agent->relief_ones) {
+                ++ones_count;
+                for (std::size_t n = 0; n < GOAL_NEEDS; ++n) ones[n] += one.relief[n];
+            }
+            if (agent->goal_kind == NoGoal) continue;
+            ++holding;
+            ++kinds[static_cast<std::size_t>(agent->goal_kind)];
+            ++for_need[static_cast<std::size_t>(agent->goal_need)];
+            urgency += agent->goal_urgency;
+            const std::string target = agent->goal_kind == GoalForThing
+                ? std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent->goal_target)])])
+                : agent->goal_kind == GoalForDeed ? "do " + std::string(ACTIONS[static_cast<std::size_t>(agent->goal_target)])
+                : "a companion";
+            ++targets[target + " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")"];
+        }
+        if (alive == 0) continue;
+        Json needs = Json::object();
+        for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
+            std::vector<std::pair<double, std::string>> best;
+            for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing)
+                best.emplace_back(things[n][thing] / static_cast<double>(alive), "near " + std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[thing])]));
+            for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed)
+                best.emplace_back(deeds[n][deed] / static_cast<double>(alive), "do " + std::string(ACTIONS[deed]));
+            std::sort(best.begin(), best.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+            Json top = Json::array();
+            for (std::size_t at = 0; at < std::min<std::size_t>(5, best.size()); ++at) top.push_back({{"what", best[at].second}, {"relief", best[at].first}});
+            needs[std::string(NEED_NAMES[n])] = {{"held_for", for_need[n]}, {"worst_need_share", ratio(static_cast<double>(worst[n]), static_cast<double>(alive))},
+                                                  {"eased_most_by", top},
+                                                  {"companion_relief", ones_count > 0 ? Json(ones[n] / static_cast<double>(ones_count)) : Json(nullptr)}};
+        }
+        std::vector<std::pair<long long, std::string>> held(targets.size());
+        std::transform(targets.begin(), targets.end(), held.begin(), [](const auto& kv) { return std::make_pair(kv.second, kv.first); });
+        std::sort(held.begin(), held.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        Json common = Json::array();
+        for (std::size_t at = 0; at < std::min<std::size_t>(8, held.size()); ++at) common.push_back({{"goal", held[at].second}, {"holders", held[at].first}});
+        result[std::string(species_name(species))] = {
+            {"alive", alive}, {"holding_share", ratio(static_cast<double>(holding), static_cast<double>(alive))},
+            {"things", kinds[GoalForThing]}, {"companions", kinds[GoalForOne]}, {"deeds", kinds[GoalForDeed]},
+            {"mean_urgency", holding > 0 ? Json(urgency / static_cast<double>(holding)) : Json(nullptr)},
+            {"common_goals", common},
+            {"in_lives", {{"formed", formed}, {"reached", reached}, {"given_up", abandoned}, {"switched", switched}, {"let_go", dropped},
+                          {"reached_share", ratio(static_cast<double>(reached), static_cast<double>(reached + abandoned + dropped))},
+                          {"mean_turns_to_reach", reached > 0 ? Json(static_cast<double>(reach_turns) / static_cast<double>(reached)) : Json(nullptr)}}},
+            {"needs", needs}};
+    }
+    return result;
+}
+
 Json Probe::diary(Simulation& world) const {
     Json entries = Json::array();
     for (const Simulation::Milestone& entry : world.diary()) {
@@ -3119,6 +3181,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/goals", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return goals(world); }));
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));

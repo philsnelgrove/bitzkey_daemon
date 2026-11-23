@@ -3377,74 +3377,73 @@ TEST_CASE("heeding a word: an animal learns how it fares going nearer each thing
     CHECK(animal.farther_comfort[7] == 0.0);
 }
 
-TEST_CASE("longing: parted from a companion it cares for, an animal longs for it, felt and sensed but never located, till met or faded") {
+TEST_CASE("goals: what eases a need is learnt; the worst need picks a goal, held with rising urgency till reached or given up") {
     Simulation simulation = world(60);
     Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
-    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
-    animal.known.push_back(Acquaintance{friend_.identifier, 0.9, 0});
     simulation.index_cells();
-    auto together = simulation.sense(animal);  // in sight: no longing, only remembered as beside it
-    CHECK(animal.longing_kind == NoLonging);
-    CHECK(animal.beside_companion == friend_.identifier);
-    CHECK(together.senses[SenseLonging + LongingStrength] == 0.0);
-    friend_.x = 50;  // gone off, out of sight: missed at first, not yet longed for
-    simulation.index_cells();
-    for (int turn = 1; turn < LONGING_PARTING; ++turn) {
-        simulation.sense(animal);
-        CHECK(animal.longing_kind == NoLonging);
-        CHECK(animal.missing == friend_.identifier);
-    }
-    friend_.x = 11;  // back before the parting: nothing to long for
-    simulation.index_cells();
+    // Learnt from its own life: hunger eased the turn after it ate.
+    animal.has_needs = true;
+    animal.needs = {0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
+    animal.hunger = 20.0;
+    animal.last_choice = Eat;
     simulation.sense(animal);
-    CHECK(animal.missing == -1);
-    CHECK(animal.longing_kind == NoLonging);
-    friend_.x = 50;  // gone again, and this time it stays gone
-    simulation.index_cells();
-    for (int turn = 1; turn < LONGING_PARTING; ++turn) simulation.sense(animal);
-    CHECK(animal.longing_kind == NoLonging);
-    auto parted = simulation.sense(animal);  // the parting's last turn: now it longs
-    CHECK(animal.longing_kind == LongCompanion);
-    CHECK(animal.longing_for == friend_.identifier);
-    const double first = animal.longing;
-    CHECK(first > 0.0);
-    CHECK(first <= LONGING * 0.9 + 1e-9);  // as much as it cared, faded a little this turn at most
-    CHECK(parted.senses[SenseLonging + LongingStrength] == doctest::Approx(std::min(1.0, first)));
-    CHECK(parted.senses[SenseLonging + LongingCompanion] == 1.0);
-    CHECK(parted.senses[SenseLonging + LongingFire] == 0.0);
-    CHECK(parted.situation.longing_unease == doctest::Approx(LONGING_UNEASE * first));
-    simulation.sense(animal);  // a turn apart: it fades
-    CHECK(animal.longing < first);
-    CHECK(animal.longing_kind == LongCompanion);
-    const double before = animal.longing;
-    friend_.x = 11;  // back beside it
-    simulation.index_cells();
+    CHECK(animal.relief_deeds[NeedHunger][Eat] == doctest::Approx(RELIEF_RATE * 0.3));
+    CHECK(animal.relief_deeds[NeedHunger][Rest] == 0.0);
+    // Alone, of a herding kind, loneliness is its worst need; resting is what it has found eases that most.
+    animal.goal_kind = NoGoal;
+    animal.relief_deeds = {};
+    animal.relief_things = {};
+    animal.relief_deeds[NeedLoneliness][Rest] = 0.3;
+    animal.last_choice = Flee;
+    auto first = simulation.sense(animal);
+    REQUIRE(animal.goal_kind == GoalForDeed);
+    CHECK(animal.goal_target == Rest);
+    CHECK(animal.goal_need == NeedLoneliness);
+    const double urgency = animal.goal_urgency;
+    CHECK(urgency == doctest::Approx(animal.needs[NeedLoneliness]));
+    CHECK(first.senses[SenseGoal + Goal] == 1.0);
+    CHECK(first.senses[SenseGoal + GoalDeed + Rest] == 1.0);
+    CHECK(first.senses[SenseGoal + GoalNeed + NeedLoneliness] == 1.0);
+    CHECK(first.situation.goal_unease == doctest::Approx(GOAL_UNEASE * urgency));
+    // Unmet a turn, it grows more urgent.
+    auto second = simulation.sense(animal);
+    CHECK(animal.goal_urgency == doctest::Approx(std::min(GOAL_URGENCY_MAX, urgency + GOAL_RISE * animal.needs[NeedLoneliness])));
+    CHECK(second.situation.goal_unease == doctest::Approx(GOAL_UNEASE * animal.goal_urgency));
+    // Done: the deed it sought, done last turn, is a joy for each unit of urgency.
+    const double held = animal.goal_urgency;
+    animal.goal_turn = simulation.turn() - 1;
+    animal.last_choice = Rest;
     auto met = simulation.sense(animal);
-    CHECK(animal.longing_kind == NoLonging);
-    CHECK(animal.longings_reached == 1);
-    CHECK(met.situation.longing_relief == doctest::Approx(LONGING_JOY * before));
-    CHECK(met.senses[SenseLonging + LongingStrength] == 0.0);
-    // Left alone long enough, a longing fades away.
-    friend_.x = 50;
-    simulation.index_cells();
-    for (int turn = 0; turn < 200 && animal.longings_faded == 0; ++turn) simulation.sense(animal);
-    CHECK(animal.longings_faded == 1);
-    CHECK(animal.longing_kind == NoLonging);
+    CHECK(animal.goals_reached == 1);
+    CHECK(met.situation.goal_relief == doctest::Approx(GOAL_JOY * held));
+    // Held past its patience, given up.
+    REQUIRE(animal.goal_kind == GoalForDeed);  // its need remains: sought again
+    animal.goal_turn = simulation.turn() - 10 * GOAL_PATIENCE;
+    animal.last_choice = Flee;
+    auto gave_up = simulation.sense(animal);
+    CHECK(animal.goals_abandoned == 1);
+    CHECK(gave_up.situation.goal_relief == doctest::Approx(-GOAL_GIVE_UP));
+    // A thing worth much more takes its place, beyond its stubbornness.
+    animal.relief_things[NeedLoneliness][7] = 100.0;  // the herd
+    simulation.sense(animal);
+    CHECK(animal.goals_switched == 1);
+    CHECK(animal.goal_kind == GoalForThing);
+    CHECK(animal.goal_target == 7);
+    // A newborn starts with a share of what eased its parents' needs.
+    Bitzkey& mother = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
+    Bitzkey& father = simulation.add_agent(encode_dna(Species::Grazer), 21, 20);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer), 22, 20);
+    mother.relief_things[NeedHunger][4] = 0.4;
+    father.relief_things[NeedHunger][4] = 0.2;
+    simulation.inherit_relief(child, mother, &father);
+    CHECK(child.relief_things[NeedHunger][4] == doctest::Approx(RELIEF_INHERIT * 0.3));
 }
 
-TEST_CASE("longing: off, nothing is longed for; and the map blind rule withholds the mental map and the way back to a meal") {
-    struct KeepRules { double longing = LONGING; int blind = MAP_BLIND; ~KeepRules() { LONGING = longing; MAP_BLIND = blind; } } keep;
+TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
+    struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);
     Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
-    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer), 11, 10);
-    animal.known.push_back(Acquaintance{friend_.identifier, 0.9, 0});
-    LONGING = 0.0;
     simulation.index_cells();
-    simulation.sense(animal);
-    friend_.x = 50;
-    simulation.index_cells();
-    simulation.sense(animal);
-    CHECK(animal.longing_kind == NoLonging);
     animal.places.push_back(MapPlace{1, 1, 0, {true, true, true, true}, {0.9, 0.9, 0.9, 0.9}, {}, {}});
     animal.food_memory = Place{12, 12};
     MAP_BLIND = 0;

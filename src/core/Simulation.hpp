@@ -404,17 +404,37 @@ inline double LEARN_INSIGHT = 1.0;
 // right guess said back, may address it again with the same word and point, up to ADDRESS_RETRIES times: offered as
 // a choice, and with a chance of its sociability compelled, its own choice set aside and untaught.
 inline int ADDRESS_RETRIES = 3;
-// Longing (the user's idea, a want that persists): parted from a companion it cares for, a friendly fire it was beside,
-// a shelter it was in, or the thing it was nearest at its greatest recent joy, an animal longs for it: LONGING times
-// how much it cared. The longing fades each turn by LONGING_FADE, slower the more patient it is (loyal, for a
-// companion); while it lasts it is felt as LONGING_UNEASE a turn for each unit, and reaching the thing again brings
-// LONGING_JOY for each. One at a time, a stronger one taking the place of a weaker. Its brain senses how strongly it
-// longs and for what kind of thing, never where: the way back is for its memory to hold.
-inline double LONGING = 1.0;
-inline double LONGING_FADE = 0.05;
-inline int LONGING_PARTING = 5;  // a companion out of sight this many turns running, before it is longed for
-inline double LONGING_UNEASE = 0.1;
-inline double LONGING_JOY = 1.0;
+// Goals (the user's design, in longing's place): wants that persist. Six needs, each 0 to 1, are the floor, not chosen:
+// hunger, fatigue, pain, fear (the nearest threat), loneliness (no herd, for social kinds) and discomfort (out of its
+// home temperature). Each animal learns, at RELIEF_RATE, how much each need eased beyond its usual drift the turn after
+// it came nearer each outside thing, nearer each companion it cares for (RELIEF_ONES of them), or did each deed: what
+// relieves what, from its own life alone; a newborn starts with RELIEF_INHERIT of its parents'. Holding no goal, its
+// worst need picks the thing, companion or deed it has found eases that need most, if by GOAL_MIN_RELIEF at least, its
+// urgency that need. Held, the urgency rises by GOAL_RISE times the need each turn unmet, felt as GOAL_UNEASE a unit;
+// each step nearer is GOAL_PROGRESS of comfort, each step away as much unease; another goal takes its place only if
+// worth GOAL_STUBBORNNESS times twice its patience more. Reached (beside it, or the deed done), it brings GOAL_JOY a
+// unit of urgency; held past GOAL_PATIENCE turns times a half and its patience, given up, GOAL_GIVE_UP of unease;
+// its need gone, or the one sought dead, let go.
+enum Need : int { NeedHunger, NeedFatigue, NeedPain, NeedFear, NeedLoneliness, NeedDiscomfort };
+enum GoalKind : int { NoGoal, GoalForThing, GoalForOne, GoalForDeed };
+inline double RELIEF_RATE = 0.05;
+inline double RELIEF_INHERIT = 0.5;
+constexpr int RELIEF_ONES = 6;
+inline double GOAL_MIN_RELIEF = 0.01;
+inline double GOAL_RISE = 0.05;
+inline double GOAL_STUBBORNNESS = 0.5;
+inline int GOAL_PATIENCE = 48;
+inline double GOAL_UNEASE = 0.1;
+inline double GOAL_JOY = 1.0;
+inline double GOAL_GIVE_UP = 0.2;
+inline double GOAL_PROGRESS = 0.05;
+constexpr double GOAL_SATED = 0.05;  // a need below this is met: nothing to seek for it
+constexpr double GOAL_URGENCY_MAX = 2.0;
+struct ReliefOne {  // a companion, and what being nearer it has eased (see RELIEF_ONES)
+    int one = -1;
+    double close = -1.0;  // how close it was last turn, -1 not known
+    std::array<double, GOAL_NEEDS> relief{};
+};
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
 enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
 // The lexicon (the user's design): each animal holds words it has settled by accord, a word said back with a right
@@ -1407,24 +1427,17 @@ struct Bitzkey {
     int unknown_turn = -1, unknown_deed = -1, unknown_judged_turn = -1;
     bool unknown_same = false;
     double word_reward = 0.0;           // what that was worth, felt that turn
-    int longing_kind = NoLonging;       // what kind of thing it longs for (see LONGING)
-    double longing = 0.0;               // how strongly, fading
-    int longing_for = -1;               // the companion longed for, or the outside thing (an index of OUTSIDE_SENSES)
-    int longing_x = -1, longing_y = -1; // the fire or shelter longed for, for the world to know when it is reached
-    int longing_turn = -1;              // when it began
-    int longing_away = -1;              // how far it was from it last turn, -1 not known
-    int longing_closer = 0, longing_farther = 0;  // turns it came nearer to it, and went further, while longing
-    int longings_reached = 0, longings_faded = 0; // in its life: longings met, and longings let fade
-    int beside_companion = -1;          // last turn: the companion in sight it cared for most
-    int missing = -1;                   // a companion gone from its sight, not yet back (see LONGING_PARTING)
-    double missing_care = 0.0;          // how much it cared for it
-    int missing_for = 0;                // and for how many turns it has been gone
-    double beside_care = 0.0;           // and how much
-    int fire_x = -1, fire_y = -1;       // last turn: the friendly fire it saw
-    int shelter_x = -1, shelter_y = -1; // the shelter it was last under, till it is out of sight
-    int joy_thing = -1;                 // the outside thing nearest at its greatest recent joy
-    double joy_best = 0.0;              // that joy, fading
-    bool joy_seen = false;              // whether that thing was in sight last turn
+    // Goals (see GOAL_JOY): its needs last turn and their usual drift; what has eased each need, nearer each thing,
+    // beside each companion, doing each deed; its goal; and, in its life, goals formed, reached, given up, switched, let go.
+    bool has_needs = false;
+    std::array<double, GOAL_NEEDS> needs{}, need_drift{};
+    std::array<std::array<double, OUTSIDE_SEEN>, GOAL_NEEDS> relief_things{};
+    std::array<std::array<double, ACTION_COUNT>, GOAL_NEEDS> relief_deeds{};
+    std::vector<ReliefOne> relief_ones;
+    int goal_kind = NoGoal, goal_target = -1, goal_need = -1, goal_turn = -1;
+    double goal_urgency = 0.0, goal_close = -1.0;
+    int goals_formed = 0, goals_reached = 0, goals_abandoned = 0, goals_switched = 0, goals_dropped = 0;
+    long long goal_reach_turns = 0;  // summed over the goals it reached
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
@@ -2119,7 +2132,7 @@ public:
         Bitzkey* fletch_for = nullptr;  // whose bow it would make arrows for: its own, else one beside it
         double exposure = 0.0;  // how far from home it is, 0.5 a step to 1, times the share of exposure it suffers
         double spared = 0.0;  // the exposure kept off it by a shelter, a fire or a parent, which leaves it none
-        double longing_unease = 0.0, longing_relief = 0.0;  // its longing felt this turn, and the joy of meeting it (LONGING)
+        double goal_unease = 0.0, goal_relief = 0.0;  // its goal felt this turn, and the joy or unease of how it went (GOAL_JOY)
         int inside = 0;  // 2 resting in a shelter, 1 standing in one
         double home_distance = 0.0;  // how far the nearest row it is at home in lies, as sensed, times the same share
         int young_near = 0;  // its own young, still infants, within its sight
@@ -2299,7 +2312,8 @@ public:
     bool speak_beside(Bitzkey& agent, const Bitzkey& other);
     // How it fared nearer each thing and further, learnt; and whether it heeded the word it heard last turn.
     void heed_words(Bitzkey& agent, Situation& s, const Senses& senses);
-    void long_for(Bitzkey& agent, Situation& s, Senses& senses, int sight);  // its longing: met, faded, begun (LONGING)  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
+    void pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight);  // its needs, what eases them, its goal (GOAL_JOY)
+    void inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father);  // see RELIEF_INHERIT  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }
     void drop_gear(int x, int y, PileKind kind, int uses);  // its wear stays with the pile, shared out as it is taken

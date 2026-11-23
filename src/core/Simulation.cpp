@@ -4540,8 +4540,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         }
     }
-    long_for(agent, s, senses, sight);  // its longing, before habit dulls what it sees
-    heed_words(agent, s, senses);  // and what it has learnt of each thing, and of words heard, likewise
+    heed_words(agent, s, senses);  // what it has learnt of each thing, and of words heard, before habit dulls what it sees
+    pursue(agent, s, senses, sight);  // and its needs and goal, likewise
     // Getting used to things: each outside thing sensed by how much nearer it is than it has lately been, in part.
     if (HABITUATION > 0) {
         const double weight = std::min(1.0, HABITUATION);
@@ -6192,7 +6192,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +
                              LEADER_JOY * agent.rank_factor() * s.followed;  // a leader glad of its followers about it, the more the higher its rank
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging +
-           armed_ease - s.longing_unease + s.longing_relief + s.word_reward;
+           armed_ease - s.goal_unease + s.goal_relief + s.word_reward;
 }
 
 std::vector<Simulation::Gift> Simulation::gifts_so_far() const {
@@ -8133,146 +8133,188 @@ void Simulation::use_parts(Bitzkey& agent, int craft, const Parts* exactly) {
     }
 }
 
-void Simulation::long_for(Bitzkey& agent, Situation& s, Senses& senses, int sight) {
-    // Longing: met, faded, or begun; felt in comfort (longing_unease, longing_relief); sensed by strength and kind.
-    if (LONGING <= 0 && agent.longing_kind == NoLonging) return;
-    const auto sensed = [&](int thing) { return senses[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(thing)])]; };
-    const bool friendly_fire = s.fire && fire_friendly(agent, *s.fire);
-    const bool inside = under_cover(agent);
-    // What it longs for now: how far it is (for the probe), and whether it is there.
-    if (agent.longing_kind != NoLonging) {
-        int away = -1;
-        bool met = false;
-        if (agent.longing_kind == LongCompanion) {
-            const Bitzkey* other = find_agent(agent.longing_for);
-            if (!other || !other->alive()) {
-                agent.longing_kind = NoLonging;  // gone: grief, not longing
-            } else {
-                away = distance(other->x, other->y, agent.x, agent.y);
-                met = away <= 1;
-            }
-        } else if (agent.longing_kind == LongFire) {
-            away = distance(agent.longing_x, agent.longing_y, agent.x, agent.y);
-            met = friendly_fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
-        } else if (agent.longing_kind == LongShelter) {
-            away = distance(agent.longing_x, agent.longing_y, agent.x, agent.y);
-            met = inside;
-        } else if (agent.longing_kind == LongJoy) {
-            met = agent.longing_for >= 0 && sensed(agent.longing_for) >= 0.95;  // beside one of that kind
-        }
-        if (away >= 0 && agent.longing_away >= 0) {
-            agent.longing_closer += away < agent.longing_away;
-            agent.longing_farther += away > agent.longing_away;
-        }
-        agent.longing_away = away;
-        if (agent.longing_kind != NoLonging && met) {
-            s.longing_relief = LONGING_JOY * agent.longing;
-            ++agent.longings_reached;
-            agent.longing_kind = NoLonging;
-        } else if (agent.longing_kind != NoLonging) {
-            const double steady = agent.feeling(agent.longing_kind == LongCompanion ? Loyalty : Patience);
-            agent.longing *= std::max(0.0, 1 - LONGING_FADE * (1.5 - steady));
-            if (agent.longing < 0.05) {
-                ++agent.longings_faded;
-                agent.longing_kind = NoLonging;
-            }
-        }
-        if (agent.longing_kind == NoLonging) agent.longing = 0.0;
-    }
-    // Partings: what it had last turn and has lost from sight now begins a longing, if stronger than the one it has.
-    const auto begin = [&](int kind, double strength, int target, int x, int y) {
-        const double felt = LONGING * std::clamp(strength, 0.0, 1.0);
-        if (felt <= 0 || felt <= agent.longing) return;
-        agent.longing_kind = kind;
-        agent.longing = felt;
-        agent.longing_for = target;
-        agent.longing_x = x;
-        agent.longing_y = y;
-        agent.longing_turn = turn_;
-        agent.longing_away = -1;
-        agent.longing_closer = agent.longing_farther = 0;
-    };
-    // Its companions in sight now: those it knows (kin wholly) or holds a friend, the one it cares for most.
-    int companion = -1;
-    double care = 0.0;
-    bool kept = false;  // the one it cared for most last turn still in sight
-    bool back = false;  // the one it misses, in sight again
+void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight) {
+    // Its needs now, each 0 to 1 (see GOAL_JOY).
+    std::array<double, GOAL_NEEDS> now{};
+    now[NeedHunger] = senses[SenseHunger];
+    now[NeedFatigue] = 1.0 - senses[SenseStamina];
+    now[NeedPain] = 1.0 - senses[SenseHealth];
+    now[NeedFear] = senses[SenseThreatCloseness];
+    now[NeedLoneliness] = solitary(agent.species) ? 0.0 : 1.0 - senses[SenseHerdCloseness];
+    now[NeedDiscomfort] = senses[SenseClimateDiscomfort];
+    for (double& need : now) need = std::clamp(need, 0.0, 1.0);
+    // The companions it cares for in sight (family wholly, or held a friend), kept among the few it learns of.
     for (const Bitzkey* other : around(agent, sight)) {
         if (other == &agent || !other->alive() || !other->brain || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
-        const bool kin = other->identifier == agent.mother || other->identifier == agent.father || other->mother == agent.identifier ||
-                         other->father == agent.identifier;
-        const double regard = kin ? 1.0 : raw_regard_for(agent, *other);
-        if (regard < REGARD_STRONG) continue;
-        if (other->identifier == agent.beside_companion) kept = true;
-        if (other->identifier == agent.missing) back = true;
-        if (regard > care) {
-            care = regard;
-            companion = other->identifier;
+        const bool kin = family(agent, *other);
+        if (!kin && raw_regard_for(agent, *other) < REGARD_STRONG) continue;
+        if (std::any_of(agent.relief_ones.begin(), agent.relief_ones.end(), [&](const ReliefOne& one) { return one.one == other->identifier; })) continue;
+        if (static_cast<int>(agent.relief_ones.size()) < RELIEF_ONES) {
+            agent.relief_ones.push_back(ReliefOne{other->identifier, -1.0, {}});
+            continue;
         }
-    }
-    // Gone from its sight, a companion is missed; only gone LONGING_PARTING turns running, not back, is it longed for.
-    if (agent.beside_companion >= 0 && !kept && agent.beside_companion != agent.missing &&
-        (agent.missing < 0 || agent.beside_care > agent.missing_care)) {
-        agent.missing = agent.beside_companion;
-        agent.missing_care = agent.beside_care;
-        agent.missing_for = 0;
-    }
-    if (agent.missing >= 0) {
-        const Bitzkey* gone = find_agent(agent.missing);
-        const bool lost = !gone || !gone->alive();
-        if (!lost && !back && ++agent.missing_for >= std::max(1, LONGING_PARTING)) {
-            begin(LongCompanion, agent.missing_care, agent.missing, -1, -1);
-            agent.missing = -1;
-        } else if (lost || back) {
-            agent.missing = -1;  // back again, or gone for good: nothing to long for
+        // full: the one it has learnt least of, out of sight, makes room
+        const auto weight = [](const ReliefOne& one) { double sum = 0.0; for (const double r : one.relief) sum += std::abs(r); return sum; };
+        auto least = agent.relief_ones.end();
+        for (auto it = agent.relief_ones.begin(); it != agent.relief_ones.end(); ++it) {
+            if (one_closeness(agent, it->one, sight) > 0) continue;
+            if (least == agent.relief_ones.end() || weight(*it) < weight(*least)) least = it;
         }
-        if (agent.missing < 0) {
-            agent.missing_care = 0.0;
-            agent.missing_for = 0;
-        }
+        if (least != agent.relief_ones.end()) *least = ReliefOne{other->identifier, -1.0, {}};
     }
-    agent.beside_companion = companion;
-    agent.beside_care = care;
-    if (agent.fire_x >= 0 && !friendly_fire) begin(LongFire, 1.0, -1, agent.fire_x, agent.fire_y);
-    agent.fire_x = friendly_fire ? s.fire->x : -1;
-    agent.fire_y = friendly_fire ? s.fire->y : -1;
-    if (inside) {
-        agent.shelter_x = agent.x;
-        agent.shelter_y = agent.y;
-    } else if (agent.shelter_x >= 0 && distance(agent.shelter_x, agent.shelter_y, agent.x, agent.y) > sight) {
-        begin(LongShelter, 1.0, -1, agent.shelter_x, agent.shelter_y);
-        agent.shelter_x = agent.shelter_y = -1;
-    }
-    // Its greatest recent joy, and the thing nearest it then: lost from sight, it is longed for.
-    agent.joy_best *= 0.99;
-    if (agent.reward > agent.joy_best && agent.reward > 0) {
-        int nearest = -1;
-        double most = 0.0;
-        for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
-            if (sensed(thing) > most) {
-                most = sensed(thing);
-                nearest = thing;
+    std::erase_if(agent.relief_ones, [&](const ReliefOne& one) { const Bitzkey* found = find_agent(one.one); return !found || !found->alive(); });
+    // What eased each need since last turn, beyond its usual drift, after what it came nearer and what it did.
+    std::array<double, RELIEF_ONES> ones_close{};
+    for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) ones_close[at] = one_closeness(agent, agent.relief_ones[at].one, sight);
+    if (agent.has_needs && RELIEF_RATE > 0) {
+        const double rate = std::min(1.0, RELIEF_RATE);
+        for (int need = 0; need < GOAL_NEEDS; ++need) {
+            const auto n = static_cast<std::size_t>(need);
+            const double eased = agent.needs[n] - now[n];
+            const double gain = eased - agent.need_drift[n];
+            agent.need_drift[n] += rate * (eased - agent.need_drift[n]);
+            for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                if (agent.moved[thing] > 0) agent.relief_things[n][thing] += rate * (gain - agent.relief_things[n][thing]);
+            }
+            if (agent.last_choice >= 0 && agent.last_choice < ACTION_COUNT) {
+                double& deed = agent.relief_deeds[n][static_cast<std::size_t>(agent.last_choice)];
+                deed += rate * (gain - deed);
+            }
+            for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
+                ReliefOne& one = agent.relief_ones[at];
+                if (one.close >= 0 && ones_close[at] > one.close) one.relief[n] += rate * (gain - one.relief[n]);
             }
         }
-        if (nearest >= 0) {
-            agent.joy_best = agent.reward;
-            agent.joy_thing = nearest;
-            agent.joy_seen = true;
+    }
+    for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) agent.relief_ones[at].close = ones_close[at];
+    agent.needs = now;
+    agent.has_needs = true;
+    // How much a goal eases a need, as it has learnt.
+    const auto worth = [&](int kind, int target, int need) {
+        const auto n = static_cast<std::size_t>(need);
+        if (kind == GoalForThing) return agent.relief_things[n][static_cast<std::size_t>(target)];
+        if (kind == GoalForDeed) return agent.relief_deeds[n][static_cast<std::size_t>(target)];
+        for (const ReliefOne& one : agent.relief_ones) {
+            if (one.one == target) return one.relief[n];
+        }
+        return 0.0;
+    };
+    // Its goal: reached, given up, let go, or held a turn more.
+    if (agent.goal_kind != NoGoal) {
+        bool met = false, gone = false;
+        double close = -1.0;
+        if (agent.goal_kind == GoalForThing) {
+            close = senses[OUTSIDE_SENSES[static_cast<std::size_t>(agent.goal_target)]];
+            met = close >= 0.99;
+        } else if (agent.goal_kind == GoalForOne) {
+            const Bitzkey* other = find_agent(agent.goal_target);
+            gone = !other || !other->alive();
+            close = gone ? 0.0 : one_closeness(agent, agent.goal_target, sight);
+            met = !gone && close >= 0.99;
+        } else {
+            met = agent.goal_turn < turn_ && agent.last_choice == agent.goal_target;  // the deed done last turn
+        }
+        const double need = now[static_cast<std::size_t>(agent.goal_need)];
+        const double patience = agent.feeling(Patience);
+        if (met) {
+            s.goal_relief += GOAL_JOY * agent.goal_urgency;
+            ++agent.goals_reached;
+            agent.goal_reach_turns += turn_ - agent.goal_turn;
+            agent.goal_kind = NoGoal;
+        } else if (gone || need < GOAL_SATED) {
+            ++agent.goals_dropped;
+            agent.goal_kind = NoGoal;
+        } else if (turn_ - agent.goal_turn > GOAL_PATIENCE * (0.5 + patience)) {
+            s.goal_relief -= GOAL_GIVE_UP;
+            ++agent.goals_abandoned;
+            agent.goal_kind = NoGoal;
+        } else {
+            if (close >= 0 && agent.goal_close >= 0) s.goal_relief += GOAL_PROGRESS * ((close > agent.goal_close) - (close < agent.goal_close));
+            agent.goal_close = close;
+            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, agent.goal_urgency + GOAL_RISE * need);
+        }
+        if (agent.goal_kind == NoGoal) {
+            agent.goal_target = agent.goal_need = -1;
+            agent.goal_urgency = 0.0;
+            agent.goal_close = -1.0;
         }
     }
-    if (agent.joy_thing >= 0) {
-        const bool seen = sensed(agent.joy_thing) > 0;
-        if (agent.joy_seen && !seen) begin(LongJoy, agent.joy_best, agent.joy_thing, -1, -1);
-        agent.joy_seen = seen;
+    // Its worst need, and what it has found eases that need most: a goal, or a better one in place of its own.
+    int worst = -1;
+    for (int need = 0; need < GOAL_NEEDS; ++need) {
+        if (now[static_cast<std::size_t>(need)] >= GOAL_SATED && (worst < 0 || now[static_cast<std::size_t>(need)] > now[static_cast<std::size_t>(worst)])) worst = need;
     }
-    if (LONGING <= 0) {  // switched off: what it longed for lets go
-        agent.longing_kind = NoLonging;
-        agent.longing = 0.0;
+    if (worst >= 0) {
+        int kind = NoGoal, target = -1;
+        double best = GOAL_MIN_RELIEF;
+        const auto consider = [&](int k, int t) {
+            const double value = worth(k, t, worst);
+            if (value >= best && !(kind != NoGoal && value == best)) {
+                best = value;
+                kind = k;
+                target = t;
+            }
+        };
+        for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) consider(GoalForThing, thing);
+        for (const ReliefOne& one : agent.relief_ones) consider(GoalForOne, one.one);
+        for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed);
+        const bool same = kind == agent.goal_kind && target == agent.goal_target && worst == agent.goal_need;
+        bool adopt = kind != NoGoal && agent.goal_kind == NoGoal;
+        if (kind != NoGoal && agent.goal_kind != NoGoal && !same) {
+            const double held = now[static_cast<std::size_t>(agent.goal_need)] * worth(agent.goal_kind, agent.goal_target, agent.goal_need);
+            const double margin = 1.0 + GOAL_STUBBORNNESS * 2.0 * agent.feeling(Patience);
+            if (now[static_cast<std::size_t>(worst)] * best > std::max(0.0, held) * margin) {
+                adopt = true;
+                ++agent.goals_switched;
+            }
+        }
+        if (adopt) {
+            agent.goal_kind = kind;
+            agent.goal_target = target;
+            agent.goal_need = worst;
+            agent.goal_turn = turn_;
+            agent.goal_urgency = now[static_cast<std::size_t>(worst)];
+            agent.goal_close = kind == GoalForThing ? senses[OUTSIDE_SENSES[static_cast<std::size_t>(target)]]
+                              : kind == GoalForOne  ? one_closeness(agent, target, sight)
+                                                    : -1.0;
+            ++agent.goals_formed;
+        }
     }
-    if (agent.longing_kind != NoLonging) {
-        s.longing_unease = LONGING_UNEASE * agent.longing;
-        senses[static_cast<std::size_t>(SenseLonging + LongingStrength)] = std::min(1.0, agent.longing);
-        senses[static_cast<std::size_t>(SenseLonging + agent.longing_kind)] = 1.0;  // LongCompanion .. LongJoy follow LongingStrength
+    // Felt, and sensed.
+    if (agent.goal_kind != NoGoal) {
+        s.goal_unease = GOAL_UNEASE * agent.goal_urgency;
+        senses[SenseGoal + Goal] = 1.0;
+        senses[SenseGoal + GoalUrgency] = agent.goal_urgency / GOAL_URGENCY_MAX;
+        senses[SenseGoal + GoalCloseness] = std::max(0.0, agent.goal_close);
+        senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
+        if (agent.goal_kind == GoalForThing) {
+            senses[SenseGoal + GoalThing + agent.goal_target] = 1.0;
+        } else if (agent.goal_kind == GoalForOne) {
+            senses[SenseGoal + GoalOne] = 1.0;
+            if (const Bitzkey* other = find_agent(agent.goal_target)) {
+                senses[SenseGoal + GoalOneRegard] = std::clamp(regard_for(agent, *other), -1.0, 1.0);
+                senses[SenseGoal + GoalOneFamily] = family(agent, *other) ? 1.0 : 0.0;
+            }
+        } else {
+            senses[SenseGoal + GoalDeed + agent.goal_target] = 1.0;
+        }
+    }
+}
+
+void Simulation::inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father) {
+    // What eased its parents' needs, a share of it, as if it had learnt it (see RELIEF_INHERIT).
+    if (RELIEF_INHERIT <= 0) return;
+    const double share = std::min(1.0, RELIEF_INHERIT);
+    for (int need = 0; need < GOAL_NEEDS; ++need) {
+        const auto n = static_cast<std::size_t>(need);
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            const double parents = father ? (mother.relief_things[n][thing] + father->relief_things[n][thing]) / 2 : mother.relief_things[n][thing];
+            child.relief_things[n][thing] = share * parents;
+        }
+        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+            const double parents = father ? (mother.relief_deeds[n][deed] + father->relief_deeds[n][deed]) / 2 : mother.relief_deeds[n][deed];
+            child.relief_deeds[n][deed] = share * parents;
+        }
     }
 }
 
@@ -8768,6 +8810,7 @@ void Simulation::give_birth(Bitzkey& mother) {
         child.mind = young.mind;
         inherit_words(child, mother);  // a share of each parent's words (see LEXICON_INHERIT)
         if (const Bitzkey* father = find_agent(young.father)) inherit_words(child, *father);
+        inherit_relief(child, mother, find_agent(young.father));  // and what eased its parents' needs (see RELIEF_INHERIT)
         name_at_birth(child, mother);  // and its mother names it (see NAMES_SIZE)
         if (CUES) {  // its mother's cry, or now and then another
             child.cry = mother.own_cry();

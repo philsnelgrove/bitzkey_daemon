@@ -107,6 +107,7 @@ public:
     static constexpr double RUNAWAY_VALUE = 50;
     static constexpr double JAMMED = 0.99;
     Json skills(Simulation& world) const;
+    Json goals(Simulation& world) const;  // needs, what eases them, and goals (see GOAL_JOY)
     Json diary(Simulation& world) const;
     Json lands(Simulation& world) const;  // colour groups, their lands and wars, and the marks of the victor
     Json gifts(Simulation& world) const;  // the gifts lately given, looked over for trade
