@@ -1655,6 +1655,15 @@ Json Probe::language(Simulation& world) const {
         {
             long long holders = 0, words = 0, spoke = 0, heard = 0, alive = 0, agreeing = 0, counted = 0;
             long long judged = 0, heeded = 0, acted_good = 0, acted_same = 0, knows_good = 0, knows_bad = 0;
+            // By chance: those that heard no word they hold, sensed this turn as the judged were. For each thing, how
+            // many came nearer it, and went the way their own life found good; for each deed, how many did it. Then
+            // weighed by the things and deeds the judged were judged on.
+            std::array<long long, OUTSIDE_SEEN> judged_things{}, base_nearer{}, base_good{};
+            std::array<long long, ACTION_COUNT> judged_deeds{}, base_deeds{};
+            long long base = 0, deeds_judged = 0;
+            // And near a speaker: those that heard a call that was no word they hold, as near a caller as the judged were.
+            std::array<long long, OUTSIDE_SEEN> near_nearer{}, near_good{};
+            long long nearby = 0, nearby_same = 0;
             std::array<std::map<long long, long long>, OUTSIDE_SEEN> by_thing{};
             for (const Bitzkey* agent : world.living()) {
                 if (agent->species != species) continue;
@@ -1668,6 +1677,28 @@ Json Probe::language(Simulation& world) const {
                     heeded += agent->heeded;
                     acted_good += agent->acted_good;
                     acted_same += agent->acted_same;
+                    if (agent->judged_thing >= 0 && agent->judged_thing < OUTSIDE_SEEN) ++judged_things[static_cast<std::size_t>(agent->judged_thing)];
+                    if (agent->judged_deed >= 0 && agent->judged_deed < ACTION_COUNT) {
+                        ++judged_deeds[static_cast<std::size_t>(agent->judged_deed)];
+                        ++deeds_judged;
+                    }
+                } else if (agent->close_turn >= 0 && agent->close_turn == agent->call_turn) {
+                    if (agent->unknown_judged_turn == agent->call_turn) {
+                        ++nearby;
+                        nearby_same += agent->unknown_same;
+                        for (std::size_t seen = 0; seen < agent->moved.size(); ++seen) {
+                            const double worth = agent->nearer_comfort[seen] - agent->farther_comfort[seen];
+                            near_nearer[seen] += agent->moved[seen] > 0;
+                            near_good[seen] += (worth > 0 && agent->moved[seen] > 0) || (worth < 0 && agent->moved[seen] < 0);
+                        }
+                    }
+                    ++base;
+                    for (std::size_t seen = 0; seen < agent->moved.size(); ++seen) {
+                        const double worth = agent->nearer_comfort[seen] - agent->farther_comfort[seen];
+                        base_nearer[seen] += agent->moved[seen] > 0;
+                        base_good[seen] += (worth > 0 && agent->moved[seen] > 0) || (worth < 0 && agent->moved[seen] < 0);
+                    }
+                    if (agent->last_choice >= 0 && agent->last_choice < ACTION_COUNT) ++base_deeds[static_cast<std::size_t>(agent->last_choice)];
                 }
                 for (std::size_t seen = 0; seen < agent->nearer_comfort.size(); ++seen) {  // what its life has taught it of each thing
                     const double worth = agent->nearer_comfort[seen] - agent->farther_comfort[seen];
@@ -1689,6 +1720,38 @@ Json Probe::language(Simulation& world) const {
                 agreement[std::string(OUTPUTS[static_cast<std::size_t>(OUTSIDE + thing)].substr(8))] = {{"holders", sum}, {"commonest_share", static_cast<double>(most) / static_cast<double>(sum)},
                                                                                                        {"words", by_thing[static_cast<std::size_t>(thing)].size()}};
             }
+            Json chance_nearer = nullptr, chance_good = nullptr, chance_same = nullptr;
+            if (base > 0 && judged > 0) {
+                double nearer_sum = 0.0, good_sum = 0.0, weight = 0.0;
+                for (std::size_t seen = 0; seen < judged_things.size(); ++seen) {
+                    nearer_sum += static_cast<double>(judged_things[seen]) * static_cast<double>(base_nearer[seen]) / static_cast<double>(base);
+                    good_sum += static_cast<double>(judged_things[seen]) * static_cast<double>(base_good[seen]) / static_cast<double>(base);
+                    weight += static_cast<double>(judged_things[seen]);
+                }
+                if (weight > 0) {
+                    chance_nearer = nearer_sum / weight;
+                    chance_good = good_sum / weight;
+                }
+                if (deeds_judged > 0) {
+                    double same_sum = 0.0;
+                    for (std::size_t deed = 0; deed < judged_deeds.size(); ++deed)
+                        same_sum += static_cast<double>(judged_deeds[deed]) * static_cast<double>(base_deeds[deed]) / static_cast<double>(base);
+                    chance_same = same_sum / static_cast<double>(deeds_judged);
+                }
+            }
+            Json near_chance_nearer = nullptr, near_chance_good = nullptr;
+            if (nearby > 0 && judged > 0) {
+                double nearer_sum = 0.0, good_sum = 0.0, weight = 0.0;
+                for (std::size_t seen = 0; seen < judged_things.size(); ++seen) {
+                    nearer_sum += static_cast<double>(judged_things[seen]) * static_cast<double>(near_nearer[seen]) / static_cast<double>(nearby);
+                    good_sum += static_cast<double>(judged_things[seen]) * static_cast<double>(near_good[seen]) / static_cast<double>(nearby);
+                    weight += static_cast<double>(judged_things[seen]);
+                }
+                if (weight > 0) {
+                    near_chance_nearer = nearer_sum / weight;
+                    near_chance_good = good_sum / weight;
+                }
+            }
             const Simulation::LexiconTally& made = world.lexicon_tally()[static_cast<std::size_t>(species)];
             lexicon = {{"holders_share", ratio(static_cast<double>(holders), static_cast<double>(alive))},
                        {"mean_words", ratio(static_cast<double>(words), static_cast<double>(alive))},
@@ -1698,6 +1761,9 @@ Json Probe::language(Simulation& world) const {
                        {"judged", judged}, {"heeded_share", ratio(static_cast<double>(heeded), static_cast<double>(judged))},
                        {"acted_good_share", ratio(static_cast<double>(acted_good), static_cast<double>(judged))},
                        {"acted_same_share", ratio(static_cast<double>(acted_same), static_cast<double>(judged))},
+                       {"heeded_by_chance_near", near_chance_nearer}, {"acted_good_by_chance_near", near_chance_good},
+                       {"acted_same_by_chance_near", nearby > 0 ? Json(static_cast<double>(nearby_same) / static_cast<double>(nearby)) : Json(nullptr)},
+                       {"heeded_by_chance", chance_nearer}, {"acted_good_by_chance", chance_good}, {"acted_same_by_chance", chance_same},
                        {"things_found_good", ratio(static_cast<double>(knows_good), static_cast<double>(alive))},
                        {"things_found_bad", ratio(static_cast<double>(knows_bad), static_cast<double>(alive))},
                        {"agreed", made.agreed}, {"witnessed", made.witnessed}, {"inherited", made.inherited},

@@ -1323,6 +1323,11 @@ struct Bitzkey {
     int meant_deed = -1;                // and what the speaker was doing as it said it
     int judged_turn = -1;               // the last turn it was judged on a word heard, and how: (see LEXICON_HEED)
     bool heeded = false, acted_good = false, acted_same = false;
+    int judged_thing = -1, judged_deed = -1;  // the thing and the speaker's deed it was judged on
+    // For the probe's chance, near a speaker: the last turn it heard a call that was no word it holds, the caller's deed
+    // then, and whether it did the same next turn (judged when unknown_judged_turn).
+    int unknown_turn = -1, unknown_deed = -1, unknown_judged_turn = -1;
+    bool unknown_same = false;
     double word_reward = 0.0;           // what that was worth, felt that turn
     int longing_kind = NoLonging;       // what kind of thing it longs for (see LONGING)
     double longing = 0.0;               // how strongly, fading

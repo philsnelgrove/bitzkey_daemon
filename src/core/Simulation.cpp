@@ -4395,6 +4395,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     if (LEXICON_SIZE > 0 && caller && caller->call >= FirstCall) {  // a word it holds, heard: it knows what is meant
+        agent.unknown_turn = turn_;  // till found among its words: a call it knows no meaning of (for the probe)
+        agent.unknown_deed = caller->last_choice;
         for (LexiconWord& word : agent.lexicon) {
             if (word.call != caller->call || word.sounds != caller->sounds) continue;
             senses[SenseMeant + Meant] = 1.0;
@@ -4405,6 +4407,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             agent.meant_thing = word.thing;
             agent.meant_close = agent.was_close[static_cast<std::size_t>(word.thing)];
             agent.meant_deed = caller->last_choice;
+            agent.unknown_turn = -1;
             break;
         }
     }
@@ -4623,6 +4626,10 @@ void Simulation::heed_words(Bitzkey& agent, Situation& s, const Senses& senses) 
     for (std::size_t seen = 0; seen < close.size(); ++seen) {
         agent.moved[seen] = !last ? 0 : close[seen] > agent.was_close[seen] ? 1 : close[seen] < agent.was_close[seen] ? -1 : 0;
     }
+    if (last && agent.unknown_turn == turn_ - 1) {  // a call that was no word it knew: for the probe's chance alone
+        agent.unknown_same = agent.unknown_deed >= 0 && agent.last_choice == agent.unknown_deed;
+        agent.unknown_judged_turn = turn_;
+    }
     if (last && agent.meant_turn == turn_ - 1 && agent.meant_thing >= 0) {  // a word heard last turn: heeded, and fittingly?
         const auto thing = static_cast<std::size_t>(agent.meant_thing);
         const double now = close[thing], then = agent.meant_close;
@@ -4632,6 +4639,8 @@ void Simulation::heed_words(Bitzkey& agent, Situation& s, const Senses& senses) 
         agent.acted_same = agent.meant_deed >= 0 && agent.last_choice == agent.meant_deed;
         agent.word_reward = LEXICON_HEED * agent.heeded + LEXICON_ACT * (agent.acted_good + agent.acted_same);
         agent.judged_turn = turn_;
+        agent.judged_thing = agent.meant_thing;
+        agent.judged_deed = agent.meant_deed;
         s.word_reward = agent.word_reward;
     }
     agent.was_close = close;
