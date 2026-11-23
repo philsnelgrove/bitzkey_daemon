@@ -2908,6 +2908,7 @@ TEST_CASE("learning a word: the cleverest saying a word back always point at wha
     simulation.index_cells();
     int tries = 0, right = 0;
     for (int turn = 0; turn < 60; ++turn) {
+        learner.mind[Intellect] = TRAIT_MAX;  // held at the cleverest: a mind drifts with what it lives
         speaker.call = FirstCall + 2;  // its word, said to the learner alone last turn, pointing at a thing
         speaker.sounds = {0, -1};
         speaker.call_turn = speaker.address_turn = simulation.turn();

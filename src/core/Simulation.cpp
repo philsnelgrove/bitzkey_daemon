@@ -2976,13 +2976,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                 for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) outputs[static_cast<std::size_t>(thing)] = POINT + thing;
                 double roll = whim(agent.identifier ^ 0x504F494E, turn_);
                 int picked = outputs[0];
-                if (repeated && agent.point >= 0 && agent.point_turn == turn_ - 1) {
+                if (choice == Learn && situation.learn_by && situation.learn_thing >= 0 &&
+                    whim(agent.identifier ^ 0x494E5349, turn_) < LEARN_INSIGHT * agent.mind[Intellect] / TRAIT_MAX) {
+                    picked = POINT + situation.learn_thing;  // it sees what the speaker meant, the more surely the cleverer
+                } else if (repeated && agent.point >= 0 && agent.point_turn == turn_ - 1) {
                     picked = POINT + agent.point;  // the same thing again
                 } else if (choice == Address && situation.retry_to && agent.word_point >= 0) {
                     picked = POINT + agent.word_point;  // what it pointed at as it first said the word
-                } else if (choice == Learn && situation.learn_by && situation.learn_thing >= 0 &&
-                           whim(agent.identifier ^ 0x494E5349, turn_) < LEARN_INSIGHT * agent.intelligence()) {
-                    picked = POINT + situation.learn_thing;  // it sees what the speaker meant, the more surely the cleverer
                 } else {
                     for (const auto& [output, chance] : choice_odds(values[index], outputs, CALL_TEMPERATURE)) {
                         roll -= chance;
@@ -4204,9 +4204,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                 s.learn_thing = thing;
                 s.learn_call = addressed->call;
                 s.learn_sounds = addressed->sounds;
-                if (whim(agent.identifier ^ 0x4C45524E, turn_) < std::max(agent.feeling(Curiosity), agent.intelligence())) {
-                    sensed.options.push_back(Learn);  // the more curious or the cleverer, the likelier to try
-                }
+                sensed.options.push_back(Learn);  // any one addressed may try; whether it does is its own choice
             }
         }
     }
