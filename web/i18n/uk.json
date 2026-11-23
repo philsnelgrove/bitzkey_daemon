@@ -2140,5 +2140,11 @@
 "Lexicon witness": "Свідок словника",
 "chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "імовірність, що хтось його виду, хто бачить узгоджене слово, візьме його до власного словника за тим самим правилом",
 "Lexicon inheritance": "Спадок словника",
-"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "частка слів кожного з батьків, найуживаніші першими, з якими починає новонароджений, ніби навчений родиною"
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "частка слів кожного з батьків, найуживаніші першими, з якими починає новонароджений, ніби навчений родиною",
+"Lexicon heed": "Увага до слова",
+"joy for one that heard a word it holds and by the next turn has come nearer the thing it means": "радість для того, хто почув слово зі свого словника і до наступного ходу наблизився до речі, яку воно означає",
+"Lexicon fitting deed": "Доречний вчинок на слово",
+"joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "радість за кожен спосіб, у який його вчинок, коли воно почуло знайоме слово, був доречним: наблизилося до речі, якщо власне життя визнало її доброю, або віддалилося, якщо поганою; і зробило те, що робив мовець",
+"Lexicon worth rate": "Темп оцінки",
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "як швидко тварина вчиться з власного життя, як їй ведеться ближче до кожної речі, порівняно з далі"
 }

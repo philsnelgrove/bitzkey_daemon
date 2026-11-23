@@ -2140,5 +2140,11 @@
 "Lexicon witness": "語彙の目撃",
 "chance that one of its kind who sees a word agreed takes it into its own lexicon, under the same rule": "語が合意されるのを見た同種の者が、同じ規則でそれを自分の語彙に取り入れる確率",
 "Lexicon inheritance": "語彙の継承",
-"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "新生児が持って生まれる各親の語の割合。よく使われたものから。家族に教わったものとして"
+"share of each parent's words, the most used first, that a newborn starts with, as if taught by family": "新生児が持って生まれる各親の語の割合。よく使われたものから。家族に教わったものとして",
+"Lexicon heed": "語への注意",
+"joy for one that heard a word it holds and by the next turn has come nearer the thing it means": "語彙にある語を聞き、次のターンまでにその語の指すものへ近づいた者の喜び",
+"Lexicon fitting deed": "語にふさわしい行い",
+"joy for each way what one did on hearing a word it holds was fitting: it went nearer the thing if its own life found that good, or further if bad; and it did what the speaker did": "知っている語を聞いて取った行いがふさわしかった方法ごとの喜び：自分の生でそのものを良いと知れば近づき、悪いと知れば遠ざかった。そして話し手と同じことをした",
+"Lexicon worth rate": "価値を学ぶ速さ",
+"how fast an animal learns from its own life how it fares nearer each thing, against further": "動物が自分の生から、各ものの近くでどう過ごせるかを遠くと比べて学ぶ速さ"
 }

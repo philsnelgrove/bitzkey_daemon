@@ -1654,6 +1654,7 @@ Json Probe::language(Simulation& world) const {
         Json lexicon = nullptr;
         {
             long long holders = 0, words = 0, spoke = 0, heard = 0, alive = 0, agreeing = 0, counted = 0;
+            long long judged = 0, heeded = 0, acted_good = 0, acted_same = 0, knows_good = 0, knows_bad = 0;
             std::array<std::map<long long, long long>, OUTSIDE_SEEN> by_thing{};
             for (const Bitzkey* agent : world.living()) {
                 if (agent->species != species) continue;
@@ -1662,6 +1663,17 @@ Json Probe::language(Simulation& world) const {
                 words += static_cast<long long>(agent->lexicon.size());
                 spoke += agent->lexicon_spoke_turn >= 0 && agent->lexicon_spoke_turn == agent->call_turn;
                 heard += agent->has_last_senses && agent->last_senses[SenseMeant + Meant] > 0;
+                if (agent->judged_turn >= 0 && agent->judged_turn == agent->call_turn) {  // judged on a word as it last chose
+                    ++judged;
+                    heeded += agent->heeded;
+                    acted_good += agent->acted_good;
+                    acted_same += agent->acted_same;
+                }
+                for (std::size_t seen = 0; seen < agent->nearer_comfort.size(); ++seen) {  // what its life has taught it of each thing
+                    const double worth = agent->nearer_comfort[seen] - agent->farther_comfort[seen];
+                    knows_good += worth > 0;
+                    knows_bad += worth < 0;
+                }
                 for (const LexiconWord& word : agent->lexicon) {
                     if (word.thing < 0 || word.thing >= OUTSIDE_SEEN) continue;
                     ++by_thing[static_cast<std::size_t>(word.thing)][word.call * 100LL + (word.sounds[0] + 1) * 10 + word.sounds[1] + 1];
@@ -1683,6 +1695,11 @@ Json Probe::language(Simulation& world) const {
                        {"spoke_word_share", ratio(static_cast<double>(spoke), static_cast<double>(alive))},
                        {"heard_known_share", ratio(static_cast<double>(heard), static_cast<double>(alive))},
                        {"agreement", ratio(static_cast<double>(agreeing), static_cast<double>(counted))}, {"by_thing", agreement},
+                       {"judged", judged}, {"heeded_share", ratio(static_cast<double>(heeded), static_cast<double>(judged))},
+                       {"acted_good_share", ratio(static_cast<double>(acted_good), static_cast<double>(judged))},
+                       {"acted_same_share", ratio(static_cast<double>(acted_same), static_cast<double>(judged))},
+                       {"things_found_good", ratio(static_cast<double>(knows_good), static_cast<double>(alive))},
+                       {"things_found_bad", ratio(static_cast<double>(knows_bad), static_cast<double>(alive))},
                        {"agreed", made.agreed}, {"witnessed", made.witnessed}, {"inherited", made.inherited},
                        {"confirmed", made.confirmed}, {"overridden", made.overridden}, {"refused", made.refused}};
         }

@@ -431,6 +431,13 @@ inline double LEXICON_SPEAK = 1.0;
 inline double LEXICON_FAMILY = 0.5;
 inline double LEXICON_WITNESS = 1.0;
 inline double LEXICON_INHERIT = 0.5;
+// Heeding a word (the user's idea): one that heard a word it holds, and by the next turn has come nearer the thing it
+// means, feels LEXICON_HEED; and LEXICON_ACT for each way what it did was fitting: it went nearer a thing its own life
+// has taught it is good to near, or further from one it has found bad (as it felt the turn after going nearer each
+// thing, against going further, averaged at LEXICON_WORTH_RATE), and it did what the speaker did as it said the word.
+inline double LEXICON_HEED = 0.1;
+inline double LEXICON_ACT = 0.2;
+inline double LEXICON_WORTH_RATE = 0.05;
 struct LexiconWord {
     int call = -1;                                    // its first sound, as a call
     std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};   // and its later sounds, -1 where it stops
@@ -1305,6 +1312,18 @@ struct Bitzkey {
     std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and the later sounds of the word it said back
     std::vector<LexiconWord> lexicon;   // the words it has settled (see LEXICON_SIZE)
     int lexicon_spoke_turn = -1;        // the last turn it said a word from its lexicon
+    // Its own experience of each outside thing (see LEXICON_ACT): how it felt the turn after going nearer it, and further.
+    std::array<double, OUTSIDE_SEEN> nearer_comfort{}, farther_comfort{};
+    std::array<double, OUTSIDE_SEEN> was_close{};      // how close each was as it last sensed
+    std::array<int, OUTSIDE_SEEN> moved{};             // and whether it had then come nearer (1), gone further (-1) or neither
+    int close_turn = -1;                // when it last sensed them
+    int meant_turn = -1;                // the last turn it heard a word it holds
+    int meant_thing = -1;               // what that word means
+    double meant_close = 0.0;           // how close that thing was then
+    int meant_deed = -1;                // and what the speaker was doing as it said it
+    int judged_turn = -1;               // the last turn it was judged on a word heard, and how: (see LEXICON_HEED)
+    bool heeded = false, acted_good = false, acted_same = false;
+    double word_reward = 0.0;           // what that was worth, felt that turn
     int longing_kind = NoLonging;       // what kind of thing it longs for (see LONGING)
     double longing = 0.0;               // how strongly, fading
     int longing_for = -1;               // the companion longed for, or the outside thing (an index of OUTSIDE_SENSES)
@@ -1955,6 +1974,7 @@ public:
         int learn_thing = -1, learn_call = -1;  // what that one pointed at, and its call
         std::array<int, MAX_SOUNDS - 1> learn_sounds{-1, -1};  // and its later sounds
         int meant = -1;                  // the thing the word it heard means, from its lexicon; -1 none
+        double word_reward = 0.0;        // heeding the word it heard last turn, felt now (see LEXICON_HEED)
         Bitzkey* retry_to = nullptr;     // one it addressed with a word, not yet answered right, to say it again to
         int lesson = -1;                 // in which craft, or CRAFT_COUNT for archery
         std::optional<Cell> grass;
@@ -2168,6 +2188,8 @@ public:
     void use_parts(Bitzkey& agent, int craft, const Parts* exactly = nullptr);  // spent in that order, friends who gave sharing in it
     void craft_arrows(Bitzkey& agent, Bitzkey& archer);
     bool speak_beside(Bitzkey& agent, const Bitzkey& other);
+    // How it fared nearer each thing and further, learnt; and whether it heeded the word it heard last turn.
+    void heed_words(Bitzkey& agent, Situation& s, const Senses& senses);
     void long_for(Bitzkey& agent, Situation& s, Senses& senses, int sight);  // its longing: met, faded, begun (LONGING)  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }

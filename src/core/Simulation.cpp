@@ -4374,6 +4374,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     long_for(agent, s, senses, sight);  // its longing, before habit dulls what it sees
+    heed_words(agent, s, senses);  // and what it has learnt of each thing, and of words heard, likewise
     // Getting used to things: each outside thing sensed by how much nearer it is than it has lately been, in part.
     if (HABITUATION > 0) {
         const double weight = std::min(1.0, HABITUATION);
@@ -4400,6 +4401,10 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseMeant + MeantCloseness] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(word.thing)]];
             s.meant = word.thing;
             ++word.uses;
+            agent.meant_turn = turn_;  // to be judged next turn: did it heed it (see LEXICON_HEED)
+            agent.meant_thing = word.thing;
+            agent.meant_close = agent.was_close[static_cast<std::size_t>(word.thing)];
+            agent.meant_deed = caller->last_choice;
             break;
         }
     }
@@ -4598,6 +4603,39 @@ void Simulation::tally_attack(const Bitzkey& agent, const Bitzkey& victim) {
         }
     };
     if (!later(census)) census();
+}
+
+void Simulation::heed_words(Bitzkey& agent, Situation& s, const Senses& senses) {
+    if (agent.close_turn == turn_) {  // sensed again this turn: as it was judged
+        if (agent.judged_turn == turn_) s.word_reward = agent.word_reward;
+        return;
+    }
+    std::array<double, OUTSIDE_SEEN> close{};
+    for (int seen = 0; seen < OUTSIDE_SEEN; ++seen) close[static_cast<std::size_t>(seen)] = senses[OUTSIDE_SENSES[static_cast<std::size_t>(seen)]];
+    const bool last = agent.close_turn == turn_ - 1;
+    if (last && LEXICON_WORTH_RATE > 0) {  // how it felt last turn, after going nearer each thing or further the turn before
+        const double rate = std::min(1.0, LEXICON_WORTH_RATE);
+        for (std::size_t seen = 0; seen < close.size(); ++seen) {
+            if (agent.moved[seen] > 0) agent.nearer_comfort[seen] += rate * (agent.last_comfort - agent.nearer_comfort[seen]);
+            if (agent.moved[seen] < 0) agent.farther_comfort[seen] += rate * (agent.last_comfort - agent.farther_comfort[seen]);
+        }
+    }
+    for (std::size_t seen = 0; seen < close.size(); ++seen) {
+        agent.moved[seen] = !last ? 0 : close[seen] > agent.was_close[seen] ? 1 : close[seen] < agent.was_close[seen] ? -1 : 0;
+    }
+    if (last && agent.meant_turn == turn_ - 1 && agent.meant_thing >= 0) {  // a word heard last turn: heeded, and fittingly?
+        const auto thing = static_cast<std::size_t>(agent.meant_thing);
+        const double now = close[thing], then = agent.meant_close;
+        const double worth = agent.nearer_comfort[thing] - agent.farther_comfort[thing];
+        agent.heeded = now > then;
+        agent.acted_good = (worth > 0 && now > then) || (worth < 0 && now < then);
+        agent.acted_same = agent.meant_deed >= 0 && agent.last_choice == agent.meant_deed;
+        agent.word_reward = LEXICON_HEED * agent.heeded + LEXICON_ACT * (agent.acted_good + agent.acted_same);
+        agent.judged_turn = turn_;
+        s.word_reward = agent.word_reward;
+    }
+    agent.was_close = close;
+    agent.close_turn = turn_;
 }
 
 int Simulation::lexicon_capacity(const Bitzkey& agent) {
@@ -5773,7 +5811,7 @@ double Simulation::comfort(const Bitzkey& agent, const Situation& s) const {
                              FOLLOW_COMFORT * (0.5 + 0.5 * (agent.feeling(Trust) + agent.feeling(Sociability))) * s.standout +
                              LEADER_JOY * agent.rank_factor() * s.followed;  // a leader glad of its followers about it, the more the higher its rank
     return skilled + taught + company - dread - unease - crowded + herding - exposed + parental + hearth + regard + relief - envious + belonging +
-           armed_ease - s.longing_unease + s.longing_relief;
+           armed_ease - s.longing_unease + s.longing_relief + s.word_reward;
 }
 
 std::vector<Simulation::Gift> Simulation::gifts_so_far() const {

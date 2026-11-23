@@ -288,7 +288,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
         {"due_turn", optional_value(agent.due_turn)}, {"mind", mind_record(agent.mind)},
         {"last_senses", agent.has_last_senses ? numbers.senses(agent.last_senses) : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
-        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"longing", {agent.longing_kind, agent.longing, agent.longing_for, agent.longing_x, agent.longing_y, agent.longing_turn, agent.longing_away, agent.longing_closer, agent.longing_farther, agent.longings_reached, agent.longings_faded, agent.beside_companion, agent.beside_care, agent.fire_x, agent.fire_y, agent.shelter_x, agent.shelter_y, agent.joy_thing, agent.joy_best, agent.joy_seen ? 1 : 0, agent.missing, agent.missing_care, agent.missing_for}}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
+        {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"longing", {agent.longing_kind, agent.longing, agent.longing_for, agent.longing_x, agent.longing_y, agent.longing_turn, agent.longing_away, agent.longing_closer, agent.longing_farther, agent.longings_reached, agent.longings_faded, agent.beside_companion, agent.beside_care, agent.fire_x, agent.fire_y, agent.shelter_x, agent.shelter_y, agent.joy_thing, agent.joy_best, agent.joy_seen ? 1 : 0, agent.missing, agent.missing_care, agent.missing_for}}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
     };
     json past = json::array();
@@ -524,6 +524,25 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
     agent->learn_thing = record.value("learn_thing", -1);
     if (record.contains("learn_sounds")) agent->learn_sounds = record.at("learn_sounds").get<std::array<int, MAX_SOUNDS - 1>>();
     agent->lexicon_spoke_turn = record.value("lexicon_spoke_turn", -1);
+    if (record.contains("word_worth")) {  // see LEXICON_ACT
+        agent->nearer_comfort = record.at("word_worth").at(0).get<std::array<double, OUTSIDE_SEEN>>();
+        agent->farther_comfort = record.at("word_worth").at(1).get<std::array<double, OUTSIDE_SEEN>>();
+    }
+    if (record.contains("was_close")) agent->was_close = record.at("was_close").get<std::array<double, OUTSIDE_SEEN>>();
+    if (record.contains("moved")) agent->moved = record.at("moved").get<std::array<int, OUTSIDE_SEEN>>();
+    if (record.contains("word_heed")) {
+        const json& h = record.at("word_heed");
+        agent->close_turn = h.at(0).get<int>();
+        agent->meant_turn = h.at(1).get<int>();
+        agent->meant_thing = h.at(2).get<int>();
+        agent->meant_close = h.at(3).get<double>();
+        agent->meant_deed = h.at(4).get<int>();
+        agent->judged_turn = h.at(5).get<int>();
+        agent->heeded = h.at(6).get<int>() != 0;
+        agent->acted_good = h.at(7).get<int>() != 0;
+        agent->acted_same = h.at(8).get<int>() != 0;
+        agent->word_reward = h.at(9).get<double>();
+    }
     if (record.contains("lexicon")) {  // see LEXICON_SIZE: each word as call, its two later sounds, thing, regard, uses
         for (const json& w : record.at("lexicon")) {
             agent->lexicon.push_back(LexiconWord{w.at(0).get<int>(), {w.at(1).get<int>(), w.at(2).get<int>()}, w.at(3).get<int>(), w.at(4).get<double>(), w.at(5).get<int>()});

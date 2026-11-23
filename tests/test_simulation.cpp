@@ -3106,6 +3106,63 @@ TEST_CASE("the lexicon: hearing a word it holds, it senses what is meant; pointi
     CHECK(spoke > 0);
 }
 
+TEST_CASE("heeding a word: nearer the thing next turn is felt, and more for going the way its life found good, and doing as the speaker did") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    simulation.index_cells();
+    hearer.lexicon.push_back(LexiconWord{FirstCall + 2, {0, -1}, 7, 0.5, 0});  // its word for the herd
+    caller.call = FirstCall + 2;
+    caller.sounds = {0, -1};
+    caller.call_turn = simulation.turn() - 1;
+    caller.last_choice = Rest;
+    auto heard = simulation.sense(hearer);
+    REQUIRE(heard.situation.meant == 7);
+    CHECK(hearer.meant_turn == simulation.turn());
+    CHECK(hearer.meant_deed == Rest);
+    CHECK(heard.situation.word_reward == 0.0);  // nothing to judge yet
+    // A turn on: it has come nearer the herd, its life has taught it the herd is good to near, and it rested as the speaker did.
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.meant_close = hearer.was_close[7] - 0.2;
+    hearer.nearer_comfort[7] = 1.0;
+    hearer.farther_comfort[7] = 0.0;
+    hearer.last_choice = Rest;
+    auto judged = simulation.sense(hearer);
+    CHECK(hearer.heeded);
+    CHECK(hearer.acted_good);
+    CHECK(hearer.acted_same);
+    CHECK(judged.situation.word_reward == doctest::Approx(LEXICON_HEED + 2 * LEXICON_ACT));
+    // Again, but its life found the herd bad to near, and it did otherwise than the speaker: heeding alone.
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.meant_close = hearer.was_close[7] - 0.2;
+    hearer.nearer_comfort[7] = -1.0;
+    hearer.last_choice = Flee;
+    auto heeding = simulation.sense(hearer);
+    CHECK(heeding.situation.word_reward == doctest::Approx(LEXICON_HEED));
+    // Gone further from a thing found bad: fitting, though not heeding.
+    hearer.close_turn = hearer.meant_turn = simulation.turn() - 1;
+    hearer.meant_close = hearer.was_close[7] + 0.2;
+    auto fled = simulation.sense(hearer);
+    CHECK(fled.situation.word_reward == doctest::Approx(LEXICON_ACT));
+}
+
+TEST_CASE("heeding a word: an animal learns how it fares going nearer each thing, and further") {
+    Simulation simulation = world(40);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    simulation.add_agent(encode_dna(Species::Grazer), 13, 10);
+    simulation.index_cells();
+    simulation.sense(animal);
+    animal.close_turn = simulation.turn() - 1;  // last turn the herd was further off: it has come nearer since
+    animal.was_close[7] -= 0.2;
+    simulation.sense(animal);
+    CHECK(animal.moved[7] == 1);
+    animal.close_turn = simulation.turn() - 1;  // and the turn after, it felt well
+    animal.last_comfort = 2.0;
+    simulation.sense(animal);
+    CHECK(animal.nearer_comfort[7] == doctest::Approx(LEXICON_WORTH_RATE * 2.0));
+    CHECK(animal.farther_comfort[7] == 0.0);
+}
+
 TEST_CASE("longing: parted from a companion it cares for, an animal longs for it, felt and sensed but never located, till met or faded") {
     Simulation simulation = world(60);
     Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
