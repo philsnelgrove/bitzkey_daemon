@@ -3080,11 +3080,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                         if (roll < 0) break;
                     }
                 }
+                // Pointing at itself as it addresses another, its word means what it did the turn before, not the addressing.
+                const auto self_deed = [](const Bitzkey& self, int now) { return now == Address ? self.last_choice : now; };
                 agent.prior_point = agent.point;
                 agent.prior_point_one = agent.point_one;
                 agent.prior_point_turn = agent.point_turn;
                 agent.point = picked == POINT_ONE ? (target >= 0 ? PointOne : -1) : picked == POINT_SELF ? PointSelf : picked - POINT;
-                agent.point_one = agent.point == PointOne ? target : agent.point == PointSelf ? choice : -1;
+                agent.point_one = agent.point == PointOne ? target : agent.point == PointSelf ? self_deed(agent, choice) : -1;
                 agent.point_turn = turn_;
                 // A thing it has a word for: it says that word, the more surely the more sociable (see LEXICON_SPEAK);
                 // not when it cries out, says back another's word, or says its own again.
