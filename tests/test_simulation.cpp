@@ -3541,6 +3541,76 @@ TEST_CASE("remembered places: a thing close is remembered where it stood; out of
     CHECK(animal.place_turn[herd] == -1);
 }
 
+TEST_CASE("ingenuity: what opens what is learnt; a goal shut to it is sought by steps, each handing back when reached") {
+    struct KeepRules { double depth = PLAN_DEPTH; ~KeepRules() { PLAN_DEPTH = depth; } } keep;
+    Simulation simulation = world(80);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer, {{"patience", 7}, {"curiosity", 7}}), 30, 30);
+    simulation.index_cells();
+    constexpr int bow = OUTSIDE_SEEN + MakeBow, wood = OUTSIDE_SEEN + TakeWood, east = OUTSIDE_SEEN + GoEast, rest = OUTSIDE_SEEN + Rest;
+    // Learnt: it rested, and going east, shut to it before, is open now.
+    simulation.sense(animal);
+    animal.has_needs = animal.has_open = true;
+    animal.was_open.fill(true);
+    animal.was_open[static_cast<std::size_t>(east)] = false;
+    animal.moved = {};
+    animal.last_choice = Rest;
+    animal.opens.clear();
+    simulation.sense(animal);
+    REQUIRE(animal.opens.size() == 1);
+    CHECK(animal.opens[0].from == rest);
+    CHECK(animal.opens[0].to == east);
+    CHECK(animal.opens[0].strength == doctest::Approx(OPENS_RATE));
+    // Its goal to make a bow, shut to it; it learnt wood taken opens bow-making, and going east opens taking wood.
+    PLAN_DEPTH = 8.0;
+    animal.opens = {OpensLink{wood, bow, 0.8, false}, OpensLink{east, wood, 0.8, false}};
+    animal.goal_kind = GoalForDeed;
+    animal.goal_target = MakeBow;
+    animal.goal_desire = true;
+    animal.goal_need = -1;
+    animal.goal_turn = simulation.turn() - 1;
+    animal.goal_urgency = 0.5;
+    animal.relief_deeds = {};
+    animal.relief_things = {};
+    animal.want_deeds = {};
+    animal.want_deeds[MakeBow] = 0.5;
+    animal.spark_deeds = {};
+    animal.spark_deeds[MakeBow] = 0.5;
+    animal.last_choice = Rest;
+    auto chained = simulation.sense(animal);
+    REQUIRE(std::find(chained.options.begin(), chained.options.end(), MakeBow) == chained.options.end());
+    REQUIRE(std::find(chained.options.begin(), chained.options.end(), TakeWood) == chained.options.end());
+    REQUIRE(animal.goal_kind == GoalForDeed);
+    CHECK(animal.goal_steps == std::vector<int>{wood, east});
+    CHECK(animal.chains_begun == 1);
+    CHECK(chained.senses[SenseGoal + GoalDeed + GoEast] == 1.0);
+    CHECK(chained.senses[SenseGoal + GoalDeed + MakeBow] == 0.0);
+    CHECK(chained.senses[SenseGoal + GoalDepth] == doctest::Approx(2.0 / 3.0));
+    // Gone east: that step reached hands back; wood still shut to it, it goes east again.
+    animal.last_choice = GoEast;
+    animal.step_turn = simulation.turn() - 1;
+    simulation.sense(animal);
+    CHECK(animal.steps_reached == 1);
+    CHECK(animal.links_first_followed == 1);
+    CHECK(animal.opens[1].used);
+    // Its goal let go: no steps.
+    animal.goal_kind = NoGoal;
+    animal.goal_target = -1;
+    animal.spark_deeds = {};
+    animal.want_deeds = {};
+    simulation.sense(animal);
+    CHECK(animal.goal_steps.empty());
+    // A newborn starts with a share of what its parents learnt opens what.
+    Bitzkey& mother = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
+    Bitzkey& father = simulation.add_agent(encode_dna(Species::Grazer), 21, 20);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer), 22, 20);
+    mother.opens = {OpensLink{wood, bow, 0.4, true}};
+    father.opens = {OpensLink{wood, bow, 0.2, false}};
+    simulation.inherit_relief(child, mother, &father);
+    REQUIRE(child.opens.size() == 1);
+    CHECK(child.opens[0].strength == doctest::Approx(OPENS_INHERIT * 0.3));
+    CHECK(!child.opens[0].used);
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);

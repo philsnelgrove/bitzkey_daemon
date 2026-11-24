@@ -2212,5 +2212,13 @@
 "Remembered cue": "याद किया संकेत",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "नज़र से बाहर कोई याद की गई जगह वहाँ की चीज़ की इच्छा को कितनी ज़ोर से जगाती है, उसे पास देखने की तुलना में; जगह की याद के दौरान घटकर शून्य हो जाती है",
 "Place memory": "जगह की याद",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "कितनी बारियों तक जानवर याद रखता है कि उसे आख़िरी बार कोई चीज़ पास कहाँ मिली, या साथी कहाँ दिखा"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "कितनी बारियों तक जानवर याद रखता है कि उसे आख़िरी बार कोई चीज़ पास कहाँ मिली, या साथी कहाँ दिखा",
+"Opening learning": "खुलने की सीख",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "कोई जीव कितनी जल्दी सीखता है कि कोई काम करना, या किसी चीज़ के पास आना, उसके लिए पहले बंद कोई काम या चीज़ खोल देता है; 0 यानी कुछ नहीं",
+"Opening inheritance": "खुलने की विरासत",
+"share of what its parents learnt opens what that a newborn starts with": "माता-पिता ने क्या किसे खोलता है इस बारे में जो सीखा, उसका वह हिस्सा जिससे नवजात शुरू करता है",
+"Opening threshold": "खुलने की दहलीज़",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "किसी कड़ी का कम से कम मूल्य, उसकी ताकत गुणा आधा और धैर्य व जिज्ञासा का औसत, ताकि बंद लक्ष्य की ओर कदम के रूप में उसे अपनाया जाए",
+"Planning depth": "योजना की गहराई",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "बंद लक्ष्य की ओर कोई जीव एक से आगे कितने कदम जोड़ता है, गुणा उसके धैर्य और जिज्ञासा का औसत"
 }

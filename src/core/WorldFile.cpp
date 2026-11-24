@@ -274,6 +274,19 @@ json desire_record(const Bitzkey& agent) {  // see DESIRE: only what is not 0, e
     return {{"head", {agent.good_drift, agent.joy_mark, agent.goal_desire ? 1 : 0, agent.desires_formed, agent.desires_reached, agent.desire_reach_turns}},
             {"things", things}, {"deeds", deeds}, {"places", places}};
 }
+json ingenuity_record(const Bitzkey& agent) {  // see OPENS_RATE: a node saved as a thing's index, or -1 less a deed's
+    const auto node = [](int n) { return n < OUTSIDE_SEEN ? n : -1 - (n - OUTSIDE_SEEN); };
+    json links = json::array(), steps = json::array();
+    for (const OpensLink& link : agent.opens) links.push_back({node(link.from), node(link.to), link.strength, link.used ? 1 : 0});
+    for (const int step : agent.goal_steps) steps.push_back(node(step));
+    json open = json::array();  // what was open to it last turn
+    for (int n = 0; n < OPEN_NODES; ++n) {
+        if (agent.was_open[static_cast<std::size_t>(n)]) open.push_back(node(n));
+    }
+    return {{"head", {agent.step_turn, agent.chain_goal_turn, agent.chain_spent ? 1 : 0, agent.chains_begun, agent.steps_reached,
+                      agent.chains_given_up, agent.links_first_followed, agent.has_open ? 1 : 0}},
+            {"links", links}, {"steps", steps}, {"open", open}};
+}
 json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
     json needs = json::array();
     for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
@@ -303,7 +316,7 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
                        agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
-            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}};
+            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)}};
 }
 
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
@@ -725,6 +738,40 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                     agent->place_y[at] = row.at(2).get<int>();
                     agent->place_turn[at] = row.at(3).get<int>();
                 }
+            }
+        }
+        if (g.contains("ingenuity")) {  // see OPENS_RATE
+            const json& i = g.at("ingenuity");
+            const json& top = i.at("head");
+            agent->step_turn = top.at(0).get<int>();
+            agent->chain_goal_turn = top.at(1).get<int>();
+            agent->chain_spent = top.at(2).get<int>() != 0;
+            agent->chains_begun = top.at(3).get<int>();
+            agent->steps_reached = top.at(4).get<int>();
+            agent->chains_given_up = top.at(5).get<int>();
+            agent->links_first_followed = top.at(6).get<int>();
+            const auto node = [&](int saved) {  // by the deed's saved number
+                if (saved >= 0) return saved < OUTSIDE_SEEN ? saved : -1;
+                const int deed = numbers.action(-1 - saved);
+                return deed < 0 ? -1 : OUTSIDE_SEEN + deed;
+            };
+            for (const json& row : i.at("links")) {
+                const int from = node(row.at(0).get<int>()), to = node(row.at(1).get<int>());
+                if (from < 0 || to < 0 || static_cast<int>(agent->opens.size()) >= OPENS_LINKS) continue;
+                agent->opens.push_back(OpensLink{from, to, row.at(2).get<double>(), row.at(3).get<int>() != 0});
+            }
+            agent->has_open = top.size() > 7 && top.at(7).get<int>() != 0;
+            for (const json& row : i.value("open", json::array())) {
+                const int n = node(row.get<int>());
+                if (n >= 0) agent->was_open[static_cast<std::size_t>(n)] = true;
+            }
+            for (const json& row : i.at("steps")) {
+                const int step = node(row.get<int>());
+                if (step < 0) {
+                    agent->goal_steps.clear();
+                    break;
+                }
+                agent->goal_steps.push_back(step);
             }
         }
         if (!agent->goal_desire && agent->goal_kind != NoGoal && (agent->goal_need < 0 || agent->goal_need >= GOAL_NEEDS)) agent->goal_kind = NoGoal;

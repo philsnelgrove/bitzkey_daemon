@@ -2212,5 +2212,13 @@
 "Remembered cue": "Sinal lembrado",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "com que força um lugar lembrado, fora de vista, desperta o desejo do que lá estava, em comparação com vê-lo de perto; desvanece até nada ao longo da memória de lugares",
 "Place memory": "Memória de lugares",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "turnos em que um animal se lembra de onde encontrou pela última vez uma coisa por perto, ou viu um companheiro"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "turnos em que um animal se lembra de onde encontrou pela última vez uma coisa por perto, ou viu um companheiro",
+"Opening learning": "Aprendizagem de aberturas",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "com que rapidez um animal aprende que fazer uma ação, ou aproximar-se de uma coisa, lhe abre uma ação ou coisa antes fechada; 0 para nenhuma",
+"Opening inheritance": "Herança de aberturas",
+"share of what its parents learnt opens what that a newborn starts with": "parte do que os pais aprenderam sobre o que abre o quê com que um recém-nascido começa",
+"Opening threshold": "Limiar de abertura",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "o mínimo que um vínculo deve valer, sua força vezes a metade e a média de paciência e curiosidade, para ser seguido como passo rumo a uma meta fechada para ele",
+"Planning depth": "Profundidade de planejamento",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "quantos passos além de um um animal encadeia rumo a uma meta fechada para ele, vezes a média de sua paciência e curiosidade"
 }

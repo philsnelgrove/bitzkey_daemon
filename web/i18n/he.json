@@ -2212,5 +2212,13 @@
 "Remembered cue": "רמז זכור",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "כמה חזק מקום זכור, מחוץ לטווח הראייה, מעורר תשוקה למה שהיה שם, לעומת לראות אותו מקרוב; דועך עד כלום לאורך זיכרון המקומות",
 "Place memory": "זיכרון מקומות",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "תורות שבהם בעל חיים זוכר היכן מצא לאחרונה דבר קרוב, או ראה בן לוויה"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "תורות שבהם בעל חיים זוכר היכן מצא לאחרונה דבר קרוב, או ראה בן לוויה",
+"Opening learning": "למידת פתיחה",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "כמה מהר בעל חיים לומד שעשיית מעשה, או התקרבות לדבר, פותחים לו מעשה או דבר שהיו סגורים קודם; 0 לכלום",
+"Opening inheritance": "ירושת פתיחה",
+"share of what its parents learnt opens what that a newborn starts with": "החלק ממה שהוריו למדו על מה פותח מה שאיתו יילוד מתחיל",
+"Opening threshold": "סף פתיחה",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "הערך המזערי שקשר צריך, חוזקו כפול חצי וממוצע הסבלנות והסקרנות, כדי ללכת בו כצעד לעבר מטרה הסגורה בפניו",
+"Planning depth": "עומק תכנון",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "כמה צעדים מעבר לאחד בעל חיים משרשר לעבר מטרה הסגורה בפניו, כפול ממוצע סבלנותו וסקרנותו"
 }

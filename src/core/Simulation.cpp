@@ -4542,7 +4542,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     heed_words(agent, s, senses);  // what it has learnt of each thing, and of words heard, before habit dulls what it sees
-    pursue(agent, s, senses, sight);  // and its needs and goal, likewise
+    pursue(agent, s, senses, sight, available);  // and its needs and goal, likewise
     // Getting used to things: each outside thing sensed by how much nearer it is than it has lately been, in part.
     if (HABITUATION > 0) {
         const double weight = std::min(1.0, HABITUATION);
@@ -8134,7 +8134,7 @@ void Simulation::use_parts(Bitzkey& agent, int craft, const Parts* exactly) {
     }
 }
 
-void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight) {
+void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight, const std::array<bool, ACTION_COUNT>& available) {
     // Its needs now, each 0 to 1 (see GOAL_JOY).
     std::array<double, GOAL_NEEDS> now{};
     now[NeedHunger] = senses[SenseHunger];
@@ -8196,6 +8196,40 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
     }
     agent.needs = now;
     agent.has_needs = true;
+    // Ingenuity (see OPENS_RATE): what is open to it now, each thing close and each deed it could do; and, from what it
+    // did and came nearer last turn, what opened what, or did not.
+    std::array<bool, OPEN_NODES> open_now{};
+    for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) open_now[thing] = senses[OUTSIDE_SENSES[thing]] >= CLOSE_SEEN;
+    for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) open_now[OUTSIDE_SEEN + deed] = available[deed];
+    if (agent.has_open && lived && OPENS_RATE > 0) {
+        const double rate = std::min(1.0, OPENS_RATE);
+        std::vector<int> causes;
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            if (agent.moved[thing] > 0) causes.push_back(static_cast<int>(thing));
+        }
+        if (agent.last_choice >= 0 && agent.last_choice < ACTION_COUNT) causes.push_back(OUTSIDE_SEEN + agent.last_choice);
+        for (const int from : causes) {
+            for (OpensLink& link : agent.opens) {  // shut before and shut still: it did not open it
+                const auto to = static_cast<std::size_t>(link.to);
+                if (link.from == from && !agent.was_open[to] && !open_now[to]) link.strength += rate * (0.0 - link.strength);
+            }
+            for (int to = 0; to < OPEN_NODES; ++to) {  // shut before, open now: it opened it
+                const auto t = static_cast<std::size_t>(to);
+                if (to == from || agent.was_open[t] || !open_now[t]) continue;
+                const auto it = std::find_if(agent.opens.begin(), agent.opens.end(), [&](const OpensLink& link) { return link.from == from && link.to == to; });
+                if (it != agent.opens.end()) {
+                    it->strength += rate * (1.0 - it->strength);
+                } else if (static_cast<int>(agent.opens.size()) < OPENS_LINKS) {
+                    agent.opens.push_back(OpensLink{from, to, rate, false});
+                } else {
+                    const auto weakest = std::min_element(agent.opens.begin(), agent.opens.end(), [](const OpensLink& a, const OpensLink& b) { return a.strength < b.strength; });
+                    if (weakest->strength < rate) *weakest = OpensLink{from, to, rate, false};
+                }
+            }
+        }
+    }
+    agent.was_open = open_now;
+    agent.has_open = true;
     // How much a goal eases a need, as it has learnt.
     const auto worth = [&](int kind, int target, int need) {
         const auto n = static_cast<std::size_t>(need);
@@ -8449,29 +8483,99 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
             if (desired) ++agent.desires_formed;
         }
     }
-    // Felt, and sensed.
+    // Ingenuity (see OPENS_RATE): its goal shut to it, the steps it seeks toward it, each what it learnt opens the one above.
+    const auto node_of = [](int k, int t) { return k == GoalForThing ? t : k == GoalForDeed ? OUTSIDE_SEEN + t : -1; };
+    const auto shut = [&](int node) {
+        if (node < OUTSIDE_SEEN) return senses[OUTSIDE_SENSES[static_cast<std::size_t>(node)]] <= 0 && !place_of(GoalForThing, node);
+        return !available[static_cast<std::size_t>(node - OUTSIDE_SEEN)];
+    };
+    const int root = agent.goal_kind != NoGoal ? node_of(agent.goal_kind, agent.goal_target) : -1;
+    if (root < 0 || agent.goal_turn != agent.chain_goal_turn) {  // a new goal, or none, or a companion: no steps of old
+        agent.goal_steps.clear();
+        agent.chain_spent = false;
+        agent.chain_goal_turn = root < 0 ? -1 : agent.goal_turn;
+    }
+    if (root >= 0) {
+        const auto above = [&](std::size_t at) { return at == 0 ? root : agent.goal_steps[at - 1]; };
+        while (!agent.goal_steps.empty()) {  // a step reached, done or close, hands back to the one above
+            const int step = agent.goal_steps.back();
+            const bool reached = step < OUTSIDE_SEEN ? open_now[static_cast<std::size_t>(step)]
+                                                     : agent.step_turn < turn_ && agent.last_choice == step - OUTSIDE_SEEN;
+            if (!reached) break;
+            const int up = above(agent.goal_steps.size() - 1);
+            for (OpensLink& link : agent.opens) {
+                if (link.from != step || link.to != up) continue;
+                if (!link.used) ++agent.links_first_followed;
+                link.used = true;
+            }
+            ++agent.steps_reached;
+            agent.goal_steps.pop_back();
+            agent.step_turn = turn_;
+        }
+        for (std::size_t at = 0; at < agent.goal_steps.size(); ++at) {  // what it sought a step for, open now: no need of the rest
+            if (!shut(above(at))) {
+                agent.goal_steps.resize(at);
+                break;
+            }
+        }
+        const double patience = agent.feeling(Patience);
+        if (!agent.goal_steps.empty() && turn_ - agent.step_turn > GOAL_PATIENCE * (0.5 + patience)) {
+            agent.goal_steps.clear();
+            agent.chain_spent = true;
+            ++agent.chains_given_up;
+        }
+        const double mind = (patience + agent.feeling(Curiosity)) / 2.0;
+        const int depth = 1 + static_cast<int>(std::lround(std::max(0.0, PLAN_DEPTH) * mind));
+        while (!agent.chain_spent && static_cast<int>(agent.goal_steps.size()) < depth) {
+            const int current = agent.goal_steps.empty() ? root : agent.goal_steps.back();
+            if (!shut(current)) break;
+            const OpensLink* best = nullptr;
+            for (const OpensLink& link : agent.opens) {
+                if (link.to != current || link.from == root || std::find(agent.goal_steps.begin(), agent.goal_steps.end(), link.from) != agent.goal_steps.end()) continue;
+                if (link.strength * (0.5 + mind) < OPENS_MIN) continue;
+                if (!best || link.strength > best->strength) best = &link;
+            }
+            if (!best) break;
+            if (agent.goal_steps.empty()) ++agent.chains_begun;
+            agent.goal_steps.push_back(best->from);
+            agent.step_turn = turn_;
+        }
+    }
+    // Felt, and sensed: the goal's urgency and need, but what it seeks now, its step if it has one.
     if (agent.goal_kind != NoGoal) {
         s.goal_unease = GOAL_UNEASE * agent.goal_urgency;
         senses[SenseGoal + Goal] = 1.0;
         senses[SenseGoal + GoalUrgency] = agent.goal_urgency / GOAL_URGENCY_MAX;
-        senses[SenseGoal + GoalCloseness] = std::max(0.0, agent.goal_close);
-        if (const auto place = place_of(agent.goal_kind, agent.goal_target)) {  // its way there
+        int seek_kind = agent.goal_kind, seek = agent.goal_target;
+        double seek_close = agent.goal_close;
+        if (!agent.goal_steps.empty()) {
+            const int step = agent.goal_steps.back();
+            seek_kind = step < OUTSIDE_SEEN ? GoalForThing : GoalForDeed;
+            seek = step < OUTSIDE_SEEN ? step : step - OUTSIDE_SEEN;
+            const bool remembered_goal = agent.goal_remembered;
+            seek_close = seek_kind == GoalForThing ? goal_closeness(seek_kind, seek) : -1.0;
+            agent.goal_remembered = remembered_goal;
+            const double deep = static_cast<double>(agent.goal_steps.size());
+            senses[SenseGoal + GoalDepth] = deep / (deep + 1.0);
+        }
+        senses[SenseGoal + GoalCloseness] = std::max(0.0, seek_close);
+        if (const auto place = place_of(seek_kind, seek)) {  // its way there
             const double steps = std::max(1, distance(place->x, place->y, agent.x, agent.y));
             senses[SenseGoal + GoalEast] = (place->x - agent.x) / steps;
             senses[SenseGoal + GoalSouth] = (place->y - agent.y) / steps;
         }
         if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
         else senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
-        if (agent.goal_kind == GoalForThing) {
-            senses[SenseGoal + GoalThing + agent.goal_target] = 1.0;
-        } else if (agent.goal_kind == GoalForOne) {
+        if (seek_kind == GoalForThing) {
+            senses[SenseGoal + GoalThing + seek] = 1.0;
+        } else if (seek_kind == GoalForOne) {
             senses[SenseGoal + GoalOne] = 1.0;
             if (const Bitzkey* other = find_agent(agent.goal_target)) {
                 senses[SenseGoal + GoalOneRegard] = std::clamp(regard_for(agent, *other), -1.0, 1.0);
                 senses[SenseGoal + GoalOneFamily] = family(agent, *other) ? 1.0 : 0.0;
             }
         } else {
-            senses[SenseGoal + GoalDeed + agent.goal_target] = 1.0;
+            senses[SenseGoal + GoalDeed + seek] = 1.0;
         }
     }
 }
@@ -8497,6 +8601,25 @@ void Simulation::inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bit
     if (liked > 0) {
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) child.want_things[thing] = liked * parents(&Bitzkey::want_things, thing);
         for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) child.want_deeds[deed] = liked * parents(&Bitzkey::want_deeds, deed);
+    }
+    // And what they learnt opens what (see OPENS_INHERIT): a share of each link, the parents' averaged, the strongest kept.
+    const double opened = std::clamp(OPENS_INHERIT, 0.0, 1.0);
+    child.opens.clear();
+    if (opened > 0) {
+        std::vector<OpensLink> links;
+        const double each = father ? 0.5 : 1.0;
+        for (const Bitzkey* parent : {&mother, father}) {
+            if (!parent) continue;
+            for (const OpensLink& link : parent->opens) {
+                const auto it = std::find_if(links.begin(), links.end(), [&](const OpensLink& l) { return l.from == link.from && l.to == link.to; });
+                if (it != links.end()) it->strength += each * link.strength;
+                else links.push_back(OpensLink{link.from, link.to, each * link.strength, false});
+            }
+        }
+        for (OpensLink& link : links) link.strength *= opened;
+        std::stable_sort(links.begin(), links.end(), [](const OpensLink& a, const OpensLink& b) { return a.strength > b.strength; });
+        if (static_cast<int>(links.size()) > OPENS_LINKS) links.resize(static_cast<std::size_t>(OPENS_LINKS));
+        child.opens = std::move(links);
     }
 }
 

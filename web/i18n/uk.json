@@ -2212,5 +2212,13 @@
 "Remembered cue": "Пригадана ознака",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "наскільки сильно пригадане місце поза зором пробуджує бажання того, що там було, порівняно з тим, щоб бачити це поруч; згасає до нуля протягом пам'яті місць",
 "Place memory": "Пам'ять місць",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "ходи, протягом яких тварина пам'ятає, де востаннє знайшла річ поруч або бачила товариша"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "ходи, протягом яких тварина пам'ятає, де востаннє знайшла річ поруч або бачила товариша",
+"Opening learning": "Навчання відкриттів",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "як швидко тварина вчиться, що дія або наближення до речі відкриває їй раніше закриту дію чи річ; 0 — жодного",
+"Opening inheritance": "Успадкування відкриттів",
+"share of what its parents learnt opens what that a newborn starts with": "частка того, що батьки навчилися про те, що відкриває що, з якою починає новонароджений",
+"Opening threshold": "Поріг відкриття",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "найменше, чого має бути варте посилання, його сила помножена на половину і середнє терпіння та цікавості, щоб іти ним як кроком до закритої для неї мети",
+"Planning depth": "Глибина планування",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "скільки кроків понад один тварина зчіплює до закритої для неї мети, помножене на середнє її терпіння і цікавості"
 }

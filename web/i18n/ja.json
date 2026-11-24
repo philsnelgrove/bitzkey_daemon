@@ -2212,5 +2212,13 @@
 "Remembered cue": "思い出す手がかり",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "見えない所にある記憶の場所が、そこにあったものへの欲求を、近くで見るのと比べてどれだけ強く呼び起こすか。場所の記憶の間に無へと薄れる",
 "Place memory": "場所の記憶",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "動物が、最後に物を近くで見つけた場所や仲間を見た場所を覚えているターン数"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "動物が、最後に物を近くで見つけた場所や仲間を見た場所を覚えているターン数",
+"Opening learning": "開く学習",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "行いをすること、または物に近づくことが、前は閉ざされていた行いや物を開くと動物が学ぶ速さ。0 で無効",
+"Opening inheritance": "開く知識の継承",
+"share of what its parents learnt opens what that a newborn starts with": "何が何を開くかについて親が学んだことのうち、生まれた子が最初に持つ割合",
+"Opening threshold": "開くしきい値",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "閉ざされた目標への一歩としてたどるのに、つながりに必要な最小の値（強さ × 半分と忍耐と好奇心の平均）",
+"Planning depth": "計画の深さ",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "閉ざされた目標に向けて、一歩を超えて何歩までつなぐか（忍耐と好奇心の平均を掛ける）"
 }

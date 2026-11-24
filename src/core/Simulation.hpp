@@ -454,6 +454,25 @@ inline double PLEASURE_RETURN = 0.02;
 inline double REMEMBERED_CUE = 0.3;
 inline int PLACE_MEMORY = 500;
 constexpr double CLOSE_SEEN = 0.75;
+// Ingenuity (the user's design): each animal learns, at OPENS_RATE, what opens what: doing a deed or coming near a thing
+// (X), then finding a deed it could not do, or a thing not close the turn before, now open to it (Y), strengthens X opens
+// Y; X done or neared and Y still shut weakens it. It keeps the OPENS_LINKS strongest; a newborn starts with
+// OPENS_INHERIT of its parents'. When its goal is shut to it (a deed it cannot do, a thing neither in sight nor at a place
+// remembered), it seeks what it learnt opens it most, a step, and if that is shut, what opens that, as deep as 1 plus
+// PLAN_DEPTH times the mean of its patience and curiosity, and only links whose strength times a half and that mean is
+// OPENS_MIN at least. A step reached (done, or close) hands back to the one above; held past GOAL_PATIENCE times a half
+// and its patience, the chain is given up for that goal. Steps bring no joy of their own: only the goal does.
+inline double OPENS_RATE = 0.05;
+inline double OPENS_INHERIT = 0.5;
+inline double OPENS_MIN = 0.1;
+inline double PLAN_DEPTH = 3.0;
+constexpr int OPENS_LINKS = 24;
+constexpr int OPEN_NODES = OUTSIDE_SEEN + ACTION_COUNT;  // the outside things, then the deeds
+struct OpensLink {
+    int from = -1, to = -1;  // nodes: an outside thing, or OUTSIDE_SEEN plus a deed
+    double strength = 0.0;
+    bool used = false;  // followed as a step and reached, in its life
+};
 template <std::size_t N> constexpr std::array<int, N> filled(int value) { std::array<int, N> all{}; all.fill(value); return all; }
 constexpr double GOAL_SATED = 0.05;  // a need below this is met: nothing to seek for it
 constexpr double GOAL_URGENCY_MAX = 2.0;
@@ -1478,6 +1497,16 @@ struct Bitzkey {
     bool goal_remembered = false;  // its goal out of sight, sought at a remembered place (PLACE_MEMORY)
     int desires_formed = 0, desires_reached = 0;
     long long desire_reach_turns = 0;
+    // Ingenuity (see OPENS_RATE): what it learnt opens what; what was open to it last turn; the steps it seeks toward its
+    // goal, the last its present one, since when, for which goal (its goal_turn), and whether spent for that goal; and,
+    // in its life, chains begun, steps reached, chains given up, and steps reached by a link followed for the first time.
+    std::vector<OpensLink> opens;
+    std::array<bool, OPEN_NODES> was_open{};
+    bool has_open = false;
+    std::vector<int> goal_steps;
+    int step_turn = -1, chain_goal_turn = -1;
+    bool chain_spent = false;
+    int chains_begun = 0, steps_reached = 0, chains_given_up = 0, links_first_followed = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own
@@ -2352,7 +2381,7 @@ public:
     bool speak_beside(Bitzkey& agent, const Bitzkey& other);
     // How it fared nearer each thing and further, learnt; and whether it heeded the word it heard last turn.
     void heed_words(Bitzkey& agent, Situation& s, const Senses& senses);
-    void pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight);  // its needs, what eases them, its goal (GOAL_JOY)
+    void pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight, const std::array<bool, ACTION_COUNT>& available);  // its needs, what eases them, its goal (GOAL_JOY)
     void inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father);  // see RELIEF_INHERIT  // up beside the other, its call that turn to that one alone  // a wood at hand made into arrows for the archer's bow
     void rot_works();  // work left SITE_TURNS falls apart
     const Work& work_at(int x, int y) const { return works_[cell_index(x, y)]; }

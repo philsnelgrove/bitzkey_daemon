@@ -2212,5 +2212,13 @@
 "Remembered cue": "Zapamiętany sygnał",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "jak mocno zapamiętane miejsce, poza zasięgiem wzroku, budzi pragnienie tego, co tam było, w porównaniu z widzeniem tego z bliska; słabnie do zera w czasie pamięci miejsc",
 "Place memory": "Pamięć miejsc",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "tury, przez które zwierzę pamięta, gdzie ostatnio znalazło rzecz w pobliżu lub widziało towarzysza"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "tury, przez które zwierzę pamięta, gdzie ostatnio znalazło rzecz w pobliżu lub widziało towarzysza",
+"Opening learning": "Uczenie się otwarć",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "jak szybko zwierzę uczy się, że czyn lub zbliżenie się do rzeczy otwiera mu wcześniej zamknięty czyn lub rzecz; 0 to brak",
+"Opening inheritance": "Dziedziczenie otwarć",
+"share of what its parents learnt opens what that a newborn starts with": "część tego, czego rodzice nauczyli się o tym, co otwiera co, z którą zaczyna noworodek",
+"Opening threshold": "Próg otwarcia",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "najmniejsza wartość połączenia, jego siła razy połowa i średnia cierpliwości i ciekawości, by podążyć za nim jako krokiem ku zamkniętemu dla niego celowi",
+"Planning depth": "Głębokość planowania",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "ile kroków ponad jeden zwierzę łączy ku zamkniętemu dla niego celowi, razy średnia jego cierpliwości i ciekawości"
 }

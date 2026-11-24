@@ -2212,5 +2212,13 @@
 "Remembered cue": "Señal recordada",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "con qué fuerza un lugar recordado, fuera de la vista, despierta el deseo de lo que había allí, frente a verlo de cerca; se desvanece a nada durante la memoria de lugares",
 "Place memory": "Memoria de lugares",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "turnos que un animal recuerda dónde encontró por última vez una cosa cerca, o vio a un compañero"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "turnos que un animal recuerda dónde encontró por última vez una cosa cerca, o vio a un compañero",
+"Opening learning": "Aprendizaje de aperturas",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "qué tan rápido aprende un animal que hacer una acción, o acercarse a una cosa, le abre una acción o cosa antes cerrada; 0 para nada",
+"Opening inheritance": "Herencia de aperturas",
+"share of what its parents learnt opens what that a newborn starts with": "parte de lo que sus padres aprendieron sobre qué abre qué con la que empieza un recién nacido",
+"Opening threshold": "Umbral de apertura",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "lo mínimo que debe valer un vínculo, su fuerza por la mitad y la media de paciencia y curiosidad, para seguirlo como paso hacia una meta cerrada para él",
+"Planning depth": "Profundidad de planificación",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "cuántos pasos más allá de uno encadena un animal hacia una meta cerrada para él, por la media de su paciencia y curiosidad"
 }

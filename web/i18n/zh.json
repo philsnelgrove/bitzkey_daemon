@@ -2212,5 +2212,13 @@
 "Remembered cue": "记忆中的线索",
 "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "视线之外记得的地点，相比于近处看见，唤起对那里之物的欲望的强度；在地点记忆期间逐渐消退为零",
 "Place memory": "地点记忆",
-"turns an animal remembers where it last found a thing close by, or last saw a companion": "动物记得最后在何处近处发现某物、或看见同伴的回合数"
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "动物记得最后在何处近处发现某物、或看见同伴的回合数",
+"Opening learning": "开启学习",
+"how fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none": "动物多快学会：做某件事或靠近某物，会为它打开先前关闭的行为或事物；0 表示不学",
+"Opening inheritance": "开启继承",
+"share of what its parents learnt opens what that a newborn starts with": "新生儿一开始继承父母所学“什么开启什么”的比例",
+"Opening threshold": "开启阈值",
+"the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "一条联系作为通往被阻目标的一步所需的最低价值（强度乘以一半加上耐心与好奇的平均）",
+"Planning depth": "规划深度",
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "动物朝被阻目标串联超出一步的步数，乘以其耐心与好奇的平均"
 }

@@ -2566,6 +2566,10 @@ Json Probe::goals(Simulation& world) const {
         std::array<double, OUTSIDE_SEEN> liked_things{};
         std::array<double, ACTION_COUNT> liked_deeds{};
         double liked_ones = 0.0;
+        // Ingenuity (see OPENS_RATE): goals sought by steps, and how deep; in lives, chains begun, steps reached, chains
+        // given up, steps reached by a link followed the first time; what is learnt opens what, summed.
+        long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, chains_given_up = 0, first_followed = 0, links_held = 0;
+        std::map<std::pair<int, int>, double> opens;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
             ++alive;
@@ -2581,6 +2585,16 @@ Json Probe::goals(Simulation& world) const {
             for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) liked_things[thing] += agent->want_things[thing];
             for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) liked_deeds[deed] += agent->want_deeds[deed];
             for (const ReliefOne& one : agent->relief_ones) liked_ones += one.want;
+            chains_begun += agent->chains_begun;
+            steps_reached += agent->steps_reached;
+            chains_given_up += agent->chains_given_up;
+            first_followed += agent->links_first_followed;
+            links_held += static_cast<long long>(agent->opens.size());
+            for (const OpensLink& link : agent->opens) opens[{link.from, link.to}] += link.strength;
+            if (agent->goal_kind != NoGoal && !agent->goal_steps.empty()) {
+                ++chaining;
+                chain_depth += static_cast<long long>(agent->goal_steps.size());
+            }
             if (agent->has_needs) {
                 const auto at = std::max_element(agent->needs.begin(), agent->needs.end());
                 if (*at >= GOAL_SATED) ++worst[static_cast<std::size_t>(at - agent->needs.begin())];
@@ -2647,6 +2661,24 @@ Json Probe::goals(Simulation& world) const {
                                             {"need", ratio(static_cast<double>(far_needs), static_cast<double>(needing))}}},
             {"most_liked", most_liked},
             {"companion_liked", ones_count > 0 ? Json(liked_ones / static_cast<double>(ones_count)) : Json(nullptr)}};
+        const auto node_name = [](int node) {
+            return node < OUTSIDE_SEEN ? "near " + std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(node)])])
+                                       : "do " + std::string(ACTIONS[static_cast<std::size_t>(node - OUTSIDE_SEEN)]);
+        };
+        std::vector<std::pair<double, std::pair<int, int>>> strongest;
+        for (const auto& [link, sum] : opens) strongest.emplace_back(sum / static_cast<double>(alive), link);
+        std::sort(strongest.begin(), strongest.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        Json learnt = Json::array();
+        for (std::size_t at = 0; at < std::min<std::size_t>(10, strongest.size()); ++at)
+            learnt.push_back({{"what", node_name(strongest[at].second.first)}, {"opens", node_name(strongest[at].second.second)}, {"strength", strongest[at].first}});
+        const Json ingenuity = {
+            {"chaining_share_of_goals", ratio(static_cast<double>(chaining), static_cast<double>(holding))},
+            {"mean_depth", chaining > 0 ? Json(static_cast<double>(chain_depth) / static_cast<double>(chaining)) : Json(nullptr)},
+            {"in_lives", {{"chains_begun", chains_begun}, {"steps_reached", steps_reached}, {"chains_given_up", chains_given_up},
+                          {"steps_by_a_link_first_followed", first_followed},
+                          {"first_followed_share", ratio(static_cast<double>(first_followed), static_cast<double>(steps_reached))}}},
+            {"links_held_mean", static_cast<double>(links_held) / static_cast<double>(alive)},
+            {"strongest_links", learnt}};
         std::vector<std::pair<long long, std::string>> held(targets.size());
         std::transform(targets.begin(), targets.end(), held.begin(), [](const auto& kv) { return std::make_pair(kv.second, kv.first); });
         std::sort(held.begin(), held.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
@@ -2660,7 +2692,7 @@ Json Probe::goals(Simulation& world) const {
             {"in_lives", {{"formed", formed}, {"reached", reached}, {"given_up", abandoned}, {"switched", switched}, {"let_go", dropped},
                           {"reached_share", ratio(static_cast<double>(reached), static_cast<double>(reached + abandoned + dropped))},
                           {"mean_turns_to_reach", reached > 0 ? Json(static_cast<double>(reach_turns) / static_cast<double>(reached)) : Json(nullptr)}}},
-            {"needs", needs}, {"desire", desire}};
+            {"needs", needs}, {"desire", desire}, {"ingenuity", ingenuity}};
     }
     return result;
 }
