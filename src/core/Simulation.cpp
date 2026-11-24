@@ -8519,8 +8519,9 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
     };
     const int root = agent.goal_kind != NoGoal ? node_of(agent.goal_kind, agent.goal_target) : -1;
     if (root < 0 || agent.goal_turn != agent.chain_goal_turn) {  // a new goal, or none, or a companion: no steps of old
+        if (!agent.goal_steps.empty()) ++agent.chains_unfinished;
         agent.goal_steps.clear();
-        agent.chain_spent = false;
+        agent.failed_links.clear();
         agent.chain_goal_turn = root < 0 ? -1 : agent.goal_turn;
     }
     if (root >= 0) {
@@ -8547,19 +8548,26 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             }
         }
         const double patience = agent.feeling(Patience);
-        if (!agent.goal_steps.empty() && turn_ - agent.step_turn > GOAL_PATIENCE * (0.5 + patience)) {
-            agent.goal_steps.clear();
-            agent.chain_spent = true;
-            ++agent.chains_given_up;
+        if (!agent.goal_steps.empty() && turn_ - agent.step_turn > GOAL_PATIENCE * (0.5 + patience) / 2.0) {
+            // held too long: that step given up, its link weakened and not tried again for this goal
+            const int step = agent.goal_steps.back(), up = above(agent.goal_steps.size() - 1);
+            for (OpensLink& link : agent.opens) {
+                if (link.from == step && link.to == up) link.strength += std::min(1.0, std::max(0.0, OPENS_RATE)) * (0.0 - link.strength);
+            }
+            agent.failed_links.emplace_back(step, up);
+            agent.goal_steps.pop_back();
+            agent.step_turn = turn_;
+            ++agent.steps_given_up;
         }
         const double mind = (patience + agent.feeling(Curiosity)) / 2.0;
         const int depth = 1 + static_cast<int>(std::lround(std::max(0.0, PLAN_DEPTH) * mind));
-        while (!agent.chain_spent && static_cast<int>(agent.goal_steps.size()) < depth) {
+        while (static_cast<int>(agent.goal_steps.size()) < depth) {
             const int current = agent.goal_steps.empty() ? root : agent.goal_steps.back();
             if (!shut(current)) break;
             const OpensLink* best = nullptr;
             for (const OpensLink& link : agent.opens) {
                 if (link.to != current || link.from == root || std::find(agent.goal_steps.begin(), agent.goal_steps.end(), link.from) != agent.goal_steps.end()) continue;
+                if (std::find(agent.failed_links.begin(), agent.failed_links.end(), std::make_pair(link.from, link.to)) != agent.failed_links.end()) continue;
                 if (link.strength * (0.5 + mind) < OPENS_MIN) continue;
                 if (!best || link.strength > best->strength) best = &link;
             }

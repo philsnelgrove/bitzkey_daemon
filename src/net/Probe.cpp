@@ -2569,7 +2569,7 @@ Json Probe::goals(Simulation& world) const {
         std::array<long long, SPARK_CUES> by_cue{};  // desires formed, by what woke them
         // Ingenuity (see OPENS_RATE): goals sought by steps, and how deep; in lives, chains begun, steps reached, chains
         // given up, steps reached by a link followed the first time; what is learnt opens what, summed.
-        long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, chains_given_up = 0, first_followed = 0, links_held = 0;
+        long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, steps_given_up = 0, chains_unfinished = 0, first_followed = 0, links_held = 0;
         std::map<std::pair<int, int>, double> opens;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
@@ -2589,7 +2589,8 @@ Json Probe::goals(Simulation& world) const {
             for (const ReliefOne& one : agent->relief_ones) liked_ones += one.want;
             chains_begun += agent->chains_begun;
             steps_reached += agent->steps_reached;
-            chains_given_up += agent->chains_given_up;
+            steps_given_up += agent->steps_given_up;
+            chains_unfinished += agent->chains_unfinished;
             first_followed += agent->links_first_followed;
             links_held += static_cast<long long>(agent->opens.size());
             for (const OpensLink& link : agent->opens) opens[{link.from, link.to}] += link.strength;
@@ -2686,7 +2687,7 @@ Json Probe::goals(Simulation& world) const {
         const Json ingenuity = {
             {"chaining_share_of_goals", ratio(static_cast<double>(chaining), static_cast<double>(holding))},
             {"mean_depth", chaining > 0 ? Json(static_cast<double>(chain_depth) / static_cast<double>(chaining)) : Json(nullptr)},
-            {"in_lives", {{"chains_begun", chains_begun}, {"steps_reached", steps_reached}, {"chains_given_up", chains_given_up},
+            {"in_lives", {{"chains_begun", chains_begun}, {"steps_reached", steps_reached}, {"steps_given_up", steps_given_up}, {"goals_ended_with_steps_open", chains_unfinished},
                           {"steps_by_a_link_first_followed", first_followed},
                           {"first_followed_share", ratio(static_cast<double>(first_followed), static_cast<double>(steps_reached))}}},
             {"links_held_mean", static_cast<double>(links_held) / static_cast<double>(alive)},

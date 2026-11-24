@@ -285,9 +285,11 @@ json ingenuity_record(const Bitzkey& agent) {  // see OPENS_RATE: a node saved a
     for (int n = 0; n < OPEN_NODES; ++n) {
         if (agent.was_open[static_cast<std::size_t>(n)]) open.push_back(node(n));
     }
-    return {{"head", {agent.step_turn, agent.chain_goal_turn, agent.chain_spent ? 1 : 0, agent.chains_begun, agent.steps_reached,
-                      agent.chains_given_up, agent.links_first_followed, agent.has_open ? 1 : 0}},
-            {"links", links}, {"steps", steps}, {"open", open}};
+    json failed = json::array();  // links given up for its present goal
+    for (const auto& [from, to] : agent.failed_links) failed.push_back({node(from), node(to)});
+    return {{"head", {agent.step_turn, agent.chain_goal_turn, 0, agent.chains_begun, agent.steps_reached,
+                      agent.steps_given_up, agent.links_first_followed, agent.has_open ? 1 : 0, agent.chains_unfinished}},
+            {"links", links}, {"steps", steps}, {"open", open}, {"failed", failed}};
 }
 json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
     json needs = json::array();
@@ -751,10 +753,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             const json& top = i.at("head");
             agent->step_turn = top.at(0).get<int>();
             agent->chain_goal_turn = top.at(1).get<int>();
-            agent->chain_spent = top.at(2).get<int>() != 0;
             agent->chains_begun = top.at(3).get<int>();
             agent->steps_reached = top.at(4).get<int>();
-            agent->chains_given_up = top.at(5).get<int>();
+            agent->steps_given_up = top.at(5).get<int>();
+            if (top.size() > 8) agent->chains_unfinished = top.at(8).get<int>();
             agent->links_first_followed = top.at(6).get<int>();
             const auto node = [&](int saved) {  // by the deed's saved number
                 if (saved >= 0) return saved < OUTSIDE_SEEN ? saved : -1;
@@ -770,6 +772,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             for (const json& row : i.value("open", json::array())) {
                 const int n = node(row.get<int>());
                 if (n >= 0) agent->was_open[static_cast<std::size_t>(n)] = true;
+            }
+            for (const json& row : i.value("failed", json::array())) {
+                const int from = node(row.at(0).get<int>()), to = node(row.at(1).get<int>());
+                if (from >= 0 && to >= 0) agent->failed_links.emplace_back(from, to);
             }
             for (const json& row : i.at("steps")) {
                 const int step = node(row.get<int>());

@@ -463,8 +463,9 @@ enum SparkCue : int { CueNone, CueSeen, CueRemembered, CueSeenDone, CueHeard, SP
 // OPENS_INHERIT of its parents'. When its goal is shut to it (a deed it cannot do, a thing neither in sight nor at a place
 // remembered), it seeks what it learnt opens it most, a step, and if that is shut, what opens that, as deep as 1 plus
 // PLAN_DEPTH times the mean of its patience and curiosity, and only links whose strength times a half and that mean is
-// OPENS_MIN at least. A step reached (done, or close) hands back to the one above; held past GOAL_PATIENCE times a half
-// and its patience, the chain is given up for that goal. Steps bring no joy of their own: only the goal does.
+// OPENS_MIN at least. A step reached (done, or close) hands back to the one above; held past half its goal's patience
+// (GOAL_PATIENCE times a half and its patience, halved), the step is given up: its link weakens by OPENS_RATE, is not
+// tried again for that goal, and the next best way is sought. Steps bring no joy of their own: only the goal does.
 inline double OPENS_RATE = 0.05;
 inline double OPENS_INHERIT = 0.5;
 inline double OPENS_MIN = 0.1;
@@ -1505,15 +1506,17 @@ struct Bitzkey {
     std::array<int, SPARK_CUES> desires_by_cue{};  // desires formed, by what woke them
     long long desire_reach_turns = 0;
     // Ingenuity (see OPENS_RATE): what it learnt opens what; what was open to it last turn; the steps it seeks toward its
-    // goal, the last its present one, since when, for which goal (its goal_turn), and whether spent for that goal; and,
-    // in its life, chains begun, steps reached, chains given up, and steps reached by a link followed for the first time.
+    // goal, the last its present one, since when, for which goal (its goal_turn), and the links given up for that goal;
+    // and, in its life, chains begun, steps reached, steps given up, steps reached by a link followed the first time, and
+    // goals that ended with steps open.
     std::vector<OpensLink> opens;
     std::array<bool, OPEN_NODES> was_open{};
     bool has_open = false;
     std::vector<int> goal_steps;
     int step_turn = -1, chain_goal_turn = -1;
-    bool chain_spent = false;
-    int chains_begun = 0, steps_reached = 0, chains_given_up = 0, links_first_followed = 0;
+    std::vector<std::pair<int, int>> failed_links;  // links given up as steps toward its present goal (from, to)
+    int chains_begun = 0, steps_reached = 0, steps_given_up = 0, links_first_followed = 0;
+    int chains_unfinished = 0;  // goals that ended, reached or not, with steps still open
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own

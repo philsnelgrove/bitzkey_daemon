@@ -3594,6 +3594,16 @@ TEST_CASE("ingenuity: what opens what is learnt; a goal shut to it is sought by 
     CHECK(animal.steps_reached == 1);
     CHECK(animal.links_first_followed == 1);
     CHECK(animal.opens[1].used);
+    // Going east held too long: that step given up, its link weakened and set aside; no other way to wood, wood is its step.
+    REQUIRE(animal.goal_steps == std::vector<int>{wood, east});
+    const double strength = animal.opens[1].strength;
+    animal.last_choice = Rest;
+    animal.step_turn = simulation.turn() - 1000;
+    simulation.sense(animal);
+    CHECK(animal.steps_given_up == 1);
+    CHECK(animal.goal_steps == std::vector<int>{wood});
+    CHECK(animal.opens[1].strength < strength);
+    CHECK(animal.failed_links == std::vector<std::pair<int, int>>{{east, wood}});
     // Its goal let go: no steps.
     animal.goal_kind = NoGoal;
     animal.goal_target = -1;
@@ -3601,6 +3611,7 @@ TEST_CASE("ingenuity: what opens what is learnt; a goal shut to it is sought by 
     animal.want_deeds = {};
     simulation.sense(animal);
     CHECK(animal.goal_steps.empty());
+    CHECK(animal.chains_unfinished == 1);  // it ended with a step open
     // A newborn starts with a share of what its parents learnt opens what.
     Bitzkey& mother = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
     Bitzkey& father = simulation.add_agent(encode_dna(Species::Grazer), 21, 20);
