@@ -2192,5 +2192,21 @@
 "Giving up": "Rezygnacja",
 "unease at giving up a goal held too long": "niepokój przy porzuceniu celu trzymanego zbyt długo",
 "Goal progress": "Postęp ku celowi",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "wygoda przy każdym kroku bliżej tego, czego szuka, i tyle samo niepokoju przy każdym kroku dalej"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "wygoda przy każdym kroku bliżej tego, czego szuka, i tyle samo niepokoju przy każdym kroku dalej",
+"Desire": "Pragnienie",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "jak mocno sygnał tego, co zwierzę polubiło, przyciąga je wbrew najpilniejszej potrzebie, by uczynić to jego celem; 0 to brak",
+"Liking learning": "Uczenie się upodobań",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "jak szybko zwierzę uczy się z własnego życia, ile dobrego poczuło po zbliżeniu się do każdej rzeczy lub towarzysza albo po każdym czynie; 0 to brak",
+"Liking inheritance": "Odziedziczone upodobania",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "część tego, co lubili rodzice, z którą noworodek zaczyna, jakby się tego nauczył",
+"Heard cue": "Usłyszany sygnał",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "jak mocno usłyszane słowo, imię lub słowo czynu dla tego, co lubi, budzi pragnienie, w porównaniu z widzeniem tego z bliska",
+"Desire lingering": "Trwające pragnienie",
+"share of a desire's spark kept each turn after its cue has gone": "część iskry pragnienia zachowywana co turę po zniknięciu sygnału",
+"Desire threshold": "Próg pragnienia",
+"the least spark of desire that can make a goal": "najmniejsza iskra pragnienia, która może stworzyć cel",
+"Pleasure fading": "Słabnąca przyjemność",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "część pozostałej przyjemności z rzeczy, towarzysza lub czynu, która słabnie za każdym razem, gdy osiąga je jako pragnienie",
+"Pleasure returning": "Wracająca przyjemność",
+"share of faded pleasure that returns each turn": "część osłabłej przyjemności, która wraca co turę"
 }

@@ -3222,6 +3222,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.last_wellbeing = wellbeing(agent);
         agent.last_comfort = comforts[index];
         agent.reward = -BOREDOM_UNEASE * agent.boredom;
+        agent.joy_mark = agent.reward;  // its joys from here on are known by what it rises above this (see DESIRE)
         agent.call_pleasure = 0.0;
         agent.assailant.reset();  // the chance to strike back, or need to flee, passes with this choice
         agent.panicked = false;
@@ -8143,9 +8144,15 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
     now[NeedLoneliness] = solitary(agent.species) ? 0.0 : 1.0 - senses[SenseHerdCloseness];
     now[NeedDiscomfort] = senses[SenseClimateDiscomfort];
     for (double& need : now) need = std::clamp(need, 0.0, 1.0);
-    // The companions it cares for in sight (family wholly, or held a friend), kept among the few it learns of.
+    // The companions it cares for in sight (family wholly, or held a friend), kept among the few it learns of; and the
+    // deeds it sees done, each as close as the nearest doing it (a cue to want it, see DESIRE).
+    std::array<double, ACTION_COUNT> seen_deeds{};
     for (const Bitzkey* other : around(agent, sight)) {
         if (other == &agent || !other->alive() || !other->brain || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
+        if (other->last_choice >= 0 && other->last_choice < ACTION_COUNT) {
+            double& seen = seen_deeds[static_cast<std::size_t>(other->last_choice)];
+            seen = std::max(seen, closeness(agent, spot(*other), sight));
+        }
         const bool kin = family(agent, *other);
         if (!kin && raw_regard_for(agent, *other) < REGARD_STRONG) continue;
         if (std::any_of(agent.relief_ones.begin(), agent.relief_ones.end(), [&](const ReliefOne& one) { return one.one == other->identifier; })) continue;
@@ -8166,6 +8173,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
     // What eased each need since last turn, beyond its usual drift, after what it came nearer and what it did.
     std::array<double, RELIEF_ONES> ones_close{};
     for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) ones_close[at] = one_closeness(agent, agent.relief_ones[at].one, sight);
+    const bool lived = agent.has_needs;  // it has a turn before this one to learn from
     if (agent.has_needs && RELIEF_RATE > 0) {
         const double rate = std::min(1.0, RELIEF_RATE);
         for (int need = 0; need < GOAL_NEEDS; ++need) {
@@ -8186,7 +8194,6 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
             }
         }
     }
-    for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) agent.relief_ones[at].close = ones_close[at];
     agent.needs = now;
     agent.has_needs = true;
     // How much a goal eases a need, as it has learnt.
@@ -8199,6 +8206,53 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         }
         return 0.0;
     };
+    // Desire (see DESIRE): each want's spark, lingering, and woken by a cue; and pleasure faded, returning.
+    const auto spark_of = [&](int kind, int target) {
+        if (kind == GoalForThing) return agent.spark_things[static_cast<std::size_t>(target)];
+        if (kind == GoalForDeed) return agent.spark_deeds[static_cast<std::size_t>(target)];
+        for (const ReliefOne& one : agent.relief_ones) {
+            if (one.one == target) return one.spark;
+        }
+        return 0.0;
+    };
+    const auto fade_of = [&](int kind, int target) -> double* {
+        if (kind == GoalForThing) return &agent.fade_things[static_cast<std::size_t>(target)];
+        if (kind == GoalForDeed) return &agent.fade_deeds[static_cast<std::size_t>(target)];
+        for (ReliefOne& one : agent.relief_ones) {
+            if (one.one == target) return &one.fade;
+        }
+        return nullptr;
+    };
+    {
+        const double linger = std::clamp(DESIRE_LINGER, 0.0, 1.0), recover = std::clamp(PLEASURE_RETURN, 0.0, 1.0);
+        const double heard = std::clamp(HEARD_CUE, 0.0, 1.0);
+        const double curious = 0.5 + agent.feeling(Curiosity), social = 0.5 + agent.feeling(Sociability);
+        const bool heard_last = agent.meant_turn == turn_ - 1;  // its words heard last turn (see hear, after this)
+        const int heard_thing = heard_last && !agent.meant_by_deed ? agent.meant_thing : -1;
+        const int heard_deed = heard_last && agent.meant_by_deed ? agent.meant_deed : -1;
+        const int heard_one = agent.called_turn == turn_ - 1 ? agent.called_one : -1;
+        const auto wake = [&](double& spark, double& fade, double want, double cue, double trait) {
+            spark *= linger;
+            if (DESIRE > 0 && want > 0 && cue > 0) spark = std::max(spark, DESIRE * want * cue * trait * (1.0 - fade));
+            fade *= 1.0 - recover;
+        };
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            double cue = std::max(0.0, senses[OUTSIDE_SENSES[thing]]);
+            if (static_cast<int>(thing) == heard_thing) cue = std::max(cue, heard);
+            wake(agent.spark_things[thing], agent.fade_things[thing], agent.want_things[thing], cue, curious);
+        }
+        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+            double cue = seen_deeds[deed];
+            if (static_cast<int>(deed) == heard_deed) cue = std::max(cue, heard);
+            wake(agent.spark_deeds[deed], agent.fade_deeds[deed], agent.want_deeds[deed], cue, curious);
+        }
+        for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
+            ReliefOne& one = agent.relief_ones[at];
+            double cue = ones_close[at];
+            if (one.one == heard_one) cue = std::max(cue, heard);
+            wake(one.spark, one.fade, one.want, cue, social);
+        }
+    }
     // Its goal: reached, given up, let go, or held a turn more.
     if (agent.goal_kind != NoGoal) {
         bool met = false, gone = false;
@@ -8214,14 +8268,25 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         } else {
             met = agent.goal_turn < turn_ && agent.last_choice == agent.goal_target;  // the deed done last turn
         }
-        const double need = now[static_cast<std::size_t>(agent.goal_need)];
+        // A need's goal is pushed by that need; a desire's pulled by its spark, and not let go for a need met.
+        const double push = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target) : now[static_cast<std::size_t>(agent.goal_need)];
+        const bool sated = !agent.goal_desire && push < GOAL_SATED;
         const double patience = agent.feeling(Patience);
         if (met) {
-            s.goal_relief += GOAL_JOY * agent.goal_urgency;
+            double joy = GOAL_JOY * agent.goal_urgency;
+            if (agent.goal_desire) {  // as much as its pleasure in it has not faded, and fading the more (PLEASURE_FADE)
+                if (double* fade = fade_of(agent.goal_kind, agent.goal_target)) {
+                    joy *= 1.0 - *fade;
+                    *fade += std::clamp(PLEASURE_FADE, 0.0, 1.0) * (1.0 - *fade);
+                }
+                ++agent.desires_reached;
+                agent.desire_reach_turns += turn_ - agent.goal_turn;
+            }
+            s.goal_relief += joy;
             ++agent.goals_reached;
             agent.goal_reach_turns += turn_ - agent.goal_turn;
             agent.goal_kind = NoGoal;
-        } else if (gone || need < GOAL_SATED) {
+        } else if (gone || sated) {
             ++agent.goals_dropped;
             agent.goal_kind = NoGoal;
         } else if (turn_ - agent.goal_turn > GOAL_PATIENCE * (0.5 + patience)) {
@@ -8231,21 +8296,42 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         } else {
             if (close >= 0 && agent.goal_close >= 0) s.goal_relief += GOAL_PROGRESS * ((close > agent.goal_close) - (close < agent.goal_close));
             agent.goal_close = close;
-            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, agent.goal_urgency + GOAL_RISE * need);
+            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, agent.goal_urgency + GOAL_RISE * std::min(1.0, push));
         }
         if (agent.goal_kind == NoGoal) {
             agent.goal_target = agent.goal_need = -1;
             agent.goal_urgency = 0.0;
             agent.goal_close = -1.0;
+            agent.goal_desire = false;
         }
     }
-    // Its worst need, and what it has found eases that need most: a goal, or a better one in place of its own.
+    // What it liked (see DESIRE): the good it felt since last turn, beyond its usual, after what it came nearer and did.
+    if (lived && WANTING_RATE > 0) {
+        const double rate = std::min(1.0, WANTING_RATE);
+        const double good = std::max(0.0, agent.reward - agent.joy_mark) + std::max(0.0, s.goal_relief);
+        const double gain = good - agent.good_drift;
+        agent.good_drift += rate * (good - agent.good_drift);
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+            if (agent.moved[thing] > 0) agent.want_things[thing] += rate * (gain - agent.want_things[thing]);
+        }
+        if (agent.last_choice >= 0 && agent.last_choice < ACTION_COUNT) {
+            double& deed = agent.want_deeds[static_cast<std::size_t>(agent.last_choice)];
+            deed += rate * (gain - deed);
+        }
+        for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
+            ReliefOne& one = agent.relief_ones[at];
+            if (one.close >= 0 && ones_close[at] > one.close) one.want += rate * (gain - one.want);
+        }
+    }
+    for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) agent.relief_ones[at].close = ones_close[at];
+    // Its worst need, and what it has found eases that need most; and its strongest desire. The greater pull is a goal,
+    // or a better one in place of its own.
     int worst = -1;
     for (int need = 0; need < GOAL_NEEDS; ++need) {
         if (now[static_cast<std::size_t>(need)] >= GOAL_SATED && (worst < 0 || now[static_cast<std::size_t>(need)] > now[static_cast<std::size_t>(worst)])) worst = need;
     }
+    int kind = NoGoal, target = -1;
     if (worst >= 0) {
-        int kind = NoGoal, target = -1;
         double best = GOAL_MIN_RELIEF;
         const auto consider = [&](int k, int t) {
             const double value = worth(k, t, worst);
@@ -8258,12 +8344,41 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) consider(GoalForThing, thing);
         for (const ReliefOne& one : agent.relief_ones) consider(GoalForOne, one.one);
         for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed);
-        const bool same = kind == agent.goal_kind && target == agent.goal_target && worst == agent.goal_need;
-        bool adopt = kind != NoGoal && agent.goal_kind == NoGoal;
-        if (kind != NoGoal && agent.goal_kind != NoGoal && !same) {
-            const double held = now[static_cast<std::size_t>(agent.goal_need)] * worth(agent.goal_kind, agent.goal_target, agent.goal_need);
+    }
+    int wish_kind = NoGoal, wish_target = -1;
+    double wish = DESIRE > 0 ? DESIRE_MIN : 0.0;
+    if (DESIRE > 0) {
+        const auto consider = [&](int k, int t, double spark) {
+            if (spark >= wish && !(wish_kind != NoGoal && spark == wish)) {
+                wish = spark;
+                wish_kind = k;
+                wish_target = t;
+            }
+        };
+        for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) consider(GoalForThing, thing, agent.spark_things[static_cast<std::size_t>(thing)]);
+        for (const ReliefOne& one : agent.relief_ones) consider(GoalForOne, one.one, one.spark);
+        for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed, agent.spark_deeds[static_cast<std::size_t>(deed)]);
+    }
+    const double need_pull = kind != NoGoal ? now[static_cast<std::size_t>(worst)] : 0.0;
+    const bool desired = wish_kind != NoGoal && wish > need_pull;
+    if (desired) {
+        kind = wish_kind;
+        target = wish_target;
+    }
+    if (kind != NoGoal) {
+        const bool same = kind == agent.goal_kind && target == agent.goal_target && desired == agent.goal_desire && (desired || worst == agent.goal_need);
+        bool adopt = agent.goal_kind == NoGoal;
+        if (agent.goal_kind != NoGoal && !same) {
             const double margin = 1.0 + GOAL_STUBBORNNESS * 2.0 * agent.feeling(Patience);
-            if (now[static_cast<std::size_t>(worst)] * best > std::max(0.0, held) * margin) {
+            double held = 0.0, offered = 0.0;
+            if (!desired && !agent.goal_desire) {  // need against need: each by how much it eases its need
+                held = now[static_cast<std::size_t>(agent.goal_need)] * worth(agent.goal_kind, agent.goal_target, agent.goal_need);
+                offered = need_pull * worth(kind, target, worst);
+            } else {  // a desire in it: pull against pull
+                held = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target) : now[static_cast<std::size_t>(agent.goal_need)];
+                offered = desired ? wish : need_pull;
+            }
+            if (offered > std::max(0.0, held) * margin) {
                 adopt = true;
                 ++agent.goals_switched;
             }
@@ -8271,13 +8386,15 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         if (adopt) {
             agent.goal_kind = kind;
             agent.goal_target = target;
-            agent.goal_need = worst;
+            agent.goal_need = desired ? -1 : worst;
+            agent.goal_desire = desired;
             agent.goal_turn = turn_;
-            agent.goal_urgency = now[static_cast<std::size_t>(worst)];
+            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, desired ? wish : need_pull);
             agent.goal_close = kind == GoalForThing ? senses[OUTSIDE_SENSES[static_cast<std::size_t>(target)]]
                               : kind == GoalForOne  ? one_closeness(agent, target, sight)
                                                     : -1.0;
             ++agent.goals_formed;
+            if (desired) ++agent.desires_formed;
         }
     }
     // Felt, and sensed.
@@ -8286,7 +8403,8 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         senses[SenseGoal + Goal] = 1.0;
         senses[SenseGoal + GoalUrgency] = agent.goal_urgency / GOAL_URGENCY_MAX;
         senses[SenseGoal + GoalCloseness] = std::max(0.0, agent.goal_close);
-        senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
+        if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
+        else senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
         if (agent.goal_kind == GoalForThing) {
             senses[SenseGoal + GoalThing + agent.goal_target] = 1.0;
         } else if (agent.goal_kind == GoalForOne) {
@@ -8302,19 +8420,26 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
 }
 
 void Simulation::inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father) {
-    // What eased its parents' needs, a share of it, as if it had learnt it (see RELIEF_INHERIT).
-    if (RELIEF_INHERIT <= 0) return;
-    const double share = std::min(1.0, RELIEF_INHERIT);
-    for (int need = 0; need < GOAL_NEEDS; ++need) {
-        const auto n = static_cast<std::size_t>(need);
-        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
-            const double parents = father ? (mother.relief_things[n][thing] + father->relief_things[n][thing]) / 2 : mother.relief_things[n][thing];
-            child.relief_things[n][thing] = share * parents;
+    // What eased its parents' needs, a share of it, as if it had learnt it (see RELIEF_INHERIT); and what they liked
+    // (see WANTING_INHERIT).
+    const double share = std::clamp(RELIEF_INHERIT, 0.0, 1.0), liked = std::clamp(WANTING_INHERIT, 0.0, 1.0);
+    const auto parents = [&](auto member, std::size_t at) { return father ? ((mother.*member)[at] + ((*father).*member)[at]) / 2 : (mother.*member)[at]; };
+    if (share > 0) {
+        for (int need = 0; need < GOAL_NEEDS; ++need) {
+            const auto n = static_cast<std::size_t>(need);
+            for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                const double both = father ? (mother.relief_things[n][thing] + father->relief_things[n][thing]) / 2 : mother.relief_things[n][thing];
+                child.relief_things[n][thing] = share * both;
+            }
+            for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+                const double both = father ? (mother.relief_deeds[n][deed] + father->relief_deeds[n][deed]) / 2 : mother.relief_deeds[n][deed];
+                child.relief_deeds[n][deed] = share * both;
+            }
         }
-        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
-            const double parents = father ? (mother.relief_deeds[n][deed] + father->relief_deeds[n][deed]) / 2 : mother.relief_deeds[n][deed];
-            child.relief_deeds[n][deed] = share * parents;
-        }
+    }
+    if (liked > 0) {
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) child.want_things[thing] = liked * parents(&Bitzkey::want_things, thing);
+        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) child.want_deeds[deed] = liked * parents(&Bitzkey::want_deeds, deed);
     }
 }
 

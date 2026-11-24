@@ -2560,6 +2560,12 @@ Json Probe::goals(Simulation& world) const {
         std::array<std::array<double, ACTION_COUNT>, GOAL_NEEDS> deeds{};
         std::array<double, GOAL_NEEDS> ones{};
         long long ones_count = 0;
+        // Desire (see DESIRE): goals held of each sort and how long held so far; desires formed and reached in lives;
+        // what is liked, summed; companions liked.
+        long long desiring = 0, desires_formed = 0, desires_reached = 0, desire_turns = 0, need_age = 0, desire_age = 0;
+        std::array<double, OUTSIDE_SEEN> liked_things{};
+        std::array<double, ACTION_COUNT> liked_deeds{};
+        double liked_ones = 0.0;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
             ++alive;
@@ -2569,6 +2575,12 @@ Json Probe::goals(Simulation& world) const {
             switched += agent->goals_switched;
             dropped += agent->goals_dropped;
             reach_turns += agent->goal_reach_turns;
+            desires_formed += agent->desires_formed;
+            desires_reached += agent->desires_reached;
+            desire_turns += agent->desire_reach_turns;
+            for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) liked_things[thing] += agent->want_things[thing];
+            for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) liked_deeds[deed] += agent->want_deeds[deed];
+            for (const ReliefOne& one : agent->relief_ones) liked_ones += one.want;
             if (agent->has_needs) {
                 const auto at = std::max_element(agent->needs.begin(), agent->needs.end());
                 if (*at >= GOAL_SATED) ++worst[static_cast<std::size_t>(at - agent->needs.begin())];
@@ -2584,13 +2596,19 @@ Json Probe::goals(Simulation& world) const {
             if (agent->goal_kind == NoGoal) continue;
             ++holding;
             ++kinds[static_cast<std::size_t>(agent->goal_kind)];
-            ++for_need[static_cast<std::size_t>(agent->goal_need)];
+            if (agent->goal_desire) {
+                ++desiring;
+                desire_age += world.turn() - agent->goal_turn;
+            } else {
+                ++for_need[static_cast<std::size_t>(agent->goal_need)];
+                need_age += world.turn() - agent->goal_turn;
+            }
             urgency += agent->goal_urgency;
             const std::string target = agent->goal_kind == GoalForThing
                 ? std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent->goal_target)])])
                 : agent->goal_kind == GoalForDeed ? "do " + std::string(ACTIONS[static_cast<std::size_t>(agent->goal_target)])
                 : "a companion";
-            ++targets[target + " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")"];
+            ++targets[target + (agent->goal_desire ? std::string(" (desired)") : " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")")];
         }
         if (alive == 0) continue;
         Json needs = Json::object();
@@ -2607,6 +2625,23 @@ Json Probe::goals(Simulation& world) const {
                                                   {"eased_most_by", top},
                                                   {"companion_relief", ones_count > 0 ? Json(ones[n] / static_cast<double>(ones_count)) : Json(nullptr)}};
         }
+        std::vector<std::pair<double, std::string>> liked;
+        for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing)
+            liked.emplace_back(liked_things[thing] / static_cast<double>(alive), "near " + std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[thing])]));
+        for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) liked.emplace_back(liked_deeds[deed] / static_cast<double>(alive), "do " + std::string(ACTIONS[deed]));
+        std::sort(liked.begin(), liked.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        Json most_liked = Json::array();
+        for (std::size_t at = 0; at < std::min<std::size_t>(8, liked.size()); ++at) most_liked.push_back({{"what", liked[at].second}, {"liked", liked[at].first}});
+        const long long needing = holding - desiring;
+        const Json desire = {
+            {"holding_share", ratio(static_cast<double>(desiring), static_cast<double>(alive))},
+            {"share_of_goals", ratio(static_cast<double>(desiring), static_cast<double>(holding))},
+            {"held_so_far", {{"desire", desiring > 0 ? Json(static_cast<double>(desire_age) / static_cast<double>(desiring)) : Json(nullptr)},
+                             {"need", needing > 0 ? Json(static_cast<double>(need_age) / static_cast<double>(needing)) : Json(nullptr)}}},
+            {"in_lives", {{"formed", desires_formed}, {"reached", desires_reached},
+                          {"mean_turns_to_reach", desires_reached > 0 ? Json(static_cast<double>(desire_turns) / static_cast<double>(desires_reached)) : Json(nullptr)}}},
+            {"most_liked", most_liked},
+            {"companion_liked", ones_count > 0 ? Json(liked_ones / static_cast<double>(ones_count)) : Json(nullptr)}};
         std::vector<std::pair<long long, std::string>> held(targets.size());
         std::transform(targets.begin(), targets.end(), held.begin(), [](const auto& kv) { return std::make_pair(kv.second, kv.first); });
         std::sort(held.begin(), held.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
@@ -2620,7 +2655,7 @@ Json Probe::goals(Simulation& world) const {
             {"in_lives", {{"formed", formed}, {"reached", reached}, {"given_up", abandoned}, {"switched", switched}, {"let_go", dropped},
                           {"reached_share", ratio(static_cast<double>(reached), static_cast<double>(reached + abandoned + dropped))},
                           {"mean_turns_to_reach", reached > 0 ? Json(static_cast<double>(reach_turns) / static_cast<double>(reached)) : Json(nullptr)}}},
-            {"needs", needs}};
+            {"needs", needs}, {"desire", desire}};
     }
     return result;
 }

@@ -2192,5 +2192,21 @@
 "Giving up": "Rinuncia",
 "unease at giving up a goal held too long": "disagio nel rinunciare a un obiettivo tenuto troppo a lungo",
 "Goal progress": "Progresso verso l'obiettivo",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "agio a ogni passo più vicino a ciò che cerca, e altrettanto disagio a ogni passo che se ne allontana"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "agio a ogni passo più vicino a ciò che cerca, e altrettanto disagio a ogni passo che se ne allontana",
+"Desire": "Desiderio",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "quanto forte un segnale di ciò che a un animale è piaciuto lo attira, contro il suo bisogno più urgente, a farne il suo obiettivo; 0 per nessuno",
+"Liking learning": "Imparare ciò che piace",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "quanto in fretta un animale impara, dalla propria vita, quanto bene ha provato dopo essersi avvicinato a ogni cosa o compagno, o aver compiuto ogni atto; 0 per nessuno",
+"Liking inheritance": "Gusti ereditati",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "parte di ciò che piaceva ai genitori con cui un neonato comincia, come se l'avesse imparata",
+"Heard cue": "Segnale udito",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "quanto forte una parola, un nome o una parola d'atto uditi per ciò che gli piace risvegliano il desiderio, rispetto a vederlo da vicino",
+"Desire lingering": "Desiderio che indugia",
+"share of a desire's spark kept each turn after its cue has gone": "parte della scintilla di un desiderio conservata ogni turno dopo che il suo segnale è sparito",
+"Desire threshold": "Soglia del desiderio",
+"the least spark of desire that can make a goal": "la più piccola scintilla di desiderio che può formare un obiettivo",
+"Pleasure fading": "Piacere che svanisce",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "parte di ciò che resta del suo piacere per una cosa, un compagno o un atto che svanisce ogni volta che lo raggiunge come desiderio",
+"Pleasure returning": "Piacere che ritorna",
+"share of faded pleasure that returns each turn": "parte del piacere svanito che ritorna a ogni turno"
 }

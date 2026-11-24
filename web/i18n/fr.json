@@ -2192,5 +2192,21 @@
 "Giving up": "Abandon",
 "unease at giving up a goal held too long": "malaise d'abandonner un but poursuivi trop longtemps",
 "Goal progress": "Progrès vers le but",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "aise à chaque pas plus près de ce qu'il cherche, et autant de malaise à chaque pas qui l'en éloigne"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "aise à chaque pas plus près de ce qu'il cherche, et autant de malaise à chaque pas qui l'en éloigne",
+"Desire": "Désir",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "avec quelle force un signe de ce qu'un animal a aimé l'attire, face à son besoin le plus pressant, pour en faire son but ; 0 pour aucun",
+"Liking learning": "Apprendre ce qui plaît",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "à quelle vitesse un animal apprend, de sa propre vie, combien de bien il a ressenti après s'être approché de chaque chose ou compagnon, ou avoir fait chaque acte ; 0 pour aucun",
+"Liking inheritance": "Goûts hérités",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "part de ce qu'aimaient ses parents avec laquelle un nouveau-né commence, comme s'il l'avait appris",
+"Heard cue": "Signe entendu",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "avec quelle force un mot, un nom ou un mot d'acte entendu pour ce qu'il aime éveille le désir, comparé au fait de le voir de près",
+"Desire lingering": "Désir qui persiste",
+"share of a desire's spark kept each turn after its cue has gone": "part de l'étincelle d'un désir gardée chaque tour après que son signe a disparu",
+"Desire threshold": "Seuil du désir",
+"the least spark of desire that can make a goal": "la plus petite étincelle de désir qui peut former un but",
+"Pleasure fading": "Plaisir qui s'estompe",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "part de ce qui reste de son plaisir pour une chose, un compagnon ou un acte qui s'estompe chaque fois qu'il l'atteint comme désir",
+"Pleasure returning": "Plaisir qui revient",
+"share of faded pleasure that returns each turn": "part du plaisir estompé qui revient à chaque tour"
 }

@@ -2192,5 +2192,21 @@
 "Giving up": "Відмова",
 "unease at giving up a goal held too long": "неспокій від відмови від мети, яку тримали надто довго",
 "Goal progress": "Поступ до мети",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "втіха від кожного кроку ближче до того, чого шукає, і стільки ж неспокою від кожного кроку геть"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "втіха від кожного кроку ближче до того, чого шукає, і стільки ж неспокою від кожного кроку геть",
+"Desire": "Бажання",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "наскільки сильно ознака того, що тварині сподобалося, тягне її, всупереч найнагальнішій потребі, зробити це своєю метою; 0 — жодного",
+"Liking learning": "Навчання вподобанням",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "як швидко тварина вчиться з власного життя, скільки доброго відчула після наближення до кожної речі чи товариша або після кожного вчинку; 0 — жодного",
+"Liking inheritance": "Успадковані вподобання",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "частка того, що любили батьки, з якою новонароджений починає, ніби навчився цього",
+"Heard cue": "Почута ознака",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "наскільки сильно почуте слово, ім'я чи слово-вчинок для того, що їй подобається, пробуджує бажання, порівняно з тим, щоб бачити це поруч",
+"Desire lingering": "Тривале бажання",
+"share of a desire's spark kept each turn after its cue has gone": "частка іскри бажання, що зберігається щоходу після того, як ознака зникла",
+"Desire threshold": "Поріг бажання",
+"the least spark of desire that can make a goal": "найменша іскра бажання, що може створити мету",
+"Pleasure fading": "Згасання насолоди",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "частка залишку насолоди від речі, товариша чи вчинку, що згасає щоразу, коли тварина досягає їх як бажання",
+"Pleasure returning": "Повернення насолоди",
+"share of faded pleasure that returns each turn": "частка згаслої насолоди, що повертається щоходу"
 }

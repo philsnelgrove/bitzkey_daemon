@@ -2192,5 +2192,21 @@
 "Giving up": "Desistir",
 "unease at giving up a goal held too long": "inquietação ao desistir de um objetivo mantido demasiado tempo",
 "Goal progress": "Progresso rumo ao objetivo",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "conforto a cada passo mais perto do que procura, e igual inquietação a cada passo para longe"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "conforto a cada passo mais perto do que procura, e igual inquietação a cada passo para longe",
+"Desire": "Desejo",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "com que força um sinal de algo de que um animal gostou o atrai, contra a sua necessidade mais urgente, a torná-lo o seu objetivo; 0 para nenhum",
+"Liking learning": "Aprender o que agrada",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "com que rapidez um animal aprende, da própria vida, quanto bem sentiu depois de se aproximar de cada coisa ou companheiro, ou de fazer cada ato; 0 para nenhum",
+"Liking inheritance": "Gostos herdados",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "parte do que os pais gostavam com que um recém-nascido começa, como se o tivesse aprendido",
+"Heard cue": "Sinal ouvido",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "com que força uma palavra, um nome ou uma palavra de ato ouvidos para algo de que gosta despertam o desejo, em comparação com vê-lo de perto",
+"Desire lingering": "Desejo que perdura",
+"share of a desire's spark kept each turn after its cue has gone": "parte da centelha de um desejo mantida a cada turno depois de o seu sinal desaparecer",
+"Desire threshold": "Limiar do desejo",
+"the least spark of desire that can make a goal": "a menor centelha de desejo que pode formar um objetivo",
+"Pleasure fading": "Prazer que se desvanece",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "parte do que resta do seu prazer numa coisa, companheiro ou ato que se desvanece cada vez que o alcança como desejo",
+"Pleasure returning": "Prazer que volta",
+"share of faded pleasure that returns each turn": "parte do prazer desvanecido que volta a cada turno"
 }

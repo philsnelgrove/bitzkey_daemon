@@ -2192,5 +2192,21 @@
 "Giving up": "हार मानना",
 "unease at giving up a goal held too long": "बहुत देर से पकड़े लक्ष्य को छोड़ने की बेचैनी",
 "Goal progress": "लक्ष्य की ओर प्रगति",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "जो खोज रहा है उसकी ओर हर कदम पर सुकून, और उससे दूर हर कदम पर उतनी ही बेचैनी"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "जो खोज रहा है उसकी ओर हर कदम पर सुकून, और उससे दूर हर कदम पर उतनी ही बेचैनी",
+"Desire": "इच्छा",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "किसी जानवर को जो पसंद आया उसका संकेत उसे उसकी सबसे बड़ी ज़रूरत के मुकाबले कितनी ज़ोर से खींचता है कि वह उसे अपना लक्ष्य बना ले; 0 यानी बिल्कुल नहीं",
+"Liking learning": "पसंद सीखना",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "कोई जानवर अपने जीवन से कितनी जल्दी सीखता है कि हर चीज़ या साथी के पास जाने, या हर काम करने के बाद उसे कितना अच्छा लगा; 0 यानी बिल्कुल नहीं",
+"Liking inheritance": "विरासत में पसंद",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "माता-पिता को जो पसंद था उसका वह हिस्सा जिससे नवजात शुरू करता है, मानो उसने उसे सीखा हो",
+"Heard cue": "सुना हुआ संकेत",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "पसंद की चीज़ के लिए सुना गया शब्द, नाम या काम-शब्द इच्छा को कितनी ज़ोर से जगाता है, उसे पास देखने की तुलना में",
+"Desire lingering": "बनी रहने वाली इच्छा",
+"share of a desire's spark kept each turn after its cue has gone": "संकेत चले जाने के बाद हर बारी इच्छा की चिंगारी का कितना हिस्सा बना रहता है",
+"Desire threshold": "इच्छा की दहलीज़",
+"the least spark of desire that can make a goal": "इच्छा की सबसे छोटी चिंगारी जो लक्ष्य बना सकती है",
+"Pleasure fading": "घटता आनंद",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "किसी चीज़, साथी या काम में बचे आनंद का वह हिस्सा जो हर बार उसे इच्छा के रूप में पाने पर घट जाता है",
+"Pleasure returning": "लौटता आनंद",
+"share of faded pleasure that returns each turn": "घटे हुए आनंद का वह हिस्सा जो हर बारी लौट आता है"
 }

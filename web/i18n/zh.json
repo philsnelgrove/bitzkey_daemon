@@ -2192,5 +2192,21 @@
 "Giving up": "放弃",
 "unease at giving up a goal held too long": "放弃坚持太久的目标时的不安",
 "Goal progress": "目标进展",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "每向所求之物靠近一步的舒适,以及每远离一步同等的不安"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "每向所求之物靠近一步的舒适,以及每远离一步同等的不安",
+"Desire": "欲望",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "动物喜欢过的东西的线索，在对抗其最迫切需要时，吸引它将其作为目标的强度；0 表示没有",
+"Liking learning": "学习喜好",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "动物从自身生活中学习的速度：靠近每样东西或同伴、或做每件事之后感到多少好处；0 表示没有",
+"Liking inheritance": "继承的喜好",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "新生儿一出生就带有的父母所喜欢之物的比例，仿佛它已学会",
+"Heard cue": "听到的线索",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "听到表示其所喜之物的词、名字或行为词时，相比于近处看见，唤起欲望的强度",
+"Desire lingering": "欲望的余韵",
+"share of a desire's spark kept each turn after its cue has gone": "线索消失后，欲望的火花每回合保留的比例",
+"Desire threshold": "欲望阈值",
+"the least spark of desire that can make a goal": "能够形成目标的最小欲望火花",
+"Pleasure fading": "快乐消退",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "对某样东西、同伴或行为的剩余快乐中，每次作为欲望达成时消退的比例",
+"Pleasure returning": "快乐回归",
+"share of faded pleasure that returns each turn": "每回合回归的已消退快乐的比例"
 }

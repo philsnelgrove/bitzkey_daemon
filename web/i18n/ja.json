@@ -2192,5 +2192,21 @@
 "Giving up": "あきらめ",
 "unease at giving up a goal held too long": "長く持ちすぎた目標をあきらめる落ち着かなさ",
 "Goal progress": "目標への前進",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "求めるものに一歩近づくごとの心地よさと、一歩遠ざかるごとの同じだけの落ち着かなさ"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "求めるものに一歩近づくごとの心地よさと、一歩遠ざかるごとの同じだけの落ち着かなさ",
+"Desire": "欲求",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "動物が好んだものの手がかりが、最も強い必要に対抗して、それを目標にさせるほど引きつける強さ。0 でなし",
+"Liking learning": "好みの学習",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "動物が自分の生から、各物や仲間に近づいた後、または各行いをした後にどれだけ良く感じたかを学ぶ速さ。0 でなし",
+"Liking inheritance": "受け継ぐ好み",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "親が好んだものの割合で、新生児がそれを学んだかのように持って生まれるもの",
+"Heard cue": "聞いた手がかり",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "好きなものを表す言葉・名前・行いの言葉を聞いたとき、近くで見るのと比べてどれだけ強く欲求を呼び起こすか",
+"Desire lingering": "残る欲求",
+"share of a desire's spark kept each turn after its cue has gone": "手がかりが消えた後も毎ターン残る欲求の火花の割合",
+"Desire threshold": "欲求のしきい値",
+"the least spark of desire that can make a goal": "目標を生み得る最小の欲求の火花",
+"Pleasure fading": "薄れる喜び",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "物・仲間・行いへの残った喜びのうち、欲求としてそれに達するたびに薄れる割合",
+"Pleasure returning": "戻る喜び",
+"share of faded pleasure that returns each turn": "薄れた喜びが毎ターン戻る割合"
 }

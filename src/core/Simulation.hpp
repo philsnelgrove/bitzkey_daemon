@@ -428,12 +428,31 @@ inline double GOAL_UNEASE = 0.1;
 inline double GOAL_JOY = 1.0;
 inline double GOAL_GIVE_UP = 0.2;
 inline double GOAL_PROGRESS = 0.05;
+// Desire (the user's design): a pull from good feelings, beside the push of needs. Each animal learns, at WANTING_RATE,
+// how much good it felt beyond its usual (its joys since it last chose, and its goal's joy and progress) the turn after
+// it came nearer each outside thing, nearer each companion it cares for, or did each deed: what it likes, from its own
+// life alone; a newborn starts with WANTING_INHERIT of its parents'. Wanting sleeps till a cue wakes it: the thing in
+// sight, the companion in sight, another seen doing the deed, or a word, name or deed-word for it heard (HEARD_CUE as
+// strong as sight, a turn late). A cue sparks DESIRE times what it wants times the cue, times a half and its curiosity
+// (things and deeds) or its sociability (companions), times what pleasure in it has not faded; a spark lingers, kept
+// DESIRE_LINGER each turn. Its strongest spark, if DESIRE_MIN at least, competes with its worst need: the greater
+// pull is its goal, held and felt as any goal, but not let go when a need is met. Reached, its joy is what has not
+// faded, and pleasure in that one fades by PLEASURE_FADE of what is left; faded pleasure returns by PLEASURE_RETURN a turn.
+inline double DESIRE = 1.0;
+inline double WANTING_RATE = 0.05;
+inline double WANTING_INHERIT = 0.5;
+inline double HEARD_CUE = 0.5;
+inline double DESIRE_LINGER = 0.7;
+inline double DESIRE_MIN = 0.01;
+inline double PLEASURE_FADE = 0.3;
+inline double PLEASURE_RETURN = 0.02;
 constexpr double GOAL_SATED = 0.05;  // a need below this is met: nothing to seek for it
 constexpr double GOAL_URGENCY_MAX = 2.0;
 struct ReliefOne {  // a companion, and what being nearer it has eased (see RELIEF_ONES)
     int one = -1;
     double close = -1.0;  // how close it was last turn, -1 not known
     std::array<double, GOAL_NEEDS> relief{};
+    double want = 0.0, spark = 0.0, fade = 0.0;  // the good nearing it brought, its spark now, pleasure in it faded (DESIRE)
 };
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
 enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
@@ -1438,6 +1457,15 @@ struct Bitzkey {
     double goal_urgency = 0.0, goal_close = -1.0;
     int goals_formed = 0, goals_reached = 0, goals_abandoned = 0, goals_switched = 0, goals_dropped = 0;
     long long goal_reach_turns = 0;  // summed over the goals it reached
+    // Desire (see DESIRE): the good that came after nearing each thing or doing each deed, each one's spark now, and the
+    // pleasure in each faded; the good it usually feels; its reward as it chose (so the joys since are known); whether its
+    // goal is a desire; and, in its life, desires formed and reached, and the turns they took.
+    std::array<double, OUTSIDE_SEEN> want_things{}, spark_things{}, fade_things{};
+    std::array<double, ACTION_COUNT> want_deeds{}, spark_deeds{}, fade_deeds{};
+    double good_drift = 0.0, joy_mark = 0.0;
+    bool goal_desire = false;
+    int desires_formed = 0, desires_reached = 0;
+    long long desire_reach_turns = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own

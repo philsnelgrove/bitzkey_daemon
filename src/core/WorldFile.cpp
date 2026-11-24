@@ -257,6 +257,19 @@ json lexicon_record(const std::vector<LexiconWord>& lexicon) {  // see LEXICON_S
     for (const LexiconWord& w : lexicon) words.push_back({w.call, w.sounds[0], w.sounds[1], w.thing, w.regard, w.uses});
     return words;
 }
+json desire_record(const Bitzkey& agent) {  // see DESIRE: only what is not 0, each as index, wanted, spark, faded
+    json things = json::array(), deeds = json::array();
+    for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+        if (agent.want_things[thing] != 0.0 || agent.spark_things[thing] != 0.0 || agent.fade_things[thing] != 0.0)
+            things.push_back({static_cast<int>(thing), agent.want_things[thing], agent.spark_things[thing], agent.fade_things[thing]});
+    }
+    for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+        if (agent.want_deeds[deed] != 0.0 || agent.spark_deeds[deed] != 0.0 || agent.fade_deeds[deed] != 0.0)
+            deeds.push_back({static_cast<int>(deed), agent.want_deeds[deed], agent.spark_deeds[deed], agent.fade_deeds[deed]});
+    }
+    return {{"head", {agent.good_drift, agent.joy_mark, agent.goal_desire ? 1 : 0, agent.desires_formed, agent.desires_reached, agent.desire_reach_turns}},
+            {"things", things}, {"deeds", deeds}};
+}
 json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
     json needs = json::array();
     for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
@@ -275,12 +288,15 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
     for (const ReliefOne& one : agent.relief_ones) {
         json row = {one.one, one.close};
         for (const double r : one.relief) row.push_back(r);
+        row.push_back(one.want);  // then what it liked of it, its spark, and pleasure in it faded (see DESIRE)
+        row.push_back(one.spark);
+        row.push_back(one.fade);
         ones.push_back(row);
     }
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
                        agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
-            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}};
+            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}};
 }
 
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
@@ -668,7 +684,37 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             if (agent->goal_target < 0) agent->goal_kind = NoGoal;
         }
         if (agent->goal_kind == GoalForThing && (agent->goal_target < 0 || agent->goal_target >= OUTSIDE_SEEN)) agent->goal_kind = NoGoal;
-        if (agent->goal_kind == NoGoal) agent->goal_target = agent->goal_need = -1;
+        if (g.contains("desire")) {  // see DESIRE
+            const json& d = g.at("desire");
+            const json& top = d.at("head");
+            agent->good_drift = top.at(0).get<double>();
+            agent->joy_mark = top.at(1).get<double>();
+            agent->goal_desire = top.at(2).get<int>() != 0;
+            agent->desires_formed = top.at(3).get<int>();
+            agent->desires_reached = top.at(4).get<int>();
+            agent->desire_reach_turns = top.at(5).get<long long>();
+            for (const json& row : d.at("things")) {
+                const int thing = row.at(0).get<int>();
+                if (thing < 0 || thing >= OUTSIDE_SEEN) continue;
+                const auto at = static_cast<std::size_t>(thing);
+                agent->want_things[at] = row.at(1).get<double>();
+                agent->spark_things[at] = row.at(2).get<double>();
+                agent->fade_things[at] = row.at(3).get<double>();
+            }
+            for (const json& row : d.at("deeds")) {  // by the deed's saved number
+                const int deed = numbers.action(row.at(0).get<int>());
+                if (deed < 0) continue;
+                const auto at = static_cast<std::size_t>(deed);
+                agent->want_deeds[at] = row.at(1).get<double>();
+                agent->spark_deeds[at] = row.at(2).get<double>();
+                agent->fade_deeds[at] = row.at(3).get<double>();
+            }
+        }
+        if (!agent->goal_desire && agent->goal_kind != NoGoal && (agent->goal_need < 0 || agent->goal_need >= GOAL_NEEDS)) agent->goal_kind = NoGoal;
+        if (agent->goal_kind == NoGoal) {
+            agent->goal_target = agent->goal_need = -1;
+            agent->goal_desire = false;
+        }
         const json& needs = g.at("needs");
         for (std::size_t n = 0; n < GOAL_NEEDS && 2 * n + 1 < needs.size(); ++n) {
             agent->needs[n] = needs.at(2 * n).get<double>();
@@ -685,6 +731,11 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         for (const json& row : g.at("ones")) {  // one, its closeness last turn, then its relief for each need
             ReliefOne one{row.at(0).get<int>(), row.at(1).get<double>(), {}};
             for (std::size_t n = 0; n < GOAL_NEEDS && n + 2 < row.size(); ++n) one.relief[n] = row.at(n + 2).get<double>();
+            if (row.size() >= GOAL_NEEDS + 5) {  // and what it liked of it, its spark, pleasure faded (see DESIRE)
+                one.want = row.at(GOAL_NEEDS + 2).get<double>();
+                one.spark = row.at(GOAL_NEEDS + 3).get<double>();
+                one.fade = row.at(GOAL_NEEDS + 4).get<double>();
+            }
             agent->relief_ones.push_back(one);
         }
     }

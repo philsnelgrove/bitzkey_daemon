@@ -3439,6 +3439,64 @@ TEST_CASE("goals: what eases a need is learnt; the worst need picks a goal, held
     CHECK(child.relief_things[NeedHunger][4] == doctest::Approx(RELIEF_INHERIT * 0.3));
 }
 
+TEST_CASE("desire: what felt good is liked; a cue sparks it, lingering; the stronger pull is the goal; pleasure fades") {
+    Simulation simulation = world(60);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    simulation.index_cells();
+    // Learnt from its own life: joy the turn after it browsed.
+    animal.has_needs = true;
+    animal.last_choice = Browse;
+    animal.joy_mark = 0.0;
+    animal.reward = 0.5;
+    simulation.sense(animal);
+    CHECK(animal.want_deeds[Browse] == doctest::Approx(WANTING_RATE * 0.5));
+    CHECK(animal.want_deeds[Rest] == 0.0);
+    // Heard a deed-word for browsing last turn: it sparks a desire; nothing eases its needs, so the desire is its goal.
+    animal.goal_kind = NoGoal;
+    animal.goal_desire = false;
+    animal.relief_deeds = {};
+    animal.relief_things = {};
+    animal.want_deeds = {};
+    animal.want_deeds[Browse] = 0.5;
+    animal.spark_deeds = {};
+    animal.reward = animal.joy_mark = 0.0;
+    animal.last_choice = Flee;
+    animal.meant_turn = simulation.turn() - 1;
+    animal.meant_by_deed = true;
+    animal.meant_deed = Browse;
+    auto first = simulation.sense(animal);
+    const double spark = DESIRE * 0.5 * HEARD_CUE * (0.5 + animal.feeling(Curiosity));
+    CHECK(animal.spark_deeds[Browse] == doctest::Approx(spark));
+    REQUIRE(animal.goal_kind == GoalForDeed);
+    CHECK(animal.goal_desire);
+    CHECK(animal.goal_target == Browse);
+    CHECK(animal.goal_need == -1);
+    CHECK(animal.desires_formed == 1);
+    CHECK(animal.goal_urgency == doctest::Approx(spark));
+    CHECK(first.senses[SenseGoal + GoalDesire] == 1.0);
+    for (int need = 0; need < GOAL_NEEDS; ++need) CHECK(first.senses[SenseGoal + GoalNeed + need] == 0.0);
+    // Its cue gone, the spark lingers, the less each turn.
+    animal.meant_turn = -10;
+    simulation.sense(animal);
+    CHECK(animal.spark_deeds[Browse] == doctest::Approx(spark * DESIRE_LINGER));
+    // Done: joy as much as its pleasure has not faded, and the pleasure fades.
+    const double held = animal.goal_urgency;
+    animal.goal_turn = simulation.turn() - 1;
+    animal.last_choice = Browse;
+    auto met = simulation.sense(animal);
+    CHECK(animal.desires_reached == 1);
+    CHECK(met.situation.goal_relief == doctest::Approx(GOAL_JOY * held));
+    CHECK(animal.fade_deeds[Browse] == doctest::Approx(PLEASURE_FADE));
+    // A newborn starts with a share of what its parents liked.
+    Bitzkey& mother = simulation.add_agent(encode_dna(Species::Grazer), 20, 20);
+    Bitzkey& father = simulation.add_agent(encode_dna(Species::Grazer), 21, 20);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Grazer), 22, 20);
+    mother.want_things[4] = 0.4;
+    father.want_things[4] = 0.2;
+    simulation.inherit_relief(child, mother, &father);
+    CHECK(child.want_things[4] == doctest::Approx(WANTING_INHERIT * 0.3));
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);
@@ -6344,13 +6402,14 @@ TEST_CASE("initiative: the young babble what their brain likes best but silence,
         young.age = 0;
         simulation.advance();
         if (!young.alive() || !elder.alive()) break;
-        babbled += young.call_turn == simulation.turn() && young.call == FirstCall + 2;
+        babbled += young.call_turn == simulation.turn() && (young.call == FirstCall + 2 || young.last_choice == Address);  // or went up to address one
     }
     MESSAGE("babbled " << babbled);
     CHECK(babbled > 0);  // its brain's favourite but silence, babbled or said going up to the elder
     const auto& tally = simulation.initiative_tally()[static_cast<std::size_t>(Species::Grazer)];
     CHECK(tally.babbled + tally.babble_addressed > 0);
-    CHECK(tally.babbled + tally.babble_addressed <= babbled);
+    CHECK(tally.babbled <= babbled);  // each kind at most once a turn, though both may fall in one
+    CHECK(tally.babble_addressed <= babbled);
     CHECK(babble_urge(elder) == 0.0);  // grown, no urge
     // Called back: the one it called to feels it, at most three a turn.
     Simulation::Situation answering;

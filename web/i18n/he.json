@@ -2192,5 +2192,21 @@
 "Giving up": "ויתור",
 "unease at giving up a goal held too long": "אי-נוחות בוויתור על מטרה שהוחזקה זמן רב מדי",
 "Goal progress": "התקדמות למטרה",
-"comfort at each step nearer what it seeks, and as much unease at each step away": "נוחות בכל צעד קרוב יותר למה שהוא מחפש, ואותה מידה של אי-נוחות בכל צעד הרחק ממנו"
+"comfort at each step nearer what it seeks, and as much unease at each step away": "נוחות בכל צעד קרוב יותר למה שהוא מחפש, ואותה מידה של אי-נוחות בכל צעד הרחק ממנו",
+"Desire": "תשוקה",
+"how strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none": "כמה חזק רמז למשהו שבעל החיים אהב מושך אותו, מול הצורך הדחוף ביותר שלו, להפוך אותו למטרתו; 0 לאף אחד",
+"Liking learning": "למידת מה שנעים",
+"how fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none": "כמה מהר בעל חיים לומד, מחייו שלו, כמה טוב הרגיש אחרי שהתקרב לכל דבר או בן לוויה, או עשה כל מעשה; 0 לאף אחד",
+"Liking inheritance": "העדפות בירושה",
+"share of what its parents liked that a newborn starts with, as if it had learnt it": "החלק ממה שהוריו אהבו שאיתו יילוד מתחיל, כאילו למד אותו",
+"Heard cue": "רמז נשמע",
+"how strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by": "כמה חזק מילה, שם או מילת מעשה שנשמעו עבור משהו שהוא אוהב מעוררים תשוקה, לעומת לראות אותו מקרוב",
+"Desire lingering": "תשוקה מתמשכת",
+"share of a desire's spark kept each turn after its cue has gone": "החלק מניצוץ התשוקה שנשמר בכל תור אחרי שהרמז שלו נעלם",
+"Desire threshold": "סף התשוקה",
+"the least spark of desire that can make a goal": "ניצוץ התשוקה הקטן ביותר שיכול ליצור מטרה",
+"Pleasure fading": "הנאה שדועכת",
+"share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "החלק ממה שנותר מההנאה שלו מדבר, בן לוויה או מעשה שדועך בכל פעם שהוא משיג אותו כתשוקה",
+"Pleasure returning": "הנאה שחוזרת",
+"share of faded pleasure that returns each turn": "החלק מההנאה שדעכה שחוזר בכל תור"
 }
