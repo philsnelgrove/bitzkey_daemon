@@ -3475,6 +3475,7 @@ TEST_CASE("desire: what felt good is liked; a cue sparks it, lingering; the stro
     CHECK(animal.goal_target == Browse);
     CHECK(animal.goal_need == -1);
     CHECK(animal.desires_formed == 1);
+    CHECK(animal.desires_by_cue[CueHeard] == 1);  // woken by the word heard
     CHECK(animal.goal_urgency == doctest::Approx(spark));
     CHECK(first.senses[SenseGoal + GoalDesire] == 1.0);
     for (int need = 0; need < GOAL_NEEDS; ++need) CHECK(first.senses[SenseGoal + GoalNeed + need] == 0.0);
@@ -3531,6 +3532,7 @@ TEST_CASE("remembered places: a thing close is remembered where it stood; out of
     CHECK(animal.goal_target == herd);
     CHECK(animal.goal_desire);
     CHECK(animal.goal_remembered);
+    CHECK(animal.desires_by_cue[CueRemembered] == 1);  // woken by the place remembered
     CHECK(away.senses[SenseGoal + GoalEast] == doctest::Approx(-1.0));
     CHECK(away.senses[SenseGoal + GoalSouth] == 0.0);
     // Back at the place and nothing there: forgotten.

@@ -454,6 +454,9 @@ inline double PLEASURE_RETURN = 0.02;
 inline double REMEMBERED_CUE = 0.3;
 inline int PLACE_MEMORY = 500;
 constexpr double CLOSE_SEEN = 0.75;
+// What woke a desire's spark, for the probe: nothing, the thing or companion seen, its remembered place, another seen
+// doing the deed, or its word, name or deed-word heard.
+enum SparkCue : int { CueNone, CueSeen, CueRemembered, CueSeenDone, CueHeard, SPARK_CUES };
 // Ingenuity (the user's design): each animal learns, at OPENS_RATE, what opens what: doing a deed or coming near a thing
 // (X), then finding a deed it could not do, or a thing not close the turn before, now open to it (Y), strengthens X opens
 // Y; X done or neared and Y still shut weakens it. It keeps the OPENS_LINKS strongest; a newborn starts with
@@ -482,6 +485,7 @@ struct ReliefOne {  // a companion, and what being nearer it has eased (see RELI
     std::array<double, GOAL_NEEDS> relief{};
     double want = 0.0, spark = 0.0, fade = 0.0;  // the good nearing it brought, its spark now, pleasure in it faded (DESIRE)
     int seen_x = -1, seen_y = -1, seen_turn = -1;  // where it was last seen, and when (PLACE_MEMORY)
+    int spark_from = CueNone;  // what woke its spark (SparkCue)
 };
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
 enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
@@ -1496,6 +1500,9 @@ struct Bitzkey {
     bool goal_desire = false;
     bool goal_remembered = false;  // its goal out of sight, sought at a remembered place (PLACE_MEMORY)
     int desires_formed = 0, desires_reached = 0;
+    std::array<int, OUTSIDE_SEEN> spark_from_things{};  // what woke each spark (SparkCue)
+    std::array<int, ACTION_COUNT> spark_from_deeds{};
+    std::array<int, SPARK_CUES> desires_by_cue{};  // desires formed, by what woke them
     long long desire_reach_turns = 0;
     // Ingenuity (see OPENS_RATE): what it learnt opens what; what was open to it last turn; the steps it seeks toward its
     // goal, the last its present one, since when, for which goal (its goal_turn), and whether spent for that goal; and,

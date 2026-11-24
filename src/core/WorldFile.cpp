@@ -261,17 +261,19 @@ json desire_record(const Bitzkey& agent) {  // see DESIRE: only what is not 0, e
     json things = json::array(), deeds = json::array();
     for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
         if (agent.want_things[thing] != 0.0 || agent.spark_things[thing] != 0.0 || agent.fade_things[thing] != 0.0)
-            things.push_back({static_cast<int>(thing), agent.want_things[thing], agent.spark_things[thing], agent.fade_things[thing]});
+            things.push_back({static_cast<int>(thing), agent.want_things[thing], agent.spark_things[thing], agent.fade_things[thing], agent.spark_from_things[thing]});
     }
     for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
         if (agent.want_deeds[deed] != 0.0 || agent.spark_deeds[deed] != 0.0 || agent.fade_deeds[deed] != 0.0)
-            deeds.push_back({static_cast<int>(deed), agent.want_deeds[deed], agent.spark_deeds[deed], agent.fade_deeds[deed]});
+            deeds.push_back({static_cast<int>(deed), agent.want_deeds[deed], agent.spark_deeds[deed], agent.fade_deeds[deed], agent.spark_from_deeds[deed]});
     }
     json places = json::array();  // see PLACE_MEMORY: thing, x, y, turn
     for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
         if (agent.place_turn[thing] >= 0) places.push_back({static_cast<int>(thing), agent.place_x[thing], agent.place_y[thing], agent.place_turn[thing]});
     }
-    return {{"head", {agent.good_drift, agent.joy_mark, agent.goal_desire ? 1 : 0, agent.desires_formed, agent.desires_reached, agent.desire_reach_turns}},
+    json head = {agent.good_drift, agent.joy_mark, agent.goal_desire ? 1 : 0, agent.desires_formed, agent.desires_reached, agent.desire_reach_turns};
+    for (const int count : agent.desires_by_cue) head.push_back(count);  // then desires formed by what woke them (SparkCue)
+    return {{"head", head},
             {"things", things}, {"deeds", deeds}, {"places", places}};
 }
 json ingenuity_record(const Bitzkey& agent) {  // see OPENS_RATE: a node saved as a thing's index, or -1 less a deed's
@@ -311,6 +313,7 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
         row.push_back(one.seen_x);  // and where it was last seen, and when (see PLACE_MEMORY)
         row.push_back(one.seen_y);
         row.push_back(one.seen_turn);
+        row.push_back(one.spark_from);  // and what woke its spark (SparkCue)
         ones.push_back(row);
     }
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
@@ -713,6 +716,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             agent->desires_formed = top.at(3).get<int>();
             agent->desires_reached = top.at(4).get<int>();
             agent->desire_reach_turns = top.at(5).get<long long>();
+            for (std::size_t cue = 0; cue < SPARK_CUES && 6 + cue < top.size(); ++cue) agent->desires_by_cue[cue] = top.at(6 + cue).get<int>();
             for (const json& row : d.at("things")) {
                 const int thing = row.at(0).get<int>();
                 if (thing < 0 || thing >= OUTSIDE_SEEN) continue;
@@ -720,6 +724,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 agent->want_things[at] = row.at(1).get<double>();
                 agent->spark_things[at] = row.at(2).get<double>();
                 agent->fade_things[at] = row.at(3).get<double>();
+                if (row.size() > 4) agent->spark_from_things[at] = row.at(4).get<int>();
             }
             for (const json& row : d.at("deeds")) {  // by the deed's saved number
                 const int deed = numbers.action(row.at(0).get<int>());
@@ -728,6 +733,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 agent->want_deeds[at] = row.at(1).get<double>();
                 agent->spark_deeds[at] = row.at(2).get<double>();
                 agent->fade_deeds[at] = row.at(3).get<double>();
+                if (row.size() > 4) agent->spark_from_deeds[at] = row.at(4).get<int>();
             }
             if (d.contains("places")) {
                 for (const json& row : d.at("places")) {
@@ -805,6 +811,7 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 one.seen_y = row.at(GOAL_NEEDS + 6).get<int>();
                 one.seen_turn = row.at(GOAL_NEEDS + 7).get<int>();
             }
+            if (row.size() >= GOAL_NEEDS + 9) one.spark_from = row.at(GOAL_NEEDS + 8).get<int>();  // what woke its spark
             agent->relief_ones.push_back(one);
         }
     }

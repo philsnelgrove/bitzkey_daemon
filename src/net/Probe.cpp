@@ -2566,6 +2566,7 @@ Json Probe::goals(Simulation& world) const {
         std::array<double, OUTSIDE_SEEN> liked_things{};
         std::array<double, ACTION_COUNT> liked_deeds{};
         double liked_ones = 0.0;
+        std::array<long long, SPARK_CUES> by_cue{};  // desires formed, by what woke them
         // Ingenuity (see OPENS_RATE): goals sought by steps, and how deep; in lives, chains begun, steps reached, chains
         // given up, steps reached by a link followed the first time; what is learnt opens what, summed.
         long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, chains_given_up = 0, first_followed = 0, links_held = 0;
@@ -2582,6 +2583,7 @@ Json Probe::goals(Simulation& world) const {
             desires_formed += agent->desires_formed;
             desires_reached += agent->desires_reached;
             desire_turns += agent->desire_reach_turns;
+            for (std::size_t cue = 0; cue < SPARK_CUES; ++cue) by_cue[cue] += agent->desires_by_cue[cue];
             for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) liked_things[thing] += agent->want_things[thing];
             for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) liked_deeds[deed] += agent->want_deeds[deed];
             for (const ReliefOne& one : agent->relief_ones) liked_ones += one.want;
@@ -2659,6 +2661,16 @@ Json Probe::goals(Simulation& world) const {
                           {"mean_turns_to_reach", desires_reached > 0 ? Json(static_cast<double>(desire_turns) / static_cast<double>(desires_reached)) : Json(nullptr)}}},
             {"sought_at_remembered_place", {{"desire", ratio(static_cast<double>(far_desires), static_cast<double>(desiring))},
                                             {"need", ratio(static_cast<double>(far_needs), static_cast<double>(needing))}}},
+            {"sparked_by", [&] {  // of desires formed in lives, the share woken by each cue
+                 long long all = 0;
+                 for (const long long count : by_cue) all += count;
+                 return Json{{"seen", ratio(static_cast<double>(by_cue[CueSeen]), static_cast<double>(all))},
+                             {"remembered_place", ratio(static_cast<double>(by_cue[CueRemembered]), static_cast<double>(all))},
+                             {"seen_done", ratio(static_cast<double>(by_cue[CueSeenDone]), static_cast<double>(all))},
+                             {"heard", ratio(static_cast<double>(by_cue[CueHeard]), static_cast<double>(all))},
+                             {"unknown", ratio(static_cast<double>(by_cue[CueNone]), static_cast<double>(all))},
+                             {"counted", all}};
+             }()},
             {"most_liked", most_liked},
             {"companion_liked", ones_count > 0 ? Json(liked_ones / static_cast<double>(ones_count)) : Json(nullptr)}};
         const auto node_name = [](int node) {

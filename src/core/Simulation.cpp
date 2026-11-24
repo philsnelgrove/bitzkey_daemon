@@ -8316,27 +8316,48 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         const int heard_thing = heard_last && !agent.meant_by_deed ? agent.meant_thing : -1;
         const int heard_deed = heard_last && agent.meant_by_deed ? agent.meant_deed : -1;
         const int heard_one = agent.called_turn == turn_ - 1 ? agent.called_one : -1;
-        const auto wake = [&](double& spark, double& fade, double want, double cue, double trait) {
+        const auto wake = [&](double& spark, double& fade, int& from, double want, double cue, int source, double trait) {
             spark *= linger;
-            if (DESIRE > 0 && want > 0 && cue > 0) spark = std::max(spark, DESIRE * want * cue * trait * (1.0 - fade));
+            if (DESIRE > 0 && want > 0 && cue > 0) {
+                const double woken = DESIRE * want * cue * trait * (1.0 - fade);
+                if (woken > spark) {
+                    spark = woken;
+                    from = source;
+                }
+            }
             fade *= 1.0 - recover;
         };
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
             double cue = std::max(0.0, senses[OUTSIDE_SENSES[thing]]);
-            if (cue <= 0) cue = remembered(agent.place_turn[thing]);
-            if (static_cast<int>(thing) == heard_thing) cue = std::max(cue, heard);
-            wake(agent.spark_things[thing], agent.fade_things[thing], agent.want_things[thing], cue, curious);
+            int source = CueSeen;
+            if (cue <= 0) {
+                cue = remembered(agent.place_turn[thing]);
+                source = CueRemembered;
+            }
+            if (static_cast<int>(thing) == heard_thing && heard > cue) {
+                cue = heard;
+                source = CueHeard;
+            }
+            wake(agent.spark_things[thing], agent.fade_things[thing], agent.spark_from_things[thing], agent.want_things[thing], cue, source, curious);
         }
         for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
             double cue = seen_deeds[deed];
-            if (static_cast<int>(deed) == heard_deed) cue = std::max(cue, heard);
-            wake(agent.spark_deeds[deed], agent.fade_deeds[deed], agent.want_deeds[deed], cue, curious);
+            int source = CueSeenDone;
+            if (static_cast<int>(deed) == heard_deed && heard > cue) {
+                cue = heard;
+                source = CueHeard;
+            }
+            wake(agent.spark_deeds[deed], agent.fade_deeds[deed], agent.spark_from_deeds[deed], agent.want_deeds[deed], cue, source, curious);
         }
         for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
             ReliefOne& one = agent.relief_ones[at];
             double cue = ones_close[at] > 0 ? ones_close[at] : remembered(one.seen_turn);
-            if (one.one == heard_one) cue = std::max(cue, heard);
-            wake(one.spark, one.fade, one.want, cue, social);
+            int source = ones_close[at] > 0 ? CueSeen : CueRemembered;
+            if (one.one == heard_one && heard > cue) {
+                cue = heard;
+                source = CueHeard;
+            }
+            wake(one.spark, one.fade, one.spark_from, one.want, cue, source, social);
         }
     }
     // Its goal: reached, given up, let go, or held a turn more.
@@ -8480,7 +8501,14 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             agent.goal_urgency = std::min(GOAL_URGENCY_MAX, desired ? wish : need_pull);
             agent.goal_close = goal_closeness(kind, target);
             ++agent.goals_formed;
-            if (desired) ++agent.desires_formed;
+            if (desired) {
+                ++agent.desires_formed;
+                int from = CueNone;
+                if (kind == GoalForThing) from = agent.spark_from_things[static_cast<std::size_t>(target)];
+                else if (kind == GoalForDeed) from = agent.spark_from_deeds[static_cast<std::size_t>(target)];
+                else for (const ReliefOne& one : agent.relief_ones) if (one.one == target) from = one.spark_from;
+                ++agent.desires_by_cue[static_cast<std::size_t>(std::clamp(from, 0, SPARK_CUES - 1))];
+            }
         }
     }
     // Ingenuity (see OPENS_RATE): its goal shut to it, the steps it seeks toward it, each what it learnt opens the one above.
