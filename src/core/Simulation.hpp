@@ -446,6 +446,15 @@ inline double DESIRE_LINGER = 0.7;
 inline double DESIRE_MIN = 0.01;
 inline double PLEASURE_FADE = 0.3;
 inline double PLEASURE_RETURN = 0.02;
+// Remembered places (the user's choice, desire's option A): sensing an outside thing close (CLOSE_SEEN, about two steps),
+// an animal remembers where it stood; a companion it sees, where that one stood. Out of sight, a place remembered wakes
+// desire for what was there REMEMBERED_CUE as strongly as sight, fading to nothing over PLACE_MEMORY turns; come back to
+// it and find nothing, it forgets the place. A goal's way, east and south, is sensed toward its remembered place, and
+// each step nearer that place counts as progress.
+inline double REMEMBERED_CUE = 0.3;
+inline int PLACE_MEMORY = 500;
+constexpr double CLOSE_SEEN = 0.75;
+template <std::size_t N> constexpr std::array<int, N> filled(int value) { std::array<int, N> all{}; all.fill(value); return all; }
 constexpr double GOAL_SATED = 0.05;  // a need below this is met: nothing to seek for it
 constexpr double GOAL_URGENCY_MAX = 2.0;
 struct ReliefOne {  // a companion, and what being nearer it has eased (see RELIEF_ONES)
@@ -453,6 +462,7 @@ struct ReliefOne {  // a companion, and what being nearer it has eased (see RELI
     double close = -1.0;  // how close it was last turn, -1 not known
     std::array<double, GOAL_NEEDS> relief{};
     double want = 0.0, spark = 0.0, fade = 0.0;  // the good nearing it brought, its spark now, pleasure in it faded (DESIRE)
+    int seen_x = -1, seen_y = -1, seen_turn = -1;  // where it was last seen, and when (PLACE_MEMORY)
 };
 inline int MAP_BLIND = 0;  // for experiments: 1 withholds the mental map senses and Revisit
 enum LongingKind : int { NoLonging, LongCompanion, LongFire, LongShelter, LongJoy };
@@ -1463,7 +1473,9 @@ struct Bitzkey {
     std::array<double, OUTSIDE_SEEN> want_things{}, spark_things{}, fade_things{};
     std::array<double, ACTION_COUNT> want_deeds{}, spark_deeds{}, fade_deeds{};
     double good_drift = 0.0, joy_mark = 0.0;
+    std::array<int, OUTSIDE_SEEN> place_x = filled<OUTSIDE_SEEN>(-1), place_y = filled<OUTSIDE_SEEN>(-1), place_turn = filled<OUTSIDE_SEEN>(-1);  // where each thing was last close (PLACE_MEMORY)
     bool goal_desire = false;
+    bool goal_remembered = false;  // its goal out of sight, sought at a remembered place (PLACE_MEMORY)
     int desires_formed = 0, desires_reached = 0;
     long long desire_reach_turns = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)

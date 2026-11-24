@@ -310,8 +310,9 @@ TEST_CASE("struck soon after calling, an animal's call is taught the harm") {
 }
 TEST_CASE("a parent that has come to prefer quiet hushes its calling young, one that has not leaves it be") {
     GrazersAsOthers infancy;  // grazers with a childhood
-    const double feeble_youth = FEEBLE_YOUTH;
+    const double feeble_youth = FEEBLE_YOUTH, floor = LEARNING_FLOOR;
     FEEBLE_YOUTH = 0.1;  // young are infants for a tenth of their lives, as in a world
+    LEARNING_FLOOR = 1.0;  // one that learns, whatever the tests' rules
     Simulation simulation = world();
     Bitzkey& parent = simulation.add_agent(encode_dna(Species::Grazer), 5, 5);
     Bitzkey& young = simulation.add_agent(encode_dna(Species::Grazer), 5, 6);
@@ -323,6 +324,7 @@ TEST_CASE("a parent that has come to prefer quiet hushes its calling young, one 
     young.last_call = FirstCall;
     young.last_sounds = {-1, -1};
     const int output = call_output(FirstCall);
+    young.brain->output_biases[output] = 5.0;  // it likes its call, well above any hush
     const double before = young.brain->values(young.last_senses)[output];
     parent.quiet_wish = -0.5;  // it would rather call: no hush
     simulation.hushed_by_parent(young, 0.05);
@@ -331,6 +333,7 @@ TEST_CASE("a parent that has come to prefer quiet hushes its calling young, one 
     simulation.hushed_by_parent(young, 0.05);
     CHECK(young.brain->values(young.last_senses)[output] < before);
     FEEBLE_YOUTH = feeble_youth;
+    LEARNING_FLOOR = floor;
 }
 
 TEST_CASE("memory brings an animal back to where it fed and warns it where it was struck") {
@@ -3495,6 +3498,47 @@ TEST_CASE("desire: what felt good is liked; a cue sparks it, lingering; the stro
     father.want_things[4] = 0.2;
     simulation.inherit_relief(child, mother, &father);
     CHECK(child.want_things[4] == doctest::Approx(WANTING_INHERIT * 0.3));
+}
+
+TEST_CASE("remembered places: a thing close is remembered where it stood; out of sight the place wakes desire, sensed as a way") {
+    Simulation simulation = world(80);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 30, 30);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Grazer, {{"sight", 7}}), 31, 30);  // its herd, beside it
+    simulation.index_cells();
+    constexpr int herd = 7;
+    auto near = simulation.sense(animal);
+    REQUIRE(near.senses[OUTSIDE_SENSES[herd]] >= CLOSE_SEEN);
+    CHECK(animal.place_x[herd] == 30);
+    CHECK(animal.place_y[herd] == 30);
+    CHECK(animal.place_turn[herd] == simulation.turn());
+    // Far off, out of sight: the remembered place wakes its liking for the herd, and that is its goal, westward.
+    animal.x = 60;
+    simulation.index_cells();
+    animal.goal_kind = NoGoal;
+    animal.goal_desire = false;
+    animal.relief_deeds = {};
+    animal.relief_things = {};
+    animal.relief_ones.clear();
+    animal.want_things = {};
+    animal.want_things[herd] = 0.5;
+    animal.spark_things = {};
+    animal.fade_things = {};
+    animal.meant_turn = animal.called_turn = -10;
+    auto away = simulation.sense(animal);
+    REQUIRE(away.senses[OUTSIDE_SENSES[herd]] == 0.0);
+    CHECK(animal.spark_things[herd] == doctest::Approx(DESIRE * 0.5 * REMEMBERED_CUE * (0.5 + animal.feeling(Curiosity))));
+    REQUIRE(animal.goal_kind == GoalForThing);
+    CHECK(animal.goal_target == herd);
+    CHECK(animal.goal_desire);
+    CHECK(animal.goal_remembered);
+    CHECK(away.senses[SenseGoal + GoalEast] == doctest::Approx(-1.0));
+    CHECK(away.senses[SenseGoal + GoalSouth] == 0.0);
+    // Back at the place and nothing there: forgotten.
+    other.x = other.y = 75;  // gone elsewhere
+    animal.x = 30;
+    simulation.index_cells();
+    simulation.sense(animal);
+    CHECK(animal.place_turn[herd] == -1);
 }
 
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {

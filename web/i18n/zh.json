@@ -2208,5 +2208,9 @@
 "Pleasure fading": "快乐消退",
 "share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire": "对某样东西、同伴或行为的剩余快乐中，每次作为欲望达成时消退的比例",
 "Pleasure returning": "快乐回归",
-"share of faded pleasure that returns each turn": "每回合回归的已消退快乐的比例"
+"share of faded pleasure that returns each turn": "每回合回归的已消退快乐的比例",
+"Remembered cue": "记忆中的线索",
+"how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory": "视线之外记得的地点，相比于近处看见，唤起对那里之物的欲望的强度；在地点记忆期间逐渐消退为零",
+"Place memory": "地点记忆",
+"turns an animal remembers where it last found a thing close by, or last saw a companion": "动物记得最后在何处近处发现某物、或看见同伴的回合数"
 }

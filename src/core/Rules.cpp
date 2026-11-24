@@ -279,6 +279,8 @@ std::vector<Rule> make_rules() {
         {"DESIRE_MIN", "Mind", "Desire threshold", "the least spark of desire that can make a goal", 0.0, 1.0, 0.005, false, &DESIRE_MIN},
         {"PLEASURE_FADE", "Mind", "Pleasure fading", "share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire", 0.0, 1.0, 0.05, false, &PLEASURE_FADE},
         {"PLEASURE_RETURN", "Mind", "Pleasure returning", "share of faded pleasure that returns each turn", 0.0, 1.0, 0.005, false, &PLEASURE_RETURN},
+        {"REMEMBERED_CUE", "Mind", "Remembered cue", "how strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory", 0.0, 1.0, 0.05, false, &REMEMBERED_CUE},
+        {"PLACE_MEMORY", "Mind", "Place memory", "turns an animal remembers where it last found a thing close by, or last saw a companion", 1, 5000, 10, true, &PLACE_MEMORY},
         {"CALL_WORDS", "Mind", "Call words", "the most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word", 1, 2, 1, true, &CALL_WORDS},
         {"MAP_BLIND", "Mind", "Map blind", "for experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are", 0, 1, 1, true, &MAP_BLIND},
         {"CALL_FATIGUE", "Mind", "Call fatigue", "stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10)", 0.0, 50.0, 0.5, false, &CALL_FATIGUE},

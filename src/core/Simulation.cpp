@@ -8206,6 +8206,57 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         }
         return 0.0;
     };
+    // Places (see PLACE_MEMORY): where it stood when each thing was close, and where each companion it saw stood; come
+    // back to a place and find nothing there, forgotten.
+    for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+        const double sensed = senses[OUTSIDE_SENSES[thing]];
+        if (sensed >= CLOSE_SEEN) {
+            agent.place_x[thing] = agent.x;
+            agent.place_y[thing] = agent.y;
+            agent.place_turn[thing] = turn_;
+        } else if (sensed <= 0 && agent.place_turn[thing] >= 0 && distance(agent.place_x[thing], agent.place_y[thing], agent.x, agent.y) <= 1) {
+            agent.place_turn[thing] = -1;
+        }
+    }
+    for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
+        if (ones_close[at] <= 0) continue;
+        if (const Bitzkey* other = find_agent(agent.relief_ones[at].one)) {
+            const Cell there = spot(*other);
+            agent.relief_ones[at].seen_x = there.x;
+            agent.relief_ones[at].seen_y = there.y;
+            agent.relief_ones[at].seen_turn = turn_;
+        }
+    }
+    const auto remembered = [&](int seen_turn) {  // how strongly a remembered place wakes desire, fading with age
+        if (seen_turn < 0 || REMEMBERED_CUE <= 0 || PLACE_MEMORY <= 0) return 0.0;
+        return std::clamp(REMEMBERED_CUE, 0.0, 1.0) * std::max(0.0, 1.0 - static_cast<double>(turn_ - seen_turn) / PLACE_MEMORY);
+    };
+    // Where a goal lies, if known: a thing's remembered place, a companion's last seen.
+    const auto place_of = [&](int kind, int target) -> std::optional<Cell> {
+        if (kind == GoalForThing) {
+            const auto t = static_cast<std::size_t>(target);
+            if (agent.place_turn[t] >= 0 && turn_ - agent.place_turn[t] <= PLACE_MEMORY) return Cell{agent.place_x[t], agent.place_y[t]};
+        } else if (kind == GoalForOne) {
+            for (const ReliefOne& one : agent.relief_ones) {
+                if (one.one == target && one.seen_turn >= 0) return Cell{one.seen_x, one.seen_y};
+            }
+        }
+        return std::nullopt;
+    };
+    // How close a goal is: as seen, or, out of sight, a little for each step nearer its place (always under sight's).
+    const auto goal_closeness = [&](int kind, int target) {
+        agent.goal_remembered = false;
+        double close = kind == GoalForThing ? senses[OUTSIDE_SENSES[static_cast<std::size_t>(target)]]
+                     : kind == GoalForOne  ? one_closeness(agent, target, sight)
+                                           : -1.0;
+        if (close == 0.0) {
+            if (const auto place = place_of(kind, target)) {
+                close = 0.5 / (1.0 + distance(place->x, place->y, agent.x, agent.y));
+                agent.goal_remembered = true;
+            }
+        }
+        return close;
+    };
     // Desire (see DESIRE): each want's spark, lingering, and woken by a cue; and pleasure faded, returning.
     const auto spark_of = [&](int kind, int target) {
         if (kind == GoalForThing) return agent.spark_things[static_cast<std::size_t>(target)];
@@ -8238,6 +8289,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         };
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
             double cue = std::max(0.0, senses[OUTSIDE_SENSES[thing]]);
+            if (cue <= 0) cue = remembered(agent.place_turn[thing]);
             if (static_cast<int>(thing) == heard_thing) cue = std::max(cue, heard);
             wake(agent.spark_things[thing], agent.fade_things[thing], agent.want_things[thing], cue, curious);
         }
@@ -8248,7 +8300,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         }
         for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) {
             ReliefOne& one = agent.relief_ones[at];
-            double cue = ones_close[at];
+            double cue = ones_close[at] > 0 ? ones_close[at] : remembered(one.seen_turn);
             if (one.one == heard_one) cue = std::max(cue, heard);
             wake(one.spark, one.fade, one.want, cue, social);
         }
@@ -8258,12 +8310,12 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         bool met = false, gone = false;
         double close = -1.0;
         if (agent.goal_kind == GoalForThing) {
-            close = senses[OUTSIDE_SENSES[static_cast<std::size_t>(agent.goal_target)]];
+            close = goal_closeness(agent.goal_kind, agent.goal_target);
             met = close >= 0.99;
         } else if (agent.goal_kind == GoalForOne) {
             const Bitzkey* other = find_agent(agent.goal_target);
             gone = !other || !other->alive();
-            close = gone ? 0.0 : one_closeness(agent, agent.goal_target, sight);
+            close = gone ? 0.0 : goal_closeness(agent.goal_kind, agent.goal_target);
             met = !gone && close >= 0.99;
         } else {
             met = agent.goal_turn < turn_ && agent.last_choice == agent.goal_target;  // the deed done last turn
@@ -8303,12 +8355,14 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
             agent.goal_urgency = 0.0;
             agent.goal_close = -1.0;
             agent.goal_desire = false;
+            agent.goal_remembered = false;
         }
     }
-    // What it liked (see DESIRE): the good it felt since last turn, beyond its usual, after what it came nearer and did.
+    // What it liked (see DESIRE): the good it felt since last turn, beyond its usual, after what it came nearer and did:
+    // its own joys only, not a goal's joy or progress, lest whatever it sought be liked for being sought.
     if (lived && WANTING_RATE > 0) {
         const double rate = std::min(1.0, WANTING_RATE);
-        const double good = std::max(0.0, agent.reward - agent.joy_mark) + std::max(0.0, s.goal_relief);
+        const double good = std::max(0.0, agent.reward - agent.joy_mark);
         const double gain = good - agent.good_drift;
         agent.good_drift += rate * (good - agent.good_drift);
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
@@ -8390,9 +8444,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
             agent.goal_desire = desired;
             agent.goal_turn = turn_;
             agent.goal_urgency = std::min(GOAL_URGENCY_MAX, desired ? wish : need_pull);
-            agent.goal_close = kind == GoalForThing ? senses[OUTSIDE_SENSES[static_cast<std::size_t>(target)]]
-                              : kind == GoalForOne  ? one_closeness(agent, target, sight)
-                                                    : -1.0;
+            agent.goal_close = goal_closeness(kind, target);
             ++agent.goals_formed;
             if (desired) ++agent.desires_formed;
         }
@@ -8403,6 +8455,11 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight)
         senses[SenseGoal + Goal] = 1.0;
         senses[SenseGoal + GoalUrgency] = agent.goal_urgency / GOAL_URGENCY_MAX;
         senses[SenseGoal + GoalCloseness] = std::max(0.0, agent.goal_close);
+        if (const auto place = place_of(agent.goal_kind, agent.goal_target)) {  // its way there
+            const double steps = std::max(1, distance(place->x, place->y, agent.x, agent.y));
+            senses[SenseGoal + GoalEast] = (place->x - agent.x) / steps;
+            senses[SenseGoal + GoalSouth] = (place->y - agent.y) / steps;
+        }
         if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
         else senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
         if (agent.goal_kind == GoalForThing) {

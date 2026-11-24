@@ -2562,7 +2562,7 @@ Json Probe::goals(Simulation& world) const {
         long long ones_count = 0;
         // Desire (see DESIRE): goals held of each sort and how long held so far; desires formed and reached in lives;
         // what is liked, summed; companions liked.
-        long long desiring = 0, desires_formed = 0, desires_reached = 0, desire_turns = 0, need_age = 0, desire_age = 0;
+        long long desiring = 0, far_desires = 0, far_needs = 0, desires_formed = 0, desires_reached = 0, desire_turns = 0, need_age = 0, desire_age = 0;
         std::array<double, OUTSIDE_SEEN> liked_things{};
         std::array<double, ACTION_COUNT> liked_deeds{};
         double liked_ones = 0.0;
@@ -2596,11 +2596,14 @@ Json Probe::goals(Simulation& world) const {
             if (agent->goal_kind == NoGoal) continue;
             ++holding;
             ++kinds[static_cast<std::size_t>(agent->goal_kind)];
+            const bool afar = agent->goal_remembered;  // out of sight, sought at a remembered place (PLACE_MEMORY)
             if (agent->goal_desire) {
                 ++desiring;
+                far_desires += afar;
                 desire_age += world.turn() - agent->goal_turn;
             } else {
                 ++for_need[static_cast<std::size_t>(agent->goal_need)];
+                far_needs += afar;
                 need_age += world.turn() - agent->goal_turn;
             }
             urgency += agent->goal_urgency;
@@ -2640,6 +2643,8 @@ Json Probe::goals(Simulation& world) const {
                              {"need", needing > 0 ? Json(static_cast<double>(need_age) / static_cast<double>(needing)) : Json(nullptr)}}},
             {"in_lives", {{"formed", desires_formed}, {"reached", desires_reached},
                           {"mean_turns_to_reach", desires_reached > 0 ? Json(static_cast<double>(desire_turns) / static_cast<double>(desires_reached)) : Json(nullptr)}}},
+            {"sought_at_remembered_place", {{"desire", ratio(static_cast<double>(far_desires), static_cast<double>(desiring))},
+                                            {"need", ratio(static_cast<double>(far_needs), static_cast<double>(needing))}}},
             {"most_liked", most_liked},
             {"companion_liked", ones_count > 0 ? Json(liked_ones / static_cast<double>(ones_count)) : Json(nullptr)}};
         std::vector<std::pair<long long, std::string>> held(targets.size());

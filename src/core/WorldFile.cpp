@@ -267,8 +267,12 @@ json desire_record(const Bitzkey& agent) {  // see DESIRE: only what is not 0, e
         if (agent.want_deeds[deed] != 0.0 || agent.spark_deeds[deed] != 0.0 || agent.fade_deeds[deed] != 0.0)
             deeds.push_back({static_cast<int>(deed), agent.want_deeds[deed], agent.spark_deeds[deed], agent.fade_deeds[deed]});
     }
+    json places = json::array();  // see PLACE_MEMORY: thing, x, y, turn
+    for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+        if (agent.place_turn[thing] >= 0) places.push_back({static_cast<int>(thing), agent.place_x[thing], agent.place_y[thing], agent.place_turn[thing]});
+    }
     return {{"head", {agent.good_drift, agent.joy_mark, agent.goal_desire ? 1 : 0, agent.desires_formed, agent.desires_reached, agent.desire_reach_turns}},
-            {"things", things}, {"deeds", deeds}};
+            {"things", things}, {"deeds", deeds}, {"places", places}};
 }
 json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
     json needs = json::array();
@@ -291,6 +295,9 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
         row.push_back(one.want);  // then what it liked of it, its spark, and pleasure in it faded (see DESIRE)
         row.push_back(one.spark);
         row.push_back(one.fade);
+        row.push_back(one.seen_x);  // and where it was last seen, and when (see PLACE_MEMORY)
+        row.push_back(one.seen_y);
+        row.push_back(one.seen_turn);
         ones.push_back(row);
     }
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
@@ -709,6 +716,16 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 agent->spark_deeds[at] = row.at(2).get<double>();
                 agent->fade_deeds[at] = row.at(3).get<double>();
             }
+            if (d.contains("places")) {
+                for (const json& row : d.at("places")) {
+                    const int thing = row.at(0).get<int>();
+                    if (thing < 0 || thing >= OUTSIDE_SEEN) continue;
+                    const auto at = static_cast<std::size_t>(thing);
+                    agent->place_x[at] = row.at(1).get<int>();
+                    agent->place_y[at] = row.at(2).get<int>();
+                    agent->place_turn[at] = row.at(3).get<int>();
+                }
+            }
         }
         if (!agent->goal_desire && agent->goal_kind != NoGoal && (agent->goal_need < 0 || agent->goal_need >= GOAL_NEEDS)) agent->goal_kind = NoGoal;
         if (agent->goal_kind == NoGoal) {
@@ -735,6 +752,11 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 one.want = row.at(GOAL_NEEDS + 2).get<double>();
                 one.spark = row.at(GOAL_NEEDS + 3).get<double>();
                 one.fade = row.at(GOAL_NEEDS + 4).get<double>();
+            }
+            if (row.size() >= GOAL_NEEDS + 8) {  // and where it was last seen (see PLACE_MEMORY)
+                one.seen_x = row.at(GOAL_NEEDS + 5).get<int>();
+                one.seen_y = row.at(GOAL_NEEDS + 6).get<int>();
+                one.seen_turn = row.at(GOAL_NEEDS + 7).get<int>();
             }
             agent->relief_ones.push_back(one);
         }
