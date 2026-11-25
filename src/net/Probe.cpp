@@ -2543,6 +2543,213 @@ Json Probe::society(Simulation& world) const {
     return {{"turn", world.turn()}, {"species", result}};
 }
 
+Json Probe::culture(Simulation& world) const {
+    // Projects and language, measured only: (1) whether one that confided a plan and the one it confided it to, or
+    // neighbours holding the same plan, hold the same words for the same things and deeds, against other neighbours;
+    // (2) whether animals holding a project call, and call alike, unlike those holding none, against a chance split;
+    // (3) whether calls made at a project's site are alike at that site (a place's sound), against calls made
+    // elsewhere in a square of the same size; (4) whether deed-words for the deeds being done as project steps agree
+    // better than those for other deeds.
+    const auto ratio = [](double part, double whole) { return whole > 0 ? Json(part / whole) : Json(nullptr); };
+    const auto word_key = [](const LexiconWord& word) {
+        return static_cast<long long>(word.call) * 10000 + (word.sounds[0] + 1) * 100 + (word.sounds[1] + 1);
+    };
+    const auto call_key = [](const Bitzkey& agent) -> long long {
+        if (agent.last_call < FirstCall || agent.last_call >= FirstCall + CALL_COUNT) return -1;
+        long long key = agent.last_call;
+        for (const int sound : agent.last_sounds) {
+            if (sound < 0) break;
+            key = key * 100 + sound + 1;
+        }
+        return key;
+    };
+    struct Pairs {
+        long long pairs = 0, things = 0, things_same = 0, deeds = 0, deeds_same = 0, both_called = 0, called_same = 0;
+        double apart = 0.0;
+    };
+    const auto compare = [&](const Bitzkey& a, const Bitzkey& b, Pairs& into) {
+        ++into.pairs;
+        into.apart += std::max(std::abs(a.x - b.x), std::abs(a.y - b.y));
+        for (const auto& [mine, theirs, shared, same] :
+             {std::tuple{&a.lexicon, &b.lexicon, &into.things, &into.things_same}, std::tuple{&a.deeds, &b.deeds, &into.deeds, &into.deeds_same}}) {
+            for (const LexiconWord& word : *mine) {
+                if (word.thing < 0) continue;
+                for (const LexiconWord& other : *theirs) {
+                    if (other.thing != word.thing) continue;
+                    ++*shared;
+                    *same += word_key(word) == word_key(other);
+                    break;
+                }
+            }
+        }
+        const long long ka = call_key(a), kb = call_key(b);
+        if (ka >= 0 && kb >= 0) {
+            ++into.both_called;
+            into.called_same += ka == kb;
+        }
+    };
+    const auto pairs_json = [&](const Pairs& p) {
+        return Json{{"pairs", p.pairs}, {"mean_apart", ratio(p.apart, static_cast<double>(p.pairs))},
+                    {"things_compared", p.things}, {"thing_words_same", ratio(static_cast<double>(p.things_same), static_cast<double>(p.things))},
+                    {"deeds_compared", p.deeds}, {"deed_words_same", ratio(static_cast<double>(p.deeds_same), static_cast<double>(p.deeds))},
+                    {"both_called", p.both_called}, {"calls_same", ratio(static_cast<double>(p.called_same), static_cast<double>(p.both_called))}};
+    };
+    // Two callers drawn from these counts make the same call as often as this.
+    const auto same_chance = [](const std::map<long long, long long>& counts) -> Json {
+        long long all = 0;
+        double same = 0.0;
+        for (const auto& [key, count] : counts) all += count;
+        if (all < 2) return nullptr;
+        for (const auto& [key, count] : counts) same += static_cast<double>(count) * static_cast<double>(count - 1);
+        return same / (static_cast<double>(all) * static_cast<double>(all - 1));
+    };
+    // How unlike two sets of calls are: half the summed difference of each call's share (0 alike, 1 nothing shared).
+    const auto unlike = [](const std::map<long long, long long>& a, const std::map<long long, long long>& b) -> Json {
+        long long na = 0, nb = 0;
+        for (const auto& [key, count] : a) na += count;
+        for (const auto& [key, count] : b) nb += count;
+        if (na == 0 || nb == 0) return nullptr;
+        std::map<long long, std::pair<long long, long long>> both;
+        for (const auto& [key, count] : a) both[key].first = count;
+        for (const auto& [key, count] : b) both[key].second = count;
+        double sum = 0.0;
+        for (const auto& [key, counts] : both)
+            sum += std::abs(static_cast<double>(counts.first) / na - static_cast<double>(counts.second) / nb);
+        return sum / 2.0;
+    };
+    // Pairs from groups of calls: how often two in the same group made the same call.
+    const auto grouped_same = [](const std::map<long long, std::map<long long, long long>>& groups, long long& pairs) -> Json {
+        double same = 0.0;
+        pairs = 0;
+        for (const auto& [group, counts] : groups) {
+            long long all = 0;
+            for (const auto& [key, count] : counts) {
+                all += count;
+                same += static_cast<double>(count) * static_cast<double>(count - 1) / 2.0;
+            }
+            pairs += all * (all - 1) / 2;
+        }
+        return pairs > 0 ? Json(same / static_cast<double>(pairs)) : Json(nullptr);
+    };
+    constexpr int NEIGHBOURHOOD = 4;  // neighbours: within this many squares either way
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::vector<const Bitzkey*> living;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species == species) living.push_back(agent);
+        }
+        // (1) Shared plans.
+        Pairs confided, same_plan, other;
+        for (const Bitzkey* agent : living) {
+            if (!agent->project_confided || agent->project_aim < 0 || agent->project_from < 0) continue;
+            const Bitzkey* from = world.find_agent(agent->project_from);
+            if (from && from->alive() && from->species == species && from != agent) compare(*agent, *from, confided);
+        }
+        std::map<long long, std::vector<const Bitzkey*>> cells;
+        const auto cell_of = [](int x, int y) { return static_cast<long long>(x / NEIGHBOURHOOD) * 1000003LL + y / NEIGHBOURHOOD; };
+        for (const Bitzkey* agent : living) cells[cell_of(agent->x, agent->y)].push_back(agent);
+        for (const Bitzkey* agent : living) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const auto found = cells.find(static_cast<long long>(agent->x / NEIGHBOURHOOD + dx) * 1000003LL + agent->y / NEIGHBOURHOOD + dy);
+                    if (found == cells.end()) continue;
+                    for (const Bitzkey* beside : found->second) {
+                        if (beside->identifier <= agent->identifier || std::max(std::abs(beside->x - agent->x), std::abs(beside->y - agent->y)) > NEIGHBOURHOOD) continue;
+                        const bool shared = agent->project_aim >= 0 && beside->project_aim == agent->project_aim && beside->project_dir == agent->project_dir &&
+                                            (AIM_TARGET[static_cast<std::size_t>(agent->project_aim)] != TargetGroup || beside->project_group == agent->project_group);
+                        compare(*agent, *beside, shared ? same_plan : other);
+                    }
+                }
+            }
+        }
+        // (2) Holding a project, or none.
+        struct Side {
+            long long animals = 0, callers = 0, thing_words = 0, deed_words = 0;
+            std::map<long long, long long> calls;
+        };
+        Side holding, none;
+        std::map<long long, long long> even, odd;  // all callers split by chance
+        // (3) Places, and (4) steps.
+        std::map<long long, std::map<long long, long long>> at_site, elsewhere;
+        long long site_holders = 0, site_callers_at_site = 0;
+        std::array<long long, ACTION_COUNT> steps{};
+        for (const Bitzkey* agent : living) {
+            Side& side = agent->project_aim >= 0 ? holding : none;
+            ++side.animals;
+            side.thing_words += static_cast<long long>(agent->lexicon.size());
+            side.deed_words += static_cast<long long>(agent->deeds.size());
+            const long long key = call_key(*agent);
+            if (key >= 0) {
+                ++side.callers;
+                ++side.calls[key];
+                ++(agent->identifier % 2 == 0 ? even : odd)[key];
+            }
+            const bool site = agent->project_aim >= 0 && AIM_TARGET[static_cast<std::size_t>(agent->project_aim)] == TargetSite;
+            const bool there = site && std::max(std::abs(agent->project_x - agent->x), std::abs(agent->project_y - agent->y)) <= PROJECT_REACH;
+            site_holders += site;
+            if (key >= 0) {
+                if (there) {
+                    ++site_callers_at_site;
+                    ++at_site[static_cast<long long>(agent->project_x) * 1000003LL + agent->project_y][key];
+                } else if (!site) {
+                    constexpr int SQUARE = 2 * PROJECT_REACH + 1;
+                    ++elsewhere[static_cast<long long>(agent->x / SQUARE) * 1000003LL + agent->y / SQUARE][key];
+                }
+            }
+            if (agent->goal_project && agent->goal_kind == GoalForDeed && agent->goal_target >= 0 && agent->goal_target < ACTION_COUNT)
+                ++steps[static_cast<std::size_t>(agent->goal_target)];
+        }
+        const auto side_json = [&](const Side& side) {
+            return Json{{"animals", side.animals}, {"calling_share", ratio(static_cast<double>(side.callers), static_cast<double>(side.animals))},
+                        {"mean_thing_words", ratio(static_cast<double>(side.thing_words), static_cast<double>(side.animals))},
+                        {"mean_deed_words", ratio(static_cast<double>(side.deed_words), static_cast<double>(side.animals))},
+                        {"calls_same_within", same_chance(side.calls)}};
+        };
+        long long site_pairs = 0, elsewhere_pairs = 0;
+        const Json site_same = grouped_same(at_site, site_pairs), elsewhere_same = grouped_same(elsewhere, elsewhere_pairs);
+        // (4) Deed-word agreement (the commonest word's share of those holding a word for it), steps against the rest.
+        std::array<std::map<long long, long long>, ACTION_COUNT> words_for;
+        for (const Bitzkey* agent : living) {
+            for (const LexiconWord& word : agent->deeds) {
+                if (word.thing >= 0 && word.thing < ACTION_COUNT) ++words_for[static_cast<std::size_t>(word.thing)][word_key(word)];
+            }
+        }
+        long long step_most = 0, step_all = 0, rest_most = 0, rest_all = 0;
+        Json by_step = Json::object();
+        for (int deed = 0; deed < ACTION_COUNT; ++deed) {
+            long long most = 0, all = 0;
+            for (const auto& [key, count] : words_for[static_cast<std::size_t>(deed)]) {
+                most = std::max(most, count);
+                all += count;
+            }
+            if (steps[static_cast<std::size_t>(deed)] > 0) {
+                step_most += most;
+                step_all += all;
+                by_step[std::string(ACTIONS[static_cast<std::size_t>(deed)])] = {
+                    {"doing_as_step", steps[static_cast<std::size_t>(deed)]}, {"word_holders", all},
+                    {"agreement", ratio(static_cast<double>(most), static_cast<double>(all))}};
+            } else {
+                rest_most += most;
+                rest_all += all;
+            }
+        }
+        result[std::string(species_name(species))] = {
+            {"alive", static_cast<long long>(living.size())},
+            {"words_confided", {{"thing_words", world.lexicon_tally()[static_cast<std::size_t>(species)].confided},  // since loaded (see CONFIDE_WORDS)
+                                {"deed_words", world.deed_tally()[static_cast<std::size_t>(species)].confided}}},
+            {"shared_plans", {{"confided", pairs_json(confided)}, {"neighbours_same_plan", pairs_json(same_plan)}, {"neighbours_otherwise", pairs_json(other)}}},
+            {"holding", {{"with_project", side_json(holding)}, {"without", side_json(none)},
+                         {"calls_unlike", unlike(holding.calls, none.calls)}, {"calls_unlike_by_chance", unlike(even, odd)}}},
+            {"places", {{"site_holders", site_holders}, {"calling_at_site", site_callers_at_site}, {"sites_with_callers", static_cast<long long>(at_site.size())},
+                        {"pairs_at_site", site_pairs}, {"calls_same_at_site", site_same},
+                        {"pairs_elsewhere", elsewhere_pairs}, {"calls_same_elsewhere", elsewhere_same}}},
+            {"steps", {{"deed_word_agreement_steps", ratio(static_cast<double>(step_most), static_cast<double>(step_all))},
+                       {"deed_word_agreement_other_deeds", ratio(static_cast<double>(rest_most), static_cast<double>(rest_all))},
+                       {"by_step", by_step}}}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
 Json Probe::goals(Simulation& world) const {
     // Goals (see GOAL_JOY), by species: who holds one, of what kind, for which need, how urgent; in their lives so far,
     // goals formed, reached, given up, switched and let go, and the turns taken to reach one; and, of what the living have
@@ -3363,6 +3570,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/culture", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return culture(world); }));
     }));
     server.Get(prefix + "/goals", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return goals(world); }));

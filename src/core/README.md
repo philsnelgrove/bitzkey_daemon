@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 590 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 592 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 590 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (271 rules)
+6. [Mind](#6-mind) (273 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (11 rules)
@@ -1515,6 +1515,18 @@ Default **0.5**; from 0 to 2, in steps of 0.05.
 Share of the one confiding's worth for its aim that one confided in gains, times its regard for it; and how strongly a plan confided draws it.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
+
+#### 6.36.11 Confided steps (`CONFIDE_STEPS`)
+
+1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none.
+
+Default **1**; from 0 to 1, in steps of 1.
+
+#### 6.36.12 Confided words (`CONFIDE_WORDS`)
+
+1: confiding a plan also shares the words the one confiding holds for what its plan and goal need, the deeds and things it learnt move its aim and its goal's deed or thing, taken up as words settled are; 0: plans pass without words.
+
+Default **1**; from 0 to 1, in steps of 1.
 
 ### 6.37 Vendetta (`VENDETTA`)
 

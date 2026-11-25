@@ -2401,5 +2401,9 @@
 "challenges faced": "चुनौतियाँ झेलीं",
 "challenges held": "चुनौतियाँ टिकीं",
 "Help witnessed": "देखी गई मदद",
-"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "उपयोगी मदद देखने वाले हर जीव को मदद के सुख का मिलने वाला हिस्सा, सहायक के आदर के साथ; 0 यानी कुछ नहीं"
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "उपयोगी मदद देखने वाले हर जीव को मदद के सुख का मिलने वाला हिस्सा, सहायक के आदर के साथ; 0 यानी कुछ नहीं",
+"Confided words": "सौंपे गए शब्द",
+"1: confiding a plan also shares the words the one confiding holds for what its plan and goal need, the deeds and things it learnt move its aim and its goal's deed or thing, taken up as words settled are; 0: plans pass without words": "1: योजना सौंपते समय वह उन चीज़ों के अपने शब्द भी बाँटता है जिनकी उसकी योजना और लक्ष्य को ज़रूरत है, वे कर्म और चीज़ें जो उसका ध्येय आगे बढ़ाती हैं और उसके लक्ष्य का कर्म या चीज़, तय शब्दों की तरह अपनाए जाते हैं; 0: योजनाएँ बिना शब्दों के जाती हैं",
+"Confided steps": "सौंपे गए कदम",
+"1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none": "1: सौंपी गई योजना अपनाने वाला वह भी अपनाता है जो सौंपने वाले ने उन कर्मों और चीज़ों के बारे में सीखा जो उसका ध्येय आगे बढ़ाते हैं, ताकि वह कदम जाने; 0: वह कोई कदम जाने बिना शुरू करता है"
 }

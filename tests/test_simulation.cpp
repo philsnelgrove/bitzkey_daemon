@@ -3770,7 +3770,19 @@ TEST_CASE("projects: a long aim learnt from its life becomes its project, progre
     auto sensed = simulation.sense(leader);
     sensed.situation.addressee = &follower;
     follower.project_aim = -1;
+    // and the words its plan needs (see CONFIDE_WORDS): a deed-word for a step, not one for a deed that moves nothing
+    leader.project_deeds = {};
+    leader.project_deeds[Rest] = 0.5;
+    leader.goal_kind = NoGoal;
+    leader.deeds = {LexiconWord{FirstCall, {1, -1}, Rest, 1.0, 0}, LexiconWord{FirstCall + 1, {2, -1}, Dig, 1.0, 0}};
+    follower.deeds.clear();
     simulation.act(leader, Confide, sensed.situation);
+    REQUIRE(follower.deeds.size() == 1);
+    CHECK(follower.deeds[0].thing == Rest);
+    CHECK(follower.deeds[0].call == FirstCall);
+    CHECK(simulation.deed_tally()[static_cast<std::size_t>(Species::Grazer)].confided == 1);
+    CHECK(follower.project_deeds[Rest] == 0.5);  // and the steps (see CONFIDE_STEPS)
+    CHECK(follower.project_deeds[Dig] == 0.0);
     CHECK(leader.confided == 1);
     CHECK(follower.confided_to == 1);
     CHECK(follower.project_aim == SelfGear);

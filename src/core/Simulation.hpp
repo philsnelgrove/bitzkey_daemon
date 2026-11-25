@@ -617,6 +617,13 @@ inline double PROJECT_RESOLVE = 2.0;
 inline double PROJECT_INHERIT = 0.5;
 inline double INSTRUCTED_PULL = 0.5;
 inline double CONFIDE_SHARE = 0.5;
+// And confiding shares the words it holds for what its plan and goal need (the user's design): its deed-words for the deeds
+// it learnt move its aim, or its goal's deed, and its words for the things that do, or its goal's thing, taken up as any
+// word settled with it is (see accord). CONFIDE_WORDS 0 for none.
+inline int CONFIDE_WORDS = 1;
+// And one that takes up a plan confided takes up what the one confiding learnt of the deeds and things that move its aim:
+// it knows the steps (the user's design). CONFIDE_STEPS 0: it starts knowing none.
+inline int CONFIDE_STEPS = 1;
 // Vendetta (the user's design): an animal holds up to ENEMIES enemies, each one that harmed it or its own: struck it
 // (ENEMY_STRUCK of grudge to start), or killed its kin (ENEMY_KIN_KILLED) or one of its own colour group (ENEMY_GROUP_KILLED)
 // in its sight. Harming that one, its grudge follows the joy it felt (VENDETTA_RATE, see GRUDGE_JOY); the grudge fades over
@@ -2166,7 +2173,7 @@ public:
     };
     const std::array<PointTally, 4>& point_tally() const { return point_tally_; }
     struct LexiconTally {  // since the world began or was loaded: words taken into lexicons, and how
-        long long agreed = 0, witnessed = 0, inherited = 0, confirmed = 0, overridden = 0, refused = 0, named_at_birth = 0;
+        long long agreed = 0, witnessed = 0, inherited = 0, confirmed = 0, overridden = 0, refused = 0, named_at_birth = 0, confided = 0;
     };
     const std::array<LexiconTally, 4>& lexicon_tally() const { return lexicon_tally_; }
     const std::array<LexiconTally, 4>& name_tally() const { return name_tally_; }  // the same, of names

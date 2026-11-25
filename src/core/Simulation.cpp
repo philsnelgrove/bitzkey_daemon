@@ -6937,13 +6937,36 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             const int from = agent.identifier, to = s.addressee->identifier, aim = agent.project_aim, dir = agent.project_dir;
             const int x = agent.project_x, y = agent.project_y, group = agent.project_group, idea = agent.project_concept;
             const double worth = agent.aim_value[static_cast<std::size_t>(aim)];
-            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth] {
+            std::vector<LexiconWord> deed_words, thing_words;  // the words its plan and goal need (see CONFIDE_WORDS)
+            if (CONFIDE_WORDS) {
+                for (const LexiconWord& word : agent.deeds) {
+                    if (word.thing >= 0 && word.thing < ACTION_COUNT &&
+                        (agent.project_deeds[static_cast<std::size_t>(word.thing)] > 0 || (agent.goal_kind == GoalForDeed && agent.goal_target == word.thing)))
+                        deed_words.push_back(word);
+                }
+                for (const LexiconWord& word : agent.lexicon) {
+                    if (word.thing >= 0 && word.thing < OUTSIDE_SEEN &&
+                        (agent.project_things[static_cast<std::size_t>(word.thing)] > 0 || (agent.goal_kind == GoalForThing && agent.goal_target == word.thing)))
+                        thing_words.push_back(word);
+                }
+            }
+            const auto steps = CONFIDE_STEPS ? agent.project_deeds : std::array<double, ACTION_COUNT>{};  // what moves its aim (see CONFIDE_STEPS)
+            const auto step_things = CONFIDE_STEPS ? agent.project_things : std::array<double, OUTSIDE_SEEN>{};
+            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth, deed_words, thing_words, steps, step_things] {
                 Bitzkey* other = find_agent(to);
                 const Bitzkey* teller = find_agent(from);
                 if (!other || !other->alive() || !teller) return;
                 const double regard = std::clamp(regard_for(*other, *teller), 0.0, 1.0);
                 other->aim_value[static_cast<std::size_t>(aim)] += std::clamp(CONFIDE_SHARE, 0.0, 1.0) * worth * regard;
                 ++other->confided_to;
+                for (const bool deed : {true, false}) {  // its words, taken up as words settled are, and counted when they are
+                    LexiconTally& tally = (deed ? deed_tally_ : lexicon_tally_)[static_cast<std::size_t>(other->species)];
+                    for (const LexiconWord& word : deed ? deed_words : thing_words) {
+                        const long long before = tally.agreed + tally.overridden;
+                        accord(*other, *teller, word.call, word.sounds, deed ? PointSelf : word.thing, false, deed ? word.thing : -1);
+                        tally.confided += tally.agreed + tally.overridden - before;
+                    }
+                }
                 if (other->project_aim >= 0 && !other->project_confided) return;  // its own project kept
                 other->project_aim = aim;
                 other->project_dir = dir;
@@ -6955,8 +6978,8 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
                 other->project_last = aim_measure(*other, aim, x, y, group, idea, sight_now(*other));
                 other->project_confided = true;
                 other->project_from = from;
-                other->project_deeds = {};
-                other->project_things = {};
+                other->project_deeds = steps;
+                other->project_things = step_things;
             };
             if (!later(share)) share();
             break;

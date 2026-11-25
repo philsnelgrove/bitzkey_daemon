@@ -2401,5 +2401,9 @@
 "challenges faced": "受けた挑戦",
 "challenges held": "退けた挑戦",
 "Help witnessed": "見られた助け",
-"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "役立つ助けを見た各者が感じる助ける喜びの割合。助けた者への敬意に加えて。0 で無効"
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "役立つ助けを見た各者が感じる助ける喜びの割合。助けた者への敬意に加えて。0 で無効",
+"Confided words": "打ち明けた言葉",
+"1: confiding a plan also shares the words the one confiding holds for what its plan and goal need, the deeds and things it learnt move its aim and its goal's deed or thing, taken up as words settled are; 0: plans pass without words": "1: 計画を打ち明けるとき、計画と目標に必要なものについて自分が持つ言葉も伝える。目的を進めると学んだ行いと物、目標の行いや物。取り決めた言葉と同じように受け入れられる。0: 計画は言葉なしで伝わる",
+"Confided steps": "打ち明けた手順",
+"1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none": "1: 打ち明けられた計画を受け入れた者は、打ち明けた者が目的を進める行いと物について学んだことも受け入れ、手順を知る。0: 何も知らずに始める"
 }
