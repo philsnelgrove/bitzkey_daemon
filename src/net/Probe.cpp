@@ -2571,6 +2571,7 @@ Json Probe::goals(Simulation& world) const {
         // given up, steps reached by a link followed the first time; what is learnt opens what, summed.
         long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, steps_given_up = 0, chains_unfinished = 0, first_followed = 0, links_held = 0;
         std::map<std::pair<int, int>, double> opens;
+        long long stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_called = 0, unstuck_silent = 0, helped = 0, helping = 0, stuck_now = 0;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
             ++alive;
@@ -2593,6 +2594,15 @@ Json Probe::goals(Simulation& world) const {
             chains_unfinished += agent->chains_unfinished;
             first_followed += agent->links_first_followed;
             links_held += static_cast<long long>(agent->opens.size());
+            stuck_turns += agent->stuck_turns;  // asking (see HELPED_JOY)
+            free_turns += agent->free_turns;
+            stuck_calls += agent->stuck_calls;
+            free_calls += agent->free_calls;
+            unstuck_called += agent->unstuck_after_call;
+            unstuck_silent += agent->unstuck_silent;
+            helped += agent->helped;
+            helping += agent->helping;
+            stuck_now += agent->stuck && agent->goal_kind != NoGoal;
             for (const OpensLink& link : agent->opens) opens[{link.from, link.to}] += link.strength;
             if (agent->goal_kind != NoGoal && !agent->goal_steps.empty()) {
                 ++chaining;
@@ -2705,7 +2715,14 @@ Json Probe::goals(Simulation& world) const {
             {"in_lives", {{"formed", formed}, {"reached", reached}, {"given_up", abandoned}, {"switched", switched}, {"let_go", dropped},
                           {"reached_share", ratio(static_cast<double>(reached), static_cast<double>(reached + abandoned + dropped))},
                           {"mean_turns_to_reach", reached > 0 ? Json(static_cast<double>(reach_turns) / static_cast<double>(reached)) : Json(nullptr)}}},
-            {"needs", needs}, {"desire", desire}, {"ingenuity", ingenuity}};
+            {"needs", needs}, {"desire", desire}, {"ingenuity", ingenuity},
+            {"asking", {{"stuck_share_of_goals", ratio(static_cast<double>(stuck_now), static_cast<double>(holding))},
+                        {"calls_per_turn_stuck", ratio(static_cast<double>(stuck_calls), static_cast<double>(stuck_turns))},
+                        {"calls_per_turn_free", ratio(static_cast<double>(free_calls), static_cast<double>(free_turns))},
+                        {"came_free_soon_after_a_call", unstuck_called}, {"came_free_unasked", unstuck_silent},
+                        {"came_free_per_stuck_call", ratio(static_cast<double>(unstuck_called), static_cast<double>(stuck_calls))},
+                        {"came_free_per_silent_stuck_turn", ratio(static_cast<double>(unstuck_silent), static_cast<double>(stuck_turns - stuck_calls))},
+                        {"helped", helped}, {"came_beside_a_stuck_caller", helping}}}};
     }
     return result;
 }

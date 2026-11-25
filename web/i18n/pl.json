@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Skłonność od gotowanego jedzenia",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "część skłonności ku wszystkożercy z posiłku ze szpiku, którą daje każdy gotowany posiłek cudzego jedzenia: gotowane mięso roślinożercy, gotowany owoc drapieżnikowi; 0 to brak",
 "Predator cooked fruit": "Gotowany owoc dla drapieżników",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "część pożywienia, które wszystkożerca czerpie z owocu, jaką drapieżnik czerpie z gotowanego owocu; surowego owocu nie może jeść; 0 to nic"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "część pożywienia, które wszystkożerca czerpie z owocu, jaką drapieżnik czerpie z gotowanego owocu; surowego owocu nie może jeść; 0 to nic",
+"Help window": "Okno pomocy",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "tury po wołaniu przy utkniętym celu, w których uwolnienie celu liczy się jako pomoc",
+"Joy of being helped": "Radość z pomocy otrzymanej",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "ulga, razy towarzyskość, jaką zwierzę czuje, gdy jego utknięty cel uwalnia się wkrótce po wołaniu, a ktoś z jego gatunku jest obok; 0 to brak",
+"Joy of helping": "Radość z pomagania",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "radość, razy towarzyskość, jaką zwierzę czuje, stając obok kogoś ze swego gatunku, kogo słyszało wołającego, gdy jego cel utknął; 0 to brak"
 }

@@ -3657,6 +3657,44 @@ TEST_CASE("a predator may eat cooked fruit, not raw, fed a share, and leans towa
     CHECK(predator.species == Species::Omnivore);
 }
 
+TEST_CASE("asking: a stuck goal is counted, calls while stuck are counted, and come free with one beside after a call it is relief") {
+    Simulation simulation = world(80);
+    Bitzkey& animal = simulation.add_agent(encode_dna(Species::Grazer, {{"sociability", 7}}), 30, 30);
+    Bitzkey& friend_ = simulation.add_agent(encode_dna(Species::Grazer, {{"sociability", 7}}), 31, 30);
+    simulation.index_cells();
+    animal.goal_kind = GoalForDeed;  // making a bow: shut to it
+    animal.goal_target = MakeBow;
+    animal.goal_desire = true;
+    animal.goal_need = -1;
+    animal.goal_turn = simulation.turn() - 1;
+    animal.want_deeds = {};
+    animal.want_deeds[MakeBow] = 0.5;
+    animal.spark_deeds = {};
+    animal.spark_deeds[MakeBow] = 0.5;
+    animal.relief_deeds = {};
+    animal.relief_things = {};
+    simulation.sense(animal);
+    REQUIRE(animal.goal_kind == GoalForDeed);
+    CHECK(animal.stuck);
+    CHECK(animal.stuck_turns == 1);
+    // It called while stuck; then its goal is no longer shut (a goal it can do), one of its kind beside it: relief.
+    animal.help_call_turn = simulation.turn();
+    animal.goal_target = GoEast;
+    animal.want_deeds = {};  // nothing pulls it back to the bow
+    animal.spark_deeds = {};
+    auto freed = simulation.sense(animal);
+    CHECK(!animal.stuck);
+    CHECK(animal.unstuck_after_call == 1);
+    CHECK(animal.helped == 1);
+    CHECK(freed.situation.goal_relief >= HELPED_JOY * animal.feeling(Sociability) - 1e-9);
+    // One that heard it call while stuck two turns ago, beside it: joy of helping.
+    friend_.heard_from = animal.identifier;
+    animal.help_call_turn = simulation.turn() - 2;
+    auto helper = simulation.sense(friend_);
+    CHECK(friend_.helping == 1);
+    CHECK(helper.situation.goal_relief >= HELPING_JOY * friend_.feeling(Sociability) - 1e-9);
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);

@@ -2224,5 +2224,11 @@
 "Cooked food lean": "調理食による傾き",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "骨髄を一度食べたときの雑食への傾きのうち、他種の食べ物を調理して一度食べるごとに与える割合（草食動物には調理肉、捕食者には調理した果実）。0 で無効",
 "Predator cooked fruit": "捕食者の調理果実",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "雑食動物が果実から得る栄養のうち、捕食者が調理した果実から得る割合。生の果実は食べられない。0 で無効"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "雑食動物が果実から得る栄養のうち、捕食者が調理した果実から得る割合。生の果実は食べられない。0 で無効",
+"Help window": "助けの猶予",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "目標が行き詰まったまま呼んだ後、目標が開けば助けと数えるターン数",
+"Joy of being helped": "助けられた喜び",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "行き詰まった目標が呼んだ直後に開け、同種がそばにいるときに動物が感じる安堵（社交性を掛ける）。0 で無効",
+"Joy of helping": "助ける喜び",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "目標が行き詰まった同種の呼び声を聞き、その者のそばに来たときに動物が感じる喜び（社交性を掛ける）。0 で無効"
 }

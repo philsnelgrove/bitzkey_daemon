@@ -566,6 +566,13 @@ inline double BABBLE = 0.3;
 inline int BABBLE_AGE = 24;
 inline double ANSWERED_JOY = 0.2;
 constexpr int ANSWERS_A_TURN = 3;
+// Asking (the user's choice: measure, and give help a reason): a goal is stuck while shut to it (a deed it cannot do, a
+// thing neither in sight nor at a place remembered). Its stuck goal coming free within HELP_WINDOW turns after it called
+// while stuck, with one of its kind beside it, it feels HELPED_JOY times its sociability; one that comes beside one of
+// its kind it heard call while stuck feels HELPING_JOY times its sociability. What was said is not weighed.
+inline int HELP_WINDOW = 3;
+inline double HELPED_JOY = 0.3;
+inline double HELPING_JOY = 0.2;
 double babble_urge(const Bitzkey& agent);  // the young and sociable's urge to speak (see BABBLE)
 inline double attention(double chatter) { return 1.0 / (1.0 + TUNE_OUT * chatter); }  // how far a chatterer is heeded
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
@@ -1522,6 +1529,12 @@ struct Bitzkey {
     std::vector<std::pair<int, int>> failed_links;  // links given up as steps toward its present goal (from, to)
     int chains_begun = 0, steps_reached = 0, steps_given_up = 0, links_first_followed = 0;
     int chains_unfinished = 0;  // goals that ended, reached or not, with steps still open
+    // Asking (see HELPED_JOY): whether its goal is stuck, for which goal, the turn it last called while stuck; and, in its
+    // life, turns holding a goal stuck and free, calls made in each, stuck goals come free soon after a call or unasked,
+    // times helped (one beside as it came free), and times it came beside a stuck caller it heard.
+    bool stuck = false;
+    int stuck_goal_turn = -1, help_call_turn = -1;
+    int stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_after_call = 0, unstuck_silent = 0, helped = 0, helping = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
     int last_call = -1;                 // its last choice of call, to learn from with its action; -1 for none of its own

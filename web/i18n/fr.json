@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Penchant par la nourriture cuite",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "part du penchant vers l'omnivore d'un repas de moelle que donne chaque repas cuit d'une nourriture étrangère : viande cuite à un herbivore, fruit cuit à un prédateur ; 0 pour aucun",
 "Predator cooked fruit": "Fruit cuit pour prédateurs",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "part de la nourriture qu'un omnivore tire du fruit qu'un prédateur tire du fruit cuit ; le fruit cru, il ne peut le manger ; 0 pour rien"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "part de la nourriture qu'un omnivore tire du fruit qu'un prédateur tire du fruit cuit ; le fruit cru, il ne peut le manger ; 0 pour rien",
+"Help window": "Fenêtre d'aide",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "tours après un appel, son but bloqué, pendant lesquels le but libéré compte comme aidé",
+"Joy of being helped": "Joie d'être aidé",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "soulagement, fois sa sociabilité, qu'un animal ressent quand son but bloqué se libère peu après son appel, un des siens à ses côtés ; 0 pour aucun",
+"Joy of helping": "Joie d'aider",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "joie, fois sa sociabilité, qu'un animal ressent en venant à côté d'un des siens qu'il a entendu appeler alors que son but était bloqué ; 0 pour aucune"
 }

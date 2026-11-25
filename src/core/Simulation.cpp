@@ -6364,6 +6364,12 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
                      : initiative_tally_[static_cast<std::size_t>(caller->species)].answered_back);
     }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
+        if (agent.stuck) {  // called while its goal was stuck (see HELPED_JOY)
+            ++agent.stuck_calls;
+            agent.help_call_turn = turn_;
+        } else if (agent.goal_kind != NoGoal) {
+            ++agent.free_calls;
+        }
         // each sound costs, in hunger and in stamina, the dearer the more it has called of late (see HOARSE)
         const double sounds = std::max(1, sounds_made(agent)) * (1.0 + HOARSE * agent.chatter);
         agent.hunger = std::min(100.0, agent.hunger + CALL_COST * sounds);
@@ -8591,6 +8597,34 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             if (agent.goal_steps.empty()) ++agent.chains_begun;
             agent.goal_steps.push_back(best->from);
             agent.step_turn = turn_;
+        }
+    }
+    // Asking (see HELPED_JOY): its goal stuck, or come free soon after it called while stuck, one of its kind beside it.
+    const bool stuck = root >= 0 && shut(root);
+    if (agent.goal_kind != NoGoal) ++(stuck ? agent.stuck_turns : agent.free_turns);
+    if (agent.stuck && !stuck && agent.goal_kind != NoGoal && agent.goal_turn == agent.stuck_goal_turn) {
+        if (agent.help_call_turn >= 0 && turn_ - agent.help_call_turn <= HELP_WINDOW) {
+            ++agent.unstuck_after_call;
+            bool beside = false;
+            for (const Bitzkey* other : around(agent, 1)) {
+                if (other != &agent && other->alive() && other->species == agent.species && distance(other->x, other->y, agent.x, agent.y) <= 1) beside = true;
+            }
+            if (beside) {
+                ++agent.helped;
+                s.goal_relief += HELPED_JOY * agent.feeling(Sociability);
+            }
+        } else {
+            ++agent.unstuck_silent;
+        }
+    }
+    agent.stuck = stuck;
+    if (stuck) agent.stuck_goal_turn = agent.goal_turn;
+    if (HELPING_JOY > 0 && agent.heard_from >= 0) {  // beside one of its kind it heard call while stuck (heard a turn late)
+        const Bitzkey* caller = find_agent(agent.heard_from);
+        if (caller && caller != &agent && caller->alive() && caller->species == agent.species && caller->help_call_turn == turn_ - 2 &&
+            distance(caller->x, caller->y, agent.x, agent.y) <= 1) {
+            ++agent.helping;
+            s.goal_relief += HELPING_JOY * agent.feeling(Sociability);
         }
     }
     // Felt, and sensed: the goal's urgency and need, but what it seeks now, its step if it has one.

@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Схильність від вареної їжі",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "частка схильності до всеїдного від трапези кісткового мозку, яку дає кожна варена трапеза чужої їжі: варене м'ясо травоїдному, варений плід хижаку; 0 — жодної",
 "Predator cooked fruit": "Варений плід для хижаків",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "частка поживи, яку всеїдний бере з плоду, що її хижак бере з вареного плоду; сирий плід він їсти не може; 0 — нічого"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "частка поживи, яку всеїдний бере з плоду, що її хижак бере з вареного плоду; сирий плід він їсти не може; 0 — нічого",
+"Help window": "Вікно допомоги",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "ходи після поклику з застряглою метою, протягом яких звільнення мети вважається допомогою",
+"Joy of being helped": "Радість від допомоги",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "полегшення, помножене на товариськість, яке тварина відчуває, коли її застрягла мета звільняється невдовзі після поклику, а поруч хтось її виду; 0 — жодного",
+"Joy of helping": "Радість допомагати",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "радість, помножена на товариськість, яку тварина відчуває, ставши поруч із кимось свого виду, кого чула кличучим, коли його мета застрягла; 0 — жодної"
 }

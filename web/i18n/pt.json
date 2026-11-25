@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Inclinação por comida cozida",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "parte da inclinação para onívoro de uma refeição de tutano que cada refeição cozida de comida alheia dá: carne cozida a um herbívoro, fruta cozida a um predador; 0 para nenhuma",
 "Predator cooked fruit": "Fruta cozida para predadores",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "parte do alimento que um onívoro tira da fruta que um predador tira da fruta cozida; fruta crua ele não pode comer; 0 para nada"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "parte do alimento que um onívoro tira da fruta que um predador tira da fruta cozida; fruta crua ele não pode comer; 0 para nada",
+"Help window": "Janela de ajuda",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "turnos após chamar com a meta presa em que a meta se soltar conta como ajuda",
+"Joy of being helped": "Alegria de ser ajudado",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "alívio, vezes sua sociabilidade, que um animal sente quando sua meta presa se solta logo após chamar, com um da sua espécie ao lado; 0 para nenhum",
+"Joy of helping": "Alegria de ajudar",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "alegria, vezes sua sociabilidade, que um animal sente ao chegar ao lado de um da sua espécie que ouviu chamar enquanto a meta dele estava presa; 0 para nenhuma"
 }

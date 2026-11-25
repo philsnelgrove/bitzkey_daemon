@@ -2224,5 +2224,11 @@
 "Cooked food lean": "पके भोजन से झुकाव",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "मज्जा के एक भोजन से सर्वाहारी की ओर झुकाव का वह हिस्सा जो पराए भोजन का हर पका भोजन देता है: घास चरने वाले को पका मांस, शिकारी को पका फल; 0 यानी कुछ नहीं",
 "Predator cooked fruit": "शिकारी के लिए पका फल",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "फल से सर्वाहारी को मिलने वाले पोषण का वह हिस्सा जो शिकारी को पके फल से मिलता है; कच्चा फल वह नहीं खा सकता; 0 यानी कुछ नहीं"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "फल से सर्वाहारी को मिलने वाले पोषण का वह हिस्सा जो शिकारी को पके फल से मिलता है; कच्चा फल वह नहीं खा सकता; 0 यानी कुछ नहीं",
+"Help window": "मदद की खिड़की",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "लक्ष्य अटका होने पर पुकारने के बाद के वे दौर जिनमें लक्ष्य का खुलना मदद गिना जाता है",
+"Joy of being helped": "मदद पाने का सुख",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "राहत, उसकी मिलनसारिता गुणा, जो जीव तब महसूस करता है जब उसका अटका लक्ष्य पुकारने के कुछ ही देर बाद खुल जाए और उसकी जाति का कोई उसके पास हो; 0 यानी कुछ नहीं",
+"Joy of helping": "मदद करने का सुख",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "सुख, उसकी मिलनसारिता गुणा, जो जीव तब महसूस करता है जब वह अपनी जाति के उस जीव के पास पहुँचे जिसे उसने अटके लक्ष्य के समय पुकारते सुना; 0 यानी कुछ नहीं"
 }

@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Inclinazione dal cibo cotto",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "parte dell'inclinazione verso l'onnivoro di un pasto di midollo data da ogni pasto cotto di cibo altrui: carne cotta a un erbivoro, frutta cotta a un predatore; 0 per nessuna",
 "Predator cooked fruit": "Frutta cotta per predatori",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "parte del nutrimento che un onnivoro trae dalla frutta che un predatore trae dalla frutta cotta; la frutta cruda non può mangiarla; 0 per nulla"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "parte del nutrimento che un onnivoro trae dalla frutta che un predatore trae dalla frutta cotta; la frutta cruda non può mangiarla; 0 per nulla",
+"Help window": "Finestra d'aiuto",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "turni dopo una chiamata con la meta bloccata in cui il liberarsi della meta conta come aiuto",
+"Joy of being helped": "Gioia d'essere aiutato",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "sollievo, per la sua socievolezza, che un animale prova quando la sua meta bloccata si libera poco dopo la sua chiamata, con uno dei suoi accanto; 0 per nessuno",
+"Joy of helping": "Gioia d'aiutare",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "gioia, per la sua socievolezza, che un animale prova venendo accanto a uno dei suoi che ha sentito chiamare mentre la sua meta era bloccata; 0 per nessuna"
 }

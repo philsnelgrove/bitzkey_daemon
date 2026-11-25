@@ -321,7 +321,9 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
                        agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
-            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)}};
+            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)},
+            {"asking", {agent.stuck ? 1 : 0, agent.stuck_goal_turn, agent.help_call_turn, agent.stuck_turns, agent.free_turns, agent.stuck_calls,
+                        agent.free_calls, agent.unstuck_after_call, agent.unstuck_silent, agent.helped, agent.helping}}};
 }
 
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
@@ -747,6 +749,20 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                     agent->place_turn[at] = row.at(3).get<int>();
                 }
             }
+        }
+        if (g.contains("asking")) {  // see HELPED_JOY
+            const json& a = g.at("asking");
+            agent->stuck = a.at(0).get<int>() != 0;
+            agent->stuck_goal_turn = a.at(1).get<int>();
+            agent->help_call_turn = a.at(2).get<int>();
+            agent->stuck_turns = a.at(3).get<int>();
+            agent->free_turns = a.at(4).get<int>();
+            agent->stuck_calls = a.at(5).get<int>();
+            agent->free_calls = a.at(6).get<int>();
+            agent->unstuck_after_call = a.at(7).get<int>();
+            agent->unstuck_silent = a.at(8).get<int>();
+            agent->helped = a.at(9).get<int>();
+            agent->helping = a.at(10).get<int>();
         }
         if (g.contains("ingenuity")) {  // see OPENS_RATE
             const json& i = g.at("ingenuity");

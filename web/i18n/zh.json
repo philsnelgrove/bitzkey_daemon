@@ -2224,5 +2224,11 @@
 "Cooked food lean": "熟食倾向",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "每吃一次别类熟食（食草动物吃熟肉、捕食者吃熟果）带来的、相当于一次骨髓餐的杂食倾向的比例；0 表示没有",
 "Predator cooked fruit": "捕食者熟果",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "捕食者从熟果获得的营养占杂食动物从果实获得营养的比例；生果不能吃；0 表示没有"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "捕食者从熟果获得的营养占杂食动物从果实获得营养的比例；生果不能吃；0 表示没有",
+"Help window": "求助时限",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "目标受阻时呼叫后，目标解开即算作得到帮助的回合数",
+"Joy of being helped": "被帮助的喜悦",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "目标受阻的动物呼叫后不久目标解开、且有同类在旁时感到的宽慰（乘以其社交性）；0 表示没有",
+"Joy of helping": "帮助的喜悦",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "动物来到它听见在目标受阻时呼叫的同类身旁时感到的喜悦（乘以其社交性）；0 表示没有"
 }

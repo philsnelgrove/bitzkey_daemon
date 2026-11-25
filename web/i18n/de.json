@@ -2224,5 +2224,11 @@
 "Cooked food lean": "Neigung durch gekochte Nahrung",
 "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "Anteil der Neigung zum Allesfresser einer Markmahlzeit, den jede gekochte Mahlzeit fremder Nahrung gibt: gekochtes Fleisch einem Grasfresser, gekochte Frucht einem Raubtier; 0 für keine",
 "Predator cooked fruit": "Gekochte Frucht für Raubtiere",
-"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "Anteil der Nahrung eines Allesfressers aus Frucht, den ein Raubtier aus gekochter Frucht bekommt; rohe Frucht kann es nicht fressen; 0 für keine"
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "Anteil der Nahrung eines Allesfressers aus Frucht, den ein Raubtier aus gekochter Frucht bekommt; rohe Frucht kann es nicht fressen; 0 für keine",
+"Help window": "Hilfefenster",
+"turns after it called while its goal was stuck in which the goal coming free counts as helped": "Runden nach einem Ruf bei festgefahrenem Ziel, in denen das Freiwerden des Ziels als Hilfe zählt",
+"Joy of being helped": "Freude über Hilfe",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "Erleichterung, mal seiner Geselligkeit, die ein Tier fühlt, wenn sein festgefahrenes Ziel bald nach seinem Ruf frei wird und einer seiner Art neben ihm ist; 0 für keine",
+"Joy of helping": "Freude am Helfen",
+"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "Freude, mal seiner Geselligkeit, die ein Tier fühlt, wenn es neben einen seiner Art kommt, den es rufen hörte, während dessen Ziel festgefahren war; 0 für keine"
 }
