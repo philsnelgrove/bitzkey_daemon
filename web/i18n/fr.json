@@ -2228,9 +2228,9 @@
 "Help window": "Fenêtre d'aide",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "tours après un appel, son but bloqué, pendant lesquels le but libéré compte comme aidé",
 "Joy of being helped": "Joie d'être aidé",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "soulagement, fois sa sociabilité, qu'un animal ressent quand son but bloqué se libère peu après son appel, un des siens à ses côtés ; et l'appel qu'il a lancé bloqué l'apprend ; 0 pour aucun",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "soulagement, fois sa sociabilité, qu'un animal ressent quand un qui l'a entendu appeler, bloqué, a fait quelque chose pour lui (donné, déposé à côté, combattu pour lui ou guidé) et que son but bloqué s'est libéré au tour suivant ; l'appel l'apprend ; 0 pour aucun",
 "Joy of helping": "Joie d'aider",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "joie, fois sa sociabilité, qu'un animal ressent en venant à côté d'un des siens qu'il a entendu appeler alors que son but était bloqué ; 0 pour aucune",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "joie, fois sa sociabilité, qu'un animal ressent quand ce qu'il a fait pour un qu'il a entendu appeler, bloqué, a libéré le but de celui-ci : l'acte l'apprend, selon ce qu'il percevait, sons entendus compris ; 0 pour aucune",
 "CHOICES": "CHOIX",
 "LEXICON": "LEXIQUE",
 "GOALS": "BUTS",
@@ -2399,5 +2399,7 @@
 "challenges made": "défis lancés",
 "challenges won": "défis gagnés",
 "challenges faced": "défis subis",
-"challenges held": "défis soutenus"
+"challenges held": "défis soutenus",
+"Help witnessed": "Aide vue",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "part de la joie d'aider que ressent chacun qui a vu une aide utile, en plus d'estimer l'aidant ; 0 pour aucune"
 }

@@ -2228,9 +2228,9 @@
 "Help window": "Finestra d'aiuto",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "turni dopo una chiamata con la meta bloccata in cui il liberarsi della meta conta come aiuto",
 "Joy of being helped": "Gioia d'essere aiutato",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "sollievo, per la sua socievolezza, che un animale prova quando la sua meta bloccata si libera poco dopo la sua chiamata, con uno dei suoi accanto; e il richiamo fatto da bloccato lo impara; 0 per nessuno",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "sollievo, per la sua socievolezza, che un animale prova quando uno che lo sentì chiamare da bloccato fece qualcosa per lui (diede, lasciò accanto, combatté per lui o lo guidò) e la sua meta bloccata si liberò al turno dopo; il richiamo lo impara; 0 per nessuno",
 "Joy of helping": "Gioia d'aiutare",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "gioia, per la sua socievolezza, che un animale prova venendo accanto a uno dei suoi che ha sentito chiamare mentre la sua meta era bloccata; 0 per nessuna",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "gioia, per la sua socievolezza, che un animale prova quando ciò che fece per uno sentito chiamare da bloccato liberò la meta di quello: il gesto lo impara, rispetto a ciò che percepiva, suoni uditi compresi; 0 per nessuna",
 "CHOICES": "SCELTE",
 "LEXICON": "LESSICO",
 "GOALS": "METE",
@@ -2399,5 +2399,7 @@
 "challenges made": "sfide lanciate",
 "challenges won": "sfide vinte",
 "challenges faced": "sfide subite",
-"challenges held": "sfide sostenute"
+"challenges held": "sfide sostenute",
+"Help witnessed": "Aiuto visto",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "parte della gioia di aiutare che prova ognuno che vide un aiuto utile, oltre a stimare chi aiutò; 0 per nessuna"
 }

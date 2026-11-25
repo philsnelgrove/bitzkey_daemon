@@ -2228,9 +2228,9 @@
 "Help window": "חלון עזרה",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "תורות אחרי שקרא כשמטרתו תקועה, שבהם השתחררות המטרה נחשבת לעזרה",
 "Joy of being helped": "שמחה על עזרה",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "הקלה, כפול חברותיותו, שבעל חיים חש כשמטרתו התקועה משתחררת זמן קצר אחרי שקרא, ואחד ממינו לצידו; והקריאה שקרא בעודו תקוע לומדת אותה; 0 לכלום",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "הקלה, כפול חברותיותו, שבעל חיים חש כשמי ששמע אותו קורא בעודו תקוע עשה משהו למענו (נתן, הניח לצידו, נלחם בשבילו או הוביל אותו) ומטרתו התקועה השתחררה בתור הבא; הקריאה לומדת זאת; 0 לכלום",
 "Joy of helping": "שמחה לעזור",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "שמחה, כפול חברותיותו, שבעל חיים חש כשהוא מגיע לצד אחד ממינו ששמע קורא בזמן שמטרתו הייתה תקועה; 0 לכלום",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "שמחה, כפול חברותיותו, שבעל חיים חש כשמה שעשה למען מי ששמע קורא בעודו תקוע שחרר את מטרתו: המעשה לומד זאת, מול מה שחש, כולל צלילים שנשמעו; 0 לכלום",
 "CHOICES": "בחירות",
 "LEXICON": "אוצר מילים",
 "GOALS": "מטרות",
@@ -2399,5 +2399,7 @@
 "challenges made": "אתגרים שנעשו",
 "challenges won": "אתגרים שנוצחו",
 "challenges faced": "אתגרים שהתמודד",
-"challenges held": "אתגרים שעמד בהם"
+"challenges held": "אתגרים שעמד בהם",
+"Help witnessed": "עזרה שנצפתה",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "החלק משמחת העזרה שחש כל מי שראה עזרה מועילה, נוסף על הערכת העוזר; 0 לכלום"
 }

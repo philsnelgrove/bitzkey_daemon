@@ -2228,9 +2228,9 @@
 "Help window": "助けの猶予",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "目標が行き詰まったまま呼んだ後、目標が開けば助けと数えるターン数",
 "Joy of being helped": "助けられた喜び",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "行き詰まった目標が呼んだ直後に開け、同種がそばにいるときに動物が感じる安堵（社交性を掛ける）。行き詰まり中に発した呼び声がそれを学ぶ。0 で無効",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "行き詰まって呼んだのを聞いた者が自分のために何かをし（与える、そばに置く、代わりに戦う、導く）、次のターンに行き詰まった目標が開けたときに感じる安堵（社交性を掛ける）。その呼び声がそれを学ぶ。0 で無効",
 "Joy of helping": "助ける喜び",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "目標が行き詰まった同種の呼び声を聞き、その者のそばに来たときに動物が感じる喜び（社交性を掛ける）。0 で無効",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "行き詰まって呼ぶのを聞いた者のために自分がしたことがその者の目標を開いたときに感じる喜び（社交性を掛ける）。その行いが、聞いた音を含め感じていたことに照らしてそれを学ぶ。0 で無効",
 "CHOICES": "選択",
 "LEXICON": "語彙",
 "GOALS": "目標",
@@ -2399,5 +2399,7 @@
 "challenges made": "した挑戦",
 "challenges won": "勝った挑戦",
 "challenges faced": "受けた挑戦",
-"challenges held": "退けた挑戦"
+"challenges held": "退けた挑戦",
+"Help witnessed": "見られた助け",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "役立つ助けを見た各者が感じる助ける喜びの割合。助けた者への敬意に加えて。0 で無効"
 }

@@ -2228,9 +2228,9 @@
 "Help window": "Okno pomocy",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "tury po wołaniu przy utkniętym celu, w których uwolnienie celu liczy się jako pomoc",
 "Joy of being helped": "Radość z pomocy otrzymanej",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "ulga, razy towarzyskość, jaką zwierzę czuje, gdy jego utknięty cel uwalnia się wkrótce po wołaniu, a ktoś z jego gatunku jest obok; a wołanie wydane w utknięciu się go uczy; 0 to brak",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "ulga, razy towarzyskość, jaką zwierzę czuje, gdy ktoś, kto słyszał jego wołanie w utknięciu, coś dla niego zrobił (dał, położył obok, walczył za nie lub poprowadził), a jego utknięty cel uwolnił się w następnej turze; wołanie się tego uczy; 0 to brak",
 "Joy of helping": "Radość z pomagania",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "radość, razy towarzyskość, jaką zwierzę czuje, stając obok kogoś ze swego gatunku, kogo słyszało wołającego, gdy jego cel utknął; 0 to brak",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "radość, razy towarzyskość, jaką zwierzę czuje, gdy to, co zrobiło dla kogoś słyszanego w utknięciu, uwolniło jego cel: czyn się tego uczy, wobec tego, co czuło, wraz z usłyszanymi dźwiękami; 0 to brak",
 "CHOICES": "WYBORY",
 "LEXICON": "SŁOWNIK",
 "GOALS": "CELE",
@@ -2399,5 +2399,7 @@
 "challenges made": "wyzwania rzucone",
 "challenges won": "wyzwania wygrane",
 "challenges faced": "wyzwania przyjęte",
-"challenges held": "wyzwania odparte"
+"challenges held": "wyzwania odparte",
+"Help witnessed": "Widziana pomoc",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "część radości z pomagania, którą czuje każdy, kto widział użyteczną pomoc, obok szacunku dla pomagającego; 0 to brak"
 }

@@ -567,13 +567,19 @@ inline int BABBLE_AGE = 24;
 inline double ANSWERED_JOY = 0.2;
 constexpr int ANSWERS_A_TURN = 3;
 // Asking (the user's choice: measure, and give help a reason): a goal is stuck while shut to it (a deed it cannot do, a
-// thing neither in sight nor at a place remembered). Its stuck goal coming free within HELP_WINDOW turns after it called
-// while stuck, with one of its kind beside it, it feels HELPED_JOY times its sociability, and the call it made while
-// stuck is taught it, against what it sensed as it called (as CALL_HARM); one that comes beside one of its kind it heard
-// call while stuck feels HELPING_JOY times its sociability. What was said is not weighed. Brains sense their goal stuck.
+// thing neither in sight nor at a place remembered). Help counts only when useful (the user's design): one that heard
+// the loudest caller of its kind, which called while stuck within HELP_WINDOW turns, does for it, beside it, one of the
+// helping deeds (gave, offered, tutored or fed; dropped food, stone, bone or wood; attacked, defended, hunted or shot;
+// or moved, leading it), and the next turn the caller's stuck goal has come free. Then the caller feels HELPED_JOY
+// times its sociability and the call it made while stuck is taught it (as CALL_HARM); the helper feels HELPING_JOY
+// times its sociability, and the deed it did is taught it against what it sensed as it chose, the sounds it heard
+// among them, so the sound comes to tell which help pays; each who saw it esteems the helper and feels HELP_WITNESS of
+// that joy. Merely coming beside helps no more. Brains sense their goal stuck.
 inline int HELP_WINDOW = 3;
 inline double HELPED_JOY = 1.0;
 inline double HELPING_JOY = 0.2;
+inline double HELP_WITNESS = 0.5;
+enum HelpKind : int { HelpGave, HelpDropped, HelpDefended, HelpLed, HELP_KINDS };
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -803,7 +809,7 @@ inline double WITNESS_SHARE = 0.25;
 inline double SKILL_WITNESS = 1.0;
 // Reputation: beside regard, how dangerous and how skilled it holds another, 0 to 1, at Regard learning. A blow raises
 // danger, whoever it was struck at; any other deed lowers it. Crafting, teaching and lighting a fire raise skill.
-enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed, TitleDeed, TrespassDeed };  // CultureDeed: seen for its culture alone
+enum DeedKind { PlainDeed, HarmDeed, SkillDeed, GarbDeed, LieDeed, VictoryDeed, CowardDeed, TheftDeed, CultureDeed, MarkDeed, TitleDeed, TrespassDeed, HelpDeed };  // CultureDeed: seen for its culture alone
 // Cultures: what each species esteems, seen done by one of its own kind, over and above the deed's own worth, by
 // CULTURE_REGARD, twice it from family (parent, child or sibling) and, for a predator, from its pack. Predators esteem
 // victories; omnivores, crafting and building (shelters and roads); grazers, sowing and fruit picked from a plant
@@ -1599,6 +1605,12 @@ struct Bitzkey {
     bool stuck = false;
     int stuck_goal_turn = -1, help_call_turn = -1;
     int helped_turn = -1, help_taught_turn = -1;  // when last helped, and when that was last taught its call
+    // Help it tried to give (see HELPED_JOY): to whom, which deed and kind, when, whether it passed the first look and
+    // for which of that one's goals, and what it sensed as it chose; and useful helps it gave, by kind.
+    int help_to = -1, help_deed = -1, help_kind = -1, help_turn = -1, help_goal_turn = -1;
+    bool help_pending = false;
+    Senses help_senses{};
+    std::array<int, HELP_KINDS> help_given{};
     // Projects (see PROJECT_PULL): what each aim is worth to it, as last sampled, and the good felt since; its project
     // (aim, -1 none; 1 to raise, -1 to lower; since; last progress; its site, group and idea; the aim as last measured;
     // whether confided by another, and who), what it learnt moves it, the turns a need has waited on it; whether its goal is
@@ -2757,6 +2769,7 @@ public:
     void pass_good(Bitzkey& from, Bitzkey& to, int good);
     void begin_fight(const Fight& fight);
     void brawl(Bitzkey& agent, Bitzkey& opponent);  // a turn of the fight: closer, or a blow
+    void settle_help();  // help tried this turn looked at, and last turn's judged (see HELPED_JOY)
     void settle_fights();  // after the turn: new fights begun, and those won, fled or ended, settled  // takes the better of a fresh body's hide and the one it wore
     static int hide_from(const Bitzkey& corpse) { return std::max(static_cast<int>(corpse.species), corpse.hide); }
     static double garb_of(int hide) { return hide == static_cast<int>(Species::Predator) ? PRESTIGE_GARB : hide == static_cast<int>(Species::Omnivore) ? WARRIOR_GARB : 0.0; }

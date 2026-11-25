@@ -2577,6 +2577,7 @@ Json Probe::goals(Simulation& world) const {
                   instructions = 0, confidings = 0, p_stuck = 0, p_calls = 0, p_called_free = 0, p_silent_free = 0, by_sign = 0, by_word = 0;
         std::array<double, PROJECT_AIMS> sureness{};
         // Vendettas and challenges (see VENDETTA, CHALLENGE_GLORY)
+        std::array<long long, HELP_KINDS> help_kinds{};
         long long with_enemies = 0, enemies_held = 0, vendetta_goals = 0, v_formed = 0, v_settled = 0, v_ended = 0, c_made = 0, c_won = 0, c_faced = 0, c_held = 0, humbled = 0;
         double grudges = 0.0;
         std::array<double, PROJECT_AIMS> worth{};
@@ -2620,6 +2621,7 @@ Json Probe::goals(Simulation& world) const {
                 worth[aim] += std::abs(agent->aim_value[aim]);
                 sureness[aim] += std::abs(agent->aim_agree[aim]);
             }
+            for (std::size_t kind = 0; kind < HELP_KINDS; ++kind) help_kinds[kind] += agent->help_given[kind];
             with_enemies += !agent->enemies.empty();
             enemies_held += static_cast<long long>(agent->enemies.size());
             for (const Enemy& enemy : agent->enemies) grudges += enemy.grudge;
@@ -2767,7 +2769,9 @@ Json Probe::goals(Simulation& world) const {
                         {"came_free_soon_after_a_call", unstuck_called}, {"came_free_unasked", unstuck_silent},
                         {"came_free_per_stuck_call", ratio(static_cast<double>(unstuck_called), static_cast<double>(stuck_calls))},
                         {"came_free_per_silent_stuck_turn", ratio(static_cast<double>(unstuck_silent), static_cast<double>(stuck_turns - stuck_calls))},
-                        {"helped", helped}, {"came_beside_a_stuck_caller", helping}}},
+                        {"helped_usefully", helped}, {"helped_others_usefully", helping},
+                        {"useful_help_by_kind", {{"gave", help_kinds[HelpGave]}, {"dropped", help_kinds[HelpDropped]}, {"defended", help_kinds[HelpDefended]},
+                                                 {"led", help_kinds[HelpLed]}}}}},
             {"vendetta", {{"with_enemies_share", ratio(static_cast<double>(with_enemies), static_cast<double>(alive))},
                           {"enemies_per_holder", ratio(static_cast<double>(enemies_held), static_cast<double>(with_enemies))},
                           {"mean_grudge", ratio(grudges, static_cast<double>(enemies_held))},

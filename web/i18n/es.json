@@ -2228,9 +2228,9 @@
 "Help window": "Ventana de ayuda",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "turnos tras llamar con su meta atascada en los que liberarse la meta cuenta como ayuda",
 "Joy of being helped": "Alegría de ser ayudado",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "alivio, por su sociabilidad, que siente un animal cuando su meta atascada se libera poco después de llamar, con uno de su especie a su lado; y la llamada que hizo atascado la aprende; 0 para nada",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "alivio, por su sociabilidad, que siente un animal cuando uno que lo oyó llamar atascado hizo algo por él (le dio, dejó algo a su lado, luchó por él o lo guió) y su meta atascada se liberó al turno siguiente; la llamada lo aprende; 0 para nada",
 "Joy of helping": "Alegría de ayudar",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "alegría, por su sociabilidad, que siente un animal al ponerse junto a uno de su especie al que oyó llamar mientras su meta estaba atascada; 0 para nada",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "alegría, por su sociabilidad, que siente un animal cuando lo que hizo por uno que oyó llamar atascado liberó la meta de este: el acto lo aprende, frente a lo que sentía, sonidos oídos incluidos; 0 para nada",
 "CHOICES": "ELECCIONES",
 "LEXICON": "LÉXICO",
 "GOALS": "METAS",
@@ -2399,5 +2399,7 @@
 "challenges made": "desafíos hechos",
 "challenges won": "desafíos ganados",
 "challenges faced": "desafíos recibidos",
-"challenges held": "desafíos resistidos"
+"challenges held": "desafíos resistidos",
+"Help witnessed": "Ayuda presenciada",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "parte de la alegría de ayudar que siente cada uno que vio una ayuda útil, además de estimar al que ayudó; 0 para nada"
 }

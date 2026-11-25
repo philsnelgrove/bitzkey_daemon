@@ -3678,22 +3678,37 @@ TEST_CASE("asking: a stuck goal is counted, calls while stuck are counted, and c
     CHECK(animal.stuck);
     CHECK(stuck.senses[SenseGoal + GoalStuck] == 1.0);  // it senses its goal stuck
     CHECK(animal.stuck_turns == 1);
-    // It called while stuck; then its goal is no longer shut (a goal it can do), one of its kind beside it: relief.
+    // It called while stuck; one that heard it gives to it, beside it: held to be judged.
     animal.help_call_turn = simulation.turn();
+    friend_.help_to = animal.identifier;
+    friend_.help_deed = Give;
+    friend_.help_kind = HelpGave;
+    friend_.help_turn = simulation.turn();
+    friend_.help_pending = false;
+    simulation.settle_help();
+    REQUIRE(friend_.help_pending);
+    // The next turn its goal is no longer shut: the help was useful, to both, and counted.
+    friend_.help_turn = simulation.turn() - 1;
     animal.goal_target = GoEast;
     animal.want_deeds = {};  // nothing pulls it back to the bow
     animal.spark_deeds = {};
-    auto freed = simulation.sense(animal);
+    simulation.sense(animal);
     CHECK(!animal.stuck);
     CHECK(animal.unstuck_after_call == 1);
+    const double before = animal.reward, helper_before = friend_.reward;
+    simulation.settle_help();
     CHECK(animal.helped == 1);
-    CHECK(freed.situation.goal_relief >= HELPED_JOY * animal.feeling(Sociability) - 1e-9);
-    // One that heard it call while stuck two turns ago, beside it: joy of helping.
-    friend_.heard_from = animal.identifier;
-    animal.help_call_turn = simulation.turn() - 2;
-    auto helper = simulation.sense(friend_);
+    CHECK(animal.helped_turn == simulation.turn());
+    CHECK(animal.reward > before);
     CHECK(friend_.helping == 1);
-    CHECK(helper.situation.goal_relief >= HELPING_JOY * friend_.feeling(Sociability) - 1e-9);
+    CHECK(friend_.help_given[HelpGave] == 1);
+    CHECK(friend_.reward > helper_before);
+    CHECK(friend_.help_to == -1);
+    // Merely beside one that called, doing no helping deed: no help at all.
+    animal.help_call_turn = simulation.turn();
+    friend_.heard_from = animal.identifier;
+    simulation.sense(friend_);
+    CHECK(friend_.helping == 1);
 }
 
 TEST_CASE("projects: a long aim learnt from its life becomes its project, progress is felt, steps sought; leaders instruct; plans are confided") {

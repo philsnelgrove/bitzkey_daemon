@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 589 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 590 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 589 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (270 rules)
+6. [Mind](#6-mind) (271 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (11 rules)
@@ -1434,15 +1434,21 @@ Default **3**; from 1 to 48, in steps of 1.
 
 #### 6.35.1 Joy of being helped (`HELPED_JOY`)
 
-Relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none.
+Relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.05.
 
 #### 6.35.2 Joy of helping (`HELPING_JOY`)
 
-Joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none.
+Joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
+
+#### 6.35.3 Help witnessed (`HELP_WITNESS`)
+
+Share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none.
+
+Default **0.5**; from 0 to 1, in steps of 0.05.
 
 ### 6.36 Project learning (`PROJECT_RATE`)
 

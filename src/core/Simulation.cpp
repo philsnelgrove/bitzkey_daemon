@@ -3456,6 +3456,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         timings.act += took;
     }
     settle_fights();  // after every turn, however it was acted
+    settle_help();
     witness_deeds();
     const double witnessing = lap(clock);
     timings.witnessing += witnessing;
@@ -5403,6 +5404,11 @@ void Simulation::witness_deed(Bitzkey& other, const SeenDeed& seen) {
     }
     if (culture != NoCulture || kind == VictoryDeed) culture_seen(other, doer, kind == VictoryDeed ? VictoryCulture : culture);
     if (kind == CultureDeed) return;
+    if (kind == HelpDeed) {  // useful help seen: the helper esteemed, and a share of its joy (see HELP_WITNESS)
+        note_deed(other, doer, 1.0, WITNESS_SHARE, PlainDeed, true);
+        if (HELP_WITNESS > 0 && HELPING_JOY > 0) other.reward += HELP_WITNESS * HELPING_JOY * other.feeling(Sociability);
+        return;
+    }
     if (kind == TitleDeed) {  // a titled leader, esteemed by all who see it and hold it no foe
         if (!is_foe(other, doer)) note_deed(other, doer, 1.0, deed, PlainDeed, true);
         return;
@@ -6153,6 +6159,54 @@ void Simulation::brawl(Bitzkey& agent, Bitzkey& opponent) {
     agent.last_action = "fought";
 }
 
+void Simulation::settle_help() {
+    // Help tried this turn: for one that called while stuck, within HELP_WINDOW turns, and still stuck, beside it now:
+    // held to be judged. Help held from last turn: the caller's stuck goal come free, useful; else nothing.
+    if (HELPED_JOY <= 0 && HELPING_JOY <= 0) return;
+    for (const std::unique_ptr<Bitzkey>& pointer : agents_) {
+        Bitzkey& helper = *pointer;
+        if (helper.help_to < 0) continue;
+        Bitzkey* caller = find_agent(helper.help_to);
+        const bool fresh = helper.help_turn == turn_ && !helper.help_pending;
+        if (!helper.alive() || !caller || caller == &helper || !caller->alive() || caller->species != helper.species) {
+            helper.help_to = -1;
+            continue;
+        }
+        if (fresh) {
+            if (caller->stuck && caller->goal_kind != NoGoal && caller->help_call_turn >= 0 && helper.help_turn - caller->help_call_turn <= HELP_WINDOW + 1 &&
+                distance(caller->x, caller->y, helper.x, helper.y) <= 1) {
+                helper.help_pending = true;
+                helper.help_goal_turn = caller->goal_turn;
+            } else {
+                helper.help_to = -1;
+            }
+            continue;
+        }
+        if (helper.help_pending && helper.help_turn == turn_ - 1) {
+            if (!caller->stuck && caller->goal_kind != NoGoal && caller->goal_turn == helper.help_goal_turn) {  // useful
+                ++caller->helped;
+                caller->helped_turn = turn_;
+                caller->reward += HELPED_JOY * caller->feeling(Sociability);
+                ++helper.helping;
+                ++helper.help_given[static_cast<std::size_t>(helper.help_kind)];
+                const double joy = HELPING_JOY * helper.feeling(Sociability);
+                helper.reward += joy;
+                const double rate = learning_rate(helper);
+                if (joy > 0 && rate > 0 && helper.brain) {  // the deed it did, taught against what it sensed as it chose
+                    if (gpu_) queue_lesson(helper, helper.help_senses, helper.help_deed, limited_value(joy), rate, false, 0.0);
+                    else learning_brain(helper).learn(helper.help_senses, helper.help_deed, limited_value(joy), rate);
+                }
+                deed_seen(helper, 1.0, caller, HelpDeed);
+                note_first("helped_usefully", helper.species, helper.identifier);
+            }
+            helper.help_to = -1;
+            helper.help_pending = false;
+        } else if (helper.help_turn < turn_ - 1) {
+            helper.help_to = -1;
+        }
+    }
+}
+
 void Simulation::settle_fights() {
     std::vector<Fight> going;
     std::vector<std::pair<Bitzkey*, Bitzkey*>> won;  // judged once the fight is over, so none sees a fight in it
@@ -6585,6 +6639,23 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         caller->reward += ANSWERED_JOY * caller->feeling(Sociability);
         ++(kind == 0 ? initiative_tally_[static_cast<std::size_t>(caller->species)].answered_heeded
                      : initiative_tally_[static_cast<std::size_t>(caller->species)].answered_back);
+    }
+    // Help tried (see HELPED_JOY): a helping deed by one that heard a caller of its kind; looked at once all have acted.
+    {
+        const int kind = action == Give || action == Offer || action == Tutor || action == FeedYoung ? HelpGave
+                       : action == DropMeat || action == DropFruit || action == DropStone || action == DropBone || action == DropWood ? HelpDropped
+                       : action == Attack || action == Defend || action == Hunt || action == Shoot ? HelpDefended
+                       : action == GoNorth || action == GoSouth || action == GoEast || action == GoWest || action == WalkNorth || action == WalkSouth ||
+                                 action == WalkEast || action == WalkWest || action == Revisit ? HelpLed
+                                                                                               : -1;
+        if (kind >= 0 && agent.heard_from >= 0 && agent.has_last_senses && (HELPED_JOY > 0 || HELPING_JOY > 0)) {
+            agent.help_to = agent.heard_from;
+            agent.help_deed = action;
+            agent.help_kind = kind;
+            agent.help_turn = turn_;
+            agent.help_pending = false;
+            agent.help_senses = agent.last_senses;
+        }
     }
     // Its project's step done in sight is shown to those who follow it (see INSTRUCTED_PULL); its plan open to tell.
     agent.plan_open = agent.project_aim >= 0;
@@ -9104,31 +9175,10 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
     if (agent.stuck && !stuck && agent.goal_kind != NoGoal && agent.goal_turn == agent.stuck_goal_turn) {
         const bool called = agent.help_call_turn >= 0 && turn_ - agent.help_call_turn <= HELP_WINDOW;
         if (agent.goal_project) ++(called ? agent.project_unstuck_after_call : agent.project_unstuck_silent);
-        if (called) {
-            ++agent.unstuck_after_call;
-            bool beside = false;
-            for (const Bitzkey* other : around(agent, 1)) {
-                if (other != &agent && other->alive() && other->species == agent.species && distance(other->x, other->y, agent.x, agent.y) <= 1) beside = true;
-            }
-            if (beside) {
-                ++agent.helped;
-                agent.helped_turn = turn_;
-                s.goal_relief += HELPED_JOY * agent.feeling(Sociability);
-            }
-        } else {
-            ++agent.unstuck_silent;
-        }
+        ++(called ? agent.unstuck_after_call : agent.unstuck_silent);
     }
     agent.stuck = stuck;
     if (stuck) agent.stuck_goal_turn = agent.goal_turn;
-    if (HELPING_JOY > 0 && agent.heard_from >= 0) {  // beside one of its kind it heard call while stuck (heard a turn late)
-        const Bitzkey* caller = find_agent(agent.heard_from);
-        if (caller && caller != &agent && caller->alive() && caller->species == agent.species && caller->help_call_turn == turn_ - 2 &&
-            distance(caller->x, caller->y, agent.x, agent.y) <= 1) {
-            ++agent.helping;
-            s.goal_relief += HELPING_JOY * agent.feeling(Sociability);
-        }
-    }
     // Its project, sensed (see PROJECT_PULL).
     if (agent.project_aim >= 0) {
         senses[SensePlan + PlanHeld] = agent.project_confided ? 0.5 : 1.0;

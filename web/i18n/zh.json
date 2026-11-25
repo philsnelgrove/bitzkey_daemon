@@ -2228,9 +2228,9 @@
 "Help window": "求助时限",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "目标受阻时呼叫后，目标解开即算作得到帮助的回合数",
 "Joy of being helped": "被帮助的喜悦",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "目标受阻的动物呼叫后不久目标解开、且有同类在旁时感到的宽慰（乘以其社交性）；受阻时发出的呼叫会学到它；0 表示没有",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "听见它受阻时呼叫的个体为它做了事（给予、放在身旁、为它而战或引路），且其受阻目标在下一回合解开时它感到的宽慰（乘以社交性）；那次呼叫会学到它；0 表示没有",
 "Joy of helping": "帮助的喜悦",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "动物来到它听见在目标受阻时呼叫的同类身旁时感到的喜悦（乘以其社交性）；0 表示没有",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "它为听见受阻呼叫的个体所做之事解开了对方目标时感到的喜悦（乘以社交性）：该行为会依据它当时的感知（包括听到的声音）学到它；0 表示没有",
 "CHOICES": "选择",
 "LEXICON": "词汇",
 "GOALS": "目标",
@@ -2399,5 +2399,7 @@
 "challenges made": "发起的挑战",
 "challenges won": "赢得的挑战",
 "challenges faced": "遭遇的挑战",
-"challenges held": "守住的挑战"
+"challenges held": "守住的挑战",
+"Help witnessed": "目睹的帮助",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "每个看见有用帮助的个体感到的帮助喜悦份额，另加对帮助者的敬重；0 表示没有"
 }

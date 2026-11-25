@@ -2228,9 +2228,9 @@
 "Help window": "Вікно допомоги",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "ходи після поклику з застряглою метою, протягом яких звільнення мети вважається допомогою",
 "Joy of being helped": "Радість від допомоги",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "полегшення, помножене на товариськість, яке тварина відчуває, коли її застрягла мета звільняється невдовзі після поклику, а поруч хтось її виду; і поклик, зроблений у застряглості, її вчиться; 0 — жодного",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "полегшення, помножене на товариськість, яке тварина відчуває, коли той, хто чув її поклик у застряглості, щось для неї зробив (дав, поклав поруч, бився за неї чи повів) і її застрягла мета звільнилася наступного ходу; поклик цього вчиться; 0 — жодного",
 "Joy of helping": "Радість допомагати",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "радість, помножена на товариськість, яку тварина відчуває, ставши поруч із кимось свого виду, кого чула кличучим, коли його мета застрягла; 0 — жодної",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "радість, помножена на товариськість, яку тварина відчуває, коли те, що вона зробила для того, кого чула кличучим у застряглості, звільнило його мету: вчинок цього вчиться, відносно відчутого, разом із почутими звуками; 0 — жодної",
 "CHOICES": "ВИБОРИ",
 "LEXICON": "СЛОВНИК",
 "GOALS": "ЦІЛІ",
@@ -2399,5 +2399,7 @@
 "challenges made": "викликів кинуто",
 "challenges won": "викликів виграно",
 "challenges faced": "викликів прийнято",
-"challenges held": "викликів відбито"
+"challenges held": "викликів відбито",
+"Help witnessed": "Побачена допомога",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "частка радості допомоги, яку відчуває кожен, хто бачив корисну допомогу, окрім поваги до помічника; 0 — жодної"
 }

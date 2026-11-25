@@ -2228,9 +2228,9 @@
 "Help window": "Hilfefenster",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "Runden nach einem Ruf bei festgefahrenem Ziel, in denen das Freiwerden des Ziels als Hilfe zählt",
 "Joy of being helped": "Freude über Hilfe",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "Erleichterung, mal seiner Geselligkeit, die ein Tier fühlt, wenn sein festgefahrenes Ziel bald nach seinem Ruf frei wird und einer seiner Art neben ihm ist; und der Ruf, den es festgefahren tat, lernt sie; 0 für keine",
+"relief, times its sociability, an animal feels when one that heard it call while stuck did something for it (gave, dropped beside it, fought for it, or led it) and its stuck goal came free the next turn; the call it made is taught it; 0 for none": "Erleichterung, mal seiner Geselligkeit, die ein Tier fühlt, wenn einer, der es festgefahren rufen hörte, etwas für es tat (gab, neben ihm ablegte, für es kämpfte oder es führte) und sein festgefahrenes Ziel in der nächsten Runde frei wurde; der Ruf lernt es; 0 für keine",
 "Joy of helping": "Freude am Helfen",
-"joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "Freude, mal seiner Geselligkeit, die ein Tier fühlt, wenn es neben einen seiner Art kommt, den es rufen hörte, während dessen Ziel festgefahren war; 0 für keine",
+"joy, times its sociability, an animal feels when what it did for one it heard call while stuck freed that one's goal: the deed it did is taught it, against what it sensed, sounds heard and all; 0 for none": "Freude, mal seiner Geselligkeit, die ein Tier fühlt, wenn das, was es für einen tat, den es festgefahren rufen hörte, dessen Ziel befreite: die Tat lernt es, gegen das, was es wahrnahm, gehörte Laute eingeschlossen; 0 für keine",
 "CHOICES": "ENTSCHEIDUNGEN",
 "LEXICON": "WORTSCHATZ",
 "GOALS": "ZIELE",
@@ -2399,5 +2399,7 @@
 "challenges made": "Herausforderungen gemacht",
 "challenges won": "Herausforderungen gewonnen",
 "challenges faced": "Herausforderungen erlebt",
-"challenges held": "Herausforderungen bestanden"
+"challenges held": "Herausforderungen bestanden",
+"Help witnessed": "Gesehene Hilfe",
+"share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none": "Anteil der Freude am Helfen, den jeder fühlt, der nützliche Hilfe sah, neben der Achtung für den Helfer; 0 für keine"
 }
