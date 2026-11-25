@@ -2571,6 +2571,11 @@ Json Probe::goals(Simulation& world) const {
         // given up, steps reached by a link followed the first time; what is learnt opens what, summed.
         long long chaining = 0, chain_depth = 0, chains_begun = 0, steps_reached = 0, steps_given_up = 0, chains_unfinished = 0, first_followed = 0, links_held = 0;
         std::map<std::pair<int, int>, double> opens;
+        // Projects (see PROJECT_PULL): who holds one, of which aim and way, own or confided; at their goals; in lives; worth.
+        std::map<std::string, long long> projects;
+        long long holding_project = 0, confided_held = 0, project_goals = 0, instructed_goals = 0, progressing = 0, taken = 0, given_up = 0,
+                  instructions = 0, confidings = 0;
+        std::array<double, PROJECT_AIMS> worth{};
         long long stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_called = 0, unstuck_silent = 0, helped = 0, helping = 0, stuck_now = 0;
         for (const Bitzkey* agent : world.living()) {
             if (agent->species != species) continue;
@@ -2603,6 +2608,19 @@ Json Probe::goals(Simulation& world) const {
             helped += agent->helped;
             helping += agent->helping;
             stuck_now += agent->stuck && agent->goal_kind != NoGoal;
+            taken += agent->projects_taken;
+            given_up += agent->projects_given_up;
+            instructions += agent->instructions_taken;
+            confidings += agent->confided;
+            for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) worth[aim] += std::abs(agent->aim_value[aim]);
+            if (agent->project_aim >= 0) {
+                ++holding_project;
+                confided_held += agent->project_confided;
+                progressing += world.turn() - agent->project_progress_turn <= DAY_LENGTH;
+                ++projects[std::string(agent->project_dir > 0 ? "raise " : "lower ") + std::string(AIM_NAMES[static_cast<std::size_t>(agent->project_aim)])];
+            }
+            project_goals += agent->goal_kind != NoGoal && agent->goal_project;
+            instructed_goals += agent->goal_kind != NoGoal && agent->goal_instructed;
             for (const OpensLink& link : agent->opens) opens[{link.from, link.to}] += link.strength;
             if (agent->goal_kind != NoGoal && !agent->goal_steps.empty()) {
                 ++chaining;
@@ -2628,7 +2646,7 @@ Json Probe::goals(Simulation& world) const {
                 ++desiring;
                 far_desires += afar;
                 desire_age += world.turn() - agent->goal_turn;
-            } else {
+            } else if (agent->goal_need >= 0) {
                 ++for_need[static_cast<std::size_t>(agent->goal_need)];
                 far_needs += afar;
                 need_age += world.turn() - agent->goal_turn;
@@ -2638,7 +2656,9 @@ Json Probe::goals(Simulation& world) const {
                 ? std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent->goal_target)])])
                 : agent->goal_kind == GoalForDeed ? "do " + std::string(ACTIONS[static_cast<std::size_t>(agent->goal_target)])
                 : "a companion";
-            ++targets[target + (agent->goal_desire ? std::string(" (desired)") : " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")")];
+            ++targets[target + (agent->goal_desire ? std::string(" (desired)") : agent->goal_project ? std::string(" (project)")
+                                : agent->goal_instructed ? std::string(" (instructed)")
+                                : agent->goal_need >= 0 ? " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")" : std::string())];
         }
         if (alive == 0) continue;
         Json needs = Json::object();
@@ -2722,7 +2742,24 @@ Json Probe::goals(Simulation& world) const {
                         {"came_free_soon_after_a_call", unstuck_called}, {"came_free_unasked", unstuck_silent},
                         {"came_free_per_stuck_call", ratio(static_cast<double>(unstuck_called), static_cast<double>(stuck_calls))},
                         {"came_free_per_silent_stuck_turn", ratio(static_cast<double>(unstuck_silent), static_cast<double>(stuck_turns - stuck_calls))},
-                        {"helped", helped}, {"came_beside_a_stuck_caller", helping}}}};
+                        {"helped", helped}, {"came_beside_a_stuck_caller", helping}}},
+            {"projects", [&] {
+                 Json held_aims = Json::array();
+                 std::vector<std::pair<long long, std::string>> sorted;
+                 for (const auto& [name, count] : projects) sorted.emplace_back(count, name);
+                 std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+                 for (const auto& [count, name] : sorted) held_aims.push_back({{"project", name}, {"holders", count}});
+                 Json valued = Json::object();
+                 for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) valued[std::string(AIM_NAMES[aim])] = worth[aim] / static_cast<double>(alive);
+                 return Json{{"holding_share", ratio(static_cast<double>(holding_project), static_cast<double>(alive))},
+                             {"confided_share_of_holders", ratio(static_cast<double>(confided_held), static_cast<double>(holding_project))},
+                             {"progressing_share_of_holders", ratio(static_cast<double>(progressing), static_cast<double>(holding_project))},
+                             {"project_goals_share", ratio(static_cast<double>(project_goals), static_cast<double>(holding))},
+                             {"instructed_goals_share", ratio(static_cast<double>(instructed_goals), static_cast<double>(holding))},
+                             {"held", held_aims},
+                             {"in_lives", {{"taken_up", taken}, {"given_up", given_up}, {"instructions_done", instructions}, {"plans_confided", confidings}}},
+                             {"mean_worth", valued}};
+             }()}};
     }
     return result;
 }

@@ -93,6 +93,7 @@ constexpr std::array<ActionAbout, ACTION_COUNT> ABOUT = {{
     {CraftArrows, 5, "Make arrows from a wood at hand, filling its own bow again, or the bow of one beside it."},
     {Address, 3, "Go up beside one it knows (else one of its kind) and say its call to that one alone, just loud enough to be heard."},
     {Learn, 3, "Spoken to, say the word back to the one who said it, pointing at what it guesses the word means; a right guess teaches both of them."},
+    {Confide, 3, "Go up beside one it may address and share its plan, its project, with that one alone: what it aims at, and where."},
 }};
 constexpr bool each_action_once() {
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -547,7 +548,7 @@ constexpr std::array<std::string_view, 4> SPECIES_ORDER = {"plant", "grazer", "o
 constexpr std::array<std::string_view, ACTION_COUNT> SHORT_ACTIONS = {
     "eat", "forage", "browse", "uproot", "scaven", "feast", "rest", "court", "breed", "hunt", "attack", "defend", "flee", "herd",
     "go N", "go S", "go E", "go W", "walk N", "walk S", "walk E", "walk W", "revisit", "feed", "teach", "take M", "take F", "drop M", "drop F", "pile", "carried",
-    "take S", "take B", "take W", "drop S", "drop B", "drop W", "dress", "mk baxe", "mk barm", "mk club", "mk warm", "mk saxe", "mk bow", "mk wagn", "gear", "drop wp", "drop ar", "cut", "dig", "light", "stoke", "cook", "build", "eat sd", "plant", "road", "marrow", "fert", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store", "arrows"};
+    "take S", "take B", "take W", "drop S", "drop B", "drop W", "dress", "mk baxe", "mk barm", "mk club", "mk warm", "mk saxe", "mk bow", "mk wagn", "gear", "drop wp", "drop ar", "cut", "dig", "light", "stoke", "cook", "build", "eat sd", "plant", "road", "marrow", "fert", "skin", "demand", "steal", "give", "offer", "shoot", "practise", "tutor", "hitch", "unhitch", "store", "arrows", "address", "learn", "confide"};
 constexpr int CELL = 7;        // characters to a column of figures
 constexpr int SITUATION = 42;  // characters to the situations' column
 

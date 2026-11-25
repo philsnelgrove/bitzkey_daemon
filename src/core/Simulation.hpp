@@ -574,6 +574,41 @@ constexpr int ANSWERS_A_TURN = 3;
 inline int HELP_WINDOW = 3;
 inline double HELPED_JOY = 1.0;
 inline double HELPING_JOY = 0.2;
+// Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
+// world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
+// PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
+// with PROJECT_INHERIT of its parents'. Holding none, the aim it values most, if worth PROJECT_MIN times a half and the
+// mean of its patience and curiosity, becomes its project, raised or lowered as it learnt, at the site, group or idea
+// about it then. Each turn its aim moves its way it feels PROJECT_PROGRESS; none for PROJECT_PATIENCE turns times a half
+// and its patience, it gives it up. It learns which deeds and things move its aim, and seeks the best as a goal (going to
+// its site first), drawn PROJECT_PULL times a half and its patience; a need takes over only pulling 1 plus
+// PROJECT_RESOLVE times its patience as hard, the more each turn it waits (GOAL_RISE). Reaching a step brings no joy:
+// only progress does. A leader (or one it confided in) instructs those who follow it by doing its project's step in
+// their sight, or saying a deed-word: the follower takes it as a goal, drawn INSTRUCTED_PULL times its regard, and is
+// glad doing it (GOAL_JOY). With CONFIDE it shares its plan with one beside it: that one gains CONFIDE_SHARE of its worth
+// for the aim, times its regard, knows the plan, pursues it, drawn CONFIDE_SHARE as hard, when it has none of its own,
+// and instructs as the leader does.
+enum ProjectAim : int { SiteBuilt, SiteRoads, SiteFires, SiteStores, SiteKind, GroupFoes, GroupOwn, GroupPeace, KinFamily,
+                        SelfGear, SelfSkills, SelfStanding, ConceptCraft, ConceptWord, ConceptCustom, PROJECT_AIMS };
+enum ProjectTarget : int { TargetSite, TargetGroup, TargetKin, TargetSelf, TargetConcept };
+constexpr std::array<int, PROJECT_AIMS> AIM_TARGET = {TargetSite, TargetSite, TargetSite, TargetSite, TargetSite, TargetGroup, TargetGroup,
+                                                      TargetGroup, TargetKin, TargetSelf, TargetSelf, TargetSelf, TargetConcept, TargetConcept, TargetConcept};
+constexpr std::array<double, PROJECT_AIMS> AIM_SCALE = {5, 10, 3, 10, 10, 50, 50, 1, 5, 4, 6, 10, 10, 10, 10};  // a typical size of each
+constexpr std::array<std::string_view, PROJECT_AIMS> AIM_NAMES = {
+    "built at a site", "roads at a site", "fires at a site", "food stored at a site", "its kind at a site", "a foe group's numbers",
+    "its own group's numbers", "peace with a group", "its family", "its gear", "its skills", "its standing", "a craft known",
+    "a word shared", "cooking practised"};
+constexpr int PROJECT_REACH = 3;  // squares about its site that count as there
+inline double PROJECT_RATE = 0.05;
+inline int PROJECT_EVERY = 24;
+inline double PROJECT_MIN = 0.003;
+inline double PROJECT_PROGRESS = 0.2;
+inline int PROJECT_PATIENCE = 480;
+inline double PROJECT_PULL = 0.4;
+inline double PROJECT_RESOLVE = 2.0;
+inline double PROJECT_INHERIT = 0.5;
+inline double INSTRUCTED_PULL = 0.5;
+inline double CONFIDE_SHARE = 0.5;
 double babble_urge(const Bitzkey& agent);  // the young and sociable's urge to speak (see BABBLE)
 inline double attention(double chatter) { return 1.0 / (1.0 + TUNE_OUT * chatter); }  // how far a chatterer is heeded
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
@@ -1536,6 +1571,24 @@ struct Bitzkey {
     bool stuck = false;
     int stuck_goal_turn = -1, help_call_turn = -1;
     int helped_turn = -1, help_taught_turn = -1;  // when last helped, and when that was last taught its call
+    // Projects (see PROJECT_PULL): what each aim is worth to it, as last sampled, and the good felt since; its project
+    // (aim, -1 none; 1 to raise, -1 to lower; since; last progress; its site, group and idea; the aim as last measured;
+    // whether confided by another, and who), what it learnt moves it, the turns a need has waited on it; whether its goal is
+    // a project's step or an instruction, and from whom; the step it last showed, and whether it has a plan to show; and,
+    // in its life, projects taken up, given up, turns of progress, instructions taken, confidings made and received.
+    std::array<double, PROJECT_AIMS> aim_value{}, aim_last{};
+    bool aim_sampled = false;
+    double aim_good = 0.0, aim_good_drift = 0.0;
+    int project_aim = -1, project_dir = 0, project_turn = -1, project_progress_turn = -1, project_x = -1, project_y = -1,
+        project_group = -1, project_concept = -1, project_from = -1, project_waited = 0;
+    double project_last = 0.0;
+    bool project_confided = false;
+    std::array<double, ACTION_COUNT> project_deeds{};
+    std::array<double, OUTSIDE_SEEN> project_things{};
+    bool goal_project = false, goal_instructed = false;
+    int instructed_by = -1, shown_step = -1, shown_turn = -1;
+    bool plan_open = false;
+    int projects_taken = 0, projects_given_up = 0, project_progress_turns = 0, instructions_taken = 0, confided = 0, confided_to = 0;
     int stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_after_call = 0, unstuck_silent = 0, helped = 0, helping = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
@@ -1982,7 +2035,10 @@ public:
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
     void teach_call_harm(Bitzkey& agent);
-    void teach_call_help(Bitzkey& agent);  // helped soon after calling while stuck: its call taught the joy (HELPED_JOY)  // struck soon after calling: its call taught the harm (CALL_HARM)
+    void teach_call_help(Bitzkey& agent);
+    double aim_measure(const Bitzkey& agent, int aim, int x, int y, int group, int idea, int sight) const;  // see PROJECT_PULL
+    int hostile_realm(const Bitzkey& agent) const;  // the colour group it regards worst, if below nothing; -1 none
+    int chosen_concept(const Bitzkey& agent, int aim) const;  // the craft or word it would spread  // helped soon after calling while stuck: its call taught the joy (HELPED_JOY)  // struck soon after calling: its call taught the harm (CALL_HARM)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);

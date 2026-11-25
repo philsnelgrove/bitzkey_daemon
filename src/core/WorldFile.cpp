@@ -291,6 +291,22 @@ json ingenuity_record(const Bitzkey& agent) {  // see OPENS_RATE: a node saved a
                       agent.steps_given_up, agent.links_first_followed, agent.has_open ? 1 : 0, agent.chains_unfinished}},
             {"links", links}, {"steps", steps}, {"open", open}, {"failed", failed}};
 }
+json project_record(const Bitzkey& agent) {  // see PROJECT_PULL: deeds by number, things by index, only what is not 0
+    json deeds = json::array(), things = json::array();
+    for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) {
+        if (agent.project_deeds[deed] != 0.0) deeds.push_back({static_cast<int>(deed), agent.project_deeds[deed]});
+    }
+    for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+        if (agent.project_things[thing] != 0.0) things.push_back({static_cast<int>(thing), agent.project_things[thing]});
+    }
+    return {{"values", agent.aim_value}, {"last", agent.aim_last},
+            {"head", {agent.aim_sampled ? 1 : 0, agent.project_aim, agent.project_dir, agent.project_turn, agent.project_progress_turn,
+                      agent.project_x, agent.project_y, agent.project_group, agent.project_concept, agent.project_from, agent.project_waited,
+                      agent.project_confided ? 1 : 0, agent.goal_project ? 1 : 0, agent.goal_instructed ? 1 : 0, agent.instructed_by,
+                      agent.shown_step, agent.shown_turn, agent.plan_open ? 1 : 0, agent.projects_taken, agent.projects_given_up,
+                      agent.project_progress_turns, agent.instructions_taken, agent.confided, agent.confided_to}},
+            {"good", {agent.aim_good, agent.aim_good_drift, agent.project_last}}, {"deeds", deeds}, {"things", things}};
+}
 json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, the rest are none
     json needs = json::array();
     for (std::size_t n = 0; n < GOAL_NEEDS; ++n) {
@@ -321,7 +337,7 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
     return {{"head", {agent.goal_kind, agent.goal_target, agent.goal_need, agent.goal_turn, agent.goal_urgency, agent.goal_close,
                        agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
-            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)},
+            {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)}, {"project", project_record(agent)},
             {"asking", {agent.stuck ? 1 : 0, agent.stuck_goal_turn, agent.help_call_turn, agent.stuck_turns, agent.free_turns, agent.stuck_calls,
                         agent.free_calls, agent.unstuck_after_call, agent.unstuck_silent, agent.helped, agent.helping, agent.helped_turn, agent.help_taught_turn}}};
 }
@@ -750,6 +766,50 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 }
             }
         }
+        if (g.contains("project")) {  // see PROJECT_PULL
+            const json& p = g.at("project");
+            agent->aim_value = p.at("values").get<std::array<double, PROJECT_AIMS>>();
+            agent->aim_last = p.at("last").get<std::array<double, PROJECT_AIMS>>();
+            const json& h = p.at("head");
+            const auto at = [&](std::size_t i) { return h.at(i).get<int>(); };
+            agent->aim_sampled = at(0) != 0;
+            agent->project_aim = at(1);
+            agent->project_dir = at(2);
+            agent->project_turn = at(3);
+            agent->project_progress_turn = at(4);
+            agent->project_x = at(5);
+            agent->project_y = at(6);
+            agent->project_group = at(7);
+            agent->project_concept = at(8);
+            agent->project_from = at(9);
+            agent->project_waited = at(10);
+            agent->project_confided = at(11) != 0;
+            agent->goal_project = at(12) != 0;
+            agent->goal_instructed = at(13) != 0;
+            agent->instructed_by = at(14);
+            agent->shown_step = at(15) >= 0 ? numbers.action(at(15)) : -1;
+            agent->shown_turn = at(16);
+            agent->plan_open = at(17) != 0;
+            agent->projects_taken = at(18);
+            agent->projects_given_up = at(19);
+            agent->project_progress_turns = at(20);
+            agent->instructions_taken = at(21);
+            agent->confided = at(22);
+            agent->confided_to = at(23);
+            const json& good = p.at("good");
+            agent->aim_good = good.at(0).get<double>();
+            agent->aim_good_drift = good.at(1).get<double>();
+            agent->project_last = good.at(2).get<double>();
+            for (const json& row : p.at("deeds")) {  // by the deed's saved number
+                const int deed = numbers.action(row.at(0).get<int>());
+                if (deed >= 0) agent->project_deeds[static_cast<std::size_t>(deed)] = row.at(1).get<double>();
+            }
+            for (const json& row : p.at("things")) {
+                const int thing = row.at(0).get<int>();
+                if (thing >= 0 && thing < OUTSIDE_SEEN) agent->project_things[static_cast<std::size_t>(thing)] = row.at(1).get<double>();
+            }
+            if (agent->project_aim < 0 || agent->project_aim >= PROJECT_AIMS) agent->project_aim = -1;
+        }
         if (g.contains("asking")) {  // see HELPED_JOY
             const json& a = g.at("asking");
             agent->stuck = a.at(0).get<int>() != 0;
@@ -806,7 +866,9 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                 agent->goal_steps.push_back(step);
             }
         }
-        if (!agent->goal_desire && agent->goal_kind != NoGoal && (agent->goal_need < 0 || agent->goal_need >= GOAL_NEEDS)) agent->goal_kind = NoGoal;
+        if (!agent->goal_desire && !agent->goal_project && !agent->goal_instructed && agent->goal_kind != NoGoal &&
+            (agent->goal_need < 0 || agent->goal_need >= GOAL_NEEDS))
+            agent->goal_kind = NoGoal;
         if (agent->goal_kind == NoGoal) {
             agent->goal_target = agent->goal_need = -1;
             agent->goal_desire = false;

@@ -3696,6 +3696,72 @@ TEST_CASE("asking: a stuck goal is counted, calls while stuck are counted, and c
     CHECK(helper.situation.goal_relief >= HELPING_JOY * friend_.feeling(Sociability) - 1e-9);
 }
 
+TEST_CASE("projects: a long aim learnt from its life becomes its project, progress is felt, steps sought; leaders instruct; plans are confided") {
+    struct KeepRules {
+        int every = PROJECT_EVERY;
+        double pull = PROJECT_PULL, instructed = INSTRUCTED_PULL;
+        ~KeepRules() { PROJECT_EVERY = every; PROJECT_PULL = pull; INSTRUCTED_PULL = instructed; }
+    } keep;
+    PROJECT_EVERY = 1;
+    PROJECT_PULL = 2.0;
+    INSTRUCTED_PULL = 2.0;
+    Simulation simulation = world(80);
+    Bitzkey& leader = simulation.add_agent(encode_dna(Species::Grazer, {{"patience", 7}, {"curiosity", 7}}), 30, 30);
+    Bitzkey& follower = simulation.add_agent(encode_dna(Species::Grazer), 31, 30);
+    simulation.index_cells();
+    // Learnt: its gear rose (a bow) while it felt good; that aim is worth enough, and it takes it up to raise it.
+    leader.aim_sampled = true;
+    leader.aim_last = {};
+    leader.aim_good = 1.0;
+    leader.aim_good_drift = 0.0;
+    leader.bow = true;
+    simulation.sense(leader);
+    CHECK(leader.aim_value[SelfGear] > 0.0);
+    REQUIRE(leader.project_aim == SelfGear);
+    CHECK(leader.project_dir == 1);
+    CHECK(leader.projects_taken == 1);
+    // Progress felt as its gear rises again.
+    leader.project_last = 0.0;
+    auto progressed = simulation.sense(leader);
+    CHECK(leader.project_progress_turns >= 1);
+    CHECK(progressed.situation.goal_relief >= PROJECT_PROGRESS - 1e-9);
+    CHECK(progressed.senses[SensePlan + PlanHeld] == 1.0);
+    CHECK(progressed.senses[SensePlan + PlanSelf] == 1.0);
+    // It learnt resting raises it: resting is its goal, a step of its project.
+    leader.project_deeds = {};
+    leader.project_deeds[Rest] = 0.5;
+    leader.goal_kind = NoGoal;
+    auto stepped = simulation.sense(leader);
+    REQUIRE(leader.goal_kind == GoalForDeed);
+    CHECK(leader.goal_target == Rest);
+    CHECK(leader.goal_project);
+    CHECK(stepped.senses[SenseGoal + GoalProject] == 1.0);
+    // Doing it in its follower's sight shows it: the follower, regarding it, takes the step as an instruction.
+    simulation.act(leader, Rest, stepped.situation);
+    CHECK(leader.shown_step == Rest);
+    CHECK(leader.plan_open);
+    leader.shown_turn = simulation.turn() - 1;  // shown last turn
+    follower.follows = leader.identifier;
+    follower.known.push_back(Acquaintance{leader.identifier, REGARD_STRONG, 0});
+    auto told = simulation.sense(follower);
+    REQUIRE(follower.goal_kind == GoalForDeed);
+    CHECK(follower.goal_target == Rest);
+    CHECK(follower.goal_instructed);
+    CHECK(follower.instructed_by == leader.identifier);
+    CHECK(told.senses[SenseGoal + GoalInstructed] == 1.0);
+    // Confided: the follower knows the plan, gains a share of its worth, and pursues it as a plan confided.
+    auto sensed = simulation.sense(leader);
+    sensed.situation.addressee = &follower;
+    follower.project_aim = -1;
+    simulation.act(leader, Confide, sensed.situation);
+    CHECK(leader.confided == 1);
+    CHECK(follower.confided_to == 1);
+    CHECK(follower.project_aim == SelfGear);
+    CHECK(follower.project_confided);
+    CHECK(follower.project_from == leader.identifier);
+    CHECK(follower.aim_value[SelfGear] > 0.0);
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);

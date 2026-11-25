@@ -2062,6 +2062,118 @@ void Simulation::teach_call_harm(Bitzkey& agent) {
     }
 }
 
+int Simulation::hostile_realm(const Bitzkey& agent) const {
+    int found = -1;
+    double worst = 0.0;
+    for (const auto& [identifier, realm] : realms_) {
+        if (identifier == agent.realm) continue;
+        for (const Faction& faction : agent.factions) {
+            if (faction.ring == realm.ring && faction.regard < worst) {
+                worst = faction.regard;
+                found = identifier;
+            }
+        }
+    }
+    return found;
+}
+
+int Simulation::chosen_concept(const Bitzkey& agent, int aim) const {
+    if (aim == ConceptCraft) {  // the craft it knows it has tried most
+        int best = -1;
+        for (int craft = 0; craft < CRAFT_COUNT; ++craft) {
+            if ((agent.crafts >> craft & 1) && (best < 0 || agent.craft_tries[static_cast<std::size_t>(craft)] > agent.craft_tries[static_cast<std::size_t>(best)])) best = craft;
+        }
+        return best;
+    }
+    if (aim == ConceptWord) {  // the thing of the word it uses most
+        const LexiconWord* best = nullptr;
+        for (const LexiconWord& word : agent.lexicon) {
+            if (!best || word.uses > best->uses) best = &word;
+        }
+        return best ? best->thing : -1;
+    }
+    return -1;
+}
+
+double Simulation::aim_measure(const Bitzkey& agent, int aim, int x, int y, int group, int idea, int sight) const {
+    // A long aim's quantity now (see PROJECT_PULL): about its site (x, y), the group, its kin, itself or the idea.
+    if (AIM_TARGET[static_cast<std::size_t>(aim)] == TargetSite) {
+        double count = 0.0;
+        for (int dy = -PROJECT_REACH; dy <= PROJECT_REACH; ++dy) {
+            for (int dx = -PROJECT_REACH; dx <= PROJECT_REACH; ++dx) {
+                const int cx = x + dx, cy = y + dy;
+                if (!in_bounds(cx, cy)) continue;
+                switch (aim) {
+                    case SiteBuilt: count += shelter_at(cx, cy) + (works_[cell_index(cx, cy)].craft >= 0); break;
+                    case SiteRoads: count += road_at(cx, cy); break;
+                    case SiteFires: count += fire_at(cx, cy) > turn_; break;
+                    case SiteStores:
+                        for (const PileKind kind : {MeatPile, FruitPile, CookedMeatPile, CookedFruitPile}) count += pile_at(cx, cy, kind);
+                        break;
+                    default: break;
+                }
+            }
+        }
+        if (aim == SiteKind) {
+            for (const Bitzkey* other : Around(*this, Cell{x, y}, PROJECT_REACH, nullptr))  // its kind about the site, itself too
+                count += other->alive() && other->species == agent.species && distance(other->x, other->y, x, y) <= PROJECT_REACH;
+        }
+        return count;
+    }
+    switch (aim) {
+        case GroupFoes: case GroupOwn: {
+            const auto found = realms_.find(aim == GroupOwn ? agent.realm : group);
+            return found == realms_.end() ? 0.0 : found->second.members;
+        }
+        case GroupPeace: {
+            const auto found = realms_.find(group);
+            if (found == realms_.end()) return 0.0;
+            for (const Faction& faction : agent.factions) {
+                if (faction.ring == found->second.ring) return faction.regard;
+            }
+            return 0.0;
+        }
+        case SelfGear:
+            return agent.wielding() + agent.wearing() + agent.bow + static_cast<double>(agent.spare_tools.size());
+        case SelfSkills: {
+            double count = 0.0;
+            for (int craft = 0; craft < CRAFT_COUNT; ++craft) count += (agent.crafts >> craft & 1) + (agent.craft_tries[static_cast<std::size_t>(craft)] >= CRAFT_TRIES);
+            return count;
+        }
+        case SelfStanding:
+            return agent.followers + agent.rank;
+        default: break;
+    }
+    // its kin, or its kind in sight who hold the idea
+    double count = 0.0;
+    const LexiconWord* word = nullptr;
+    if (aim == ConceptWord) {
+        for (const LexiconWord& each : agent.lexicon) {
+            if (each.thing == idea && (!word || each.uses > word->uses)) word = &each;
+        }
+        if (!word) return 0.0;
+    }
+    for (const Bitzkey* other : around(agent, sight)) {
+        if (other == &agent || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
+        if (aim == KinFamily) {
+            count += family(agent, *other);
+            continue;
+        }
+        if (other->species != agent.species) continue;
+        if (aim == ConceptCraft) count += idea >= 0 && (other->crafts >> idea & 1);
+        else if (aim == ConceptCustom) count += other->cooked_known > 0;
+        else if (aim == ConceptWord) {
+            for (const LexiconWord& each : other->lexicon) {
+                if (each.thing == word->thing && each.call == word->call && each.sounds == word->sounds) {
+                    count += 1;
+                    break;
+                }
+            }
+        }
+    }
+    return count;
+}
+
 void Simulation::teach_call_help(Bitzkey& agent) {
     // Helped soon after it called while stuck: the call it made then is taught the joy, against what it sensed as it called.
     if (HELPED_JOY <= 0 || agent.helped_turn < 0 || agent.helped_turn <= agent.help_taught_turn) return;
@@ -4108,6 +4220,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
     }
     available[Address] = s.addressee != nullptr;
+    available[Confide] = s.addressee != nullptr && agent.project_aim >= 0 && !agent.project_confided;  // see CONFIDE_SHARE
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -6392,6 +6505,12 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         ++(kind == 0 ? initiative_tally_[static_cast<std::size_t>(caller->species)].answered_heeded
                      : initiative_tally_[static_cast<std::size_t>(caller->species)].answered_back);
     }
+    // Its project's step done in sight is shown to those who follow it (see INSTRUCTED_PULL); its plan open to tell.
+    agent.plan_open = agent.project_aim >= 0;
+    if (agent.plan_open && (agent.goal_project || agent.goal_instructed) && agent.goal_kind == GoalForDeed && action == agent.goal_target) {
+        agent.shown_step = action;
+        agent.shown_turn = turn_;
+    }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
         if (agent.stuck) {  // called while its goal was stuck (see HELPED_JOY)
             ++agent.stuck_calls;
@@ -6634,6 +6753,42 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Learn:
             agent.last_action = speak_beside(agent, *s.learn_by) ? "said a word back" : "went to say a word back";
             break;
+        case Confide: {  // its plan shared with one beside it (see CONFIDE_SHARE)
+            if (!s.addressee || agent.project_aim < 0) {
+                agent.last_action = "had no plan to share";
+                break;
+            }
+            const bool beside = speak_beside(agent, *s.addressee);
+            agent.last_action = beside ? "shared its plan" : "went to share its plan";
+            if (!beside) break;
+            ++agent.confided;
+            const int from = agent.identifier, to = s.addressee->identifier, aim = agent.project_aim, dir = agent.project_dir;
+            const int x = agent.project_x, y = agent.project_y, group = agent.project_group, idea = agent.project_concept;
+            const double worth = agent.aim_value[static_cast<std::size_t>(aim)];
+            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth] {
+                Bitzkey* other = find_agent(to);
+                const Bitzkey* teller = find_agent(from);
+                if (!other || !other->alive() || !teller) return;
+                const double regard = std::clamp(regard_for(*other, *teller), 0.0, 1.0);
+                other->aim_value[static_cast<std::size_t>(aim)] += std::clamp(CONFIDE_SHARE, 0.0, 1.0) * worth * regard;
+                ++other->confided_to;
+                if (other->project_aim >= 0 && !other->project_confided) return;  // its own project kept
+                other->project_aim = aim;
+                other->project_dir = dir;
+                other->project_x = x;
+                other->project_y = y;
+                other->project_group = group;
+                other->project_concept = idea;
+                other->project_turn = other->project_progress_turn = turn_;
+                other->project_last = aim_measure(*other, aim, x, y, group, idea, sight_now(*other));
+                other->project_confided = true;
+                other->project_from = from;
+                other->project_deeds = {};
+                other->project_things = {};
+            };
+            if (!later(share)) share();
+            break;
+        }
         case TakeMeat:
             take_meat(agent, s);
             break;
@@ -8426,12 +8581,17 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         } else {
             met = agent.goal_turn < turn_ && agent.last_choice == agent.goal_target;  // the deed done last turn
         }
-        // A need's goal is pushed by that need; a desire's pulled by its spark, and not let go for a need met.
-        const double push = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target) : now[static_cast<std::size_t>(agent.goal_need)];
-        const bool sated = !agent.goal_desire && push < GOAL_SATED;
+        // A need's goal is pushed by that need; a desire's pulled by its spark, and not let go for a need met; a project's
+        // step by its project, gone with it; an instruction by its urgency (see PROJECT_PULL).
+        if (agent.goal_project && agent.project_aim < 0) gone = true;
+        const bool pulled = agent.goal_desire || agent.goal_project || agent.goal_instructed;
+        const double push = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target)
+                          : pulled ? agent.goal_urgency : now[static_cast<std::size_t>(std::max(0, agent.goal_need))];
+        const bool sated = !pulled && push < GOAL_SATED;
         const double patience = agent.feeling(Patience);
         if (met) {
-            double joy = GOAL_JOY * agent.goal_urgency;
+            double joy = agent.goal_project ? 0.0 : GOAL_JOY * agent.goal_urgency;  // a project's step: only progress brings joy
+            if (agent.goal_instructed) ++agent.instructions_taken;
             if (agent.goal_desire) {  // as much as its pleasure in it has not faded, and fading the more (PLEASURE_FADE)
                 if (double* fade = fade_of(agent.goal_kind, agent.goal_target)) {
                     joy *= 1.0 - *fade;
@@ -8462,6 +8622,8 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             agent.goal_close = -1.0;
             agent.goal_desire = false;
             agent.goal_remembered = false;
+            agent.goal_project = agent.goal_instructed = false;
+            agent.instructed_by = -1;
         }
     }
     // What it liked (see DESIRE): the good it felt since last turn, beyond its usual, after what it came nearer and did:
@@ -8484,6 +8646,125 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         }
     }
     for (std::size_t at = 0; at < agent.relief_ones.size(); ++at) agent.relief_ones[at].close = ones_close[at];
+    // Projects (see PROJECT_PULL): the long aims sampled, now and then, and learnt against the good felt since.
+    const double felt_good = lived ? std::max(0.0, agent.reward - agent.joy_mark) : 0.0;
+    agent.aim_good += felt_good;
+    const double patience_now = agent.feeling(Patience), mind = (patience_now + agent.feeling(Curiosity)) / 2.0;
+    if (PROJECT_EVERY > 0 && (turn_ + agent.identifier) % PROJECT_EVERY == 0) {
+        std::array<double, PROJECT_AIMS> measured{};
+        const int here_group = hostile_realm(agent);
+        for (int aim = 0; aim < PROJECT_AIMS; ++aim)
+            measured[static_cast<std::size_t>(aim)] = aim_measure(agent, aim, agent.x, agent.y, here_group, chosen_concept(agent, aim), sight);
+        if (agent.aim_sampled && PROJECT_RATE > 0) {
+            const double rate = std::min(1.0, PROJECT_RATE);
+            const double good = agent.aim_good / PROJECT_EVERY, gain = good - agent.aim_good_drift;
+            agent.aim_good_drift += rate * (good - agent.aim_good_drift);
+            for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) {
+                const double moved = std::clamp((measured[aim] - agent.aim_last[aim]) / AIM_SCALE[aim], -1.0, 1.0);
+                agent.aim_value[aim] += rate * (moved * gain - agent.aim_value[aim]);
+            }
+        }
+        agent.aim_last = measured;
+        agent.aim_sampled = true;
+        agent.aim_good = 0.0;
+        if (agent.project_aim < 0 || agent.project_confided) {  // the aim it values most, if enough, its own project
+            int best = 0;
+            for (int aim = 1; aim < PROJECT_AIMS; ++aim) {
+                if (std::abs(agent.aim_value[static_cast<std::size_t>(aim)]) > std::abs(agent.aim_value[static_cast<std::size_t>(best)])) best = aim;
+            }
+            const double worth = std::abs(agent.aim_value[static_cast<std::size_t>(best)]);
+            const int group = hostile_realm(agent);
+            const bool targetable = (best != GroupFoes && best != GroupPeace) || group >= 0;
+            if (PROJECT_MIN > 0 && targetable && worth * (0.5 + mind) >= PROJECT_MIN) {
+                agent.project_aim = best;
+                agent.project_dir = agent.aim_value[static_cast<std::size_t>(best)] >= 0 ? 1 : -1;
+                agent.project_turn = agent.project_progress_turn = turn_;
+                agent.project_x = agent.x;
+                agent.project_y = agent.y;
+                agent.project_group = group;
+                agent.project_concept = chosen_concept(agent, best);
+                agent.project_last = measured[static_cast<std::size_t>(best)];
+                agent.project_confided = false;
+                agent.project_from = -1;
+                agent.project_deeds = {};
+                agent.project_things = {};
+                ++agent.projects_taken;
+            }
+        }
+    }
+    // Its project: progress felt, what moved it learnt, given up when long without progress.
+    int project_kind = NoGoal, project_target = -1;
+    double project_pull = 0.0;
+    if (agent.project_aim >= 0) {
+        const double m = aim_measure(agent, agent.project_aim, agent.project_x, agent.project_y, agent.project_group, agent.project_concept, sight);
+        const double moved = (m - agent.project_last) * agent.project_dir;
+        if (moved > 1e-9) {
+            s.goal_relief += PROJECT_PROGRESS;
+            agent.project_progress_turn = turn_;
+            ++agent.project_progress_turns;
+        }
+        if (lived && RELIEF_RATE > 0) {
+            const double rate = std::min(1.0, RELIEF_RATE), gain = std::clamp(moved / AIM_SCALE[static_cast<std::size_t>(agent.project_aim)], -1.0, 1.0);
+            if (agent.last_choice >= 0 && agent.last_choice < ACTION_COUNT) {
+                double& deed = agent.project_deeds[static_cast<std::size_t>(agent.last_choice)];
+                deed += rate * (gain - deed);
+            }
+            for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                if (agent.moved[thing] > 0) agent.project_things[thing] += rate * (gain - agent.project_things[thing]);
+            }
+        }
+        agent.project_last = m;
+        if (turn_ - agent.project_progress_turn > PROJECT_PATIENCE * (0.5 + patience_now)) {
+            if (!agent.project_confided) ++agent.projects_given_up;
+            agent.project_aim = -1;
+        }
+    }
+    if (agent.project_aim >= 0) {  // the step it would take: to its site first, else what it learnt moves its aim most
+        const bool site = AIM_TARGET[static_cast<std::size_t>(agent.project_aim)] == TargetSite;
+        const int dx = agent.project_x - agent.x, dy = agent.project_y - agent.y;
+        if (site && distance(agent.project_x, agent.project_y, agent.x, agent.y) > PROJECT_REACH) {
+            project_kind = GoalForDeed;
+            project_target = std::abs(dx) >= std::abs(dy) ? (dx > 0 ? GoEast : GoWest) : (dy > 0 ? GoSouth : GoNorth);
+        } else {
+            double best = GOAL_MIN_RELIEF;
+            for (int deed = 0; deed < ACTION_COUNT; ++deed) {
+                if (agent.project_deeds[static_cast<std::size_t>(deed)] >= best && !(project_kind != NoGoal && agent.project_deeds[static_cast<std::size_t>(deed)] == best)) {
+                    best = agent.project_deeds[static_cast<std::size_t>(deed)];
+                    project_kind = GoalForDeed;
+                    project_target = deed;
+                }
+            }
+            for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) {
+                if (agent.project_things[static_cast<std::size_t>(thing)] > best) {
+                    best = agent.project_things[static_cast<std::size_t>(thing)];
+                    project_kind = GoalForThing;
+                    project_target = thing;
+                }
+            }
+        }
+        if (project_kind != NoGoal) project_pull = PROJECT_PULL * (0.5 + patience_now) * (agent.project_confided ? CONFIDE_SHARE : 1.0);
+    }
+    // Its leader's instruction (see INSTRUCTED_PULL): the step one it follows, or one that one confided in, showed in its
+    // sight last turn, or a deed-word one of them said to it.
+    int instructed_deed = -1, instructor = -1;
+    double instructed_pull = 0.0;
+    if (INSTRUCTED_PULL > 0 && agent.follows >= 0) {
+        for (const Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
+            if (other->identifier != agent.follows && other->project_from != agent.follows) continue;
+            int deed = -1;
+            if (other->shown_turn == turn_ - 1 && other->shown_step >= 0) deed = other->shown_step;  // by sign
+            if (other->plan_open && agent.meant_turn == turn_ - 1 && agent.meant_by_deed && agent.word_from == other->identifier && agent.meant_deed >= 0)
+                deed = agent.meant_deed;  // by word
+            if (deed < 0) continue;
+            const double pull = INSTRUCTED_PULL * std::clamp(regard_for(agent, *other), 0.0, 1.0);
+            if (pull > instructed_pull) {
+                instructed_pull = pull;
+                instructed_deed = deed;
+                instructor = other->identifier;
+            }
+        }
+    }
     // Its worst need, and what it has found eases that need most; and its strongest desire. The greater pull is a goal,
     // or a better one in place of its own.
     int worst = -1;
@@ -8520,23 +8801,47 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed, agent.spark_deeds[static_cast<std::size_t>(deed)]);
     }
     const double need_pull = kind != NoGoal ? now[static_cast<std::size_t>(worst)] : 0.0;
-    const bool desired = wish_kind != NoGoal && wish > need_pull;
+    bool desired = wish_kind != NoGoal && wish > need_pull;
     if (desired) {
         kind = wish_kind;
         target = wish_target;
     }
+    // A project's step, held above a need by its patience (the need pressing the harder each turn it waits), and an
+    // instruction: the greatest pull is the goal.
+    double pull = desired ? wish : need_pull;
+    const double held_up = project_pull * (1.0 + PROJECT_RESOLVE * patience_now) / (1.0 + GOAL_RISE * agent.project_waited);
+    bool projected = false, instructed = false;
+    if (project_kind != NoGoal && held_up > pull) {
+        projected = true;
+        desired = false;
+        kind = project_kind;
+        target = project_target;
+        pull = held_up;
+    }
+    if (instructed_deed >= 0 && instructed_pull > pull) {
+        instructed = true;
+        projected = desired = false;
+        kind = GoalForDeed;
+        target = instructed_deed;
+        pull = instructed_pull;
+    }
+    if (projected && worst >= 0) ++agent.project_waited;
+    else if (!projected) agent.project_waited = 0;
     if (kind != NoGoal) {
-        const bool same = kind == agent.goal_kind && target == agent.goal_target && desired == agent.goal_desire && (desired || worst == agent.goal_need);
+        const bool same = kind == agent.goal_kind && target == agent.goal_target && desired == agent.goal_desire && projected == agent.goal_project &&
+                          instructed == agent.goal_instructed && (desired || projected || instructed || worst == agent.goal_need);
         bool adopt = agent.goal_kind == NoGoal;
         if (agent.goal_kind != NoGoal && !same) {
             const double margin = 1.0 + GOAL_STUBBORNNESS * 2.0 * agent.feeling(Patience);
             double held = 0.0, offered = 0.0;
-            if (!desired && !agent.goal_desire) {  // need against need: each by how much it eases its need
+            const bool held_pulled = agent.goal_desire || agent.goal_project || agent.goal_instructed;
+            if (!desired && !projected && !instructed && !held_pulled) {  // need against need: each by how much it eases its need
                 held = now[static_cast<std::size_t>(agent.goal_need)] * worth(agent.goal_kind, agent.goal_target, agent.goal_need);
                 offered = need_pull * worth(kind, target, worst);
             } else {  // a desire in it: pull against pull
-                held = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target) : now[static_cast<std::size_t>(agent.goal_need)];
-                offered = desired ? wish : need_pull;
+                held = agent.goal_desire ? spark_of(agent.goal_kind, agent.goal_target)
+                     : held_pulled ? agent.goal_urgency : now[static_cast<std::size_t>(std::max(0, agent.goal_need))];
+                offered = pull;
             }
             if (offered > std::max(0.0, held) * margin) {
                 adopt = true;
@@ -8546,10 +8851,13 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         if (adopt) {
             agent.goal_kind = kind;
             agent.goal_target = target;
-            agent.goal_need = desired ? -1 : worst;
+            agent.goal_need = desired || projected || instructed ? -1 : worst;
             agent.goal_desire = desired;
+            agent.goal_project = projected;
+            agent.goal_instructed = instructed;
+            agent.instructed_by = instructed ? instructor : -1;
             agent.goal_turn = turn_;
-            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, desired ? wish : need_pull);
+            agent.goal_urgency = std::min(GOAL_URGENCY_MAX, pull);
             agent.goal_close = goal_closeness(kind, target);
             ++agent.goals_formed;
             if (desired) {
@@ -8657,6 +8965,19 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             s.goal_relief += HELPING_JOY * agent.feeling(Sociability);
         }
     }
+    // Its project, sensed (see PROJECT_PULL).
+    if (agent.project_aim >= 0) {
+        senses[SensePlan + PlanHeld] = agent.project_confided ? 0.5 : 1.0;
+        senses[SensePlan + PlanProgressing] = turn_ - agent.project_progress_turn <= DAY_LENGTH ? 1.0 : 0.0;
+        const int target_kind = AIM_TARGET[static_cast<std::size_t>(agent.project_aim)];
+        if (target_kind == TargetSite) {
+            const double steps = std::max(1, distance(agent.project_x, agent.project_y, agent.x, agent.y));
+            senses[SensePlan + PlanEast] = (agent.project_x - agent.x) / steps;
+            senses[SensePlan + PlanSouth] = (agent.project_y - agent.y) / steps;
+        }
+        senses[SensePlan + PlanSite + target_kind] = 1.0;
+        senses[SensePlan + PlanRaise] = agent.project_dir;
+    }
     // Felt, and sensed: the goal's urgency and need, but what it seeks now, its step if it has one.
     if (agent.goal_kind != NoGoal) {
         s.goal_unease = GOAL_UNEASE * agent.goal_urgency;
@@ -8681,8 +9002,10 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             senses[SenseGoal + GoalSouth] = (place->y - agent.y) / steps;
         }
         if (agent.stuck) senses[SenseGoal + GoalStuck] = 1.0;  // shut to it (see HELPED_JOY)
+        if (agent.goal_project) senses[SenseGoal + GoalProject] = 1.0;
+        if (agent.goal_instructed) senses[SenseGoal + GoalInstructed] = 1.0;
         if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
-        else senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
+        else if (agent.goal_need >= 0) senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
         if (seek_kind == GoalForThing) {
             senses[SenseGoal + GoalThing + seek] = 1.0;
         } else if (seek_kind == GoalForOne) {
@@ -8719,6 +9042,9 @@ void Simulation::inherit_relief(Bitzkey& child, const Bitzkey& mother, const Bit
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) child.want_things[thing] = liked * parents(&Bitzkey::want_things, thing);
         for (std::size_t deed = 0; deed < ACTION_COUNT; ++deed) child.want_deeds[deed] = liked * parents(&Bitzkey::want_deeds, deed);
     }
+    // And what the long aims were worth to them (see PROJECT_INHERIT).
+    const double aims = std::clamp(PROJECT_INHERIT, 0.0, 1.0);
+    for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) child.aim_value[aim] = aims * (father ? (mother.aim_value[aim] + father->aim_value[aim]) / 2 : mother.aim_value[aim]);
     // And what they learnt opens what (see OPENS_INHERIT): a share of each link, the parents' averaged, the strongest kept.
     const double opened = std::clamp(OPENS_INHERIT, 0.0, 1.0);
     child.opens.clear();
