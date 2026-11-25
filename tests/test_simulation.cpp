@@ -3711,8 +3711,10 @@ TEST_CASE("projects: a long aim learnt from its life becomes its project, progre
     simulation.index_cells();
     // Learnt: its gear rose (a bow) while it felt good; that aim is worth enough, and it takes it up to raise it.
     leader.aim_sampled = true;
+    leader.aim_agree = {};
+    leader.aim_agree[SelfGear] = 0.9;  // it has moved its way, with good, nearly always
     leader.aim_last = {};
-    leader.aim_good = 1.0;
+    leader.aim_good = 4.0;
     leader.aim_good_drift = 0.0;
     leader.bow = true;
     simulation.sense(leader);

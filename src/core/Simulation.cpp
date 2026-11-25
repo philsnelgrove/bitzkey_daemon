@@ -6514,6 +6514,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
         if (agent.stuck) {  // called while its goal was stuck (see HELPED_JOY)
             ++agent.stuck_calls;
+            agent.project_stuck_calls += agent.goal_project;
             agent.help_call_turn = turn_;
         } else if (agent.goal_kind != NoGoal) {
             ++agent.free_calls;
@@ -8662,20 +8663,28 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) {
                 const double moved = std::clamp((measured[aim] - agent.aim_last[aim]) / AIM_SCALE[aim], -1.0, 1.0);
                 agent.aim_value[aim] += rate * (moved * gain - agent.aim_value[aim]);
+                const double together = moved * gain;  // the way it moved with good felt, when it moved at all
+                if (together != 0.0) agent.aim_agree[aim] += rate * ((together > 0 ? 1.0 : -1.0) - agent.aim_agree[aim]);
             }
         }
         agent.aim_last = measured;
         agent.aim_sampled = true;
         agent.aim_good = 0.0;
         if (agent.project_aim < 0 || agent.project_confided) {  // the aim it values most, if enough, its own project
+            // its worth, counted only as far as it moved that way consistently (see PROJECT_CONSISTENCY)
+            const auto sure = [&](std::size_t aim) {
+                const double value = agent.aim_value[aim];
+                return value * agent.aim_agree[aim] > 0 ? std::abs(agent.aim_agree[aim]) : 0.0;
+            };
             int best = 0;
+            const auto score = [&](int aim) { return std::abs(agent.aim_value[static_cast<std::size_t>(aim)]) * sure(static_cast<std::size_t>(aim)); };
             for (int aim = 1; aim < PROJECT_AIMS; ++aim) {
-                if (std::abs(agent.aim_value[static_cast<std::size_t>(aim)]) > std::abs(agent.aim_value[static_cast<std::size_t>(best)])) best = aim;
+                if (score(aim) > score(best)) best = aim;
             }
             const double worth = std::abs(agent.aim_value[static_cast<std::size_t>(best)]);
             const int group = hostile_realm(agent);
             const bool targetable = (best != GroupFoes && best != GroupPeace) || group >= 0;
-            if (PROJECT_MIN > 0 && targetable && worth * (0.5 + mind) >= PROJECT_MIN) {
+            if (PROJECT_MIN > 0 && targetable && worth * (0.5 + mind) >= PROJECT_MIN && sure(static_cast<std::size_t>(best)) >= PROJECT_CONSISTENCY) {
                 agent.project_aim = best;
                 agent.project_dir = agent.aim_value[static_cast<std::size_t>(best)] >= 0 ? 1 : -1;
                 agent.project_turn = agent.project_progress_turn = turn_;
@@ -8747,21 +8756,26 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
     // Its leader's instruction (see INSTRUCTED_PULL): the step one it follows, or one that one confided in, showed in its
     // sight last turn, or a deed-word one of them said to it.
     int instructed_deed = -1, instructor = -1;
+    bool instructed_word = false;
     double instructed_pull = 0.0;
     if (INSTRUCTED_PULL > 0 && agent.follows >= 0) {
         for (const Bitzkey* other : around(agent, sight)) {
             if (other == &agent || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight) continue;
             if (other->identifier != agent.follows && other->project_from != agent.follows) continue;
             int deed = -1;
+            bool word = false;
             if (other->shown_turn == turn_ - 1 && other->shown_step >= 0) deed = other->shown_step;  // by sign
-            if (other->plan_open && agent.meant_turn == turn_ - 1 && agent.meant_by_deed && agent.word_from == other->identifier && agent.meant_deed >= 0)
+            if (other->plan_open && agent.meant_turn == turn_ - 1 && agent.meant_by_deed && agent.word_from == other->identifier && agent.meant_deed >= 0) {
                 deed = agent.meant_deed;  // by word
+                word = true;
+            }
             if (deed < 0) continue;
             const double pull = INSTRUCTED_PULL * std::clamp(regard_for(agent, *other), 0.0, 1.0);
             if (pull > instructed_pull) {
                 instructed_pull = pull;
                 instructed_deed = deed;
                 instructor = other->identifier;
+                instructed_word = word;
             }
         }
     }
@@ -8856,6 +8870,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             agent.goal_project = projected;
             agent.goal_instructed = instructed;
             agent.instructed_by = instructed ? instructor : -1;
+            if (instructed) ++(instructed_word ? agent.instructed_by_word : agent.instructed_by_sign);
             agent.goal_turn = turn_;
             agent.goal_urgency = std::min(GOAL_URGENCY_MAX, pull);
             agent.goal_close = goal_closeness(kind, target);
@@ -8939,8 +8954,11 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
     // Asking (see HELPED_JOY): its goal stuck, or come free soon after it called while stuck, one of its kind beside it.
     const bool stuck = root >= 0 && shut(root);
     if (agent.goal_kind != NoGoal) ++(stuck ? agent.stuck_turns : agent.free_turns);
+    if (stuck && agent.goal_project) ++agent.project_stuck_turns;
     if (agent.stuck && !stuck && agent.goal_kind != NoGoal && agent.goal_turn == agent.stuck_goal_turn) {
-        if (agent.help_call_turn >= 0 && turn_ - agent.help_call_turn <= HELP_WINDOW) {
+        const bool called = agent.help_call_turn >= 0 && turn_ - agent.help_call_turn <= HELP_WINDOW;
+        if (agent.goal_project) ++(called ? agent.project_unstuck_after_call : agent.project_unstuck_silent);
+        if (called) {
             ++agent.unstuck_after_call;
             bool beside = false;
             for (const Bitzkey* other : around(agent, 1)) {

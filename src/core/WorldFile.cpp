@@ -299,7 +299,9 @@ json project_record(const Bitzkey& agent) {  // see PROJECT_PULL: deeds by numbe
     for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
         if (agent.project_things[thing] != 0.0) things.push_back({static_cast<int>(thing), agent.project_things[thing]});
     }
-    return {{"values", agent.aim_value}, {"last", agent.aim_last},
+    return {{"values", agent.aim_value}, {"last", agent.aim_last}, {"agree", agent.aim_agree},
+            {"asking", {agent.project_stuck_turns, agent.project_stuck_calls, agent.project_unstuck_after_call, agent.project_unstuck_silent,
+                        agent.instructed_by_sign, agent.instructed_by_word}},
             {"head", {agent.aim_sampled ? 1 : 0, agent.project_aim, agent.project_dir, agent.project_turn, agent.project_progress_turn,
                       agent.project_x, agent.project_y, agent.project_group, agent.project_concept, agent.project_from, agent.project_waited,
                       agent.project_confided ? 1 : 0, agent.goal_project ? 1 : 0, agent.goal_instructed ? 1 : 0, agent.instructed_by,
@@ -770,6 +772,16 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             const json& p = g.at("project");
             agent->aim_value = p.at("values").get<std::array<double, PROJECT_AIMS>>();
             agent->aim_last = p.at("last").get<std::array<double, PROJECT_AIMS>>();
+            if (p.contains("agree")) agent->aim_agree = p.at("agree").get<std::array<double, PROJECT_AIMS>>();
+            if (p.contains("asking")) {
+                const json& a = p.at("asking");
+                agent->project_stuck_turns = a.at(0).get<int>();
+                agent->project_stuck_calls = a.at(1).get<int>();
+                agent->project_unstuck_after_call = a.at(2).get<int>();
+                agent->project_unstuck_silent = a.at(3).get<int>();
+                agent->instructed_by_sign = a.at(4).get<int>();
+                agent->instructed_by_word = a.at(5).get<int>();
+            }
             const json& h = p.at("head");
             const auto at = [&](std::size_t i) { return h.at(i).get<int>(); };
             agent->aim_sampled = at(0) != 0;

@@ -267,6 +267,7 @@ std::vector<Rule> make_rules() {
         {"PROJECT_RATE", "Mind", "Project learning", "how fast an animal learns, from its own life, which long aims rose (or fell) before it felt good, sampled every few turns; 0 for none", 0.0, 1.0, 0.01, false, &PROJECT_RATE},
         {"PROJECT_EVERY", "Mind", "Project sampling", "turns between an animal's samples of the world's long aims, learnt against how good it felt between them", 1, 480, 1, true, &PROJECT_EVERY},
         {"PROJECT_MIN", "Mind", "Project threshold", "the least an aim must be worth to it, times a half and the mean of its patience and curiosity, to take it up as its project", 0.0, 1.0, 0.001, false, &PROJECT_MIN},
+        {"PROJECT_CONSISTENCY", "Mind", "Project consistency", "how surely an aim must have moved its way whenever it felt good (0 never, 1 always), as well as being worth enough, to become its project; lest chance swings be taken for its doing", 0.0, 1.0, 0.05, false, &PROJECT_CONSISTENCY},
         {"PROJECT_PROGRESS", "Mind", "Project progress", "joy each turn its project's aim moves the way it wants", 0.0, 2.0, 0.05, false, &PROJECT_PROGRESS},
         {"PROJECT_PATIENCE", "Mind", "Project patience", "turns, times a half and its patience, a project may go without progress before it is given up", 1, 20000, 10, true, &PROJECT_PATIENCE},
         {"PROJECT_PULL", "Mind", "Project pull", "how strongly its project draws it, times a half and its patience, against its needs and desires", 0.0, 2.0, 0.05, false, &PROJECT_PULL},

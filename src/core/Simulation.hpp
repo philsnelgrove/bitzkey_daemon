@@ -601,7 +601,9 @@ constexpr std::array<std::string_view, PROJECT_AIMS> AIM_NAMES = {
 constexpr int PROJECT_REACH = 3;  // squares about its site that count as there
 inline double PROJECT_RATE = 0.05;
 inline int PROJECT_EVERY = 24;
-inline double PROJECT_MIN = 0.003;
+inline double PROJECT_MIN = 0.02;
+// And how surely each aim moved its way with good felt, the same rate: one that swings by chance agrees no way for long.
+inline double PROJECT_CONSISTENCY = 0.3;
 inline double PROJECT_PROGRESS = 0.2;
 inline int PROJECT_PATIENCE = 480;
 inline double PROJECT_PULL = 0.4;
@@ -1576,7 +1578,7 @@ struct Bitzkey {
     // whether confided by another, and who), what it learnt moves it, the turns a need has waited on it; whether its goal is
     // a project's step or an instruction, and from whom; the step it last showed, and whether it has a plan to show; and,
     // in its life, projects taken up, given up, turns of progress, instructions taken, confidings made and received.
-    std::array<double, PROJECT_AIMS> aim_value{}, aim_last{};
+    std::array<double, PROJECT_AIMS> aim_value{}, aim_last{}, aim_agree{};  // worth, as last sampled, how surely it moved with good
     bool aim_sampled = false;
     double aim_good = 0.0, aim_good_drift = 0.0;
     int project_aim = -1, project_dir = 0, project_turn = -1, project_progress_turn = -1, project_x = -1, project_y = -1,
@@ -1589,6 +1591,9 @@ struct Bitzkey {
     int instructed_by = -1, shown_step = -1, shown_turn = -1;
     bool plan_open = false;
     int projects_taken = 0, projects_given_up = 0, project_progress_turns = 0, instructions_taken = 0, confided = 0, confided_to = 0;
+    // and asking for its project (see HELPED_JOY): turns its project's step was stuck, calls made then, stuck steps come free
+    // soon after a call or unasked; instructions taken by sign and by word
+    int project_stuck_turns = 0, project_stuck_calls = 0, project_unstuck_after_call = 0, project_unstuck_silent = 0, instructed_by_sign = 0, instructed_by_word = 0;
     int stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_after_call = 0, unstuck_silent = 0, helped = 0, helping = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)

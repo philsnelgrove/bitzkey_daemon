@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 577 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 578 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 577 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (258 rules)
+6. [Mind](#6-mind) (259 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (11 rules)
@@ -1460,45 +1460,51 @@ Default **24**; from 1 to 480, in steps of 1.
 
 The least an aim must be worth to it, times a half and the mean of its patience and curiosity, to take it up as its project.
 
-Default **0.003**; from 0 to 1, in steps of 0.001.
+Default **0.02**; from 0 to 1, in steps of 0.001.
 
-#### 6.36.3 Project progress (`PROJECT_PROGRESS`)
+#### 6.36.3 Project consistency (`PROJECT_CONSISTENCY`)
+
+How surely an aim must have moved its way whenever it felt good (0 never, 1 always), as well as being worth enough, to become its project; lest chance swings be taken for its doing.
+
+Default **0.3**; from 0 to 1, in steps of 0.05.
+
+#### 6.36.4 Project progress (`PROJECT_PROGRESS`)
 
 Joy each turn its project's aim moves the way it wants.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.4 Project patience (`PROJECT_PATIENCE`)
+#### 6.36.5 Project patience (`PROJECT_PATIENCE`)
 
 Turns, times a half and its patience, a project may go without progress before it is given up.
 
 Default **480**; from 1 to 20000, in steps of 10.
 
-#### 6.36.5 Project pull (`PROJECT_PULL`)
+#### 6.36.6 Project pull (`PROJECT_PULL`)
 
 How strongly its project draws it, times a half and its patience, against its needs and desires.
 
 Default **0.4**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.6 Project resolve (`PROJECT_RESOLVE`)
+#### 6.36.7 Project resolve (`PROJECT_RESOLVE`)
 
 How much more its patience holds its project above a need: a need must pull 1 plus this times its patience as hard, rising with each turn it waits.
 
 Default **2**; from 0 to 10, in steps of 0.1.
 
-#### 6.36.7 Project inheritance (`PROJECT_INHERIT`)
+#### 6.36.8 Project inheritance (`PROJECT_INHERIT`)
 
 Share of what its parents learnt of the long aims that a newborn starts with.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.8 Instruction pull (`INSTRUCTED_PULL`)
+#### 6.36.9 Instruction pull (`INSTRUCTED_PULL`)
 
 How strongly its leader's instruction, shown or said, draws a follower, times its regard for the one instructing.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.9 Confided share (`CONFIDE_SHARE`)
+#### 6.36.10 Confided share (`CONFIDE_SHARE`)
 
 Share of the one confiding's worth for its aim that one confided in gains, times its regard for it; and how strongly a plan confided draws it.
 

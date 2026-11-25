@@ -2574,7 +2574,8 @@ Json Probe::goals(Simulation& world) const {
         // Projects (see PROJECT_PULL): who holds one, of which aim and way, own or confided; at their goals; in lives; worth.
         std::map<std::string, long long> projects;
         long long holding_project = 0, confided_held = 0, project_goals = 0, instructed_goals = 0, progressing = 0, taken = 0, given_up = 0,
-                  instructions = 0, confidings = 0;
+                  instructions = 0, confidings = 0, p_stuck = 0, p_calls = 0, p_called_free = 0, p_silent_free = 0, by_sign = 0, by_word = 0;
+        std::array<double, PROJECT_AIMS> sureness{};
         std::array<double, PROJECT_AIMS> worth{};
         long long stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_called = 0, unstuck_silent = 0, helped = 0, helping = 0, stuck_now = 0;
         for (const Bitzkey* agent : world.living()) {
@@ -2612,7 +2613,16 @@ Json Probe::goals(Simulation& world) const {
             given_up += agent->projects_given_up;
             instructions += agent->instructions_taken;
             confidings += agent->confided;
-            for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) worth[aim] += std::abs(agent->aim_value[aim]);
+            for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) {
+                worth[aim] += std::abs(agent->aim_value[aim]);
+                sureness[aim] += std::abs(agent->aim_agree[aim]);
+            }
+            p_stuck += agent->project_stuck_turns;
+            p_calls += agent->project_stuck_calls;
+            p_called_free += agent->project_unstuck_after_call;
+            p_silent_free += agent->project_unstuck_silent;
+            by_sign += agent->instructed_by_sign;
+            by_word += agent->instructed_by_word;
             if (agent->project_aim >= 0) {
                 ++holding_project;
                 confided_held += agent->project_confided;
@@ -2749,8 +2759,11 @@ Json Probe::goals(Simulation& world) const {
                  for (const auto& [name, count] : projects) sorted.emplace_back(count, name);
                  std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
                  for (const auto& [count, name] : sorted) held_aims.push_back({{"project", name}, {"holders", count}});
-                 Json valued = Json::object();
-                 for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) valued[std::string(AIM_NAMES[aim])] = worth[aim] / static_cast<double>(alive);
+                 Json valued = Json::object(), sure = Json::object();
+                 for (std::size_t aim = 0; aim < PROJECT_AIMS; ++aim) {
+                     valued[std::string(AIM_NAMES[aim])] = worth[aim] / static_cast<double>(alive);
+                     sure[std::string(AIM_NAMES[aim])] = sureness[aim] / static_cast<double>(alive);
+                 }
                  return Json{{"holding_share", ratio(static_cast<double>(holding_project), static_cast<double>(alive))},
                              {"confided_share_of_holders", ratio(static_cast<double>(confided_held), static_cast<double>(holding_project))},
                              {"progressing_share_of_holders", ratio(static_cast<double>(progressing), static_cast<double>(holding_project))},
@@ -2758,7 +2771,11 @@ Json Probe::goals(Simulation& world) const {
                              {"instructed_goals_share", ratio(static_cast<double>(instructed_goals), static_cast<double>(holding))},
                              {"held", held_aims},
                              {"in_lives", {{"taken_up", taken}, {"given_up", given_up}, {"instructions_done", instructions}, {"plans_confided", confidings}}},
-                             {"mean_worth", valued}};
+                             {"mean_worth", valued}, {"mean_consistency", sure},
+                             {"asking_for_projects", {{"calls_per_stuck_project_turn", ratio(static_cast<double>(p_calls), static_cast<double>(p_stuck))},
+                                                      {"came_free_per_stuck_project_call", ratio(static_cast<double>(p_called_free), static_cast<double>(p_calls))},
+                                                      {"came_free_per_silent_stuck_project_turn", ratio(static_cast<double>(p_silent_free), static_cast<double>(p_stuck - p_calls))},
+                                                      {"instructions_by_sign", by_sign}, {"instructions_by_word", by_word}}}};
              }()}};
     }
     return result;
