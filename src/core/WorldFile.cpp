@@ -340,6 +340,14 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
                        agent.goals_formed, agent.goals_reached, agent.goals_abandoned, agent.goals_switched, agent.goals_dropped,
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
             {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)}, {"project", project_record(agent)},
+            {"vendetta", [&] {  // see VENDETTA, CHALLENGE_GLORY
+                 json enemies = json::array();
+                 for (const Enemy& enemy : agent.enemies)
+                     enemies.push_back({enemy.one, enemy.grudge, enemy.spark, enemy.seen_x, enemy.seen_y, enemy.seen_turn, enemy.settled ? 1 : 0});
+                 return json{{"enemies", enemies},
+                             {"head", {agent.goal_vendetta ? 1 : 0, agent.humbled_until, agent.vendettas_formed, agent.vendettas_settled, agent.vendettas_ended,
+                                       agent.challenges_made, agent.challenges_won, agent.challenges_faced, agent.challenges_held}}};
+             }()},
             {"asking", {agent.stuck ? 1 : 0, agent.stuck_goal_turn, agent.help_call_turn, agent.stuck_turns, agent.free_turns, agent.stuck_calls,
                         agent.free_calls, agent.unstuck_after_call, agent.unstuck_silent, agent.helped, agent.helping, agent.helped_turn, agent.help_taught_turn}}};
 }
@@ -767,6 +775,24 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
                     agent->place_turn[at] = row.at(3).get<int>();
                 }
             }
+        }
+        if (g.contains("vendetta")) {  // see VENDETTA, CHALLENGE_GLORY
+            const json& v = g.at("vendetta");
+            for (const json& row : v.at("enemies")) {
+                if (static_cast<int>(agent->enemies.size()) >= ENEMIES) break;
+                agent->enemies.push_back(Enemy{row.at(0).get<int>(), row.at(1).get<double>(), row.at(2).get<double>(), row.at(3).get<int>(),
+                                               row.at(4).get<int>(), row.at(5).get<int>(), row.at(6).get<int>() != 0});
+            }
+            const json& h = v.at("head");
+            agent->goal_vendetta = h.at(0).get<int>() != 0;
+            agent->humbled_until = h.at(1).get<int>();
+            agent->vendettas_formed = h.at(2).get<int>();
+            agent->vendettas_settled = h.at(3).get<int>();
+            agent->vendettas_ended = h.at(4).get<int>();
+            agent->challenges_made = h.at(5).get<int>();
+            agent->challenges_won = h.at(6).get<int>();
+            agent->challenges_faced = h.at(7).get<int>();
+            agent->challenges_held = h.at(8).get<int>();
         }
         if (g.contains("project")) {  // see PROJECT_PULL
             const json& p = g.at("project");

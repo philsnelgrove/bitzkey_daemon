@@ -3764,6 +3764,56 @@ TEST_CASE("projects: a long aim learnt from its life becomes its project, progre
     CHECK(follower.aim_value[SelfGear] > 0.0);
 }
 
+TEST_CASE("vendetta: one that struck it is an enemy; seen, its grudge sparks a goal to go after it; a challenge is a duel to submission, the loser shamed") {
+    Simulation simulation = world(80);
+    Bitzkey& victim = simulation.add_agent(encode_dna(Species::Grazer, {{"aggression", 7}, {"size", 7}}), 30, 30);
+    Bitzkey& striker = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 0}}), 31, 30);
+    simulation.index_cells();
+    simulation.attack(striker, victim);
+    REQUIRE(victim.alive());
+    REQUIRE(victim.enemies.size() == 1);
+    CHECK(victim.enemies[0].one == striker.identifier);
+    CHECK(victim.enemies[0].grudge == doctest::Approx(ENEMY_STRUCK));
+    // Seen, the grudge sparks; with nothing else pulling, going after it is its goal, a vendetta.
+    victim.enemies[0].grudge = 1.0;
+    victim.relief_deeds = {};
+    victim.relief_things = {};
+    victim.want_deeds = {};
+    victim.want_things = {};
+    victim.relief_ones.clear();
+    victim.goal_kind = NoGoal;
+    auto sensed = simulation.sense(victim);
+    CHECK(victim.enemies[0].spark > 0.0);
+    REQUIRE(victim.goal_kind == GoalForOne);
+    CHECK(victim.goal_target == striker.identifier);
+    CHECK(victim.goal_vendetta);
+    CHECK(victim.vendettas_formed == 1);
+    CHECK(sensed.senses[SenseGoal + GoalEnemy] == 1.0);
+    // A challenge: fought to submission; the loser humbled and shamed before those who saw it.
+    Bitzkey& leader = simulation.add_agent(encode_dna(Species::Grazer), 40, 40);
+    Bitzkey& rival = simulation.add_agent(encode_dna(Species::Grazer), 41, 40);
+    Bitzkey& onlooker = simulation.add_agent(encode_dna(Species::Grazer), 42, 40);
+    simulation.index_cells();
+    leader.realm = rival.realm = onlooker.realm = 7;
+    leader.leader = true;
+    auto offered = simulation.sense(rival);
+    REQUIRE(offered.situation.challenge_to == &leader);
+    CHECK(std::find(offered.options.begin(), offered.options.end(), Challenge) != offered.options.end());
+    simulation.act(rival, Challenge, offered.situation);
+    CHECK(rival.challenges_made == 1);
+    rival.health = rival.max_health * 0.4;  // beaten
+    simulation.settle_fights();
+    CHECK(leader.challenges_faced == 1);
+    CHECK(leader.challenges_held == 1);
+    CHECK(rival.humbled_until == simulation.turn() + CHALLENGE_HUMBLED);
+    const auto regard = [&](const Bitzkey& of) {
+        for (const Acquaintance& known : onlooker.known) if (known.identifier == of.identifier) return known.regard;
+        return 0.0;
+    };
+    CHECK(regard(rival) < 0.0);
+    CHECK(regard(leader) > 0.0);
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);

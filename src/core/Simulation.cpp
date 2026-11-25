@@ -2072,6 +2072,22 @@ void Simulation::teach_call_harm(Bitzkey& agent) {
     }
 }
 
+void Simulation::record_enemy(Bitzkey& agent, int enemy, double grudge) {
+    if (enemy < 0 || enemy == agent.identifier || !agent.brain || grudge <= 0) return;
+    for (Enemy& known : agent.enemies) {
+        if (known.one == enemy) {
+            known.grudge = std::max(known.grudge, grudge);
+            return;
+        }
+    }
+    if (static_cast<int>(agent.enemies.size()) < ENEMIES) {
+        agent.enemies.push_back(Enemy{enemy, grudge});
+        return;
+    }
+    const auto least = std::min_element(agent.enemies.begin(), agent.enemies.end(), [](const Enemy& a, const Enemy& b) { return a.grudge < b.grudge; });
+    if (least->grudge < grudge) *least = Enemy{enemy, grudge};
+}
+
 int Simulation::hostile_realm(const Bitzkey& agent) const {
     int found = -1;
     double worst = 0.0;
@@ -4250,6 +4266,18 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     }
     available[Address] = s.addressee != nullptr;
     available[Confide] = s.addressee != nullptr && agent.project_aim >= 0 && !agent.project_confided;  // see CONFIDE_SHARE
+    if (agent.realm >= 0 && agent.humbled_until <= turn_ && !fight_of(agent.identifier)) {  // a leader of its own group in sight (see CHALLENGE_GLORY)
+        int nearest = sight + 1;
+        for (Bitzkey* other : around(agent, sight)) {
+            if (other == &agent || !other->alive() || !other->leader || other->realm != agent.realm || other->species != agent.species) continue;
+            const int away = distance(other->x, other->y, agent.x, agent.y);
+            if (away <= sight && away < nearest && !fight_of(other->identifier)) {
+                nearest = away;
+                s.challenge_to = other;
+            }
+        }
+    }
+    available[Challenge] = s.challenge_to != nullptr;
     available[GoNorth] = available[WalkNorth] = agent.y > 0;
     available[GoSouth] = available[WalkSouth] = agent.y < height_ - 1;
     for (int action = 0; action < ACTION_COUNT; ++action) {
@@ -6128,6 +6156,8 @@ void Simulation::brawl(Bitzkey& agent, Bitzkey& opponent) {
 void Simulation::settle_fights() {
     std::vector<Fight> going;
     std::vector<std::pair<Bitzkey*, Bitzkey*>> won;  // judged once the fight is over, so none sees a fight in it
+    struct Settled { Bitzkey *winner, *loser, *challenger, *leader; };
+    std::vector<Settled> challenges;
     for (const Fight& fight : fights_) {
         Bitzkey* thief = find_agent(fight.thief);
         Bitzkey* victim = find_agent(fight.victim);
@@ -6145,11 +6175,33 @@ void Simulation::settle_fights() {
             continue;  // else they've lost each other: it peters out
         }
         Bitzkey& winner = loser == victim ? *thief : *victim;
+        if (fight.possession == CHALLENGE_FIGHT) {  // a challenge for leadership: nothing handed over
+            challenges.push_back({&winner, loser, thief, victim});
+            won.emplace_back(&winner, loser);
+            continue;
+        }
         if (loser == victim && !fight.taken) hand_over(*victim, *thief, fight.possession);
         if (loser == thief && fight.taken && value_of(*thief, fight.possession) > value_of(*victim, fight.possession)) hand_over(*thief, *victim, fight.possession);
         won.emplace_back(&winner, loser);
     }
     fights_ = std::move(going);
+    for (const Settled& challenge : challenges) {  // glory and shame (see CHALLENGE_GLORY)
+        Bitzkey& winner = *challenge.winner;
+        Bitzkey& loser = *challenge.loser;
+        winner.reward += CHALLENGE_GLORY * (0.5 + winner.feeling(Dominance));
+        loser.reward -= CHALLENGE_LOSS;
+        loser.humbled_until = turn_ + std::max(0, CHALLENGE_HUMBLED);
+        ++challenge.leader->challenges_faced;
+        if (&winner == challenge.challenger) ++challenge.challenger->challenges_won;
+        else ++challenge.leader->challenges_held;
+        for (Bitzkey* other : around(loser, MAX_SIGHT)) {
+            if (other == &winner || other == &loser || !other->alive() || !other->brain || other->realm != loser.realm ||
+                distance(other->x, other->y, loser.x, loser.y) > other->sight) continue;
+            if (CHALLENGE_ESTEEM > 0) note_deed(*other, winner, 1.0, CHALLENGE_ESTEEM, PlainDeed, true);
+            if (CHALLENGE_SHAME > 0) note_deed(*other, loser, -1.0, CHALLENGE_SHAME, PlainDeed, true);
+        }
+        note_first("won_a_challenge", winner.species, winner.identifier);
+    }
     for (auto [winner, loser] : won) {
         deed_seen(*winner, 0.0, loser, VictoryDeed);
         earn_mark(*winner, *loser);
@@ -6783,6 +6835,25 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case Learn:
             agent.last_action = speak_beside(agent, *s.learn_by) ? "said a word back" : "went to say a word back";
             break;
+        case Challenge: {  // a leader of its own group challenged, beside it (see CHALLENGE_GLORY)
+            Bitzkey* leader = s.challenge_to;
+            if (!leader || agent.humbled_until > turn_) {
+                agent.last_action = "had none to challenge";
+                break;
+            }
+            const Cell at = spot(*leader);
+            const int away = distance(at.x, at.y, agent.x, agent.y);
+            if (away > 1) move_toward(agent, at.x, at.y, std::min(agent.pace(), away - 1));
+            if (distance(at.x, at.y, agent.x, agent.y) <= 1 && in_reach(*leader) && leader->alive() && !fight_of(leader->identifier)) {
+                begin_fight({agent.identifier, leader->identifier, CHALLENGE_FIGHT, false});
+                ++agent.challenges_made;
+                agent.last_action = "challenged a leader";
+                note_first("challenged_a_leader", agent.species, agent.identifier);
+            } else {
+                agent.last_action = "went to challenge";
+            }
+            break;
+        }
         case Confide: {  // its plan shared with one beside it (see CONFIDE_SHARE)
             if (!s.addressee || agent.project_aim < 0) {
                 agent.last_action = "had no plan to share";
@@ -8513,6 +8584,9 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             for (const ReliefOne& one : agent.relief_ones) {
                 if (one.one == target && one.seen_turn >= 0) return Cell{one.seen_x, one.seen_y};
             }
+            for (const Enemy& enemy : agent.enemies) {  // an enemy where last seen (see VENDETTA)
+                if (enemy.one == target && enemy.seen_turn >= 0 && turn_ - enemy.seen_turn <= VENDETTA_MEMORY) return Cell{enemy.seen_x, enemy.seen_y};
+            }
         }
         return std::nullopt;
     };
@@ -8536,6 +8610,9 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         if (kind == GoalForDeed) return agent.spark_deeds[static_cast<std::size_t>(target)];
         for (const ReliefOne& one : agent.relief_ones) {
             if (one.one == target) return one.spark;
+        }
+        for (const Enemy& enemy : agent.enemies) {
+            if (enemy.one == target) return enemy.spark;
         }
         return 0.0;
     };
@@ -8598,6 +8675,31 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             }
             wake(one.spark, one.fade, one.spark_from, one.want, cue, source, social);
         }
+        // Its enemies (see VENDETTA): seen, the grudge faded, the dead let go, and each sparked by sight, place or name.
+        const double fierce = 0.5 + agent.feeling(Aggression), fading = VENDETTA_MEMORY > 0 ? 1.0 / VENDETTA_MEMORY : 1.0;
+        for (auto it = agent.enemies.begin(); it != agent.enemies.end();) {
+            Enemy& enemy = *it;
+            const Bitzkey* other = find_agent(enemy.one);
+            if (!other || !other->alive() || enemy.grudge < 0.01) {
+                if (!enemy.settled && (!other || !other->alive())) ++agent.vendettas_ended;
+                it = agent.enemies.erase(it);
+                continue;
+            }
+            enemy.grudge *= 1.0 - fading;
+            const double close = one_closeness(agent, enemy.one, sight);
+            if (close > 0) {
+                enemy.seen_x = other->x;
+                enemy.seen_y = other->y;
+                enemy.seen_turn = turn_;
+            }
+            double cue = close;
+            if (cue <= 0 && enemy.seen_turn >= 0 && VENDETTA_MEMORY > 0)
+                cue = std::clamp(REMEMBERED_CUE, 0.0, 1.0) * std::max(0.0, 1.0 - static_cast<double>(turn_ - enemy.seen_turn) / VENDETTA_MEMORY);
+            if (enemy.one == heard_one) cue = std::max(cue, heard);
+            enemy.spark *= linger;
+            if (VENDETTA > 0 && cue > 0) enemy.spark = std::max(enemy.spark, VENDETTA * enemy.grudge * cue * fierce);
+            ++it;
+        }
     }
     // Its goal: reached, given up, let go, or held a turn more.
     if (agent.goal_kind != NoGoal) {
@@ -8623,7 +8725,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         const bool sated = !pulled && push < GOAL_SATED;
         const double patience = agent.feeling(Patience);
         if (met) {
-            double joy = agent.goal_project ? 0.0 : GOAL_JOY * agent.goal_urgency;  // a project's step: only progress brings joy
+            double joy = agent.goal_project || agent.goal_vendetta ? 0.0 : GOAL_JOY * agent.goal_urgency;  // a project's step: only progress brings joy
             if (agent.goal_instructed) ++agent.instructions_taken;
             if (agent.goal_desire) {  // as much as its pleasure in it has not faded, and fading the more (PLEASURE_FADE)
                 if (double* fade = fade_of(agent.goal_kind, agent.goal_target)) {
@@ -8655,7 +8757,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             agent.goal_close = -1.0;
             agent.goal_desire = false;
             agent.goal_remembered = false;
-            agent.goal_project = agent.goal_instructed = false;
+            agent.goal_project = agent.goal_instructed = agent.goal_vendetta = false;
             agent.instructed_by = -1;
         }
     }
@@ -8833,6 +8935,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed);
     }
     int wish_kind = NoGoal, wish_target = -1;
+    bool wish_enemy = false;
     double wish = DESIRE > 0 ? DESIRE_MIN : 0.0;
     if (DESIRE > 0) {
         const auto consider = [&](int k, int t, double spark) {
@@ -8840,11 +8943,20 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
                 wish = spark;
                 wish_kind = k;
                 wish_target = t;
+                wish_enemy = false;
             }
         };
         for (int thing = 0; thing < OUTSIDE_SEEN; ++thing) consider(GoalForThing, thing, agent.spark_things[static_cast<std::size_t>(thing)]);
         for (const ReliefOne& one : agent.relief_ones) consider(GoalForOne, one.one, one.spark);
         for (int deed = 0; deed < ACTION_COUNT; ++deed) consider(GoalForDeed, deed, agent.spark_deeds[static_cast<std::size_t>(deed)]);
+        for (const Enemy& enemy : agent.enemies) {  // a vendetta (see VENDETTA)
+            if (enemy.spark >= wish && !(wish_kind != NoGoal && enemy.spark == wish)) {
+                wish = enemy.spark;
+                wish_kind = GoalForOne;
+                wish_target = enemy.one;
+                wish_enemy = true;
+            }
+        }
     }
     const double need_pull = kind != NoGoal ? now[static_cast<std::size_t>(worst)] : 0.0;
     bool desired = wish_kind != NoGoal && wish > need_pull;
@@ -8901,6 +9013,8 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             agent.goal_desire = desired;
             agent.goal_project = projected;
             agent.goal_instructed = instructed;
+            agent.goal_vendetta = desired && wish_enemy && kind == GoalForOne && target == wish_target;
+            if (agent.goal_vendetta) ++agent.vendettas_formed;
             agent.instructed_by = instructed ? instructor : -1;
             if (instructed) ++(instructed_word ? agent.instructed_by_word : agent.instructed_by_sign);
             agent.goal_turn = turn_;
@@ -9054,6 +9168,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         if (agent.stuck) senses[SenseGoal + GoalStuck] = 1.0;  // shut to it (see HELPED_JOY)
         if (agent.goal_project) senses[SenseGoal + GoalProject] = 1.0;
         if (agent.goal_instructed) senses[SenseGoal + GoalInstructed] = 1.0;
+        if (agent.goal_vendetta) senses[SenseGoal + GoalEnemy] = 1.0;
         if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
         else if (agent.goal_need >= 0) senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
         if (seek_kind == GoalForThing) {
@@ -9236,6 +9351,30 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
     agent.last_action = "attacked";
     experience(agent, Hit);
     const bool killed = !victim.alive();
+    if (victim.species != Species::Plant) {  // a vendetta's harm: its grudge follows the joy of it (see VENDETTA)
+        for (Enemy& enemy : agent.enemies) {
+            if (enemy.one != victim.identifier) continue;
+            enemy.grudge += std::clamp(VENDETTA_RATE, 0.0, 1.0) * (harm_felt(agent, regard_for(agent, victim)) - enemy.grudge);
+            if (killed && !enemy.settled) {
+                enemy.settled = true;
+                ++agent.vendettas_settled;
+            }
+        }
+        if (!killed) record_enemy(victim, agent.identifier, ENEMY_STRUCK);
+        else {  // its kin and its own group who saw it killed hold the killer an enemy
+            const int killer = agent.identifier, dead = victim.identifier;
+            const auto mourn = [this, killer, dead] {
+                const Bitzkey* body = find_agent(dead);
+                if (!body) return;
+                for (Bitzkey* other : around(*body, MAX_SIGHT)) {
+                    if (!other->alive() || !other->brain || other->identifier == killer || distance(other->x, other->y, body->x, body->y) > other->sight) continue;
+                    if (family(*other, *body)) record_enemy(*other, killer, ENEMY_KIN_KILLED);
+                    else if (other->species == body->species && other->realm >= 0 && other->realm == body->realm) record_enemy(*other, killer, ENEMY_GROUP_KILLED);
+                }
+            };
+            if (!later(mourn)) mourn();
+        }
+    }
     if (!killed) {
         victim.last_action = "wounded";
         struck(victim, agent);

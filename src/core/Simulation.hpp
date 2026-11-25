@@ -611,6 +611,32 @@ inline double PROJECT_RESOLVE = 2.0;
 inline double PROJECT_INHERIT = 0.5;
 inline double INSTRUCTED_PULL = 0.5;
 inline double CONFIDE_SHARE = 0.5;
+// Vendetta (the user's design): an animal holds up to ENEMIES enemies, each one that harmed it or its own: struck it
+// (ENEMY_STRUCK of grudge to start), or killed its kin (ENEMY_KIN_KILLED) or one of its own colour group (ENEMY_GROUP_KILLED)
+// in its sight. Harming that one, its grudge follows the joy it felt (VENDETTA_RATE, see GRUDGE_JOY); the grudge fades over
+// VENDETTA_MEMORY turns, as does where it last saw the enemy. Seen, remembered there (REMEMBERED_CUE as strongly) or named
+// (HEARD_CUE), the enemy sparks a desire to go after it: VENDETTA times the grudge times the cue times a half and its
+// aggression, lingering as desires do. Reaching it brings no joy of its own: what it then does is its brain's to choose.
+// The enemy dead, the vendetta ends; at its own hand, settled.
+constexpr int ENEMIES = 4;
+inline double VENDETTA = 1.0;
+inline double VENDETTA_RATE = 0.05;
+inline int VENDETTA_MEMORY = 1000;
+inline double ENEMY_STRUCK = 0.3, ENEMY_KIN_KILLED = 1.0, ENEMY_GROUP_KILLED = 0.5;
+struct Enemy {
+    int one = -1;
+    double grudge = 0.0, spark = 0.0;
+    int seen_x = -1, seen_y = -1, seen_turn = -1;
+    bool settled = false;  // killed by its own hand
+};
+// Challenges (the user's design): any of a leader's own colour group may CHALLENGE it, beside it: a fight to submission,
+// as over a possession. The winner feels CHALLENGE_GLORY times a half and its dominance, and each of the group who saw it
+// esteems it CHALLENGE_ESTEEM deeds' worth the more; the loser feels CHALLENGE_LOSS, is esteemed CHALLENGE_SHAME deeds'
+// worth the less by each who saw it, and may not challenge again for CHALLENGE_HUMBLED turns. Who leads then follows as
+// ever: by whom its group esteem most.
+inline double CHALLENGE_GLORY = 1.0, CHALLENGE_LOSS = 2.0, CHALLENGE_ESTEEM = 1.0, CHALLENGE_SHAME = 2.0;
+inline int CHALLENGE_HUMBLED = 500;
+constexpr int CHALLENGE_FIGHT = -2;  // a fight's possession when it is a challenge
 double babble_urge(const Bitzkey& agent);  // the young and sociable's urge to speak (see BABBLE)
 inline double attention(double chatter) { return 1.0 / (1.0 + TUNE_OUT * chatter); }  // how far a chatterer is heeded
 inline double TUTOR_COST = 0.3;  // hunger a lesson costs its tutor (once as dear as a call)
@@ -1593,6 +1619,13 @@ struct Bitzkey {
     int projects_taken = 0, projects_given_up = 0, project_progress_turns = 0, instructions_taken = 0, confided = 0, confided_to = 0;
     // and asking for its project (see HELPED_JOY): turns its project's step was stuck, calls made then, stuck steps come free
     // soon after a call or unasked; instructions taken by sign and by word
+    // Vendetta and challenges (see VENDETTA, CHALLENGE_GLORY): its enemies, whether its goal is a vendetta, until when it
+    // may not challenge; and, in its life, vendettas formed, settled by its own hand, ended otherwise, challenges made and
+    // won, faced and held.
+    std::vector<Enemy> enemies;
+    bool goal_vendetta = false;
+    int humbled_until = -1;
+    int vendettas_formed = 0, vendettas_settled = 0, vendettas_ended = 0, challenges_made = 0, challenges_won = 0, challenges_faced = 0, challenges_held = 0;
     int project_stuck_turns = 0, project_stuck_calls = 0, project_unstuck_after_call = 0, project_unstuck_silent = 0, instructed_by_sign = 0, instructed_by_word = 0;
     int stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_after_call = 0, unstuck_silent = 0, helped = 0, helping = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
@@ -2043,7 +2076,8 @@ public:
     void teach_call_help(Bitzkey& agent);
     double aim_measure(const Bitzkey& agent, int aim, int x, int y, int group, int idea, int sight) const;  // see PROJECT_PULL
     int hostile_realm(const Bitzkey& agent) const;  // the colour group it regards worst, if below nothing; -1 none
-    int chosen_concept(const Bitzkey& agent, int aim) const;  // the craft or word it would spread  // helped soon after calling while stuck: its call taught the joy (HELPED_JOY)  // struck soon after calling: its call taught the harm (CALL_HARM)
+    int chosen_concept(const Bitzkey& agent, int aim) const;  // the craft or word it would spread
+    static void record_enemy(Bitzkey& agent, int enemy, double grudge);  // one that harmed it or its own (see VENDETTA)  // helped soon after calling while stuck: its call taught the joy (HELPED_JOY)  // struck soon after calling: its call taught the harm (CALL_HARM)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);
@@ -2249,7 +2283,8 @@ public:
         Bitzkey* shoot_at = nullptr;     // with a bow: the prey it would hunt in sight, else the nearest foe
         Bitzkey* practise_on = nullptr;  // and the nearest plant in sight, to practise on
         Bitzkey* pupil = nullptr;        // one beside it worth tutoring
-        Bitzkey* addressee = nullptr;    // whom it would address: the nearest it knows in sight, else the nearest of its kind
+        Bitzkey* addressee = nullptr;
+        Bitzkey* challenge_to = nullptr;  // a leader of its own group in sight, to challenge (see CHALLENGE_GLORY)    // whom it would address: the nearest it knows in sight, else the nearest of its kind
         Bitzkey* learn_by = nullptr;     // one who spoke to it alone and pointed, whose word it may say back (see Learn)
         int learn_thing = -1, learn_call = -1;  // what that one pointed at, and its call
         int learn_one = -1;                     // and, pointing at one animal, which

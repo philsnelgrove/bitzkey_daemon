@@ -115,7 +115,7 @@ std::uint32_t slot_floats(Shape shape) {
 
 Shape shape_of(const Brain& brain) { return {brain.depth(), brain.width()}; }
 static_assert(MAX_DEPTH == 4 && MAX_WIDTH == 53, "shaders/brain.glsl's MAX_DEPTH and MAX_HIDDEN must match");
-static_assert(INPUT_SIZE == 476 && OUTPUT_COUNT == 200 && SenseMemory == 74 && MEMORY_GATES == 81 && MEMORY_NEURONS == 16,
+static_assert(INPUT_SIZE == 479 && OUTPUT_COUNT == 201 && SenseMemory == 74 && MEMORY_GATES == 82 && MEMORY_NEURONS == 16,
               "shaders/brain.glsl's INPUTS, ACTIONS, MEMORY_SENSE, MEMORY_GATES and MEMORY_NEURONS must match");
 
 // The layers, input by input, then the biases, then the outputs, neuron by neuron, then their biases:

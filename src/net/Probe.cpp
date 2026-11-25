@@ -2576,6 +2576,9 @@ Json Probe::goals(Simulation& world) const {
         long long holding_project = 0, confided_held = 0, project_goals = 0, instructed_goals = 0, progressing = 0, taken = 0, given_up = 0,
                   instructions = 0, confidings = 0, p_stuck = 0, p_calls = 0, p_called_free = 0, p_silent_free = 0, by_sign = 0, by_word = 0;
         std::array<double, PROJECT_AIMS> sureness{};
+        // Vendettas and challenges (see VENDETTA, CHALLENGE_GLORY)
+        long long with_enemies = 0, enemies_held = 0, vendetta_goals = 0, v_formed = 0, v_settled = 0, v_ended = 0, c_made = 0, c_won = 0, c_faced = 0, c_held = 0, humbled = 0;
+        double grudges = 0.0;
         std::array<double, PROJECT_AIMS> worth{};
         long long stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_called = 0, unstuck_silent = 0, helped = 0, helping = 0, stuck_now = 0;
         for (const Bitzkey* agent : world.living()) {
@@ -2617,6 +2620,18 @@ Json Probe::goals(Simulation& world) const {
                 worth[aim] += std::abs(agent->aim_value[aim]);
                 sureness[aim] += std::abs(agent->aim_agree[aim]);
             }
+            with_enemies += !agent->enemies.empty();
+            enemies_held += static_cast<long long>(agent->enemies.size());
+            for (const Enemy& enemy : agent->enemies) grudges += enemy.grudge;
+            vendetta_goals += agent->goal_kind != NoGoal && agent->goal_vendetta;
+            v_formed += agent->vendettas_formed;
+            v_settled += agent->vendettas_settled;
+            v_ended += agent->vendettas_ended;
+            c_made += agent->challenges_made;
+            c_won += agent->challenges_won;
+            c_faced += agent->challenges_faced;
+            c_held += agent->challenges_held;
+            humbled += agent->humbled_until > world.turn();
             p_stuck += agent->project_stuck_turns;
             p_calls += agent->project_stuck_calls;
             p_called_free += agent->project_unstuck_after_call;
@@ -2666,7 +2681,7 @@ Json Probe::goals(Simulation& world) const {
                 ? std::string(SENSES[static_cast<std::size_t>(OUTSIDE_SENSES[static_cast<std::size_t>(agent->goal_target)])])
                 : agent->goal_kind == GoalForDeed ? "do " + std::string(ACTIONS[static_cast<std::size_t>(agent->goal_target)])
                 : "a companion";
-            ++targets[target + (agent->goal_desire ? std::string(" (desired)") : agent->goal_project ? std::string(" (project)")
+            ++targets[target + (agent->goal_vendetta ? std::string(" (vendetta)") : agent->goal_desire ? std::string(" (desired)") : agent->goal_project ? std::string(" (project)")
                                 : agent->goal_instructed ? std::string(" (instructed)")
                                 : agent->goal_need >= 0 ? " (for " + std::string(NEED_NAMES[static_cast<std::size_t>(agent->goal_need)]) + ")" : std::string())];
         }
@@ -2753,6 +2768,13 @@ Json Probe::goals(Simulation& world) const {
                         {"came_free_per_stuck_call", ratio(static_cast<double>(unstuck_called), static_cast<double>(stuck_calls))},
                         {"came_free_per_silent_stuck_turn", ratio(static_cast<double>(unstuck_silent), static_cast<double>(stuck_turns - stuck_calls))},
                         {"helped", helped}, {"came_beside_a_stuck_caller", helping}}},
+            {"vendetta", {{"with_enemies_share", ratio(static_cast<double>(with_enemies), static_cast<double>(alive))},
+                          {"enemies_per_holder", ratio(static_cast<double>(enemies_held), static_cast<double>(with_enemies))},
+                          {"mean_grudge", ratio(grudges, static_cast<double>(enemies_held))},
+                          {"vendetta_goals_share", ratio(static_cast<double>(vendetta_goals), static_cast<double>(holding))},
+                          {"in_lives", {{"formed", v_formed}, {"settled_by_own_hand", v_settled}, {"ended_otherwise", v_ended}}}}},
+            {"challenges", {{"made", c_made}, {"won_by_challenger", c_won}, {"faced_by_leaders", c_faced}, {"held_by_leaders", c_held},
+                            {"humbled_now", humbled}}},
             {"projects", [&] {
                  Json held_aims = Json::array();
                  std::vector<std::pair<long long, std::string>> sorted;

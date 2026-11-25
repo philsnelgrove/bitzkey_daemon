@@ -10,12 +10,12 @@
 // Stored input by input, neighbouring threads, each a neuron, read neighbouring weights.
 // Its eligibility traces sit in a second buffer laid out the same way.
 
-const uint INPUTS = 476u;
+const uint INPUTS = 479u;
 const uint MAX_HIDDEN = 53u;  // MAX_WIDTH
-const uint ACTIONS = 200u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight, then a call's later sounds, then foresight of the outside, then the wishes, then pointing, then attention, then pointing at one animal, then at itself, then a second word's sounds
+const uint ACTIONS = 201u;  // OUTPUT_COUNT: the actions, then silence and the calls, then the memory's gates and values, then foresight, then a call's later sounds, then foresight of the outside, then the wishes, then pointing, then attention, then pointing at one animal, then at itself, then a second word's sounds
 const uint MEMORY_NEURONS = 16u;
 const uint MEMORY_SENSE = 74u;  // SenseMemory: the first sense of what the memory held
-const uint MEMORY_GATES = 81u;  // the first gate's output, then each neuron's, then the values to write
+const uint MEMORY_GATES = 82u;  // the first gate's output, then each neuron's, then the values to write
 const float VALUE_SCALE = 0.01;  // a brain holds its values in hundredths (Brain.hpp)
 const uint MAX_DEPTH = 4u;
 const uint THREADS = 64u;
