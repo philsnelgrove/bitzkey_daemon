@@ -2228,7 +2228,7 @@
 "Help window": "Hilfefenster",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "Runden nach einem Ruf bei festgefahrenem Ziel, in denen das Freiwerden des Ziels als Hilfe zählt",
 "Joy of being helped": "Freude über Hilfe",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "Erleichterung, mal seiner Geselligkeit, die ein Tier fühlt, wenn sein festgefahrenes Ziel bald nach seinem Ruf frei wird und einer seiner Art neben ihm ist; 0 für keine",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "Erleichterung, mal seiner Geselligkeit, die ein Tier fühlt, wenn sein festgefahrenes Ziel bald nach seinem Ruf frei wird und einer seiner Art neben ihm ist; und der Ruf, den es festgefahren tat, lernt sie; 0 für keine",
 "Joy of helping": "Freude am Helfen",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "Freude, mal seiner Geselligkeit, die ein Tier fühlt, wenn es neben einen seiner Art kommt, den es rufen hörte, während dessen Ziel festgefahren war; 0 für keine",
 "CHOICES": "ENTSCHEIDUNGEN",

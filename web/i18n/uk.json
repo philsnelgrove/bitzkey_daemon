@@ -2228,7 +2228,7 @@
 "Help window": "Вікно допомоги",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "ходи після поклику з застряглою метою, протягом яких звільнення мети вважається допомогою",
 "Joy of being helped": "Радість від допомоги",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "полегшення, помножене на товариськість, яке тварина відчуває, коли її застрягла мета звільняється невдовзі після поклику, а поруч хтось її виду; 0 — жодного",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "полегшення, помножене на товариськість, яке тварина відчуває, коли її застрягла мета звільняється невдовзі після поклику, а поруч хтось її виду; і поклик, зроблений у застряглості, її вчиться; 0 — жодного",
 "Joy of helping": "Радість допомагати",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "радість, помножена на товариськість, яку тварина відчуває, ставши поруч із кимось свого виду, кого чула кличучим, коли його мета застрягла; 0 — жодної",
 "CHOICES": "ВИБОРИ",

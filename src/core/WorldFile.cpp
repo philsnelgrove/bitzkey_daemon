@@ -323,7 +323,7 @@ json goal_record(const Bitzkey& agent) {  // see GOAL_JOY: only reliefs learnt, 
                        agent.goal_reach_turns, agent.has_needs ? 1 : 0}},
             {"needs", needs}, {"things", things}, {"deeds", deeds}, {"ones", ones}, {"desire", desire_record(agent)}, {"ingenuity", ingenuity_record(agent)},
             {"asking", {agent.stuck ? 1 : 0, agent.stuck_goal_turn, agent.help_call_turn, agent.stuck_turns, agent.free_turns, agent.stuck_calls,
-                        agent.free_calls, agent.unstuck_after_call, agent.unstuck_silent, agent.helped, agent.helping}}};
+                        agent.free_calls, agent.unstuck_after_call, agent.unstuck_silent, agent.helped, agent.helping, agent.helped_turn, agent.help_taught_turn}}};
 }
 
 json agent_record(const Bitzkey& agent, Numbers& numbers) {
@@ -763,6 +763,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
             agent->unstuck_silent = a.at(8).get<int>();
             agent->helped = a.at(9).get<int>();
             agent->helping = a.at(10).get<int>();
+            if (a.size() > 12) {
+                agent->helped_turn = a.at(11).get<int>();
+                agent->help_taught_turn = a.at(12).get<int>();
+            }
         }
         if (g.contains("ingenuity")) {  // see OPENS_RATE
             const json& i = g.at("ingenuity");

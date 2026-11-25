@@ -2228,7 +2228,7 @@
 "Help window": "חלון עזרה",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "תורות אחרי שקרא כשמטרתו תקועה, שבהם השתחררות המטרה נחשבת לעזרה",
 "Joy of being helped": "שמחה על עזרה",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "הקלה, כפול חברותיותו, שבעל חיים חש כשמטרתו התקועה משתחררת זמן קצר אחרי שקרא, ואחד ממינו לצידו; 0 לכלום",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "הקלה, כפול חברותיותו, שבעל חיים חש כשמטרתו התקועה משתחררת זמן קצר אחרי שקרא, ואחד ממינו לצידו; והקריאה שקרא בעודו תקוע לומדת אותה; 0 לכלום",
 "Joy of helping": "שמחה לעזור",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "שמחה, כפול חברותיותו, שבעל חיים חש כשהוא מגיע לצד אחד ממינו ששמע קורא בזמן שמטרתו הייתה תקועה; 0 לכלום",
 "CHOICES": "בחירות",

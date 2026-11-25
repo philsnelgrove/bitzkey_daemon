@@ -1434,9 +1434,9 @@ Default **3**; from 1 to 48, in steps of 1.
 
 #### 6.35.1 Joy of being helped (`HELPED_JOY`)
 
-Relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none.
+Relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none.
 
-Default **0.3**; from 0 to 2, in steps of 0.05.
+Default **1**; from 0 to 2, in steps of 0.05.
 
 #### 6.35.2 Joy of helping (`HELPING_JOY`)
 

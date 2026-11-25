@@ -2062,11 +2062,40 @@ void Simulation::teach_call_harm(Bitzkey& agent) {
     }
 }
 
+void Simulation::teach_call_help(Bitzkey& agent) {
+    // Helped soon after it called while stuck: the call it made then is taught the joy, against what it sensed as it called.
+    if (HELPED_JOY <= 0 || agent.helped_turn < 0 || agent.helped_turn <= agent.help_taught_turn) return;
+    agent.help_taught_turn = agent.helped_turn;
+    if (agent.voiced_turn < 0 || agent.voiced_turn != agent.help_call_turn) return;  // its last call the one it made stuck
+    if (agent.habits.empty() || !agent.brain) return;
+    const double rate = learning_rate(agent);
+    if (rate <= 0) return;
+    const Bitzkey::CallHabit& said = agent.habits.back();
+    Senses senses{};
+    for (int sense = 0; sense < INPUT_SIZE; ++sense) {  // back from how its brain read it, in sixtieths
+        const double read = said.senses[static_cast<std::size_t>(sense)] / 60.0;
+        const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+        senses[static_cast<std::size_t>(sense)] = reading == SignedReading ? read : reading == SparseReading ? read / 2.0 : (read + 1.0) / 2.0;
+    }
+    std::array<int, MAX_SOUNDS> outputs{call_output(FirstCall + said.said[0]), -1, -1};
+    for (int place = 1; place < MAX_SOUNDS; ++place) {
+        outputs[static_cast<std::size_t>(place)] = sound_output(place, said.said[static_cast<std::size_t>(place)]);
+        if (said.said[static_cast<std::size_t>(place)] < 0) break;
+    }
+    const double value = limited_value(HELPED_JOY * agent.feeling(Sociability));
+    for (const int output : outputs) {
+        if (output < 0) continue;
+        if (gpu_) queue_lesson(agent, senses, output, value, rate, false, 0.0);
+        else learning_brain(agent).learn(senses, output, value, rate);
+    }
+}
+
 void Simulation::settle_call(Bitzkey& agent) {
     const bool relieved = agent.relieved;  // one who heard it was then less surprised: the itch passes
     agent.relieved = false;
     if (relieved) agent.itch = 0.0;
     teach_call_harm(agent);
+    teach_call_help(agent);
     if (!agent.call_held) return;
     agent.call_held = false;
     const double rate = learning_rate(agent);
@@ -8611,6 +8640,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             }
             if (beside) {
                 ++agent.helped;
+                agent.helped_turn = turn_;
                 s.goal_relief += HELPED_JOY * agent.feeling(Sociability);
             }
         } else {
@@ -8650,6 +8680,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             senses[SenseGoal + GoalEast] = (place->x - agent.x) / steps;
             senses[SenseGoal + GoalSouth] = (place->y - agent.y) / steps;
         }
+        if (agent.stuck) senses[SenseGoal + GoalStuck] = 1.0;  // shut to it (see HELPED_JOY)
         if (agent.goal_desire) senses[SenseGoal + GoalDesire] = 1.0;
         else senses[SenseGoal + GoalNeed + agent.goal_need] = 1.0;
         if (seek_kind == GoalForThing) {

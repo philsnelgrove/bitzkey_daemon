@@ -2228,7 +2228,7 @@
 "Help window": "मदद की खिड़की",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "लक्ष्य अटका होने पर पुकारने के बाद के वे दौर जिनमें लक्ष्य का खुलना मदद गिना जाता है",
 "Joy of being helped": "मदद पाने का सुख",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "राहत, उसकी मिलनसारिता गुणा, जो जीव तब महसूस करता है जब उसका अटका लक्ष्य पुकारने के कुछ ही देर बाद खुल जाए और उसकी जाति का कोई उसके पास हो; 0 यानी कुछ नहीं",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "राहत, उसकी मिलनसारिता गुणा, जो जीव तब महसूस करता है जब उसका अटका लक्ष्य पुकारने के कुछ ही देर बाद खुल जाए और उसकी जाति का कोई उसके पास हो; और अटके हुए की गई पुकार उसे सीखती है; 0 यानी कुछ नहीं",
 "Joy of helping": "मदद करने का सुख",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "सुख, उसकी मिलनसारिता गुणा, जो जीव तब महसूस करता है जब वह अपनी जाति के उस जीव के पास पहुँचे जिसे उसने अटके लक्ष्य के समय पुकारते सुना; 0 यानी कुछ नहीं",
 "CHOICES": "चुनाव",

@@ -2228,7 +2228,7 @@
 "Help window": "Finestra d'aiuto",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "turni dopo una chiamata con la meta bloccata in cui il liberarsi della meta conta come aiuto",
 "Joy of being helped": "Gioia d'essere aiutato",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "sollievo, per la sua socievolezza, che un animale prova quando la sua meta bloccata si libera poco dopo la sua chiamata, con uno dei suoi accanto; 0 per nessuno",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "sollievo, per la sua socievolezza, che un animale prova quando la sua meta bloccata si libera poco dopo la sua chiamata, con uno dei suoi accanto; e il richiamo fatto da bloccato lo impara; 0 per nessuno",
 "Joy of helping": "Gioia d'aiutare",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "gioia, per la sua socievolezza, che un animale prova venendo accanto a uno dei suoi che ha sentito chiamare mentre la sua meta era bloccata; 0 per nessuna",
 "CHOICES": "SCELTE",

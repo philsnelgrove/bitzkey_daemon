@@ -2228,7 +2228,7 @@
 "Help window": "Janela de ajuda",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "turnos após chamar com a meta presa em que a meta se soltar conta como ajuda",
 "Joy of being helped": "Alegria de ser ajudado",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "alívio, vezes sua sociabilidade, que um animal sente quando sua meta presa se solta logo após chamar, com um da sua espécie ao lado; 0 para nenhum",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "alívio, vezes sua sociabilidade, que um animal sente quando sua meta presa se solta logo após chamar, com um da sua espécie ao lado; e o chamado que fez preso o aprende; 0 para nenhum",
 "Joy of helping": "Alegria de ajudar",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "alegria, vezes sua sociabilidade, que um animal sente ao chegar ao lado de um da sua espécie que ouviu chamar enquanto a meta dele estava presa; 0 para nenhuma",
 "CHOICES": "ESCOLHAS",

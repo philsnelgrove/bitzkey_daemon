@@ -2228,7 +2228,7 @@
 "Help window": "求助时限",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "目标受阻时呼叫后，目标解开即算作得到帮助的回合数",
 "Joy of being helped": "被帮助的喜悦",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "目标受阻的动物呼叫后不久目标解开、且有同类在旁时感到的宽慰（乘以其社交性）；0 表示没有",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "目标受阻的动物呼叫后不久目标解开、且有同类在旁时感到的宽慰（乘以其社交性）；受阻时发出的呼叫会学到它；0 表示没有",
 "Joy of helping": "帮助的喜悦",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "动物来到它听见在目标受阻时呼叫的同类身旁时感到的喜悦（乘以其社交性）；0 表示没有",
 "CHOICES": "选择",

@@ -2228,7 +2228,7 @@
 "Help window": "Okno pomocy",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "tury po wołaniu przy utkniętym celu, w których uwolnienie celu liczy się jako pomoc",
 "Joy of being helped": "Radość z pomocy otrzymanej",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "ulga, razy towarzyskość, jaką zwierzę czuje, gdy jego utknięty cel uwalnia się wkrótce po wołaniu, a ktoś z jego gatunku jest obok; 0 to brak",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "ulga, razy towarzyskość, jaką zwierzę czuje, gdy jego utknięty cel uwalnia się wkrótce po wołaniu, a ktoś z jego gatunku jest obok; a wołanie wydane w utknięciu się go uczy; 0 to brak",
 "Joy of helping": "Radość z pomagania",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "radość, razy towarzyskość, jaką zwierzę czuje, stając obok kogoś ze swego gatunku, kogo słyszało wołającego, gdy jego cel utknął; 0 to brak",
 "CHOICES": "WYBORY",

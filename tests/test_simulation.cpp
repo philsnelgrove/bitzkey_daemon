@@ -3673,9 +3673,10 @@ TEST_CASE("asking: a stuck goal is counted, calls while stuck are counted, and c
     animal.spark_deeds[MakeBow] = 0.5;
     animal.relief_deeds = {};
     animal.relief_things = {};
-    simulation.sense(animal);
+    auto stuck = simulation.sense(animal);
     REQUIRE(animal.goal_kind == GoalForDeed);
     CHECK(animal.stuck);
+    CHECK(stuck.senses[SenseGoal + GoalStuck] == 1.0);  // it senses its goal stuck
     CHECK(animal.stuck_turns == 1);
     // It called while stuck; then its goal is no longer shut (a goal it can do), one of its kind beside it: relief.
     animal.help_call_turn = simulation.turn();

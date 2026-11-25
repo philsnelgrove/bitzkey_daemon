@@ -568,10 +568,11 @@ inline double ANSWERED_JOY = 0.2;
 constexpr int ANSWERS_A_TURN = 3;
 // Asking (the user's choice: measure, and give help a reason): a goal is stuck while shut to it (a deed it cannot do, a
 // thing neither in sight nor at a place remembered). Its stuck goal coming free within HELP_WINDOW turns after it called
-// while stuck, with one of its kind beside it, it feels HELPED_JOY times its sociability; one that comes beside one of
-// its kind it heard call while stuck feels HELPING_JOY times its sociability. What was said is not weighed.
+// while stuck, with one of its kind beside it, it feels HELPED_JOY times its sociability, and the call it made while
+// stuck is taught it, against what it sensed as it called (as CALL_HARM); one that comes beside one of its kind it heard
+// call while stuck feels HELPING_JOY times its sociability. What was said is not weighed. Brains sense their goal stuck.
 inline int HELP_WINDOW = 3;
-inline double HELPED_JOY = 0.3;
+inline double HELPED_JOY = 1.0;
 inline double HELPING_JOY = 0.2;
 double babble_urge(const Bitzkey& agent);  // the young and sociable's urge to speak (see BABBLE)
 inline double attention(double chatter) { return 1.0 / (1.0 + TUNE_OUT * chatter); }  // how far a chatterer is heeded
@@ -1534,6 +1535,7 @@ struct Bitzkey {
     // times helped (one beside as it came free), and times it came beside a stuck caller it heard.
     bool stuck = false;
     int stuck_goal_turn = -1, help_call_turn = -1;
+    int helped_turn = -1, help_taught_turn = -1;  // when last helped, and when that was last taught its call
     int stuck_turns = 0, free_turns = 0, stuck_calls = 0, free_calls = 0, unstuck_after_call = 0, unstuck_silent = 0, helped = 0, helping = 0;
     int harm_taught_turn = -1;          // the last strike whose harm it taught its call (see CALL_HARM)
     double quiet_wish = 0.0;            // as it last chose: how much its brain preferred silence to its best sound (PARENT_HUSH)
@@ -1979,7 +1981,8 @@ public:
     void copy_cue(Bitzkey& listener);  // see CUES
     void teach_call(Bitzkey& agent, const Senses& senses, const std::array<int, MAX_SOUNDS>& outputs, double target, double rate);
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
-    void teach_call_harm(Bitzkey& agent);  // struck soon after calling: its call taught the harm (CALL_HARM)
+    void teach_call_harm(Bitzkey& agent);
+    void teach_call_help(Bitzkey& agent);  // helped soon after calling while stuck: its call taught the joy (HELPED_JOY)  // struck soon after calling: its call taught the harm (CALL_HARM)
     static void keep_habit(Bitzkey& agent, const Senses& senses);  // weighs its call against its habits, then remembers it
     // What keeping quiet would have brought, after a call (see SILENCE_LESSON); none after silence or the alert.
     static std::optional<double> silence_target(const Bitzkey& agent, double call_target);

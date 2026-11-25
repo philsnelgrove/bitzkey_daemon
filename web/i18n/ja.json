@@ -2228,7 +2228,7 @@
 "Help window": "助けの猶予",
 "turns after it called while its goal was stuck in which the goal coming free counts as helped": "目標が行き詰まったまま呼んだ後、目標が開けば助けと数えるターン数",
 "Joy of being helped": "助けられた喜び",
-"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; 0 for none": "行き詰まった目標が呼んだ直後に開け、同種がそばにいるときに動物が感じる安堵（社交性を掛ける）。0 で無効",
+"relief, times its sociability, an animal feels when its stuck goal comes free soon after it called, with one of its kind beside it; and the call it made while stuck is taught it; 0 for none": "行き詰まった目標が呼んだ直後に開け、同種がそばにいるときに動物が感じる安堵（社交性を掛ける）。行き詰まり中に発した呼び声がそれを学ぶ。0 で無効",
 "Joy of helping": "助ける喜び",
 "joy, times its sociability, an animal feels on coming beside one of its kind it heard call while that one's goal was stuck; 0 for none": "目標が行き詰まった同種の呼び声を聞き、その者のそばに来たときに動物が感じる喜び（社交性を掛ける）。0 で無効",
 "CHOICES": "選択",
