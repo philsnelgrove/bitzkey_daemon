@@ -366,15 +366,23 @@ public:
             auto* inputs = static_cast<float*>(gpu.inputs.mapped);
             begin(gpu);
             vk_.vkResetDescriptorPool(gpu.device, gpu.descriptors, 0);
+            // Where each request goes, then all of them written at once, on every core.
+            std::vector<std::pair<std::uint32_t, std::size_t>> rows;  // (place in the batch, request)
+            rows.reserve(count);
+            {
+                std::uint32_t at = 0;
+                for (const auto& [shape, members] : batch.by_shape) {
+                    for (const std::size_t index : members) rows.emplace_back(at++, index);
+                }
+            }
+            std::for_each(std::execution::par, rows.begin(), rows.end(), [&](const std::pair<std::uint32_t, std::size_t>& row) {
+                const auto [at, index] = row;
+                slots[at] = entries_[static_cast<std::size_t>(brains[index])].slot;
+                float* into = inputs + static_cast<std::size_t>(at) * INPUT_SIZE;
+                for (int sense = 0; sense < INPUT_SIZE; ++sense) into[sense] = static_cast<float>(read_sense(sense, senses[index][sense]));
+            });
             std::uint32_t first = 0;
             for (const auto& [shape, members] : batch.by_shape) {
-                for (std::size_t k = 0; k < members.size(); ++k) {
-                    const std::size_t index = members[k];
-                    slots[first + k] = entries_[static_cast<std::size_t>(brains[index])].slot;
-                    for (int sense = 0; sense < INPUT_SIZE; ++sense) {
-                        inputs[(first + k) * INPUT_SIZE + static_cast<std::size_t>(sense)] = static_cast<float>(read_sense(sense, senses[index][sense]));
-                    }
-                }
                 const Pool& pool = gpu.pools.at(shape);
                 dispatch(gpu, gpu.values, {&pool.weights, &gpu.slots, &gpu.inputs, &gpu.outputs, &gpu.outputs}, shape,
                          static_cast<std::uint32_t>(members.size()), pool.slot_floats, first);

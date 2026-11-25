@@ -1871,9 +1871,19 @@ void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
     }
     now.said = {static_cast<std::int8_t>(agent.call - FirstCall), static_cast<std::int8_t>(agent.sounds[0]), static_cast<std::int8_t>(agent.sounds[1])};
     if (CALL_HABIT > 0 && static_cast<int>(agent.habits.size()) >= HABIT_NEIGHBOURS) {
+        // Situations alike by what it senses of itself and the world: not what it heard, its memory, its goals and plans,
+        // or what it pictures, which say little of the situation and were most of the senses (and the time).
+        static const std::vector<int> SITUATION = [] {
+            std::vector<int> senses;
+            for (int sense = 0; sense < SenseUtterance; ++sense) {
+                if (sense >= SenseHeardCall && sense < SenseMemory + MEMORY_NEURONS) continue;
+                senses.push_back(sense);
+            }
+            return senses;
+        }();
         const auto norm = [](const std::array<std::int8_t, INPUT_SIZE>& at) {
             long long sum = 0;
-            for (const std::int8_t value : at) sum += static_cast<long long>(value) * value;
+            for (const int sense : SITUATION) sum += static_cast<long long>(at[static_cast<std::size_t>(sense)]) * at[static_cast<std::size_t>(sense)];
             return std::sqrt(static_cast<double>(sum));
         };
         const double mine = norm(now.senses);
@@ -1881,7 +1891,7 @@ void Simulation::keep_habit(Bitzkey& agent, const Senses& senses) {
         double at_large = 0.0;
         for (const Bitzkey::CallHabit& habit : agent.habits) {
             long long dot = 0;
-            for (std::size_t sense = 0; sense < now.senses.size(); ++sense) dot += static_cast<long long>(now.senses[sense]) * habit.senses[sense];
+            for (const int sense : SITUATION) dot += static_cast<long long>(now.senses[static_cast<std::size_t>(sense)]) * habit.senses[static_cast<std::size_t>(sense)];
             const double theirs = norm(habit.senses);
             int same = 0;
             for (std::size_t place = 0; place < now.said.size(); ++place) same += now.said[place] == habit.said[place];
@@ -2707,36 +2717,49 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     std::vector<Senses> hearing;
     for (Bitzkey* agent : agents) agent->call_understood = agent->silence_understood = 0.0;
     if (SPEAK_AS_HEARD > 0 && OUTSIDE_FORESIGHT > 0 && FORESIGHT_LEARNING > 0) {
+        std::vector<std::size_t> callers;  // each caller's place, its hearings counted as hearing_itself makes them
+        std::size_t total = 0;
         for (const std::size_t index : asked) {
             const Bitzkey& agent = *agents[index];
             if (!agent.has_last_senses || agent.last_call < FirstCall) continue;
-            starts.push_back(hearing.size());
-            for (const Senses& heard : hearing_itself(agent)) {
-                hearing.push_back(heard);
-                speakers.push_back(index);
-            }
+            const std::size_t count = 1 + CALL_COUNT + (agent.last_call >= FirstCall && agent.last_sounds[0] >= 0 ? 1 : 0);
+            starts.push_back(total);
+            callers.push_back(index);
+            speakers.insert(speakers.end(), count, index);
+            total += count;
         }
-        starts.push_back(hearing.size());
+        starts.push_back(total);
+        hearing.resize(total);
+        std::vector<std::size_t> order(callers.size());
+        std::iota(order.begin(), order.end(), std::size_t{0});
+        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) {
+            std::vector<Senses> heard = hearing_itself(*agents[callers[at]]);
+            std::move(heard.begin(), heard.end(), hearing.begin() + static_cast<std::ptrdiff_t>(starts[at]));
+        });
     }
     std::vector<Values> heard_as(hearing.size());
     if (gpu_) {  // every brain at once, on the GPUs
-        std::vector<gpu::BrainEngine::Handle> handles;
-        std::vector<Senses> senses;
-        handles.reserve(asked.size() + hearing.size());
-        senses.reserve(asked.size() + hearing.size());
-        for (const std::size_t index : asked) {
-            handles.push_back(agents[index]->gpu);
-            senses.push_back(plans[index].senses);
-        }
-        for (std::size_t place = 0; place < hearing.size(); ++place) {
-            handles.push_back(agents[speakers[place]]->gpu);
-            senses.push_back(hearing[place]);
-        }
+        const std::size_t all = asked.size() + hearing.size();
+        std::vector<gpu::BrainEngine::Handle> handles(all);
+        std::vector<Senses> senses(all);
+        std::vector<std::size_t> places(all);  // the batch put together, and taken apart, on every core
+        std::iota(places.begin(), places.end(), std::size_t{0});
+        std::for_each(std::execution::par, places.begin(), places.end(), [&](std::size_t place) {
+            if (place < asked.size()) {
+                handles[place] = agents[asked[place]]->gpu;
+                senses[place] = plans[asked[place]].senses;
+            } else {
+                handles[place] = agents[speakers[place - asked.size()]]->gpu;
+                senses[place] = hearing[place - asked.size()];
+            }
+        });
         std::vector<Values> batch(senses.size());
         try {
             if (!senses.empty()) gpu_->values(handles, senses, batch);
-            for (std::size_t place = 0; place < asked.size(); ++place) values[asked[place]] = batch[place];
-            for (std::size_t place = 0; place < hearing.size(); ++place) heard_as[place] = batch[asked.size() + place];
+            std::for_each(std::execution::par, places.begin(), places.end(), [&](std::size_t place) {
+                if (place < asked.size()) values[asked[place]] = batch[place];
+                else heard_as[place - asked.size()] = batch[place];
+            });
         } catch (const std::runtime_error& error) {
             leave_gpu(error);  // and this turn's thinking is done on the CPU, below
         }
@@ -2877,9 +2900,15 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                               [&](int a, int b) { return values[index][a] > values[index][b]; });
             for (std::size_t at = 0; at < count; ++at) {
                 handles.push_back(agent.gpu);
-                pictured.push_back(imagining(plans[index].senses, best[at]));
                 whose.emplace_back(index, best[at]);
             }
+        }
+        pictured.resize(whose.size());  // each pictured on every core
+        {
+            std::vector<std::size_t> places(whose.size());
+            std::iota(places.begin(), places.end(), std::size_t{0});
+            std::for_each(std::execution::par, places.begin(), places.end(),
+                          [&](std::size_t place) { pictured[place] = imagining(plans[whose[place].first].senses, whose[place].second); });
         }
         std::vector<Values> foreseen(pictured.size());
         if (gpu_ && !pictured.empty()) {
@@ -8415,14 +8444,17 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             if (agent.moved[thing] > 0) causes.push_back(static_cast<int>(thing));
         }
         if (agent.last_choice >= 0 && agent.last_choice < ACTION_COUNT) causes.push_back(OUTSIDE_SEEN + agent.last_choice);
+        std::vector<int> opened;  // shut before, open now, found once
+        for (int to = 0; to < OPEN_NODES; ++to) {
+            if (!agent.was_open[static_cast<std::size_t>(to)] && open_now[static_cast<std::size_t>(to)]) opened.push_back(to);
+        }
         for (const int from : causes) {
             for (OpensLink& link : agent.opens) {  // shut before and shut still: it did not open it
                 const auto to = static_cast<std::size_t>(link.to);
                 if (link.from == from && !agent.was_open[to] && !open_now[to]) link.strength += rate * (0.0 - link.strength);
             }
-            for (int to = 0; to < OPEN_NODES; ++to) {  // shut before, open now: it opened it
-                const auto t = static_cast<std::size_t>(to);
-                if (to == from || agent.was_open[t] || !open_now[t]) continue;
+            for (const int to : opened) {  // shut before, open now: it opened it
+                if (to == from) continue;
                 const auto it = std::find_if(agent.opens.begin(), agent.opens.end(), [&](const OpensLink& link) { return link.from == from && link.to == to; });
                 if (it != agent.opens.end()) {
                     it->strength += rate * (1.0 - it->strength);
