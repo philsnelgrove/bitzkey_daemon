@@ -2220,5 +2220,9 @@
 "Opening threshold": "Seuil d'ouverture",
 "the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "le moins que doit valoir un lien, sa force fois une moitié et la moyenne de patience et de curiosité, pour être suivi comme étape vers un but qui lui est fermé",
 "Planning depth": "Profondeur de planification",
-"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "combien d'étapes au-delà d'une un animal enchaîne vers un but qui lui est fermé, fois la moyenne de sa patience et de sa curiosité"
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "combien d'étapes au-delà d'une un animal enchaîne vers un but qui lui est fermé, fois la moyenne de sa patience et de sa curiosité",
+"Cooked food lean": "Penchant par la nourriture cuite",
+"share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "part du penchant vers l'omnivore d'un repas de moelle que donne chaque repas cuit d'une nourriture étrangère : viande cuite à un herbivore, fruit cuit à un prédateur ; 0 pour aucun",
+"Predator cooked fruit": "Fruit cuit pour prédateurs",
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "part de la nourriture qu'un omnivore tire du fruit qu'un prédateur tire du fruit cuit ; le fruit cru, il ne peut le manger ; 0 pour rien"
 }

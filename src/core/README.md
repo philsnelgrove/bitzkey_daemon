@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 562 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 564 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -14,7 +14,7 @@ There are 562 rules in 13 sections. Each gives its default, the range it may be 
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
 6. [Mind](#6-mind) (245 rules)
-7. [Food](#7-food) (83 rules)
+7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (11 rules)
 10. [Herding](#10-herding) (9 rules)
@@ -2578,235 +2578,247 @@ How far each marrow meal edges a grazer toward meat; at the full of it, it and i
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-### 7.13 Skinning joy (`SKINNING_JOY`)
+### 7.13 Cooked food lean (`COOKED_LEAN`)
+
+Share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none.
+
+Default **0.5**; from 0 to 1, in steps of 0.05.
+
+#### 7.13.1 Predator cooked fruit (`PREDATOR_COOKED_FRUIT`)
+
+Share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none.
+
+Default **0.5**; from 0 to 1, in steps of 0.05.
+
+### 7.14 Skinning joy (`SKINNING_JOY`)
 
 Pleasure of wearing a new, finer hide, times curiosity, the more for a finer one.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 7.13.1 Hide warmth (`HIDE_WARMTH`)
+#### 7.14.1 Hide warmth (`HIDE_WARMTH`)
 
 Steps of cold a worn hide keeps out.
 
 Default **1**; from 0 to 3, in steps of 0.25.
 
-#### 7.13.2 Hide armour share (`HIDE_ARMOUR_SHARE`)
+#### 7.14.2 Hide armour share (`HIDE_ARMOUR_SHARE`)
 
 Share of the armour of the body a hide came from that it adds to its wearer's.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 7.14 Gear uses (`GEAR_USES`)
+### 7.15 Gear uses (`GEAR_USES`)
 
 Uses before a tool or armour of bone or wood breaks.
 
 Default **7**; from 1 to 20, in steps of 1.
 
-#### 7.14.1 Fire life (`FIRE_TURNS`)
+#### 7.15.1 Fire life (`FIRE_TURNS`)
 
 Turns a fire burns, and each wood fed to it adds.
 
 Default **24**; from 1 to 200, in steps of 1.
 
-#### 7.14.2 Fire panic (`FIRE_PANIC`)
+#### 7.15.2 Fire panic (`FIRE_PANIC`)
 
 Chance an animal panics, seeing a fire not its own or its herd's.
 
 Default **0.25**; from 0 to 1, in steps of 0.05.
 
-#### 7.14.3 Fire joy (`FIRE_JOY`)
+#### 7.15.3 Fire joy (`FIRE_JOY`)
 
 The sense of accomplishment in lighting a fire, beside the comfort of it.
 
 Default **2**; from 0 to 5, in steps of 0.1.
 
-#### 7.14.4 Fire comfort (`FIRE_COMFORT`)
+#### 7.15.4 Fire comfort (`FIRE_COMFORT`)
 
 Comfort in sight of a fire that is its own or its herd's.
 
 Default **0.3**; from 0 to 2, in steps of 0.05.
 
-#### 7.14.5 Cooked food (`COOKED_FOOD`)
+#### 7.15.5 Cooked food (`COOKED_FOOD`)
 
 Times as nourishing as raw.
 
 Default **2**; from 1 to 5, in steps of 0.1.
 
-#### 7.14.6 Carried spoilage (`CARRIED_SPOIL`)
+#### 7.15.6 Carried spoilage (`CARRIED_SPOIL`)
 
 The chance each turn a raw portion carried goes off; cooked food keeps.
 
 Default **0.02**; from 0 to 0.5, in steps of 0.005.
 
-### 7.15 Weapon force (`WEAPON_FORCE`)
+### 7.16 Weapon force (`WEAPON_FORCE`)
 
 Times as hard an axe or club strikes.
 
 Default **2**; from 1 to 5, in steps of 0.1.
 
-#### 7.15.1 Stone force (`STONE_FORCE`)
+#### 7.16.1 Stone force (`STONE_FORCE`)
 
 Times as hard a wielded stone strikes.
 
 Default **1.5**; from 1 to 5, in steps of 0.1.
 
-#### 7.15.2 Armour force (`ARMOUR_FORCE`)
+#### 7.16.2 Armour force (`ARMOUR_FORCE`)
 
 Times its armour that worn armour counts for.
 
 Default **2**; from 1 to 5, in steps of 0.1.
 
-#### 7.15.3 Dig chance (`DIG_CHANCE`)
+#### 7.16.3 Dig chance (`DIG_CHANCE`)
 
 Chance that digging finds a stone.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-### 7.16 Bow uses (`BOW_USES`)
+### 7.17 Bow uses (`BOW_USES`)
 
 Shots a bow makes before it is spent.
 
 Default **20**; from 1 to 100, in steps of 1.
 
-### 7.17 Fire feeding joy (`FIRE_FEED_JOY`)
+### 7.18 Fire feeding joy (`FIRE_FEED_JOY`)
 
 The satisfaction of feeding a fire, so that it burns on.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.18 Seed food (`SEED_FOOD`)
+### 7.19 Seed food (`SEED_FOOD`)
 
 How much of a fruit's portion a seed feeds.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-#### 7.18.1 Planting joy (`PLANTING_JOY`)
+#### 7.19.1 Planting joy (`PLANTING_JOY`)
 
 The gladness of planting a seed; more if curious.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.19 Harvest joy (`HARVEST_JOY`)
+### 7.20 Harvest joy (`HARVEST_JOY`)
 
 The gladness of picking a fruit from a plant without uprooting it.
 
 Default **0.1**; from 0 to 5, in steps of 0.05.
 
-#### 7.19.1 Regrowth joy (`REGROWTH_JOY`)
+#### 7.20.1 Regrowth joy (`REGROWTH_JOY`)
 
 The gladness of seeing a plant it last picked bear fruit again.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
-### 7.20 Arable fruit (`ARABLE_FRUIT`)
+### 7.21 Arable fruit (`ARABLE_FRUIT`)
 
 Times as much fruit a plant on worked land bears each morning.
 
 Default **2**; from 1 to 5, in steps of 1.
 
-#### 7.20.1 Fertilized fruit (`FERTILIZED_FRUIT`)
+#### 7.21.1 Fertilized fruit (`FERTILIZED_FRUIT`)
 
 Times as much again on worked land fed bone; the bone is spent.
 
 Default **2**; from 1 to 5, in steps of 1.
 
-### 7.21 Fallow years (`FALLOW_YEARS`)
+### 7.22 Fallow years (`FALLOW_YEARS`)
 
 Years worked land lies untended before it goes wild, its bone with it; 0, never.
 
 Default **1**; from 0 to 10, in steps of 0.25.
 
-### 7.22 Cooked delight (`COOKED_JOY`)
+### 7.23 Cooked delight (`COOKED_JOY`)
 
 Pleasure of eating a cooked portion, times a half and its taste for cooked food.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 7.22.1 Raw distaste (`RAW_DISTASTE`)
+#### 7.23.1 Raw distaste (`RAW_DISTASTE`)
 
 Letdown of eating a raw portion once it knows the taste of cooked, times that taste.
 
 Default **0.5**; from 0 to 5, in steps of 0.1.
 
-#### 7.22.2 Cooking joy (`COOK_JOY`)
+#### 7.23.2 Cooking joy (`COOK_JOY`)
 
 Pleasure of cooking a portion, times a half and its taste for cooked food.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 7.22.3 Smell reach (`SMELL_REACH`)
+#### 7.23.3 Smell reach (`SMELL_REACH`)
 
 How many times as far as it sees an animal smells cooked food and a fire cooked on.
 
 Default **3**; from 1 to 4, in steps of 0.1.
 
-### 7.23 Taste joy (`TASTE_JOY`)
+### 7.24 Taste joy (`TASTE_JOY`)
 
 How tasty a cooked portion is, and how untasty a raw one from a pile or carried, times its appetite.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 7.24 Grass meal (`GRASS_MEAL`)
+### 7.25 Grass meal (`GRASS_MEAL`)
 
 Hunger a tuft of grass sates.
 
 Default **18**; from 0 to 200, in steps of 1.
 
-#### 7.24.1 Grazer on grass (`GRAZING.grazer`)
+#### 7.25.1 Grazer on grass (`GRAZING.grazer`)
 
 Share of the food in grass a grazer gets.
 
 Default **1.25**; from 0 to 3, in steps of 0.05.
 
-#### 7.24.2 Omnivore on grass (`GRAZING.omnivore`)
+#### 7.25.2 Omnivore on grass (`GRAZING.omnivore`)
 
 Share of the food in grass an omnivore gets.
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-#### 7.24.3 Grazer on plants (`BROWSING.grazer`)
+#### 7.25.3 Grazer on plants (`BROWSING.grazer`)
 
 Share of the food in plants a grazer gets.
 
 Default **1.25**; from 0 to 3, in steps of 0.05.
 
-#### 7.24.4 Omnivore on plants (`BROWSING.omnivore`)
+#### 7.25.4 Omnivore on plants (`BROWSING.omnivore`)
 
 Share of the food in plants an omnivore gets.
 
 Default **0.75**; from 0 to 3, in steps of 0.05.
 
-### 7.25 Uproot hunger (`UPROOT_HUNGER`)
+### 7.26 Uproot hunger (`UPROOT_HUNGER`)
 
 A grazer this hungry, with food scarce, may uproot a plant.
 
 Default **80**; from 0 to 100, in steps of 1.
 
-#### 7.25.1 Uproot meals (`UPROOT_MEALS`)
+#### 7.26.1 Uproot meals (`UPROOT_MEALS`)
 
 Share of a feast on a body of the plant's size an uprooting grazer eats.
 
 Default **0.5**; from 0 to 10, in steps of 0.05.
 
-#### 7.25.2 Uproot bite (`UPROOT_BITE`)
+#### 7.26.2 Uproot bite (`UPROOT_BITE`)
 
 Health a plant loses to being uprooted.
 
 Default **45**; from 0 to 200, in steps of 1.
 
-### 7.26 Uproot sorrow (`UPROOT_SORROW`)
+### 7.27 Uproot sorrow (`UPROOT_SORROW`)
 
 A grazer's sorrow at tearing into a plant, times a half plus its empathy.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
-### 7.27 Carrion meat (`CARRION_MEAT`)
+### 7.28 Carrion meat (`CARRION_MEAT`)
 
 Meat a well-fed corpse leaves.
 
 Default **30**; from 0 to 200, in steps of 5.
 
-#### 7.27.1 Carrion meat for size (`CARRION_MEAT_FOR_SIZE`)
+#### 7.28.1 Carrion meat for size (`CARRION_MEAT_FOR_SIZE`)
 
 More meat, up to this for the largest.
 

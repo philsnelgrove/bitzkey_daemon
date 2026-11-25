@@ -2220,5 +2220,9 @@
 "Opening threshold": "סף פתיחה",
 "the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "הערך המזערי שקשר צריך, חוזקו כפול חצי וממוצע הסבלנות והסקרנות, כדי ללכת בו כצעד לעבר מטרה הסגורה בפניו",
 "Planning depth": "עומק תכנון",
-"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "כמה צעדים מעבר לאחד בעל חיים משרשר לעבר מטרה הסגורה בפניו, כפול ממוצע סבלנותו וסקרנותו"
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "כמה צעדים מעבר לאחד בעל חיים משרשר לעבר מטרה הסגורה בפניו, כפול ממוצע סבלנותו וסקרנותו",
+"Cooked food lean": "נטייה ממזון מבושל",
+"share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "החלק מהנטייה לאוכל-כול של ארוחת מח עצם שנותנת כל ארוחה מבושלת של מזון זר: בשר מבושל לאוכל עשב, פרי מבושל לטורף; 0 לכלום",
+"Predator cooked fruit": "פרי מבושל לטורפים",
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "החלק מהתזונה שאוכל-כול מקבל מפרי שטורף מקבל מפרי מבושל; פרי נא אינו יכול לאכול; 0 לכלום"
 }

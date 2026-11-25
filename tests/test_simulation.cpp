@@ -3624,6 +3624,39 @@ TEST_CASE("ingenuity: what opens what is learnt; a goal shut to it is sought by 
     CHECK(!child.opens[0].used);
 }
 
+TEST_CASE("a grazer eating cooked meat leans toward meat, half as much as from marrow, and in time turns omnivore") {
+    Simulation simulation(10, 40, 0, 1);
+    Bitzkey& grazer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}, {"carrion", 7}}), 2, 20);
+    simulation.index_cells();
+    grazer.cooked_meat = 2;
+    simulation.eat_carried(grazer);
+    CHECK(grazer.cooked_meat == 1);
+    CHECK(grazer.meat_lean == doctest::Approx(MARROW_LEAN * COOKED_LEAN));
+    grazer.meat_lean = 1.0 - MARROW_LEAN * COOKED_LEAN / 2;
+    simulation.eat_carried(grazer);
+    CHECK(grazer.species == Species::Omnivore);
+    CHECK(grazer.meat_lean == 0);
+}
+
+TEST_CASE("a predator may eat cooked fruit, not raw, fed a share, and leans toward omnivore") {
+    Simulation simulation(10, 40, 0, 1);
+    Bitzkey& predator = simulation.add_agent(encode_dna(Species::Predator), 2, 20);
+    simulation.index_cells();
+    predator.carried_fruit = 1;
+    CHECK(Simulation::fruit_share(predator, false) == 0.0);
+    CHECK(Simulation::fruit_share(predator, true) == doctest::Approx(BROWSING[static_cast<std::size_t>(Species::Omnivore)] * PREDATOR_COOKED_FRUIT));
+    predator.cooked_fruit = 2;
+    predator.hunger = 50;
+    simulation.eat_carried(predator);
+    CHECK(predator.cooked_fruit == 1);
+    CHECK(predator.carried_fruit == 1);  // raw, uneaten
+    CHECK(predator.hunger < 50);
+    CHECK(predator.meat_lean == doctest::Approx(MARROW_LEAN * COOKED_LEAN));
+    predator.meat_lean = 1.0 - MARROW_LEAN * COOKED_LEAN / 2;
+    simulation.eat_carried(predator);
+    CHECK(predator.species == Species::Omnivore);
+}
+
 TEST_CASE("the map blind rule withholds the mental map and the way back to a meal") {
     struct KeepRules { int blind = MAP_BLIND; ~KeepRules() { MAP_BLIND = blind; } } keep;
     Simulation simulation = world(60);

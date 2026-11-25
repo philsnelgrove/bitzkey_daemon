@@ -2220,5 +2220,9 @@
 "Opening threshold": "खुलने की दहलीज़",
 "the least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it": "किसी कड़ी का कम से कम मूल्य, उसकी ताकत गुणा आधा और धैर्य व जिज्ञासा का औसत, ताकि बंद लक्ष्य की ओर कदम के रूप में उसे अपनाया जाए",
 "Planning depth": "योजना की गहराई",
-"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "बंद लक्ष्य की ओर कोई जीव एक से आगे कितने कदम जोड़ता है, गुणा उसके धैर्य और जिज्ञासा का औसत"
+"how many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity": "बंद लक्ष्य की ओर कोई जीव एक से आगे कितने कदम जोड़ता है, गुणा उसके धैर्य और जिज्ञासा का औसत",
+"Cooked food lean": "पके भोजन से झुकाव",
+"share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none": "मज्जा के एक भोजन से सर्वाहारी की ओर झुकाव का वह हिस्सा जो पराए भोजन का हर पका भोजन देता है: घास चरने वाले को पका मांस, शिकारी को पका फल; 0 यानी कुछ नहीं",
+"Predator cooked fruit": "शिकारी के लिए पका फल",
+"share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none": "फल से सर्वाहारी को मिलने वाले पोषण का वह हिस्सा जो शिकारी को पके फल से मिलता है; कच्चा फल वह नहीं खा सकता; 0 यानी कुछ नहीं"
 }

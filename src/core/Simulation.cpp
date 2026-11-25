@@ -3914,8 +3914,11 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     available[PlantSeed] = agent.carried_seed + agent.carried_fruit > 0 && arable_at(agent.x, agent.y);  // a seed, else a whole fruit
     available[DropWeapon] = agent.weapon != NoWeapon;
     available[DropArmour] = agent.armour != NoArmour;
-    available[EatCarried] = (agent.carried_meat + agent.cooked_meat > 0 && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit > 0 && FRUIT_PORTION * agent.browsing > 0);
-    available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || (s.eat_fruit && FRUIT_PORTION * agent.browsing > 0);
+    available[EatCarried] = (agent.carried_meat + agent.cooked_meat > 0 && MEAT_PORTION * agent.digestion > 0) || (agent.carried_fruit + agent.cooked_fruit > 0 && FRUIT_PORTION * agent.browsing > 0) ||
+                            (agent.cooked_fruit > 0 && FRUIT_PORTION * fruit_share(agent, true) > 0);
+    // fruit eaten from a pile: a predator only cooked (PREDATOR_COOKED_FRUIT)
+    const bool fruit_edible = s.eat_fruit && FRUIT_PORTION * fruit_share(agent, pile_at(s.eat_fruit->x, s.eat_fruit->y, CookedFruitPile) > 0) > 0;
+    available[EatPile] = (s.eat_meat && MEAT_PORTION * agent.digestion > 0) || fruit_edible;
     const bool beside_fire = s.fire && distance(s.fire->x, s.fire->y, agent.x, agent.y) <= 1;
     available[Construct] = agent.any_tool() && agent.carried_stone + agent.carried_wood > 0 && !shelter_at(agent.x, agent.y) && !sea(agent.x, agent.y);
     available[Skin] = axe && s.dressable && s.dressable->species != Species::Plant && !s.dressable->skinned &&
@@ -7294,14 +7297,14 @@ void Simulation::scatter_stones() {
 }
 
 void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
-    const double meat = s.eat_meat ? MEAT_PORTION * agent.digestion : 0.0, fruit = s.eat_fruit ? FRUIT_PORTION * agent.browsing : 0.0;
+    const double meat = s.eat_meat ? MEAT_PORTION * agent.digestion : 0.0, fruit = s.eat_fruit ? FRUIT_PORTION * fruit_share(agent, true) : 0.0;
     const bool eats_meat = meat >= fruit;
     const Cell pile = eats_meat ? *s.eat_meat : *s.eat_fruit;
     const PileKind raw = eats_meat ? MeatPile : FruitPile;
     const PileKind cooked = eats_meat ? CookedMeatPile : CookedFruitPile;
     const PileKind kind = pile_at(pile.x, pile.y, cooked) > 0 ? cooked : raw;  // the cooked first
     move_toward(agent, pile.x, pile.y);
-    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, kind) <= 0) {
+    if (distance(pile.x, pile.y, agent.x, agent.y) > 1 || pile_at(pile.x, pile.y, kind) <= 0 || (kind == FruitPile && fruit_share(agent, false) <= 0)) {
         agent.last_action = "sought a pile";
         return;
     }
@@ -7310,20 +7313,23 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
     if (kind == FruitPile) keep_seed(agent);
     agent.nourish((eats_meat ? meat : fruit) * (kind == raw ? 1.0 : COOKED_FOOD), eats_meat);
     taste(agent, kind != raw);
+    if (kind == (agent.species == Species::Predator ? CookedFruitPile : CookedMeatPile)) lean_to_meat(agent, MARROW_LEAN * std::max(0.0, COOKED_LEAN));  // see COOKED_LEAN
     agent.last_action = "ate from a pile";
 }
 
 void Simulation::eat_carried(Bitzkey& agent) {
-    const bool has_meat = agent.carried_meat + agent.cooked_meat > 0, has_fruit = agent.carried_fruit + agent.cooked_fruit > 0;
+    const bool has_meat = agent.carried_meat + agent.cooked_meat > 0;
+    const bool has_fruit = fruit_share(agent, false) > 0 ? agent.carried_fruit + agent.cooked_fruit > 0 : agent.cooked_fruit > 0 && fruit_share(agent, true) > 0;
     if (!has_meat && !has_fruit) {  // gone since it chose: spoilt, or passed on
         agent.last_action = "found nothing carried";
         return;
     }
     const double meat = has_meat ? MEAT_PORTION * agent.digestion * (agent.cooked_meat > 0 ? COOKED_FOOD : 1.0) : 0.0;
-    const double fruit = has_fruit ? FRUIT_PORTION * agent.browsing * (agent.cooked_fruit > 0 ? COOKED_FOOD : 1.0) : 0.0;
+    const double fruit = has_fruit ? FRUIT_PORTION * fruit_share(agent, agent.cooked_fruit > 0) * (agent.cooked_fruit > 0 ? COOKED_FOOD : 1.0) : 0.0;
     const bool eats_meat = has_meat && (!has_fruit || meat >= fruit);
     int& cooked = eats_meat ? agent.cooked_meat : agent.cooked_fruit;  // the cooked first
     taste(agent, cooked > 0);
+    if (cooked > 0 && eats_meat == (agent.species == Species::Grazer)) lean_to_meat(agent, MARROW_LEAN * std::max(0.0, COOKED_LEAN));  // see COOKED_LEAN
     if (cooked > 0) --cooked;
     else {
         --(eats_meat ? agent.carried_meat : agent.carried_fruit);
@@ -7663,8 +7669,18 @@ void Simulation::eat_marrow(Bitzkey& agent) {
     agent.nourish(MEAT_PORTION * agent.digestion, true);
     agent.last_action = "ate marrow";
     note_first("ate_marrow", agent.species, agent.identifier);
-    if (agent.species != Species::Grazer || MARROW_LEAN <= 0) return;
-    agent.meat_lean = std::min(1.0, agent.meat_lean + MARROW_LEAN);
+    lean_to_meat(agent, MARROW_LEAN);
+}
+
+double Simulation::fruit_share(const Bitzkey& agent, bool cooked) {
+    if (agent.browsing > 0) return agent.browsing;
+    if (!cooked || agent.species != Species::Predator) return 0.0;
+    return BROWSING[static_cast<std::size_t>(Species::Omnivore)] * std::max(0.0, PREDATOR_COOKED_FRUIT);
+}
+
+void Simulation::lean_to_meat(Bitzkey& agent, double lean) {
+    if ((agent.species != Species::Grazer && agent.species != Species::Predator) || lean <= 0) return;
+    agent.meat_lean = std::min(1.0, agent.meat_lean + lean);
     if (agent.meat_lean < 1.0 - 1e-9) return;
     const auto turned = [this, &agent] {  // what it is, others far off may be looking at: changed once all have acted
         constexpr int shift = 32;  // the species trait is the ring's first; the species is it mod 4
@@ -7673,7 +7689,7 @@ void Simulation::eat_marrow(Bitzkey& agent) {
         agent.species = Species::Omnivore;
         agent.meat_lean = 0.0;
         agent.derive();
-        note_first("gave_in_to_meat", Species::Grazer, agent.identifier);
+        note_first(agent.species == Species::Predator ? "gave_in_to_fruit" : "gave_in_to_meat", agent.species, agent.identifier);
     };
     if (!later(turned)) turned();
 }

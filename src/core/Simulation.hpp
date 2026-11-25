@@ -1029,6 +1029,11 @@ inline double FALLOW_YEARS = 1.0;
 // Each marrow meal edges a grazer MARROW_LEAN toward meat; at the full of it, it gives in: an omnivore, in its genes
 // too, so its young are born omnivores.
 inline double FERTILIZING_JOY = 1.0, MARROW_LEAN = 0.05;
+// Cooked food (the user's rules): a grazer eating cooked meat, or a predator cooked fruit, leans toward omnivore as a
+// grazer does from marrow, COOKED_LEAN as much a meal; at the full of it, it and its young are omnivores. A predator
+// cannot eat raw fruit, but cooked it feeds it PREDATOR_COOKED_FRUIT of what it feeds an omnivore.
+inline double COOKED_LEAN = 0.5;
+inline double PREDATOR_COOKED_FRUIT = 0.5;
 // Clothing: with a bone or stone axe, one skins a body not yet skinned, getting the better of its own hide and any it wore, if
 // better than what it wears now; a pleasure (SKINNING_JOY, times curiosity, the more for the finer hide). A hide keeps
 // out HIDE_WARMTH steps of cold and adds HIDE_ARMOUR_SHARE of the armour of the body it came from to the wearer's own.
@@ -1371,7 +1376,7 @@ struct Bitzkey {
     double plenty = 0.0;  // the food about it as of its last survey (see FORAGE_RADIUS)
     double plenty_known = -1.0;  // its memory of that food, following it over about a day; below 0 before its first survey
     double cooked_known = 0.0;  // its taste for cooked food, a third for each cooked portion eaten, to 1 (see COOKED_JOY)
-    double meat_lean = 0.0;  // a grazer's lean toward meat from marrow eaten, 0 to 1; at 1 it turns omnivore
+    double meat_lean = 0.0;  // a grazer's lean toward meat (marrow, cooked meat), or a predator's toward fruit (cooked fruit), 0 to 1; at 1 it turns omnivore
     bool expects = false;  // whether it imagined what it last chose, so `expected` holds what it foresaw
     Foresight expected{};
     double surprise = 0.0;  // how far its last turn differed from what it foresaw, about 0..1
@@ -2536,6 +2541,8 @@ public:
     }
     bool crush_bone(Bitzkey& agent);  // spends the bone it carries, or else one from the pile on its square; false if none is left
     void eat_marrow(Bitzkey& agent);
+    void lean_to_meat(Bitzkey& agent, double lean);  // a grazer's or predator's lean toward omnivore; at the full of it, one (MARROW_LEAN, COOKED_LEAN)
+    static double fruit_share(const Bitzkey& agent, bool cooked);  // the share of fruit's food it gets (PREDATOR_COOKED_FRUIT)
     void fertilize(Bitzkey& agent);
     void skin(Bitzkey& agent, Bitzkey& corpse);
     // A fight over a possession: the one taking, the one it is taken from, which, and whether it is already taken.

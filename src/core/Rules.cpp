@@ -420,6 +420,8 @@ std::vector<Rule> make_rules() {
         {"ROAD_LONGING", "Food", "Road longing", "how much more laying road thrills one that has travelled by road, in full after a day of it, whatever its curiosity", 0.0, 5.0, 0.1, false, &ROAD_LONGING},
         {"FERTILIZING_JOY", "Food", "Fertilizing joy", "pleasure of feeding crushed bone to worked land, times curiosity", 0.0, 5.0, 0.1, false, &FERTILIZING_JOY},
         {"MARROW_LEAN", "Food", "Marrow lean", "how far each marrow meal edges a grazer toward meat; at the full of it, it and its young are omnivores; 0 for never", 0.0, 1.0, 0.01, false, &MARROW_LEAN},
+        {"COOKED_LEAN", "Food", "Cooked food lean", "share of a marrow meal's lean toward omnivore that each cooked meal of another's food gives: cooked meat to a grazer, cooked fruit to a predator; 0 for none", 0.0, 1.0, 0.05, false, &COOKED_LEAN},
+        {"PREDATOR_COOKED_FRUIT", "Food", "Predator cooked fruit", "share of an omnivore's nourishment from fruit that a predator gets from cooked fruit; raw fruit it cannot eat; 0 for none", 0.0, 1.0, 0.05, false, &PREDATOR_COOKED_FRUIT},
         {"SKINNING_JOY", "Food", "Skinning joy", "pleasure of wearing a new, finer hide, times curiosity, the more for a finer one", 0.0, 5.0, 0.1, false, &SKINNING_JOY},
         {"HIDE_WARMTH", "Food", "Hide warmth", "steps of cold a worn hide keeps out", 0.0, 3.0, 0.25, false, &HIDE_WARMTH},
         {"HIDE_ARMOUR_SHARE", "Food", "Hide armour share", "share of the armour of the body a hide came from that it adds to its wearer's", 0.0, 1.0, 0.05, false, &HIDE_ARMOUR_SHARE},
