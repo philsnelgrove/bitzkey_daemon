@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 592 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 593 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -16,7 +16,7 @@ There are 592 rules in 13 sections. Each gives its default, the range it may be 
 6. [Mind](#6-mind) (273 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
-9. [Territory](#9-territory) (11 rules)
+9. [Territory](#9-territory) (12 rules)
 10. [Herding](#10-herding) (9 rules)
 11. [Plants](#11-plants) (10 rules)
 12. [Climate](#12-climate) (17 rules)
@@ -3217,6 +3217,12 @@ Default **0.5**; from 0 to 1, in steps of 0.05.
 Relief at killing a rival in an overcrowded territory.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
+
+#### 9.1.5 Hostility in want (`HOSTILITY_IN_WANT`)
+
+1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food.
+
+Default **1**; from 0 to 1, in steps of 1.
 
 ### 9.2 Predator rivals, cruel (`TERRITORY.predator.fewest`)
 

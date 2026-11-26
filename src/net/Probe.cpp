@@ -2781,7 +2781,7 @@ Json Probe::goals(Simulation& world) const {
         // Projects (see PROJECT_PULL): who holds one, of which aim and way, own or confided; at their goals; in lives; worth.
         std::map<std::string, long long> projects;
         long long holding_project = 0, confided_held = 0, project_goals = 0, instructed_goals = 0, progressing = 0, taken = 0, given_up = 0,
-                  instructions = 0, confidings = 0, p_stuck = 0, p_calls = 0, p_called_free = 0, p_silent_free = 0, by_sign = 0, by_word = 0;
+                  instructions = 0, confidings = 0, p_stuck = 0, p_calls = 0, p_called_free = 0, p_silent_free = 0, by_sign = 0, by_word = 0, in_want = 0;
         std::array<double, PROJECT_AIMS> sureness{};
         // Vendettas and challenges (see VENDETTA, CHALLENGE_GLORY)
         std::array<long long, HELP_KINDS> help_kinds{};
@@ -2847,6 +2847,7 @@ Json Probe::goals(Simulation& world) const {
             p_silent_free += agent->project_unstuck_silent;
             by_sign += agent->instructed_by_sign;
             by_word += agent->instructed_by_word;
+            in_want += agent->in_want;
             if (agent->project_aim >= 0) {
                 ++holding_project;
                 confided_held += agent->project_confided;
@@ -2998,6 +2999,7 @@ Json Probe::goals(Simulation& world) const {
                      sure[std::string(AIM_NAMES[aim])] = sureness[aim] / static_cast<double>(alive);
                  }
                  return Json{{"holding_share", ratio(static_cast<double>(holding_project), static_cast<double>(alive))},
+                             {"in_want_share", ratio(static_cast<double>(in_want), static_cast<double>(alive))},  // see HOSTILITY_IN_WANT
                              {"confided_share_of_holders", ratio(static_cast<double>(confided_held), static_cast<double>(holding_project))},
                              {"progressing_share_of_holders", ratio(static_cast<double>(progressing), static_cast<double>(holding_project))},
                              {"project_goals_share", ratio(static_cast<double>(project_goals), static_cast<double>(holding))},

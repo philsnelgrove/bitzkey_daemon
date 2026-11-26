@@ -412,9 +412,13 @@ TEST_CASE("predators hunt other kinds of predator only past their reluctance, an
     CHECK_FALSE(Simulation::is_prey(gentle, stranger));
     CHECK_FALSE(Simulation::is_prey(gentle, kin));
     gentle.own_rivalry = 0.8;  // reluctance worn down by RIVALRY_WEAR of 0.8, to 0.6
+    gentle.in_want = true;     // as long as it is in want (see HOSTILITY_IN_WANT)
     CHECK_FALSE(Simulation::is_prey(gentle, stranger));
     gentle.hunger = 70;
     CHECK(Simulation::is_prey(gentle, stranger));
+    gentle.in_want = false;  // well fed: crowding wears nothing down
+    CHECK_FALSE(Simulation::is_prey(gentle, stranger));
+    gentle.in_want = true;
     gentle.hunger = 99;
     CHECK_FALSE(Simulation::is_prey(gentle, kin));  // never its own kind
 }
@@ -710,6 +714,8 @@ TEST_CASE("omnivores fight their own only in an overcrowded territory") {
     ruthless.hunger = 50;
     CHECK_FALSE(Simulation::is_prey(ruthless, other));
     ruthless.own_rivalry = 0.5;
+    CHECK_FALSE(Simulation::is_prey(ruthless, other));  // well fed: no hostility to its own (see HOSTILITY_IN_WANT)
+    ruthless.in_want = true;
     CHECK(Simulation::is_prey(ruthless, other));
 }
 
@@ -3789,6 +3795,13 @@ TEST_CASE("projects: a long aim learnt from its life becomes its project, progre
     CHECK(follower.project_confided);
     CHECK(follower.project_from == leader.identifier);
     CHECK(follower.aim_value[SelfGear] > 0.0);
+    // A project to thin its own group is dropped once it is fed (see HOSTILITY_IN_WANT).
+    follower.project_aim = GroupOwn;
+    follower.project_dir = -1;
+    follower.project_confided = false;
+    follower.in_want = false;
+    simulation.sense(follower);
+    CHECK(follower.project_aim != GroupOwn);
 }
 
 TEST_CASE("vendetta: one that struck it is an enemy; seen, its grudge sparks a goal to go after it; a challenge is a duel to submission, the loser shamed") {

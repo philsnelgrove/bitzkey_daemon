@@ -1358,6 +1358,8 @@ void Simulation::index_cells() {
     for (const auto& agent : agents_) {
         if (agent->alive()) ++living_[static_cast<std::size_t>(agent->species)];
     }
+    for (const auto& agent : agents_)  // in want of food enough to breed (see HOSTILITY_IN_WANT)
+        agent->in_want = agent->alive() && agent->species != Species::Plant && !well_fed(*agent);
     const int predators = living_[static_cast<std::size_t>(Species::Predator)];
     double glut = PREDATOR_GLUT > 0 ? std::max(0.0, static_cast<double>(predators - PREDATOR_GLUT) / PREDATOR_GLUT) : 0.0;
     const double famine_line = 2.0 * RARE_PREY / 100 * predators;  // and prey dying out: from twice the rare line, other kinds by it, its own by none
@@ -8905,7 +8907,10 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
                 return value * agent.aim_agree[aim] > 0 ? std::abs(agent.aim_agree[aim]) : 0.0;
             };
             int best = 0;
-            const auto score = [&](int aim) { return std::abs(agent.aim_value[static_cast<std::size_t>(aim)]) * sure(static_cast<std::size_t>(aim)); };
+            const auto score = [&](int aim) {
+                if (aim == GroupOwn && agent.aim_value[GroupOwn] < 0 && !wanting(agent)) return 0.0;  // fed, no wish to thin its own (see HOSTILITY_IN_WANT)
+                return std::abs(agent.aim_value[static_cast<std::size_t>(aim)]) * sure(static_cast<std::size_t>(aim));
+            };
             for (int aim = 1; aim < PROJECT_AIMS; ++aim) {
                 if (score(aim) > score(best)) best = aim;
             }
@@ -8929,7 +8934,8 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
             }
         }
     }
-    // Its project: progress felt, what moved it learnt, given up when long without progress.
+    // Its project: progress felt, what moved it learnt, given up when long without progress; to thin its own, dropped once fed.
+    if (agent.project_aim == GroupOwn && agent.project_dir < 0 && !wanting(agent)) agent.project_aim = -1;
     int project_kind = NoGoal, project_target = -1;
     double project_pull = 0.0;
     if (agent.project_aim >= 0) {
@@ -9461,7 +9467,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
         if (eats) agent.nourish(meal, true);
         agent.reward += 2 * joy;
         witness(agent, meal / agent.stomach / 100);  // its pack sees it succeed: the fullness it gained
-        if (rival_weight(agent, victim) > 0 || is_foe(agent, victim)) {  // one fewer rival for the feeding ground
+        if ((rival_weight(agent, victim) > 0 || is_foe(agent, victim)) && wanting(agent)) {  // one fewer rival for the feeding ground, in want
             agent.reward += RIVAL_KILL_JOY * agent.rivalry * (1 - 0.5 * agent.feeling(Tolerance));
         }
         experience(agent, Kill);
@@ -10255,7 +10261,7 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
         // Predators only when it would win, blow for blow.
         return (other.species == Species::Grazer && hunter.hunts_grazers) ||
                (other.species == Species::Predator && hunter.hunts_predators && would_win(hunter, other)) ||
-               (other.species == Species::Omnivore && hunter.own_rivalry > 0 &&
+               (other.species == Species::Omnivore && hunter.own_rivalry > 0 && wanting(hunter) &&
                 hunter.hunger / 100 > cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry));
     }
     if (hunter.species != Species::Predator) return false;
@@ -10265,7 +10271,7 @@ bool Simulation::is_prey(const Bitzkey& hunter, const Bitzkey& other) {
     // Other kinds of predator only when hungry past its reluctance, which a territory overcrowded with predators
     // wears away, and so does a world glutted with them or running out of prey; its own kind only once that is
     // twice as bad.
-    const double reluctance = cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * hunter.own_rivalry);
+    const double reluctance = cannibal_reluctance(hunter) * (1 - RIVALRY_WEAR * (wanting(hunter) ? hunter.own_rivalry : 0.0));
     if (same_kind(hunter, other)) {
         const double own = std::min(1.0, std::max(0.0, hunter.glut - 1));
         return own > 0 && hunter.hunger / 100 > reluctance * (1 - own);

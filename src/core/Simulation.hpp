@@ -896,6 +896,11 @@ inline int TERRITORY_RAMP = 3;
 inline double RIVAL_UNEASE = 0.3;
 inline double RIVALRY_WEAR = 0.5;  // how much an overcrowded territory wears down a hunter's reluctance to kill its own species
 inline double RIVAL_KILL_JOY = 0.5;
+// Hostility to its own in want only (the user's design): crowding wears down its reluctance to kill its own kind
+// (RIVALRY_WEAR), killing a rival is a joy (RIVAL_KILL_JOY), and lowering its own group's numbers may become its project,
+// only while it is in want: its home band holds too little food for it to breed (see well_fed), as weighed when the
+// cells are indexed. Fed again, such a project is dropped. HOSTILITY_IN_WANT 0: whatever the food.
+inline int HOSTILITY_IN_WANT = 1;
 inline int HERD_SPREAD = 3;
 inline double HERD_JOY = 0.15;
 inline double HERD_LONELINESS = 0.1;
@@ -1486,6 +1491,7 @@ struct Bitzkey {
     bool primal_fear = false;           // overcome by a stronger hunter: it panics, or freezes, while one is in sight
     double rivalry = 0.0;               // how overcrowded its territory was with rivals
     double own_rivalry = 0.0;           // the same, counting only its own species
+    bool in_want = false;               // its home band holds too little food for it to breed (see HOSTILITY_IN_WANT)
     bool hunts_grazers = true;          // hunters: whether grazers were common enough to hunt
     bool hunts_omnivores = true;        // predators: the same for omnivores
     bool hunts_predators = true;        // omnivores: whether its other food was scarce enough to hunt predators
@@ -2825,6 +2831,7 @@ public:
     // and the other is no flyer out of its reach, avian and not resting, while it is terrestrial or aquatic.
     static bool within_reach(const Bitzkey& hunter, const Bitzkey& other);
     static bool is_prey(const Bitzkey& hunter, const Bitzkey& other);
+    static bool wanting(const Bitzkey& agent) { return !HOSTILITY_IN_WANT || agent.in_want; }  // hostile to its own (see HOSTILITY_IN_WANT)
     static bool feeds_on(const Bitzkey& eater, const Bitzkey& other);
     static double diet_share(const Bitzkey& eater, const Bitzkey& other);
     static double food_needed(const Bitzkey& agent);  // the meals a mouth it needs about it to breed; 0, none

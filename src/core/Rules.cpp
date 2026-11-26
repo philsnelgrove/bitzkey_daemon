@@ -554,6 +554,7 @@ std::vector<Rule> make_rules() {
         {"PACK_RIVALRY", "Territory", "Pack rivalry", "how much a predator's pack-mates count as rivals crowding its territory", 0.0, 1.0, 0.05, false, &PACK_RIVALRY},
         {"RIVALRY_WEAR", "Territory", "Rivalry wear", "how much an overcrowded territory wears down reluctance to kill its own species", 0.0, 1.0, 0.05, false, &RIVALRY_WEAR},
         {"RIVAL_KILL_JOY", "Territory", "Rival kill joy", "relief at killing a rival in an overcrowded territory", 0.0, 5.0, 0.05, false, &RIVAL_KILL_JOY},
+        {"HOSTILITY_IN_WANT", "Territory", "Hostility in want", "1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food", 0, 1, 1, true, &HOSTILITY_IN_WANT},
         {"TERRITORY.predator.fewest", "Territory", "Predator rivals, cruel", "rivals the least empathetic predator tolerates", 0, 50, 1, true, &TERRITORY[0].fewest},
         {"TERRITORY.predator.most", "Territory", "Predator rivals, kind", "rivals the most empathetic predator tolerates", 0, 50, 1, true, &TERRITORY[0].most},
         {"TERRITORY.predator.strength", "Territory", "Predator rivalry", "how strongly overcrowding moves a predator", 0.0, 2.0, 0.05, false, &TERRITORY[0].strength},
