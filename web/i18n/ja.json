@@ -2423,5 +2423,11 @@
 "Value teaching": "価値の教え",
 "confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "打ち明けや指導のとき、聞き手の教わった価値が語り手の価値を自分のものにする方へ進む割合。信頼と教わりやすさの価値を掛ける。0で無効",
 "Liking": "好み",
-"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "手がかりが物・仲間・行いへの欲求をより強く呼び起こしたときに感じる喜び。その上昇と好みの価値を掛ける。上昇のときだけで、欲求として学ばれることはない。0で無効"
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "手がかりが物・仲間・行いへの欲求をより強く呼び起こしたときに感じる喜び。その上昇と好みの価値を掛ける。上昇のときだけで、欲求として学ばれることはない。0で無効",
+"Woo window": "求愛の猶予",
+"turns within which one that called ready to breed, and one ready that heard it from afar and moved, must breed for it to be wooed": "繁殖の準備ができて呼んだ者と、遠くから聞いて動いた準備のできた者が、求愛とみなされるために交尾すべきターン数",
+"Woo joy": "求愛の喜び",
+"a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "求愛による交尾は呼び手の呼び声と来た者の接近を、この値の交尾の喜びとして性欲に応じて教える。0で無し",
+"Woo comer": "求愛に来た者",
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: 求愛による交尾は来た者に呼び声を聞いてとった動きも教える。0: 呼び手の呼び声のみ教える"
 }

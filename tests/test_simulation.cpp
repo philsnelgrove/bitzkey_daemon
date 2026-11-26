@@ -6412,6 +6412,39 @@ TEST_CASE("hawking: a deal made with one that heard the owner call from afar and
     }
 }
 
+TEST_CASE("wooing: a mating with one that heard the caller from afar, ready, and came is wooed, and taught once; one already beside is not") {
+    for (const bool came : {true, false}) {
+        Simulation simulation = world();
+        Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 5);
+        Bitzkey& comer = simulation.add_agent(encode_dna(Species::Grazer, {{"size", 3}}), 5, 6);
+        simulation.index_cells();
+        const int now = simulation.turn();
+        caller.woo_call_turn = caller.voiced_turn = now;  // it called, ready to breed
+        caller.habits.push_back(Bitzkey::CallHabit{{}, {3, 0, -1}});
+        if (came) {  // the other heard it from five away and moved
+            comer.woo_to = caller.identifier;
+            comer.woo_deed = GoNorth;
+            comer.woo_move_turn = now;
+            comer.woo_far = 5;
+        }
+        simulation.breed(comer, caller);
+        CHECK(caller.matings == 1);
+        CHECK(comer.matings == 1);
+        CHECK(caller.wooed_count == (came ? 1 : 0));
+        CHECK(comer.came_count == (came ? 1 : 0));
+        CHECK(comer.wooed_count == 0);  // the comer did not call
+        if (!came) continue;
+        CHECK(caller.wooed_said);
+        CHECK(caller.woo_calls[3] == 1);
+        CHECK(caller.wooed_far_total == 5);
+        CHECK(comer.woo_to == -1);
+        simulation.settle_call(caller);
+        simulation.settle_call(comer);
+        CHECK(caller.wooed_taught_turn == now);
+        CHECK(comer.came_taught_turn == now);
+    }
+}
+
 TEST_CASE("values: inherited from both parents and mutated a little, taught by a trusted teller, and scaling the joys they name") {
     Simulation simulation = world();
     Bitzkey& mother = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

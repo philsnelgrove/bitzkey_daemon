@@ -2423,5 +2423,11 @@
 "Value teaching": "价值传授",
 "confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "托付或教导时，听者所学价值朝着把讲述者的价值变为己有而移动的份额，乘以信任和可教价值；0为无",
 "Liking": "喜好",
-"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "当线索更强地唤起它对某物、同伴或行为的想要时感到的喜悦，乘以该上升与喜好价值；仅在上升时，且从不被学为想要；0为无"
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "当线索更强地唤起它对某物、同伴或行为的想要时感到的喜悦，乘以该上升与喜好价值；仅在上升时，且从不被学为想要；0为无",
+"Woo window": "求偶时限",
+"turns within which one that called ready to breed, and one ready that heard it from afar and moved, must breed for it to be wooed": "准备繁殖而呼唤者与远处听到并移动的准备者须在此回合内交配，方算求偶",
+"Woo joy": "求偶之乐",
+"a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "求偶交配以此值作为交配之乐（按性欲）教给呼唤者其呼唤、来者其靠近；0为无",
+"Woo comer": "前来的求偶者",
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1：求偶交配也教来者听到呼唤时所做的移动；0：只教呼唤者的呼唤"
 }

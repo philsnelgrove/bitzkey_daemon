@@ -606,6 +606,14 @@ enum HelpKind : int { HelpGave, HelpDropped, HelpDefended, HelpLed, HELP_KINDS }
 inline int HAWK_WINDOW = 20;
 inline double HAWK_JOY = 1.0;
 inline int HAWK_BUYER = 1;
+// Wooing (the user's design, as hawking): a mating is wooed when one ready to breed called, and within WOO_WINDOW
+// turns one that heard it from beyond beside it, itself ready, moved, and then the two bred. Then the caller's call
+// is taught it, against what it sensed as it called, at WOO_JOY as a pleasure of mating (by its libido); and, WOO_COMER
+// 1, the move the other made on hearing is taught it likewise. No call is given a meaning: only one that brought a
+// mate near pays. WOO_JOY 0 for none.
+inline int WOO_WINDOW = 20;
+inline double WOO_JOY = 1.0;
+inline int WOO_COMER = 1;
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -1678,6 +1686,19 @@ struct Bitzkey {
     std::array<std::int8_t, INPUT_SIZE> sold_senses{};
     std::array<std::int8_t, MAX_SOUNDS> sold_sounds{};
     int hawked_sales = 0, hawked_buys = 0;
+    // Wooing (see WOO_JOY): the last turn it called ready to breed; its last move, ready, after hearing a caller from
+    // beyond beside it (to whom, the deed, when, how far, what it sensed); a wooed mating as caller (the call that drew
+    // the other) and as comer, each taught once; and in its life: matings, wooed matings as caller and as comer, how
+    // far its comers came in all, and its wooing calls by first sound.
+    int woo_call_turn = -1;
+    int woo_to = -1, woo_deed = -1, woo_move_turn = -1, woo_far = 0;
+    Senses woo_senses{};
+    int wooed_turn = -1, came_turn = -1, wooed_taught_turn = -1, came_taught_turn = -1;
+    bool wooed_said = false;
+    std::array<std::int8_t, INPUT_SIZE> wooed_senses{};
+    std::array<std::int8_t, MAX_SOUNDS> wooed_sounds{};
+    int matings = 0, wooed_count = 0, came_count = 0, wooed_far_total = 0;
+    std::array<int, 5> woo_calls{};
     // Projects (see PROJECT_PULL): what each aim is worth to it, as last sampled, and the good felt since; its project
     // (aim, -1 none; 1 to raise, -1 to lower; since; last progress; its site, group and idea; the aim as last measured;
     // whether confided by another, and who), what it learnt moves it, the turns a need has waited on it; whether its goal is
@@ -2154,6 +2175,7 @@ public:
     void teach_call_harm(Bitzkey& agent);
     void teach_call_help(Bitzkey& agent);
     void teach_hawking(Bitzkey& agent);
+    void teach_wooing(Bitzkey& agent);  // a wooed mating: the caller's call and the comer's approach taught (see WOO_JOY)
     void inherit_values(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father) const;  // see VALUE_KINDS
     static void teach_values(Bitzkey& learner, const std::array<double, VALUE_KINDS>& shown, double trust);
     static std::array<double, VALUE_KINDS> shown_values(const Bitzkey& teller);  // a hawked deal: the seller's call and the buyer's approach taught (see HAWK_JOY)

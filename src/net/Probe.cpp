@@ -2796,6 +2796,24 @@ Json Probe::culture(Simulation& world) const {
             {"alive", static_cast<long long>(living.size())},
             {"words_confided", {{"thing_words", world.lexicon_tally()[static_cast<std::size_t>(species)].confided},  // since loaded (see CONFIDE_WORDS)
                                 {"deed_words", world.deed_tally()[static_cast<std::size_t>(species)].confided}}},
+            {"wooing", [&] {  // in the lives of the living (see WOO_JOY)
+                 long long matings = 0, wooed = 0, came = 0, came_from = 0, all = 0, most = 0;
+                 std::array<long long, 5> calls{};
+                 for (const Bitzkey* one : living) {
+                     matings += one->matings;
+                     wooed += one->wooed_count;
+                     came += one->came_count;
+                     came_from += one->wooed_far_total;
+                     for (std::size_t i = 0; i < calls.size(); ++i) calls[i] += one->woo_calls[i];
+                 }
+                 for (const long long n : calls) {
+                     all += n;
+                     most = std::max(most, n);
+                 }
+                 return Json{{"matings", matings / 2}, {"wooed", wooed}, {"wooed_share", ratio(static_cast<double>(wooed), static_cast<double>(matings) / 2)},
+                             {"comers", came}, {"comers_came_from", ratio(static_cast<double>(came_from), static_cast<double>(wooed))},
+                             {"woo_calls", calls}, {"woo_calls_same", ratio(static_cast<double>(most), static_cast<double>(all))}};
+             }()},
             {"gossip", [&] {  // since loaded (see GOSSIP)
                  const Simulation::GossipTally& heard = world.gossip_tally()[static_cast<std::size_t>(species)];
                  return Json{{"heard", heard.heard}, {"ill_share", ratio(static_cast<double>(heard.ill), static_cast<double>(heard.heard))},

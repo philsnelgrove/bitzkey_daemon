@@ -2423,5 +2423,11 @@
 "Value teaching": "Wertelehre",
 "confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "beim Anvertrauen oder Unterrichten der Anteil des Weges, um den die gelehrten Werte des Hörers sich bewegen, um die des Erzählenden zu seinen eigenen zu machen, mal Vertrauen und Belehrbarkeit; 0 für keine",
 "Liking": "Gefallen",
-"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "Freude, wenn ein Hinweis sein Verlangen nach einem Ding, Gefährten oder einer Tat stärker weckt, mal diesem Anstieg und seinem Gefallenswert; nur beim Anstieg und nie als Verlangen gelernt; 0 für keine"
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "Freude, wenn ein Hinweis sein Verlangen nach einem Ding, Gefährten oder einer Tat stärker weckt, mal diesem Anstieg und seinem Gefallenswert; nur beim Anstieg und nie als Verlangen gelernt; 0 für keine",
+"Woo window": "Werbefenster",
+"turns within which one that called ready to breed, and one ready that heard it from afar and moved, must breed for it to be wooed": "Züge, in denen eines, das paarungsbereit rief, und ein bereites, das es von fern hörte und sich bewegte, sich paaren müssen, damit es als umworben gilt",
+"Woo joy": "Werbefreude",
+"a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "eine umworbene Paarung lehrt den Ruf des Rufers und das Herankommen des Kommenden mit diesem Wert als Paarungsfreude, nach Libido; 0 für keine",
+"Woo comer": "Werbender Ankömmling",
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: eine umworbene Paarung lehrt auch den Ankömmling die Bewegung, die er beim Hören des Rufs machte; 0: nur der Ruf des Rufers wird gelehrt"
 }

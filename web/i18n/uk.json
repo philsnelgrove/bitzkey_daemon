@@ -2423,5 +2423,11 @@
 "Value teaching": "Навчання цінностей",
 "confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "довіряючи план чи навчаючи, частка шляху, яку навчені цінності слухача проходять, щоб перейняти цінності оповідача, помножена на довіру й цінність навчуваності; 0 — жодного",
 "Liking": "Вподобання",
-"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "радість, коли сигнал сильніше пробуджує бажання речі, товариша чи дії, помножена на це зростання й цінність вподобання; лише при зростанні й ніколи не навчається як бажання; 0 — жодної"
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "радість, коли сигнал сильніше пробуджує бажання речі, товариша чи дії, помножена на це зростання й цінність вподобання; лише при зростанні й ніколи не навчається як бажання; 0 — жодної",
+"Woo window": "Вікно залицянь",
+"turns within which one that called ready to breed, and one ready that heard it from afar and moved, must breed for it to be wooed": "ходи, за які той, хто кликав, готовий до розмноження, і готовий, що почув його здалеку й рушив, мають спаруватися, щоб це вважалося залицянням",
+"Woo joy": "Радість залицянь",
+"a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "парування із залицянь навчає поклику того, хто кликав, і підходу того, хто прийшов, цим значенням як втіхою парування, за лібідо; 0 — жодної",
+"Woo comer": "Залицяльник, що прийшов",
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: парування із залицянь навчає й того, хто прийшов, руху, зробленого на поклик; 0: навчається лише поклик"
 }

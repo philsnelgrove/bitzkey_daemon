@@ -2292,6 +2292,38 @@ void Simulation::teach_hawking(Bitzkey& agent) {
     }
 }
 
+void Simulation::teach_wooing(Bitzkey& agent) {
+    // A wooed mating: as caller, its call then taught, against what it sensed as it called; as comer, the move it made on hearing.
+    if (WOO_JOY <= 0 || !agent.brain) return;
+    const double rate = learning_rate(agent);
+    const double value = limited_value(mating_joy(agent, WOO_JOY));
+    const auto lesson = [&](const Senses& senses, int output) {
+        if (gpu_) queue_lesson(agent, senses, output, value, rate, false, 0.0);
+        else learning_brain(agent).learn(senses, output, value, rate);
+    };
+    if (agent.wooed_turn >= 0 && agent.wooed_turn > agent.wooed_taught_turn) {
+        agent.wooed_taught_turn = agent.wooed_turn;
+        if (agent.wooed_said && rate > 0) {
+            Senses senses{};
+            for (int sense = 0; sense < INPUT_SIZE; ++sense) {  // back from how its brain read it, in sixtieths
+                const double read = agent.wooed_senses[static_cast<std::size_t>(sense)] / 60.0;
+                const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+                senses[static_cast<std::size_t>(sense)] = reading == SignedReading ? read : reading == SparseReading ? read / 2.0 : (read + 1.0) / 2.0;
+            }
+            lesson(senses, call_output(FirstCall + agent.wooed_sounds[0]));
+            for (int place = 1; place < MAX_SOUNDS; ++place) {
+                const int output = sound_output(place, agent.wooed_sounds[static_cast<std::size_t>(place)]);
+                if (output >= 0) lesson(senses, output);
+                if (agent.wooed_sounds[static_cast<std::size_t>(place)] < 0) break;
+            }
+        }
+    }
+    if (agent.came_turn >= 0 && agent.came_turn > agent.came_taught_turn) {
+        agent.came_taught_turn = agent.came_turn;
+        if (WOO_COMER && rate > 0 && agent.woo_deed >= 0) lesson(agent.woo_senses, agent.woo_deed);
+    }
+}
+
 void Simulation::settle_call(Bitzkey& agent) {
     const bool relieved = agent.relieved;  // one who heard it was then less surprised: the itch passes
     agent.relieved = false;
@@ -2299,6 +2331,7 @@ void Simulation::settle_call(Bitzkey& agent) {
     teach_call_harm(agent);
     teach_call_help(agent);
     teach_hawking(agent);
+    teach_wooing(agent);
     if (!agent.call_held) return;
     agent.call_held = false;
     const double rate = learning_rate(agent);
@@ -6779,6 +6812,20 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
                 }
             }
         }
+        // Wooing (see WOO_JOY): a move made, ready to breed, on hearing a caller from beyond beside it.
+        if (kind == HelpLed && WOO_JOY > 0 && agent.heard_from >= 0 && agent.has_last_senses && agent.can_breed()) {
+            if (const Bitzkey* caller = find_agent(agent.heard_from); caller && caller != &agent) {
+                const Cell at = spot(*caller);
+                const int far = distance(at.x, at.y, agent.x, agent.y);
+                if (far > 1) {
+                    agent.woo_to = caller->identifier;
+                    agent.woo_deed = action;
+                    agent.woo_move_turn = turn_;
+                    agent.woo_far = far;
+                    agent.woo_senses = agent.last_senses;
+                }
+            }
+        }
         if (kind >= 0 && agent.heard_from >= 0 && agent.has_last_senses && (HELPED_JOY > 0 || HELPING_JOY > 0)) {
             agent.help_to = agent.heard_from;
             agent.help_deed = action;
@@ -6795,6 +6842,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         agent.shown_turn = turn_;
     }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
+        if (WOO_JOY > 0 && agent.can_breed()) agent.woo_call_turn = turn_;  // called ready to breed (see WOO_JOY)
         if (HAWK_JOY > 0) {  // called holding a good it might offer (see HAWK_JOY)
             for (int good = 0; good < GOODS; ++good) {
                 if (holds(agent, good)) {
@@ -9796,6 +9844,30 @@ void Simulation::breed(Bitzkey& first, Bitzkey& second) {
     // The parent that chose to breed conceives the litter and carries it for its gestation.
     note_deed(first, second, MATING_DEED);
     note_deed(second, first, MATING_DEED);
+    ++first.matings;
+    ++second.matings;
+    // Wooed (see WOO_JOY): one called ready to breed, and the other heard it from afar, moved, and came.
+    for (int side = 0; side < 2 && WOO_JOY > 0; ++side) {
+        Bitzkey& caller = side ? second : first;
+        Bitzkey& comer = side ? first : second;
+        if (caller.woo_call_turn < 0 || turn_ - caller.woo_call_turn > WOO_WINDOW || comer.woo_to != caller.identifier ||
+            comer.woo_move_turn < caller.woo_call_turn || turn_ - comer.woo_move_turn > WOO_WINDOW) continue;
+        caller.wooed_turn = turn_;
+        caller.wooed_said = caller.voiced_turn == caller.woo_call_turn && !caller.habits.empty();
+        if (caller.wooed_said) {
+            caller.wooed_senses = caller.habits.back().senses;
+            caller.wooed_sounds = caller.habits.back().said;
+            const int first_sound = caller.wooed_sounds[0];
+            if (first_sound >= 0 && first_sound < 5) ++caller.woo_calls[static_cast<std::size_t>(first_sound)];
+        }
+        ++caller.wooed_count;
+        caller.wooed_far_total += comer.woo_far;
+        comer.came_turn = turn_;
+        ++comer.came_count;
+        comer.woo_to = -1;
+        note_first("wooed", caller.species, caller.identifier);
+        break;
+    }
     const std::array<std::pair<int, int>, 2> parents = {std::pair{first.trait(Litter), first.trait(Size)},
                                                         std::pair{second.trait(Litter), second.trait(Size)}};
     int litter = litter_size(parents);
