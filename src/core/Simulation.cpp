@@ -2230,12 +2230,46 @@ void Simulation::teach_call_help(Bitzkey& agent) {
     }
 }
 
+void Simulation::teach_hawking(Bitzkey& agent) {
+    // A hawked deal sold: its call then taught, against what it sensed as it called; bought: the move it made on hearing.
+    if (HAWK_JOY <= 0 || !agent.brain) return;
+    const double rate = learning_rate(agent);
+    const auto lesson = [&](const Senses& senses, int output, double value) {
+        if (gpu_) queue_lesson(agent, senses, output, value, rate, false, 0.0);
+        else learning_brain(agent).learn(senses, output, value, rate);
+    };
+    if (agent.sold_turn >= 0 && agent.sold_turn > agent.sold_taught_turn) {
+        agent.sold_taught_turn = agent.sold_turn;
+        if (agent.sold_said && agent.sold_gain > 0 && rate > 0) {
+            Senses senses{};
+            for (int sense = 0; sense < INPUT_SIZE; ++sense) {  // back from how its brain read it, in sixtieths
+                const double read = agent.sold_senses[static_cast<std::size_t>(sense)] / 60.0;
+                const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
+                senses[static_cast<std::size_t>(sense)] = reading == SignedReading ? read : reading == SparseReading ? read / 2.0 : (read + 1.0) / 2.0;
+            }
+            const double value = limited_value(HAWK_JOY * agent.sold_gain * agent.feeling(Sociability));
+            lesson(senses, call_output(FirstCall + agent.sold_sounds[0]), value);
+            for (int place = 1; place < MAX_SOUNDS; ++place) {
+                const int output = sound_output(place, agent.sold_sounds[static_cast<std::size_t>(place)]);
+                if (output >= 0) lesson(senses, output, value);
+                if (agent.sold_sounds[static_cast<std::size_t>(place)] < 0) break;
+            }
+        }
+    }
+    if (agent.bought_turn >= 0 && agent.bought_turn > agent.bought_taught_turn) {
+        agent.bought_taught_turn = agent.bought_turn;
+        if (HAWK_BUYER && agent.bought_gain > 0 && rate > 0 && agent.hawk_deed >= 0)
+            lesson(agent.hawk_senses, agent.hawk_deed, limited_value(HAWK_JOY * agent.bought_gain * agent.feeling(Curiosity)));
+    }
+}
+
 void Simulation::settle_call(Bitzkey& agent) {
     const bool relieved = agent.relieved;  // one who heard it was then less surprised: the itch passes
     agent.relieved = false;
     if (relieved) agent.itch = 0.0;
     teach_call_harm(agent);
     teach_call_help(agent);
+    teach_hawking(agent);
     if (!agent.call_held) return;
     agent.call_held = false;
     const double rate = learning_rate(agent);
@@ -6164,6 +6198,26 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
         note_deed(agent, owner, agent_gain > 0 ? 1.0 : -1.0, TRADE_REGARD, PlainDeed, true);
         if (agent_gain > 0) agent.reward += TRADE_JOY;
         if (owner_gain > 0) owner.reward += TRADE_JOY;
+        // Hawked (see HAWK_JOY): the owner called holding goods, and this one heard it from afar and came.
+        if (HAWK_JOY > 0 && owner.hawk_call_turn >= 0 && turn_ - owner.hawk_call_turn <= HAWK_WINDOW && agent.hawk_to == owner.identifier &&
+            agent.hawk_move_turn >= owner.hawk_call_turn && turn_ - agent.hawk_move_turn <= HAWK_WINDOW) {
+            trade.hawked = true;
+            trade.hawk_far = agent.hawk_far;
+            owner.sold_turn = turn_;
+            owner.sold_gain = owner_gain;
+            owner.sold_said = owner.voiced_turn == owner.hawk_call_turn && !owner.habits.empty();
+            if (owner.sold_said) {
+                owner.sold_senses = owner.habits.back().senses;
+                owner.sold_sounds = owner.habits.back().said;
+                trade.hawk_call = owner.sold_sounds[0];
+            }
+            ++owner.hawked_sales;
+            agent.bought_turn = turn_;
+            agent.bought_gain = agent_gain;
+            ++agent.hawked_buys;
+            agent.hawk_to = -1;
+            note_first("hawked", owner.species, owner.identifier);
+        }
         agent.last_action = "traded";
         note_first("traded", agent.species, agent.identifier);
     }
@@ -6680,6 +6734,20 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
                        : action == GoNorth || action == GoSouth || action == GoEast || action == GoWest || action == WalkNorth || action == WalkSouth ||
                                  action == WalkEast || action == WalkWest || action == Revisit ? HelpLed
                                                                                                : -1;
+        // Hawking (see HAWK_JOY): a move made on hearing a caller from beyond beside it.
+        if (kind == HelpLed && HAWK_JOY > 0 && agent.heard_from >= 0 && agent.has_last_senses) {
+            if (const Bitzkey* caller = find_agent(agent.heard_from); caller && caller != &agent) {
+                const Cell at = spot(*caller);
+                const int far = distance(at.x, at.y, agent.x, agent.y);
+                if (far > 1) {
+                    agent.hawk_to = caller->identifier;
+                    agent.hawk_deed = action;
+                    agent.hawk_move_turn = turn_;
+                    agent.hawk_far = far;
+                    agent.hawk_senses = agent.last_senses;
+                }
+            }
+        }
         if (kind >= 0 && agent.heard_from >= 0 && agent.has_last_senses && (HELPED_JOY > 0 || HELPING_JOY > 0)) {
             agent.help_to = agent.heard_from;
             agent.help_deed = action;
@@ -6696,6 +6764,14 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         agent.shown_turn = turn_;
     }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
+        if (HAWK_JOY > 0) {  // called holding a good it might offer (see HAWK_JOY)
+            for (int good = 0; good < GOODS; ++good) {
+                if (holds(agent, good)) {
+                    agent.hawk_call_turn = turn_;
+                    break;
+                }
+            }
+        }
         if (agent.stuck) {  // called while its goal was stuck (see HELPED_JOY)
             ++agent.stuck_calls;
             agent.project_stuck_calls += agent.goal_project;

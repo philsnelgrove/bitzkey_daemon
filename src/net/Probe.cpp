@@ -3115,6 +3115,8 @@ Json Probe::gifts(Simulation& world) const {
     Json offers = Json::object();
     for (std::size_t index = 0; index < SPECIES.size(); ++index) {
         long long made = 0, withdrawn = 0, accepted = 0, fair = 0, sharperGained = 0, sharperCounted = 0;
+        long long hawked = 0, farTotal = 0;  // see HAWK_JOY
+        std::array<long long, 5> hawkCalls{};
         double offererGain = 0.0, ownerGain = 0.0;
         std::array<long long, GOODS> wanted{}, given{};
         for (const auto& trade : trades) {
@@ -3123,6 +3125,11 @@ Json Probe::gifts(Simulation& world) const {
             withdrawn += trade.withdrawn;
             if (!trade.accepted) continue;
             ++accepted;
+            if (trade.hawked) {
+                ++hawked;
+                farTotal += trade.hawk_far;
+                if (trade.hawk_call >= 0 && trade.hawk_call < 5) ++hawkCalls[static_cast<std::size_t>(trade.hawk_call)];
+            }
             fair += trade.offerer_gain > 0 && trade.owner_gain > 0;
             offererGain += trade.offerer_gain;
             ownerGain += trade.owner_gain;
@@ -3151,7 +3158,19 @@ Json Probe::gifts(Simulation& world) const {
             {"mean_gain_of_owner", ownerGain / deals},
             {"sharper_came_off_better", sharperCounted ? static_cast<double>(sharperGained) / sharperCounted : 0.0},
             {"goods_wanted", taken},
-            {"goods_offered", paid}};
+            {"goods_offered", paid},
+            {"hawked", hawked},
+            {"hawked_share", static_cast<double>(hawked) / deals},
+            {"buyers_came_from", hawked ? static_cast<double>(farTotal) / hawked : 0.0},
+            {"hawk_calls", hawkCalls},
+            {"hawk_calls_same", [&] {  // the commonest call's share of the hawked deals with a call, against 0.2 by chance
+                 long long all = 0, most = 0;
+                 for (const long long n : hawkCalls) {
+                     all += n;
+                     most = std::max(most, n);
+                 }
+                 return all ? static_cast<double>(most) / all : 0.0;
+             }()}};
     }
     return {{"turn", world.turn()},
             {"logged", all.size()},

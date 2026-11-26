@@ -2409,5 +2409,11 @@
 "Hostility in want": "匮乏时的敌意",
 "1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1：拥挤的领地削弱杀死同类的顾忌、杀死对手成为乐事、减少本群数量成为目标（吃饱后放弃），仅当其家乡带的食物不足以繁殖时；0：不论食物多少",
 "Gossip": "闲话",
-"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "听到他者的名字时，动物会接受呼叫者对被点名者看法的这一份额，乘以它对呼叫者的信任、呼叫者的急迫和它自己的合群性；只关乎那一个，从不关乎它的颜色，也从不核实；0为无"
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "听到他者的名字时，动物会接受呼叫者对被点名者看法的这一份额，乘以它对呼叫者的信任、呼叫者的急迫和它自己的合群性；只关乎那一个，从不关乎它的颜色，也从不核实；0为无",
+"Hawk window": "吆喝时限",
+"turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked": "持货的呼叫者与远处听见并赶来的一方须在这些回合内成交，交易才算吆喝成交",
+"Hawk joy": "吆喝之喜",
+"a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "吆喝成交以此值乘真实收益和合群性教给物主其呼叫，以此值乘收益和好奇心教给买方其靠近；0为无",
+"Hawk buyer": "吆喝买方",
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1：吆喝成交也教给买方听到呼叫后所做的移动；0：只教卖方的呼叫"
 }

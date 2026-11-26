@@ -580,6 +580,15 @@ inline double HELPED_JOY = 1.0;
 inline double HELPING_JOY = 0.2;
 inline double HELP_WITNESS = 0.5;
 enum HelpKind : int { HelpGave, HelpDropped, HelpDefended, HelpLed, HELP_KINDS };
+// Hawking (the user's design): a trade is hawked when the owner called while holding a good that may be offered, and
+// within HAWK_WINDOW turns one that heard it from beyond beside it moved, then came beside it and offered, and the
+// deal was accepted. Then the owner's call is taught it, against what it sensed as it called, at HAWK_JOY times what
+// it truly gained and its sociability; and, HAWK_BUYER 1, the move the one offering made after hearing is taught it at
+// HAWK_JOY times what it truly gained and its curiosity. A deal truly lost teaches nothing. Only a call that brought
+// one near pays; no call is given a meaning. HAWK_JOY 0 for none.
+inline int HAWK_WINDOW = 20;
+inline double HAWK_JOY = 1.0;
+inline int HAWK_BUYER = 1;
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -1629,6 +1638,18 @@ struct Bitzkey {
     bool help_pending = false;
     Senses help_senses{};
     std::array<int, HELP_KINDS> help_given{};
+    // Hawking (see HAWK_JOY): the last turn it called holding a good to offer; its last move after hearing a caller from
+    // beyond beside it (to whom, the deed, when, how far, what it sensed as it chose); a hawked deal sold (when, its gain,
+    // the call that drew the other) and bought (when, its gain), each taught once; and hawked deals in its life.
+    int hawk_call_turn = -1;
+    int hawk_to = -1, hawk_deed = -1, hawk_move_turn = -1, hawk_far = 0;
+    Senses hawk_senses{};
+    int sold_turn = -1, bought_turn = -1, sold_taught_turn = -1, bought_taught_turn = -1;
+    double sold_gain = 0.0, bought_gain = 0.0;
+    bool sold_said = false;
+    std::array<std::int8_t, INPUT_SIZE> sold_senses{};
+    std::array<std::int8_t, MAX_SOUNDS> sold_sounds{};
+    int hawked_sales = 0, hawked_buys = 0;
     // Projects (see PROJECT_PULL): what each aim is worth to it, as last sampled, and the good felt since; its project
     // (aim, -1 none; 1 to raise, -1 to lower; since; last progress; its site, group and idea; the aim as last measured;
     // whether confided by another, and who), what it learnt moves it, the turns a need has waited on it; whether its goal is
@@ -2104,6 +2125,7 @@ public:
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
     void teach_call_harm(Bitzkey& agent);
     void teach_call_help(Bitzkey& agent);
+    void teach_hawking(Bitzkey& agent);  // a hawked deal: the seller's call and the buyer's approach taught (see HAWK_JOY)
     double aim_measure(const Bitzkey& agent, int aim, int x, int y, int group, int idea, int sight) const;  // see PROJECT_PULL
     int hostile_realm(const Bitzkey& agent) const;  // the colour group it regards worst, if below nothing; -1 none
     int chosen_concept(const Bitzkey& agent, int aim) const;  // the craft or word it would spread
@@ -2239,6 +2261,9 @@ public:
         bool withdrawn, accepted;
         double offerer_gain, owner_gain;  // what each would truly gain by the deal, worth for worth
         double offerer_wits, owner_wits;  // their intelligence
+        bool hawked = false;  // see HAWK_JOY
+        int hawk_call = -1;   // the first sound of the owner's call that drew the other, if hawked
+        int hawk_far = 0;     // how far the other was when it heard, if hawked
     };
     std::vector<Trade> trades_so_far() const;
     const DeathTally& death_tally() const { return death_tally_; }  // every death since the world began, counted

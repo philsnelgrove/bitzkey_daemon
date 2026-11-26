@@ -385,6 +385,11 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
                                                  numbers.senses(agent.help_senses)}
                                            : json(nullptr)},
         {"help_given", agent.help_given},
+        {"hawking", {agent.hawk_call_turn, agent.hawk_to, agent.hawk_to >= 0 ? agent.hawk_deed : -1, agent.hawk_move_turn, agent.hawk_far,
+                     agent.sold_turn, agent.bought_turn, agent.sold_taught_turn, agent.bought_taught_turn, agent.sold_gain, agent.bought_gain,
+                     agent.sold_said ? 1 : 0, agent.hawked_sales, agent.hawked_buys}},
+        {"hawk_senses", agent.hawk_to >= 0 ? numbers.senses(agent.hawk_senses) : json(nullptr)},
+        {"sold_call", agent.sold_said ? json{std::vector<int>(agent.sold_senses.begin(), agent.sold_senses.end()), std::vector<int>(agent.sold_sounds.begin(), agent.sold_sounds.end())} : json(nullptr)},
         {"last_choice", agent.last_choice}, {"last_forced", agent.last_forced}, {"last_panicked", agent.last_panicked}, {"last_wellbeing", agent.last_wellbeing}, {"reward", agent.reward},
         {"last_comfort", agent.last_comfort}, {"call", agent.call}, {"sounds", agent.sounds}, {"call_turn", agent.call_turn}, {"heard_from", agent.heard_from}, {"heard_call", agent.heard_call}, {"heard_turn", agent.heard_turn}, {"heard_hunger", agent.heard_hunger}, {"heard_danger", agent.heard_danger}, {"struck_turn", agent.struck_turn}, {"last_call", agent.last_call}, {"cues", std::vector<int>(agent.cues.begin(), agent.cues.end())}, {"cry", agent.cry}, {"call_kind", agent.call_kind}, {"itch", agent.itch}, {"named", agent.named}, {"named_turn", agent.named_turn}, {"relieved", agent.relieved}, {"has_foresaw", agent.has_foresaw}, {"foresaw", agent.foresaw}, {"used_to", agent.used_to}, {"voiced_turn", agent.voiced_turn}, {"address_turn", agent.address_turn}, {"address_to", agent.address_to}, {"learn_turn", agent.learn_turn}, {"learn_from", agent.learn_from}, {"learn_correct", agent.learn_correct}, {"learn_gain", agent.learn_gain}, {"learn_call", agent.learn_call}, {"word_turn", agent.word_turn}, {"word_call", agent.word_call}, {"word_sounds", agent.word_sounds}, {"word_point", agent.word_point}, {"word_tries", agent.word_tries}, {"learn_thing", agent.learn_thing}, {"learn_sounds", agent.learn_sounds}, {"lexicon_spoke_turn", agent.lexicon_spoke_turn}, {"lexicon", lexicon_record(agent.lexicon)}, {"names", lexicon_record(agent.names)}, {"deeds", lexicon_record(agent.deeds)}, {"second_word", {agent.call2, agent.sounds2[0], agent.sounds2[1], agent.last_call2, agent.last_sounds2[0], agent.last_sounds2[1], agent.meant_for_me ? 1 : 0, agent.meant_for_other ? 1 : 0, agent.judged_for_me ? 1 : 0}}, {"deed_heed", {agent.deed_spoke_turn, agent.meant_by_deed ? 1 : 0, agent.judged_by_deed ? 1 : 0, agent.echo_turn, agent.prior_choice}}, {"own_name", {agent.own_call, agent.own_sounds[0], agent.own_sounds[1]}}, {"name_heed", {agent.name_spoke_turn, agent.called_turn, agent.called_one, agent.called_close, agent.called_me_turn, agent.name_judged_turn, agent.name_heeded ? 1 : 0, agent.name_reward}}, {"word_one", agent.word_one}, {"chatter", {agent.chatter, static_cast<double>(agent.repeat_from), static_cast<double>(agent.repeat_call), static_cast<double>(agent.repeat_sounds[0]), static_cast<double>(agent.repeat_sounds[1]), static_cast<double>(agent.word_from), static_cast<double>(agent.answered_turn), static_cast<double>(agent.answered_count)}}, {"learn_one", agent.learn_one}, {"word_worth", {agent.nearer_comfort, agent.farther_comfort}}, {"word_heed", {agent.close_turn, agent.meant_turn, agent.meant_thing, agent.meant_close, agent.meant_deed, agent.judged_turn, agent.heeded ? 1 : 0, agent.acted_good ? 1 : 0, agent.acted_same ? 1 : 0, agent.word_reward, agent.judged_thing, agent.judged_deed, agent.unknown_turn, agent.unknown_deed, agent.unknown_judged_turn, agent.unknown_same ? 1 : 0, agent.meant_liked ? 1 : 0, agent.judged_liked ? 1 : 0}}, {"was_close", agent.was_close}, {"moved", agent.moved}, {"goal", goal_record(agent)}, {"harm_taught_turn", agent.harm_taught_turn}, {"quiet_wish", agent.quiet_wish}, {"surprised", agent.surprised}, {"outside_surprise", agent.outside_surprise}, {"told_by", agent.told_by}, {"told_turn", agent.told_turn}, {"told_surprise", agent.told_surprise}, {"call_urgency", agent.call_urgency}, {"echo_of", agent.echo_of},
         {"held", std::vector<double>(agent.held.begin(), agent.held.end())}, {"last_wrote", agent.last_wrote},
@@ -725,6 +730,34 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         if (agent->help_deed < 0 || agent->help_kind < 0 || agent->help_kind >= HELP_KINDS) agent->help_to = -1;
     }
     if (record.contains("help_given")) agent->help_given = record.at("help_given").get<std::array<int, HELP_KINDS>>();
+    if (record.contains("hawking")) {  // see HAWK_JOY
+        const json& h = record.at("hawking");
+        agent->hawk_call_turn = h.at(0).get<int>();
+        agent->hawk_to = h.at(1).get<int>();
+        agent->hawk_deed = h.at(2).get<int>() >= 0 ? numbers.action(h.at(2).get<int>()) : -1;
+        agent->hawk_move_turn = h.at(3).get<int>();
+        agent->hawk_far = h.at(4).get<int>();
+        agent->sold_turn = h.at(5).get<int>();
+        agent->bought_turn = h.at(6).get<int>();
+        agent->sold_taught_turn = h.at(7).get<int>();
+        agent->bought_taught_turn = h.at(8).get<int>();
+        agent->sold_gain = h.at(9).get<double>();
+        agent->bought_gain = h.at(10).get<double>();
+        agent->sold_said = h.at(11).get<int>() != 0;
+        agent->hawked_sales = h.at(12).get<int>();
+        agent->hawked_buys = h.at(13).get<int>();
+        if (record.contains("hawk_senses") && !record.at("hawk_senses").is_null()) agent->hawk_senses = numbers.senses(record.at("hawk_senses"));
+        if (agent->hawk_to >= 0 && agent->hawk_deed < 0) agent->hawk_to = -1;
+        if (agent->sold_said && record.contains("sold_call") && !record.at("sold_call").is_null()) {
+            const json& c = record.at("sold_call");
+            const auto senses = c.at(0).get<std::vector<int>>();
+            const auto sounds = c.at(1).get<std::vector<int>>();
+            for (std::size_t i = 0; i < agent->sold_senses.size() && i < senses.size(); ++i) agent->sold_senses[i] = static_cast<std::int8_t>(senses[i]);
+            for (std::size_t i = 0; i < agent->sold_sounds.size() && i < sounds.size(); ++i) agent->sold_sounds[i] = static_cast<std::int8_t>(sounds[i]);
+        } else {
+            agent->sold_said = false;
+        }
+    }
     agent->word_one = record.value("word_one", -1);
     agent->learn_one = record.value("learn_one", -1);
     if (record.contains("lexicon")) {  // see LEXICON_SIZE: each word as call, its two later sounds, thing, regard, uses

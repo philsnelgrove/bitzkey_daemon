@@ -2409,5 +2409,11 @@
 "Hostility in want": "עוינות במחסור",
 "1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1: טריטוריה צפופה שוחקת את הרתיעה מלהרוג בני מינו, הריגת יריב היא שמחה, והקטנת קבוצתו שלו היא מטרה (ננטשת כשהוא שבע), רק כל עוד ברצועת מוצאו יש מעט מדי מזון כדי להתרבות; 0: בלי קשר למזון",
 "Gossip": "רכילות",
-"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "בשמעו שם של אחר, בעל חיים מאמץ חלק זה מיחסו של הקורא אל הנקרא בשם, כפול אמונו בקורא, דחיפות הקורא וחברותיותו שלו; שמועה על זה בלבד, לעולם לא על צבעו, ולעולם לא נבדקת; 0 לכלום"
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "בשמעו שם של אחר, בעל חיים מאמץ חלק זה מיחסו של הקורא אל הנקרא בשם, כפול אמונו בקורא, דחיפות הקורא וחברותיותו שלו; שמועה על זה בלבד, לעולם לא על צבעו, ולעולם לא נבדקת; 0 לכלום",
+"Hawk window": "חלון הכרזה",
+"turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked": "תורות שבהם קורא המחזיק סחורה ומי ששמע אותו מרחוק וזז חייבים לסגור עסקה כדי שתיחשב מוכרזת",
+"Hawk joy": "שמחת הכרזה",
+"a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "עסקה מוכרזת מלמדת את קריאת הבעלים בערך זה כפול מה שהרוויח באמת וחברותיותו, ואת התקרבות הקונה כפול רווחו וסקרנותו; 0 לכלום",
+"Hawk buyer": "קונה בהכרזה",
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: עסקה מוכרזת מלמדת גם את הקונה את התנועה שעשה כששמע את הקריאה; 0: רק קריאת המוכר נלמדת"
 }

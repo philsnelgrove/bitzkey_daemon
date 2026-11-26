@@ -6369,6 +6369,49 @@ TEST_CASE("an animal senses its standout, is at ease near it, and is glad to be 
     CHECK(simulation.comfort(follower, sensed.situation) > simulation.comfort(follower, alone.situation));
 }
 
+TEST_CASE("hawking: a deal made with one that heard the owner call from afar and came is hawked, and taught once; one already beside is not") {
+    for (const bool came : {true, false}) {
+        Simulation simulation = world();
+        Bitzkey& trader = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+        Bitzkey& owner = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+        simulation.index_cells();
+        for (Bitzkey* one : {&trader, &owner}) {
+            for (int trait : {Aggression, Dominance, Empathy}) one->mind[trait] = 0.0;
+            one->mind[Intellect] = 7.0;
+            one->mind[Sociability] = TRAIT_MAX;
+            one->mind[Curiosity] = TRAIT_MAX;
+        }
+        trader.weapon = StoneAxe;
+        owner.armour = WoodArmour;
+        owner.mind[Aggression] = 7.0;
+        const int now = simulation.turn();
+        owner.hawk_call_turn = owner.voiced_turn = now;  // it called, holding its armour
+        owner.habits.push_back(Bitzkey::CallHabit{{}, {2, 1, -1}});
+        if (came) {  // the trader heard it from four away and moved
+            trader.hawk_to = owner.identifier;
+            trader.hawk_deed = GoEast;
+            trader.hawk_move_turn = now;
+            trader.hawk_far = 4;
+        }
+        simulation.offer(trader, owner, ArmourPossession, WeaponPossession);
+        REQUIRE(trader.last_action == "traded");
+        const auto trades = simulation.trades_so_far();
+        REQUIRE(!trades.empty());
+        CHECK(trades.back().hawked == came);
+        CHECK(owner.hawked_sales == (came ? 1 : 0));
+        CHECK(trader.hawked_buys == (came ? 1 : 0));
+        if (!came) continue;
+        CHECK(trades.back().hawk_call == 2);
+        CHECK(trades.back().hawk_far == 4);
+        CHECK(owner.sold_said);
+        CHECK(owner.sold_gain > 0.0);
+        simulation.settle_call(owner);
+        simulation.settle_call(trader);
+        CHECK(owner.sold_taught_turn == now);
+        CHECK(trader.bought_taught_turn == now);
+    }
+}
+
 TEST_CASE("an offer is weighed by both: a deal that seems a gain to each is made, one that doesn't refused") {
     Simulation simulation = world();
     Bitzkey& trader = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

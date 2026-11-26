@@ -2409,5 +2409,11 @@
 "Hostility in want": "Hostilidade na necessidade",
 "1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1: um território superlotado desgasta a relutância em matar os da sua espécie, matar um rival é uma alegria e reduzir o próprio grupo é uma meta (abandonada quando saciado), só enquanto a sua faixa de origem tiver pouca comida para procriar; 0: seja qual for a comida",
 "Gossip": "Mexerico",
-"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "ao ouvir o nome de outro, um animal adota esta parte da estima de quem chama pelo nomeado, vezes a sua confiança em quem chama, a urgência de quem chama e a sua própria sociabilidade; boato só desse, nunca da sua cor, e nunca verificado; 0 para nenhum"
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "ao ouvir o nome de outro, um animal adota esta parte da estima de quem chama pelo nomeado, vezes a sua confiança em quem chama, a urgência de quem chama e a sua própria sociabilidade; boato só desse, nunca da sua cor, e nunca verificado; 0 para nenhum",
+"Hawk window": "Janela do pregão",
+"turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked": "turnos em que quem chama com bens e quem o ouviu de longe e se moveu devem fechar negócio para que seja apregoado",
+"Hawk joy": "Alegria do pregão",
+"a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "um negócio apregoado ensina a chamada do dono a isto vezes o que de facto ganhou e a sua sociabilidade, e a aproximação do comprador vezes o seu ganho e curiosidade; 0 para nenhuma",
+"Hawk buyer": "Comprador do pregão",
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: um negócio apregoado também ensina ao comprador o movimento que fez ao ouvir a chamada; 0: só a chamada do vendedor é ensinada"
 }

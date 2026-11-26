@@ -2409,5 +2409,11 @@
 "Hostility in want": "अभाव में शत्रुता",
 "1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1: भीड़ भरा इलाका अपनी जाति को मारने की झिझक घटाता है, प्रतिद्वंद्वी को मारना सुख है, और अपने समूह को घटाना लक्ष्य है (पेट भरते ही छोड़ा गया), केवल तब तक जब तक उसकी घरेलू पट्टी में प्रजनन के लिए बहुत कम भोजन हो; 0: भोजन चाहे जितना हो",
 "Gossip": "गपशप",
-"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "किसी और का नाम सुनकर, जानवर पुकारने वाले की उस नामित के प्रति राय का यह हिस्सा अपना लेता है, पुकारने वाले पर उसके भरोसे, पुकारने वाले की तात्कालिकता और अपनी मिलनसारिता से गुणा; केवल उसी की सुनी-सुनाई, कभी उसके रंग की नहीं, और कभी जाँची नहीं; 0 कुछ नहीं"
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "किसी और का नाम सुनकर, जानवर पुकारने वाले की उस नामित के प्रति राय का यह हिस्सा अपना लेता है, पुकारने वाले पर उसके भरोसे, पुकारने वाले की तात्कालिकता और अपनी मिलनसारिता से गुणा; केवल उसी की सुनी-सुनाई, कभी उसके रंग की नहीं, और कभी जाँची नहीं; 0 कुछ नहीं",
+"Hawk window": "हाँक की अवधि",
+"turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked": "वे बारियाँ जिनमें सामान रखे पुकारने वाला और उसे दूर से सुनकर चला आने वाला सौदा करें तो सौदा हाँक से हुआ माना जाए",
+"Hawk joy": "हाँक का आनंद",
+"a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "हाँक से हुआ सौदा मालिक की पुकार को इतने गुना उसके सच्चे लाभ और मिलनसारिता से सिखाता है, और खरीदार के पास आने को उसके लाभ और जिज्ञासा से; 0 कुछ नहीं",
+"Hawk buyer": "हाँक का खरीदार",
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: हाँक से हुआ सौदा खरीदार को भी पुकार सुनकर की गई चाल सिखाता है; 0: केवल विक्रेता की पुकार सिखाई जाती है"
 }
