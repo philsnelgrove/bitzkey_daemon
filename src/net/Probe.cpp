@@ -2603,8 +2603,9 @@ Json Probe::values(Simulation& world) const {
 }
 
 Json Probe::talk(Simulation& world) const {
-    // Per species, by band of intellect (4 and less, 5 to 6, 7) and by sociability (below 3.5, from it), over the lives
-    // of the living: calls per animal; the share idle; of the words said, the shares naming one (people), a deed
+    // Per species, by band of intellect (4 and less, 5 to 6, 7), and by halves of its own kind's intellect and
+    // sociability (below its median, and from it), over the lives of the living: calls per animal; the share idle
+    // (hunger under 50, health over 75, not struck or stuck); of the words said, the shares naming one (people), a deed
     // (events), a thing, and an idea (concepts); exchanges per animal; concept-words held and heard per animal. And
     // which ideas the concept-words held are for.
     const auto band = [](const std::vector<const Bitzkey*>& group) {
@@ -2631,7 +2632,7 @@ Json Probe::talk(Simulation& world) const {
     Json result = Json::object();
     for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
         std::array<std::vector<const Bitzkey*>, 3> by_wits;
-        std::array<std::vector<const Bitzkey*>, 2> by_warmth;
+        std::array<std::vector<const Bitzkey*>, 2> wits_half, warmth_half;
         std::vector<const Bitzkey*> living;
         std::map<int, long long> ideas;
         for (const Bitzkey* agent : world.living()) {
@@ -2639,10 +2640,20 @@ Json Probe::talk(Simulation& world) const {
             living.push_back(agent);
             const double wits = agent->mind[Intellect];
             by_wits[wits < 4.5 ? 0 : wits < 6.5 ? 1 : 2].push_back(agent);
-            by_warmth[agent->mind[Sociability] < 3.5 ? 0 : 1].push_back(agent);
             for (const LexiconWord& word : agent->concepts) ++ideas[word.thing];
         }
         if (living.empty()) continue;
+        const auto median = [&](int trait) {
+            std::vector<double> all;
+            for (const Bitzkey* agent : living) all.push_back(agent->mind[trait]);
+            std::nth_element(all.begin(), all.begin() + static_cast<std::ptrdiff_t>(all.size() / 2), all.end());
+            return all[all.size() / 2];
+        };
+        const double wits_median = median(Intellect), warmth_median = median(Sociability);
+        for (const Bitzkey* agent : living) {
+            wits_half[agent->mind[Intellect] < wits_median ? 0 : 1].push_back(agent);
+            warmth_half[agent->mind[Sociability] < warmth_median ? 0 : 1].push_back(agent);
+        }
         static constexpr std::array<const char*, VALUE_KINDS> KINDS = {"trade", "help", "gift", "glory", "talk", "goal", "liking", "teachable"};
         Json held = Json::object();
         for (const auto& [idea, count] : ideas) {
@@ -2653,7 +2664,8 @@ Json Probe::talk(Simulation& world) const {
         result[std::string(species_name(species))] = {
             {"all", band(living)},
             {"by_intellect", {{"4_and_less", band(by_wits[0])}, {"5_to_6", band(by_wits[1])}, {"7", band(by_wits[2])}}},
-            {"by_sociability", {{"low", band(by_warmth[0])}, {"high", band(by_warmth[1])}}},
+            {"by_intellect_half", {{"median", wits_median}, {"lower", band(wits_half[0])}, {"upper", band(wits_half[1])}}},
+            {"by_sociability_half", {{"median", warmth_median}, {"lower", band(warmth_half[0])}, {"upper", band(warmth_half[1])}}},
             {"concept_words_for", held}};
     }
     return {{"turn", world.turn()}, {"species", result}};

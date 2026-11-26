@@ -1596,7 +1596,7 @@ struct Bitzkey {
     int concept_spoke_turn = -1;        // the last turn it said a concept-word
     int concept_heard_turn = -1;        // the last turn it heard one it holds
     int replied_to = -1, replied_turn = -1;  // the last caller it answered, and when (see CONVERSE_JOY)
-    // Talk in its life (for the probe, see CONVERSE_JOY): calls; of them idle (no goal, not stuck, not crying out); and
+    // Talk in its life (for the probe, see CONVERSE_JOY): calls; of them idle (hunger under 50, health over 75, not struck or stuck); and
     // the thing-, deed-, name- and concept-words said; concept-words heard and known; exchanges.
     int talk_calls = 0, idle_calls = 0, said_things = 0, said_deeds = 0, said_names = 0, said_concepts = 0, heard_concepts = 0, exchanges = 0;
     bool meant_by_deed = false;         // whether the word it last heard (meant_turn) was a deed-word, meant_deed its deed

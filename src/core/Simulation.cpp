@@ -6939,7 +6939,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         if (WOO_JOY > 0 && agent.can_breed()) agent.woo_call_turn = turn_;  // called ready to breed (see WOO_JOY)
         if (agent.call >= FirstCall) {  // its talk, for the probe (see CONVERSE_JOY)
             ++agent.talk_calls;
-            agent.idle_calls += agent.goal_kind == NoGoal && !agent.stuck && agent.struck_turn < turn_ - 1;
+            agent.idle_calls += agent.hunger < 50 && agent.health > 75 && !agent.stuck && agent.struck_turn < turn_ - 1;  // no need, no danger
             agent.said_things += agent.lexicon_spoke_turn == turn_;
             agent.said_deeds += agent.deed_spoke_turn == turn_;
             agent.said_names += agent.name_spoke_turn == turn_;
