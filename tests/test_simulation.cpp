@@ -6445,6 +6445,37 @@ TEST_CASE("wooing: a mating with one that heard the caller from afar, ready, and
     }
 }
 
+TEST_CASE("concept-words: coined from a call made, kept and said again, taken once by another, held by intellect, and the idea on its mind") {
+    Simulation simulation = world();
+    Bitzkey& one = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& other = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    for (Bitzkey* each : {&one, &other}) {
+        each->mind[Intellect] = 7.0;
+        each->mind[Sociability] = TRAIT_MAX;
+    }
+    // Concept-words: coined from the call made this turn, kept, and taken by one trusted.
+    const int now = simulation.turn();
+    one.call = FirstCall + 2;
+    one.sounds = {1, -1};
+    one.call_turn = now;
+    const auto word = simulation.concept_word(one, SiteFires);
+    REQUIRE(word.has_value());
+    CHECK(word->thing == SiteFires);
+    REQUIRE(one.concepts.size() == 1);
+    one.call = Silent;
+    CHECK(simulation.concept_word(one, SiteFires)->call == FirstCall + 2);  // held now, said again though silent
+    CHECK(!simulation.concept_word(one, SiteRoads).has_value());  // silent and holding none: nothing
+    CHECK(Simulation::take_concept(other, *word, 0.5));
+    CHECK(!Simulation::take_concept(other, *word, 0.5));  // held already
+    CHECK(Simulation::concepts_capacity(other) == static_cast<int>(std::lround(CONCEPTS_SIZE * 8.0)));
+    one.project_aim = SiteFires;
+    CHECK(Simulation::concept_on_mind(one) == SiteFires);
+    one.project_aim = -1;
+    one.values[GloryValue] = 2.0;
+    CHECK(Simulation::concept_on_mind(one) == PROJECT_AIMS + GloryValue);
+}
+
 TEST_CASE("values: inherited from both parents and mutated a little, taught by a trusted teller, and scaling the joys they name") {
     Simulation simulation = world();
     Bitzkey& mother = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

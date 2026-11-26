@@ -2429,5 +2429,11 @@
 "Woo joy": "Gioia del corteggiamento",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "un accoppiamento corteggiato insegna il richiamo di chi ha chiamato, e l'avvicinarsi di chi è venuto, a questo valore come piacere d'accoppiamento, secondo la libido; 0 per nessuna",
 "Woo comer": "Corteggiatore accorso",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: un accoppiamento corteggiato insegna anche a chi è venuto la mossa fatta udendo il richiamo; 0: solo il richiamo è insegnato"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: un accoppiamento corteggiato insegna anche a chi è venuto la mossa fatta udendo il richiamo; 0: solo il richiamo è insegnato",
+"Conversation window": "Finestra di conversazione",
+"turns within which a reply to one that answered it counts as an exchange": "turni entro cui una risposta a chi gli ha risposto conta come scambio",
+"Conversation joy": "Gioia della conversazione",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "uno scambio dà a ciascuna parte questo per la sua socievolezza e il suo valore della parola, qualunque cosa si sia detta; 0 per nessuna",
+"Concept-words": "Parole di concetti",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "parole per idee (scopi di progetto e valori), per ogni punto di intelletto e una in più, fissate confidando e insegnando; 0 per nessuna"
 }

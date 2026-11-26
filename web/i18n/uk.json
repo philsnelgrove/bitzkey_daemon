@@ -2429,5 +2429,11 @@
 "Woo joy": "Радість залицянь",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "парування із залицянь навчає поклику того, хто кликав, і підходу того, хто прийшов, цим значенням як втіхою парування, за лібідо; 0 — жодної",
 "Woo comer": "Залицяльник, що прийшов",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: парування із залицянь навчає й того, хто прийшов, руху, зробленого на поклик; 0: навчається лише поклик"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: парування із залицянь навчає й того, хто прийшов, руху, зробленого на поклик; 0: навчається лише поклик",
+"Conversation window": "Вікно розмови",
+"turns within which a reply to one that answered it counts as an exchange": "ходи, за які відповідь тому, хто відповів йому, вважається обміном",
+"Conversation joy": "Радість розмови",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "обмін дає кожній стороні стільки, помножене на її товариськість і цінність розмови, хоч би що було сказано; 0 — жодної",
+"Concept-words": "Слова понять",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "слова для ідей (цілей проєктів і цінностей), на кожен пункт інтелекту й ще одне, встановлені при довірі й навчанні; 0 — жодних"
 }

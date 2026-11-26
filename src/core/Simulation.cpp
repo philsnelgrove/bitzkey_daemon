@@ -3460,6 +3460,22 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                         break;
                     }
                 }
+                // An idea on its mind, pointing at itself and saying no deed-word: its concept-word for it (see CONCEPTS_SIZE).
+                if (CONCEPTS_SIZE > 0 && LEXICON_SPEAK > 0 && agent.point == PointSelf && agent.deed_spoke_turn != turn_ && !cried && !repeated &&
+                    choice != Learn && !echoed && !(choice == Address && situation.retry_to) && !agent.concepts.empty()) {
+                    const int topic = concept_on_mind(agent);
+                    for (LexiconWord& word : agent.concepts) {
+                        if (word.thing != topic) continue;
+                        if (whim(agent.identifier ^ 0x434F4E43, turn_) < LEXICON_SPEAK * agent.feeling(Sociability)) {
+                            agent.call = agent.last_call = word.call;
+                            agent.sounds = agent.last_sounds = word.sounds;
+                            agent.voiced_turn = turn_;
+                            agent.concept_spoke_turn = turn_;
+                            ++word.uses;
+                        }
+                        break;
+                    }
+                }
                 if (NAMES_SIZE > 0 && LEXICON_SPEAK > 0 && agent.point == PointOne && !cried && !repeated && choice != Learn &&
                     !(choice == Address && situation.retry_to)) {
                     for (LexiconWord& name : agent.names) {
@@ -4932,6 +4948,16 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             break;
         }
     }
+    if (CONCEPTS_SIZE > 0 && caller && caller->call >= FirstCall) {  // a concept-word it holds, heard: it knows the idea meant
+        for (LexiconWord& word : agent.concepts) {
+            if (!says(*caller, word.call, word.sounds)) continue;
+            ++word.uses;
+            ++agent.heard_concepts;
+            agent.concept_heard_turn = turn_;
+            agent.word_from = caller->identifier;
+            break;
+        }
+    }
     if (ANNOYANCE > 0 && caller && caller->species == agent.species && caller->call >= FirstCall) {  // the same again, from the same one
         if (caller->identifier == agent.repeat_from && caller->call == agent.repeat_call && caller->sounds == agent.repeat_sounds) {
             s.annoyed_by = caller->identifier;
@@ -5231,6 +5257,50 @@ int Simulation::lexicon_capacity(const Bitzkey& agent) {
     return LEXICON_SIZE <= 0 ? 0 : static_cast<int>(std::lround(LEXICON_SIZE * (1 + agent.mind[Intellect])));
 }
 
+int Simulation::concepts_capacity(const Bitzkey& agent) {
+    return CONCEPTS_SIZE <= 0 ? 0 : static_cast<int>(std::lround(CONCEPTS_SIZE * (1 + agent.mind[Intellect])));
+}
+
+int Simulation::top_value_concept(const Bitzkey& agent) {
+    int best = 0;
+    for (int kind = 1; kind < VALUE_KINDS; ++kind) {
+        if (agent.value(kind) > agent.value(best)) best = kind;
+    }
+    return PROJECT_AIMS + best;
+}
+
+int Simulation::concept_on_mind(const Bitzkey& agent) {
+    return agent.project_aim >= 0 ? agent.project_aim : top_value_concept(agent);
+}
+
+std::optional<LexiconWord> Simulation::concept_word(Bitzkey& teller, int idea) {
+    if (CONCEPTS_SIZE <= 0 || idea < 0) return std::nullopt;
+    for (LexiconWord& word : teller.concepts) {
+        if (word.thing == idea) {
+            ++word.uses;
+            return word;
+        }
+    }
+    if (teller.call < FirstCall || teller.call_turn != turn_) return std::nullopt;  // none held, and silent: nothing to say
+    const LexiconWord coined{teller.call, teller.sounds, idea, 1.0, 1};
+    if (!take_concept(teller, coined, 1.0)) return std::nullopt;
+    return coined;
+}
+
+bool Simulation::take_concept(Bitzkey& who, const LexiconWord& word, double regard) {
+    const int room = concepts_capacity(who);
+    if (room <= 0) return false;
+    for (const LexiconWord& held : who.concepts) {
+        if ((held.call == word.call && held.sounds == word.sounds) || held.thing == word.thing) return false;
+    }
+    if (static_cast<int>(who.concepts.size()) >= room) {  // full: it forgets the one used least
+        auto least = std::min_element(who.concepts.begin(), who.concepts.end(), [](const LexiconWord& a, const LexiconWord& b) { return a.uses < b.uses; });
+        who.concepts.erase(least);
+    }
+    who.concepts.push_back(LexiconWord{word.call, word.sounds, word.thing, regard, 0});
+    return true;
+}
+
 int Simulation::deeds_capacity(const Bitzkey& agent) {
     return DEEDS_SIZE <= 0 ? 0 : static_cast<int>(std::lround(DEEDS_SIZE * (1 + agent.mind[Intellect])));
 }
@@ -5406,6 +5476,16 @@ void Simulation::inherit_words(Bitzkey& child, const Bitzkey& parent) {
             if (clash) continue;
             child.deeds.push_back(LexiconWord{word.call, word.sounds, word.thing, LEXICON_FAMILY, 0});
             ++deed_tally_[static_cast<std::size_t>(child.species)].inherited;
+        }
+    }
+    if (CONCEPTS_SIZE > 0 && LEXICON_INHERIT > 0 && !parent.concepts.empty()) {  // and its concept-words, alike
+        std::vector<const LexiconWord*> ideas;
+        for (const LexiconWord& word : parent.concepts) ideas.push_back(&word);
+        std::stable_sort(ideas.begin(), ideas.end(), [](const LexiconWord* a, const LexiconWord* b) { return a->uses > b->uses; });
+        const auto count = static_cast<std::size_t>(std::lround(LEXICON_INHERIT * static_cast<double>(ideas.size())));
+        for (std::size_t at = 0; at < std::min(count, ideas.size()); ++at) {
+            if (static_cast<int>(child.concepts.size()) >= concepts_capacity(child)) break;
+            take_concept(child, *ideas[at], LEXICON_FAMILY);
         }
     }
     if (LEXICON_SIZE <= 0 || LEXICON_INHERIT <= 0 || parent.lexicon.empty()) return;
@@ -5784,6 +5864,9 @@ void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
     tutor.hunger = std::min(100.0, tutor.hunger + TUTOR_COST);
     pupil.tutored_turn = turn_;
     teach_values(pupil, shown_values(tutor), family(pupil, tutor) ? 1.0 : std::clamp(regard_for(pupil, tutor), 0.0, 1.0));  // see VALUE_TEACH
+    if (CONCEPTS_SIZE > 0 && (family(pupil, tutor) || regard_for(pupil, tutor) > 0)) {  // its word for the value it feels most (see CONCEPTS_SIZE)
+        if (const auto word = concept_word(tutor, top_value_concept(tutor))) take_concept(pupil, *word, family(pupil, tutor) ? LEXICON_FAMILY : regard_for(pupil, tutor));
+    }
     if (lesson == CRAFT_COUNT) {
         pupil.archery += TUTOR_PRACTICE * ARCHERY_LEARNING * (1 - pupil.archery);  // worth part of a shot
     } else {
@@ -6784,6 +6867,17 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
             caller->answered_turn = turn_;
             caller->answered_count = 0;
         }
+        // An exchange (see CONVERSE_JOY): it answers one that answered it lately.
+        const bool exchange = CONVERSE_JOY > 0 && agent.replied_to != caller->identifier && caller->replied_to == agent.identifier &&
+                              caller->replied_turn >= 0 && turn_ - caller->replied_turn <= CONVERSE_WINDOW;
+        agent.replied_to = caller->identifier;
+        agent.replied_turn = turn_;
+        if (exchange) {
+            ++agent.exchanges;
+            ++caller->exchanges;
+            agent.reward += CONVERSE_JOY * agent.feeling(Sociability) * agent.value(TalkValue);
+            caller->reward += CONVERSE_JOY * caller->feeling(Sociability) * caller->value(TalkValue);
+        }
         if (caller->answered_count >= ANSWERS_A_TURN) continue;
         ++caller->answered_count;
         caller->reward += ANSWERED_JOY * caller->feeling(Sociability) * caller->value(TalkValue);
@@ -6843,6 +6937,14 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
     }
     if (agent.call != Silent && agent.call_turn == turn_) {  // its call, as it sets about its action
         if (WOO_JOY > 0 && agent.can_breed()) agent.woo_call_turn = turn_;  // called ready to breed (see WOO_JOY)
+        if (agent.call >= FirstCall) {  // its talk, for the probe (see CONVERSE_JOY)
+            ++agent.talk_calls;
+            agent.idle_calls += agent.goal_kind == NoGoal && !agent.stuck && agent.struck_turn < turn_ - 1;
+            agent.said_things += agent.lexicon_spoke_turn == turn_;
+            agent.said_deeds += agent.deed_spoke_turn == turn_;
+            agent.said_names += agent.name_spoke_turn == turn_;
+            agent.said_concepts += agent.concept_spoke_turn == turn_;
+        }
         if (HAWK_JOY > 0) {  // called holding a good it might offer (see HAWK_JOY)
             for (int good = 0; good < GOODS; ++good) {
                 if (holds(agent, good)) {
@@ -7140,7 +7242,10 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             const auto steps = CONFIDE_STEPS ? agent.project_deeds : std::array<double, ACTION_COUNT>{};  // what moves its aim (see CONFIDE_STEPS)
             const auto step_things = CONFIDE_STEPS ? agent.project_things : std::array<double, OUTSIDE_SEEN>{};
             const auto shown = shown_values(agent);  // see VALUE_TEACH
-            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth, deed_words, thing_words, steps, step_things, shown] {
+            std::vector<LexiconWord> idea_words;  // its words for its aim and the value it feels most (see CONCEPTS_SIZE)
+            if (const auto word = concept_word(agent, aim)) idea_words.push_back(*word);
+            if (const auto word = concept_word(agent, top_value_concept(agent))) idea_words.push_back(*word);
+            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth, deed_words, thing_words, steps, step_things, shown, idea_words] {
                 Bitzkey* other = find_agent(to);
                 const Bitzkey* teller = find_agent(from);
                 if (!other || !other->alive() || !teller) return;
@@ -7148,6 +7253,9 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
                 other->aim_value[static_cast<std::size_t>(aim)] += std::clamp(CONFIDE_SHARE, 0.0, 1.0) * worth * regard;
                 ++other->confided_to;
                 teach_values(*other, shown, family(*other, *teller) ? 1.0 : regard);
+                if (family(*other, *teller) || regard_for(*other, *teller) > 0) {
+                    for (const LexiconWord& word : idea_words) take_concept(*other, word, family(*other, *teller) ? LEXICON_FAMILY : regard);
+                }
                 for (const bool deed : {true, false}) {  // its words, taken up as words settled are, and counted when they are
                     LexiconTally& tally = (deed ? deed_tally_ : lexicon_tally_)[static_cast<std::size_t>(other->species)];
                     for (const LexiconWord& word : deed ? deed_words : thing_words) {

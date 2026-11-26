@@ -2429,5 +2429,11 @@
 "Woo joy": "Werbefreude",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "eine umworbene Paarung lehrt den Ruf des Rufers und das Herankommen des Kommenden mit diesem Wert als Paarungsfreude, nach Libido; 0 für keine",
 "Woo comer": "Werbender Ankömmling",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: eine umworbene Paarung lehrt auch den Ankömmling die Bewegung, die er beim Hören des Rufs machte; 0: nur der Ruf des Rufers wird gelehrt"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: eine umworbene Paarung lehrt auch den Ankömmling die Bewegung, die er beim Hören des Rufs machte; 0: nur der Ruf des Rufers wird gelehrt",
+"Conversation window": "Gesprächsfenster",
+"turns within which a reply to one that answered it counts as an exchange": "Züge, in denen eine Antwort an eines, das ihm geantwortet hat, als Austausch zählt",
+"Conversation joy": "Gesprächsfreude",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "ein Austausch gibt jeder Seite diesen Wert mal ihre Geselligkeit und ihren Gesprächswert, was auch gesagt wurde; 0 für keine",
+"Concept-words": "Begriffswörter",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "Wörter für Ideen (Projektziele und Werte), je Intelligenzpunkt und einer mehr, festgelegt beim Anvertrauen und Lehren; 0 für keine"
 }

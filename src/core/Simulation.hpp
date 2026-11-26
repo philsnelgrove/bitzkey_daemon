@@ -614,6 +614,20 @@ inline int HAWK_BUYER = 1;
 inline int WOO_WINDOW = 20;
 inline double WOO_JOY = 1.0;
 inline int WOO_COMER = 1;
+// Conversation (the user's design): an exchange is a reply to one that has lately replied to it: one answers a caller
+// (see ANSWERED_JOY) that answered it within CONVERSE_WINDOW turns before. Then each feels CONVERSE_JOY times its
+// sociability and its talk value. What was said is not weighed: any topic, or none, pays alike. CONVERSE_JOY 0 for none.
+inline int CONVERSE_WINDOW = 3;
+inline double CONVERSE_JOY = 0.3;
+// Concept-words (the user's design): words each for an idea that cannot be pointed at, a project aim or a value, held
+// apart from words for things, CONCEPTS_SIZE for each point of intellect and one more. One confiding its plan says it
+// as it tells it (its word for its aim, or, holding none, the call it makes); one teaching (confiding or tutoring)
+// says its word for the value it feels most. The hearer, trusting the teller (family, or regard above 0), takes the
+// word for that idea as its own, if it holds neither the word nor a word for the idea; full, it forgets the one used
+// least. Pointing at itself and saying no deed-word, it says its word for what is on its mind, its project's aim or
+// else its most felt value, with chance LEXICON_SPEAK times its sociability; hearing a concept-word it holds, it knows
+// what is meant (counted; no sense is added). A newborn inherits them as words. CONCEPTS_SIZE 0 for none.
+inline int CONCEPTS_SIZE = 1;
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -1578,6 +1592,13 @@ struct Bitzkey {
     std::vector<LexiconWord> names;     // the names it has settled, each word's thing the named one (see NAMES_SIZE)
     std::vector<LexiconWord> deeds;     // the deed-words it has settled, each word's thing an action (see DEEDS_SIZE)
     int deed_spoke_turn = -1;           // the last turn it said a deed-word
+    std::vector<LexiconWord> concepts;  // its concept-words, each word's thing an aim or PROJECT_AIMS + a value (see CONCEPTS_SIZE)
+    int concept_spoke_turn = -1;        // the last turn it said a concept-word
+    int concept_heard_turn = -1;        // the last turn it heard one it holds
+    int replied_to = -1, replied_turn = -1;  // the last caller it answered, and when (see CONVERSE_JOY)
+    // Talk in its life (for the probe, see CONVERSE_JOY): calls; of them idle (no goal, not stuck, not crying out); and
+    // the thing-, deed-, name- and concept-words said; concept-words heard and known; exchanges.
+    int talk_calls = 0, idle_calls = 0, said_things = 0, said_deeds = 0, said_names = 0, said_concepts = 0, heard_concepts = 0, exchanges = 0;
     bool meant_by_deed = false;         // whether the word it last heard (meant_turn) was a deed-word, meant_deed its deed
     bool judged_by_deed = false;        // and the word it was last judged on
     int echo_turn = -1;                 // the last turn it said a deed-word back, doing its guess
@@ -2274,6 +2295,12 @@ public:
     };
     const std::array<InitiativeTally, 4>& initiative_tally() const { return initiative_tally_; }
     static int deeds_capacity(const Bitzkey& agent);  // how many deed-words it can hold
+    static int concepts_capacity(const Bitzkey& agent);  // how many concept-words it can hold (see CONCEPTS_SIZE)
+    static int concept_on_mind(const Bitzkey& agent);  // its project's aim, else PROJECT_AIMS + its most felt value
+    static int top_value_concept(const Bitzkey& agent);  // PROJECT_AIMS + its most felt value
+    // Its word for `idea`, or, holding none and calling this turn, its call taken as one; nullopt if neither.
+    std::optional<LexiconWord> concept_word(Bitzkey& teller, int idea);
+    static bool take_concept(Bitzkey& who, const LexiconWord& word, double regard);  // see CONCEPTS_SIZE
     static int names_capacity(const Bitzkey& agent);  // how many names it can hold
     // The one it would point at (PointOne): `prefer` if in its sight, else the nearest it holds a name for, else the
     // nearest of its kind; -1 none.

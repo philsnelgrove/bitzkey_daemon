@@ -2429,5 +2429,11 @@
 "Woo joy": "求偶之乐",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "求偶交配以此值作为交配之乐（按性欲）教给呼唤者其呼唤、来者其靠近；0为无",
 "Woo comer": "前来的求偶者",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1：求偶交配也教来者听到呼唤时所做的移动；0：只教呼唤者的呼唤"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1：求偶交配也教来者听到呼唤时所做的移动；0：只教呼唤者的呼唤",
+"Conversation window": "对话时限",
+"turns within which a reply to one that answered it counts as an exchange": "回复刚回复过自己的个体，在此回合内算作一次交流",
+"Conversation joy": "对话之乐",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "一次交流给双方此值乘以其社交性与谈话价值，不论说了什么；0为无",
+"Concept-words": "概念词",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "表示想法（计划目标与价值）的词，每点智力及多一个，于倾诉与教导时确定；0为无"
 }

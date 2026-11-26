@@ -2429,5 +2429,11 @@
 "Woo joy": "Alegria da corte",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "um acasalamento cortejado ensina o chamado de quem chamou, e a aproximação de quem veio, a este valor como prazer de acasalar, pela libido; 0 para nenhuma",
 "Woo comer": "Pretendente que veio",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: um acasalamento cortejado também ensina a quem veio o movimento que fez ao ouvir o chamado; 0: só o chamado é ensinado"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: um acasalamento cortejado também ensina a quem veio o movimento que fez ao ouvir o chamado; 0: só o chamado é ensinado",
+"Conversation window": "Janela de conversa",
+"turns within which a reply to one that answered it counts as an exchange": "turnos em que uma resposta a quem lhe respondeu conta como troca",
+"Conversation joy": "Alegria de conversar",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "uma troca dá a cada lado isto vezes a sua sociabilidade e o seu valor de conversa, fosse o que fosse dito; 0 para nenhuma",
+"Concept-words": "Palavras de conceitos",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "palavras para ideias (metas de projeto e valores), por ponto de intelecto e uma a mais, fixadas ao confiar e ensinar; 0 para nenhuma"
 }

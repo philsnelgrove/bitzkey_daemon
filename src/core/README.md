@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 604 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 607 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 604 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (284 rules)
+6. [Mind](#6-mind) (287 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (12 rules)
@@ -1509,6 +1509,24 @@ Default **1**; from 0 to 5, in steps of 0.05.
 1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught.
 
 Default **1**; from 0 to 1, in steps of 1.
+
+#### 6.36.10 Conversation window (`CONVERSE_WINDOW`)
+
+Turns within which a reply to one that answered it counts as an exchange.
+
+Default **3**; from 1 to 50, in steps of 1.
+
+#### 6.36.11 Conversation joy (`CONVERSE_JOY`)
+
+An exchange gives each side this times its sociability and talk value, whatever was said; 0 for none.
+
+Default **0.3**; from 0 to 5, in steps of 0.05.
+
+#### 6.36.12 Concept-words (`CONCEPTS_SIZE`)
+
+Words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none.
+
+Default **1**; from 0 to 10, in steps of 1.
 
 ### 6.37 Project learning (`PROJECT_RATE`)
 

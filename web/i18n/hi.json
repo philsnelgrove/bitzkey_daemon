@@ -2429,5 +2429,11 @@
 "Woo joy": "प्रणय आनंद",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "प्रणय से हुआ संभोग पुकारने वाले की पुकार, और आने वाले का पास आना, इतने को संभोग-सुख मानकर, कामेच्छा अनुसार सिखाता है; 0 कोई नहीं",
 "Woo comer": "आने वाला प्रेमी",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: प्रणय से हुआ संभोग आने वाले को पुकार सुनकर की गई चाल भी सिखाता है; 0: केवल पुकार सिखाई जाती है"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: प्रणय से हुआ संभोग आने वाले को पुकार सुनकर की गई चाल भी सिखाता है; 0: केवल पुकार सिखाई जाती है",
+"Conversation window": "वार्तालाप अवधि",
+"turns within which a reply to one that answered it counts as an exchange": "वे बारियाँ जिनमें उत्तर देने वाले को दिया उत्तर आदान-प्रदान माना जाए",
+"Conversation joy": "वार्तालाप आनंद",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "एक आदान-प्रदान हर पक्ष को इतना गुणा उसकी मिलनसारिता और बातचीत मूल्य देता है, जो भी कहा गया हो; 0 कोई नहीं",
+"Concept-words": "विचार-शब्द",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "विचारों (परियोजना लक्ष्य और मूल्य) के शब्द, बुद्धि के हर अंक पर और एक अधिक, बताने और सिखाने में तय; 0 कोई नहीं"
 }

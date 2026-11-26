@@ -2602,6 +2602,63 @@ Json Probe::values(Simulation& world) const {
     return {{"turn", world.turn()}, {"species", result}};
 }
 
+Json Probe::talk(Simulation& world) const {
+    // Per species, by band of intellect (4 and less, 5 to 6, 7) and by sociability (below 3.5, from it), over the lives
+    // of the living: calls per animal; the share idle; of the words said, the shares naming one (people), a deed
+    // (events), a thing, and an idea (concepts); exchanges per animal; concept-words held and heard per animal. And
+    // which ideas the concept-words held are for.
+    const auto band = [](const std::vector<const Bitzkey*>& group) {
+        double calls = 0, idle = 0, things = 0, deeds = 0, names = 0, ideas = 0, exchanges = 0, held = 0, heard = 0;
+        for (const Bitzkey* agent : group) {
+            calls += agent->talk_calls;
+            idle += agent->idle_calls;
+            things += agent->said_things;
+            deeds += agent->said_deeds;
+            names += agent->said_names;
+            ideas += agent->said_concepts;
+            exchanges += agent->exchanges;
+            held += static_cast<double>(agent->concepts.size());
+            heard += agent->heard_concepts;
+        }
+        const double n = std::max<double>(1, static_cast<double>(group.size()));
+        const double words = things + deeds + names + ideas;
+        const auto share = [&](double part) { return words > 0 ? part / words : 0.0; };
+        return Json{{"animals", static_cast<long long>(group.size())}, {"calls_per_animal", calls / n}, {"idle_share", calls > 0 ? idle / calls : 0.0},
+                    {"words_per_call", calls > 0 ? words / calls : 0.0}, {"people_share", share(names)}, {"events_share", share(deeds)},
+                    {"things_share", share(things)}, {"concepts_share", share(ideas)}, {"exchanges_per_animal", exchanges / n},
+                    {"concept_words_held", held / n}, {"concept_words_heard", heard / n}};
+    };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::array<std::vector<const Bitzkey*>, 3> by_wits;
+        std::array<std::vector<const Bitzkey*>, 2> by_warmth;
+        std::vector<const Bitzkey*> living;
+        std::map<int, long long> ideas;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            living.push_back(agent);
+            const double wits = agent->mind[Intellect];
+            by_wits[wits < 4.5 ? 0 : wits < 6.5 ? 1 : 2].push_back(agent);
+            by_warmth[agent->mind[Sociability] < 3.5 ? 0 : 1].push_back(agent);
+            for (const LexiconWord& word : agent->concepts) ++ideas[word.thing];
+        }
+        if (living.empty()) continue;
+        static constexpr std::array<const char*, VALUE_KINDS> KINDS = {"trade", "help", "gift", "glory", "talk", "goal", "liking", "teachable"};
+        Json held = Json::object();
+        for (const auto& [idea, count] : ideas) {
+            const std::string name = idea < PROJECT_AIMS ? "aim:" + std::string(AIM_NAMES[static_cast<std::size_t>(idea)])
+                                                         : "value:" + std::string(KINDS[static_cast<std::size_t>(std::clamp(idea - PROJECT_AIMS, 0, VALUE_KINDS - 1))]);
+            held[name] = count;
+        }
+        result[std::string(species_name(species))] = {
+            {"all", band(living)},
+            {"by_intellect", {{"4_and_less", band(by_wits[0])}, {"5_to_6", band(by_wits[1])}, {"7", band(by_wits[2])}}},
+            {"by_sociability", {{"low", band(by_warmth[0])}, {"high", band(by_warmth[1])}}},
+            {"concept_words_for", held}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
 Json Probe::culture(Simulation& world) const {
     // Projects and language, measured only: (1) whether one that confided a plan and the one it confided it to, or
     // neighbours holding the same plan, hold the same words for the same things and deeds, against other neighbours;
@@ -3674,6 +3731,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/talk", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return talk(world); }));
     }));
     server.Get(prefix + "/values", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return values(world); }));

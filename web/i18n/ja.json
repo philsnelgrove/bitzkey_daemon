@@ -2429,5 +2429,11 @@
 "Woo joy": "求愛の喜び",
 "a wooed mating teaches the caller's call, and the comer's approach, at this as a pleasure of mating, by libido; 0 for none": "求愛による交尾は呼び手の呼び声と来た者の接近を、この値の交尾の喜びとして性欲に応じて教える。0で無し",
 "Woo comer": "求愛に来た者",
-"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: 求愛による交尾は来た者に呼び声を聞いてとった動きも教える。0: 呼び手の呼び声のみ教える"
+"1: a wooed mating also teaches the comer the move it made on hearing the call; 0: only the caller's call is taught": "1: 求愛による交尾は来た者に呼び声を聞いてとった動きも教える。0: 呼び手の呼び声のみ教える",
+"Conversation window": "会話の猶予",
+"turns within which a reply to one that answered it counts as an exchange": "自分に答えた者への返答がやり取りとみなされるターン数",
+"Conversation joy": "会話の喜び",
+"an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "やり取りは各側にこの値×社交性×会話の価値を与える。何を話したかは問わない。0で無し",
+"Concept-words": "概念の言葉",
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "考え（計画の目的と価値）を表す言葉。知性1点ごとと1つ多く、打ち明けと教えで決まる。0で無し"
 }
