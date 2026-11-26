@@ -2415,5 +2415,13 @@
 "Hawk joy": "Joie de la criée",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "une affaire criée enseigne l'appel du propriétaire à ceci fois ce qu'il a vraiment gagné et sa sociabilité, et l'approche de l'acheteur fois son gain et sa curiosité ; 0 pour aucune",
 "Hawk buyer": "Acheteur de criée",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1 : une affaire criée enseigne aussi à l'acheteur le mouvement fait en entendant l'appel ; 0 : seul l'appel du vendeur est enseigné"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1 : une affaire criée enseigne aussi à l'acheteur le mouvement fait en entendant l'appel ; 0 : seul l'appel du vendeur est enseigné",
+"Value mutation": "Mutation des valeurs",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "de combien chaque valeur héritée d'un nouveau-né peut s'écarter de la moyenne de ses parents, dans un sens ou l'autre, sur 0 à 3",
+"Value inheritance": "Héritage des valeurs",
+"share of its mother's taught values a newborn starts with": "part des valeurs enseignées de sa mère avec laquelle commence un nouveau-né",
+"Value teaching": "Enseignement des valeurs",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "en confiant ou en enseignant, la part du chemin que font les valeurs enseignées de l'auditeur pour faire siennes celles du conteur, fois sa confiance et sa valeur d'enseignable ; 0 pour aucun",
+"Liking": "Plaisir",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "joie ressentie quand un signe éveille davantage son envie d'une chose, d'un compagnon ou d'un acte, fois cette montée et sa valeur de plaisir ; à la montée seulement, et jamais apprise comme envie ; 0 pour aucune"
 }

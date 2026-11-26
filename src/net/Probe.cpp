@@ -2543,6 +2543,65 @@ Json Probe::society(Simulation& world) const {
     return {{"turn", world.turn()}, {"species", result}};
 }
 
+Json Probe::values(Simulation& world) const {
+    // Per species and for its largest colour groups: each value's inherited mean and spread, the taught mean and the
+    // value as felt; liking felt by what woke it, per animal; and value lessons taken, per animal.
+    static constexpr std::array<const char*, VALUE_KINDS> KINDS = {"trade", "help", "gift", "glory", "talk", "goal", "liking", "teachable"};
+    static constexpr std::array<const char*, SPARK_CUES> CUES = {"none", "seen", "remembered", "seen_done", "heard"};
+    const auto summary = [&](const std::vector<const Bitzkey*>& group) {
+        Json kinds = Json::object();
+        const double n = static_cast<double>(group.size());
+        for (int kind = 0; kind < VALUE_KINDS; ++kind) {
+            double inborn = 0.0, square = 0.0, taught = 0.0, felt = 0.0;
+            for (const Bitzkey* agent : group) {
+                const double v = agent->values[static_cast<std::size_t>(kind)];
+                inborn += v;
+                square += v * v;
+                taught += agent->taught[static_cast<std::size_t>(kind)];
+                felt += agent->value(kind);
+            }
+            const double mean = inborn / n;
+            kinds[KINDS[static_cast<std::size_t>(kind)]] = {{"inborn", mean}, {"spread", std::sqrt(std::max(0.0, square / n - mean * mean))},
+                                                             {"taught", taught / n}, {"felt", felt / n}};
+        }
+        return kinds;
+    };
+    Json result = Json::object();
+    for (const Species species : {Species::Grazer, Species::Omnivore, Species::Predator}) {
+        std::vector<const Bitzkey*> living;
+        std::map<int, std::vector<const Bitzkey*>> groups;
+        for (const Bitzkey* agent : world.living()) {
+            if (agent->species != species) continue;
+            living.push_back(agent);
+            if (agent->realm >= 0) groups[agent->realm].push_back(agent);
+        }
+        if (living.empty()) continue;
+        std::array<double, SPARK_CUES> liked{};
+        double lessons = 0.0, generation = 0.0;
+        for (const Bitzkey* agent : living) {
+            for (std::size_t cue = 0; cue < SPARK_CUES; ++cue) liked[cue] += agent->liked_by_cue[cue];
+            lessons += agent->value_lessons;
+            generation += agent->generation;
+        }
+        Json liking = Json::object();
+        for (std::size_t cue = 1; cue < SPARK_CUES; ++cue) liking[CUES[cue]] = liked[cue] / living.size();
+        std::vector<std::pair<int, const std::vector<const Bitzkey*>*>> largest;
+        for (const auto& [id, members] : groups) largest.push_back({id, &members});
+        std::sort(largest.begin(), largest.end(), [](const auto& a, const auto& b) {
+            return a.second->size() != b.second->size() ? a.second->size() > b.second->size() : a.first < b.first;
+        });
+        Json by_group = Json::array();
+        for (std::size_t at = 0; at < largest.size() && at < 5; ++at) {
+            if (largest[at].second->size() < 10) break;
+            by_group.push_back({{"group", largest[at].first}, {"members", static_cast<long long>(largest[at].second->size())}, {"values", summary(*largest[at].second)}});
+        }
+        result[std::string(species_name(species))] = {{"alive", static_cast<long long>(living.size())}, {"mean_generation", generation / living.size()},
+                                                      {"values", summary(living)}, {"liking_felt_per_animal", liking},
+                                                      {"value_lessons_per_animal", lessons / living.size()}, {"largest_groups", by_group}};
+    }
+    return {{"turn", world.turn()}, {"species", result}};
+}
+
 Json Probe::culture(Simulation& world) const {
     // Projects and language, measured only: (1) whether one that confided a plan and the one it confided it to, or
     // neighbours holding the same plan, hold the same words for the same things and deeds, against other neighbours;
@@ -3597,6 +3656,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
         const int identifier = number_in(request.matches);
         const bool weights = request.get_param_value("weights") == "1";
         reply(response, looked([&](Simulation& world) { return brain(world, identifier, weights); }));
+    }));
+    server.Get(prefix + "/values", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return values(world); }));
     }));
     server.Get(prefix + "/culture", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return culture(world); }));

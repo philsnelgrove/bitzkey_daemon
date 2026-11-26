@@ -2222,11 +2222,40 @@ void Simulation::teach_call_help(Bitzkey& agent) {
         outputs[static_cast<std::size_t>(place)] = sound_output(place, said.said[static_cast<std::size_t>(place)]);
         if (said.said[static_cast<std::size_t>(place)] < 0) break;
     }
-    const double value = limited_value(HELPED_JOY * agent.feeling(Sociability));
+    const double value = limited_value(HELPED_JOY * agent.feeling(Sociability) * agent.value(HelpValue));
     for (const int output : outputs) {
         if (output < 0) continue;
         if (gpu_) queue_lesson(agent, senses, output, value, rate, false, 0.0);
         else learning_brain(agent).learn(senses, output, value, rate);
+    }
+}
+
+std::array<double, VALUE_KINDS> Simulation::shown_values(const Bitzkey& teller) {
+    std::array<double, VALUE_KINDS> shown{};
+    for (int kind = 0; kind < VALUE_KINDS; ++kind) shown[static_cast<std::size_t>(kind)] = teller.value(kind);
+    return shown;
+}
+
+void Simulation::teach_values(Bitzkey& learner, const std::array<double, VALUE_KINDS>& shown, double trust) {
+    // The learner's taught values move toward making its own what the teller's are (see VALUE_TEACH).
+    if (VALUE_TEACH <= 0 || trust <= 0) return;
+    const double rate = std::min(1.0, VALUE_TEACH * trust * learner.value(TeachableValue));
+    if (rate <= 0) return;
+    for (std::size_t kind = 0; kind < VALUE_KINDS; ++kind) {
+        if (learner.values[kind] <= 0) continue;
+        const double target = std::clamp(shown[kind] / learner.values[kind] - 1.0, -1.0, VALUE_MAX);
+        learner.taught[kind] += rate * (target - learner.taught[kind]);
+    }
+    ++learner.value_lessons;
+}
+
+void Simulation::inherit_values(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father) const {
+    // Its parents' mean, each moved by up to VALUE_MUTATION either way; and VALUE_INHERIT of what its mother was taught.
+    for (std::size_t kind = 0; kind < VALUE_KINDS; ++kind) {
+        const double base = father ? (mother.values[kind] + father->values[kind]) / 2.0 : mother.values[kind];
+        const double step = VALUE_MUTATION * (2.0 * whim(child.identifier ^ static_cast<int>(0x7A10 + kind), turn_) - 1.0);
+        child.values[kind] = std::clamp(base + step, 0.0, VALUE_MAX);
+        child.taught[kind] = std::clamp(VALUE_INHERIT, 0.0, 1.0) * mother.taught[kind];
     }
 }
 
@@ -2247,7 +2276,7 @@ void Simulation::teach_hawking(Bitzkey& agent) {
                 const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
                 senses[static_cast<std::size_t>(sense)] = reading == SignedReading ? read : reading == SparseReading ? read / 2.0 : (read + 1.0) / 2.0;
             }
-            const double value = limited_value(HAWK_JOY * agent.sold_gain * agent.feeling(Sociability));
+            const double value = limited_value(HAWK_JOY * agent.sold_gain * agent.feeling(Sociability) * agent.value(TradeValue));
             lesson(senses, call_output(FirstCall + agent.sold_sounds[0]), value);
             for (int place = 1; place < MAX_SOUNDS; ++place) {
                 const int output = sound_output(place, agent.sold_sounds[static_cast<std::size_t>(place)]);
@@ -2259,7 +2288,7 @@ void Simulation::teach_hawking(Bitzkey& agent) {
     if (agent.bought_turn >= 0 && agent.bought_turn > agent.bought_taught_turn) {
         agent.bought_taught_turn = agent.bought_turn;
         if (HAWK_BUYER && agent.bought_gain > 0 && rate > 0 && agent.hawk_deed >= 0)
-            lesson(agent.hawk_senses, agent.hawk_deed, limited_value(HAWK_JOY * agent.bought_gain * agent.feeling(Curiosity)));
+            lesson(agent.hawk_senses, agent.hawk_deed, limited_value(HAWK_JOY * agent.bought_gain * agent.feeling(Curiosity) * agent.value(TradeValue)));
     }
 }
 
@@ -3475,6 +3504,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         agent.last_comfort = comforts[index];
         agent.reward = -BOREDOM_UNEASE * agent.boredom;
         agent.joy_mark = agent.reward;  // its joys from here on are known by what it rises above this (see DESIRE)
+        agent.liked = 0.0;
         agent.call_pleasure = 0.0;
         agent.assailant.reset();  // the chance to strike back, or need to flee, passes with this choice
         agent.panicked = false;
@@ -5472,7 +5502,7 @@ void Simulation::witness_deed(Bitzkey& other, const SeenDeed& seen) {
     if (kind == CultureDeed) return;
     if (kind == HelpDeed) {  // useful help seen: the helper esteemed, and a share of its joy (see HELP_WITNESS)
         note_deed(other, doer, 1.0, WITNESS_SHARE, PlainDeed, true);
-        if (HELP_WITNESS > 0 && HELPING_JOY > 0) other.reward += HELP_WITNESS * HELPING_JOY * other.feeling(Sociability);
+        if (HELP_WITNESS > 0 && HELPING_JOY > 0) other.reward += HELP_WITNESS * HELPING_JOY * other.feeling(Sociability) * other.value(HelpValue);
         return;
     }
     if (kind == TitleDeed) {  // a titled leader, esteemed by all who see it and hold it no foe
@@ -5720,6 +5750,7 @@ void Simulation::tutor(Bitzkey& tutor, Bitzkey& pupil, int lesson) {
     }
     tutor.hunger = std::min(100.0, tutor.hunger + TUTOR_COST);
     pupil.tutored_turn = turn_;
+    teach_values(pupil, shown_values(tutor), family(pupil, tutor) ? 1.0 : std::clamp(regard_for(pupil, tutor), 0.0, 1.0));  // see VALUE_TEACH
     if (lesson == CRAFT_COUNT) {
         pupil.archery += TUTOR_PRACTICE * ARCHERY_LEARNING * (1 - pupil.archery);  // worth part of a shot
     } else {
@@ -6118,7 +6149,7 @@ void Simulation::give(Bitzkey& agent, Bitzkey& friend_, int possession) {
         if (!later(logged)) logged();
     }
     note_deed(friend_, agent, 1.0, 1.0, PlainDeed, true);  // a gift, a kindness
-    agent.reward += GIVE_JOY * (0.5 + std::max(agent.feeling(Empathy), agent.feeling(Sociability)));
+    agent.reward += GIVE_JOY * (0.5 + std::max(agent.feeling(Empathy), agent.feeling(Sociability))) * agent.value(GiftValue);
     note_first("gave", agent.species, agent.identifier);
 }
 
@@ -6196,8 +6227,8 @@ void Simulation::offer(Bitzkey& agent, Bitzkey& owner, int wanted, int offered) 
         // A kindness to each that truly gained, and trade joy; a wrong to one that truly lost, which it holds against the other.
         note_deed(owner, agent, owner_gain > 0 ? 1.0 : -1.0, TRADE_REGARD, PlainDeed, true);
         note_deed(agent, owner, agent_gain > 0 ? 1.0 : -1.0, TRADE_REGARD, PlainDeed, true);
-        if (agent_gain > 0) agent.reward += TRADE_JOY;
-        if (owner_gain > 0) owner.reward += TRADE_JOY;
+        if (agent_gain > 0) agent.reward += TRADE_JOY * agent.value(TradeValue);
+        if (owner_gain > 0) owner.reward += TRADE_JOY * owner.value(TradeValue);
         // Hawked (see HAWK_JOY): the owner called holding goods, and this one heard it from afar and came.
         if (HAWK_JOY > 0 && owner.hawk_call_turn >= 0 && turn_ - owner.hawk_call_turn <= HAWK_WINDOW && agent.hawk_to == owner.identifier &&
             agent.hawk_move_turn >= owner.hawk_call_turn && turn_ - agent.hawk_move_turn <= HAWK_WINDOW) {
@@ -6272,10 +6303,10 @@ void Simulation::settle_help() {
             if (!caller->stuck && caller->goal_kind != NoGoal && caller->goal_turn == helper.help_goal_turn) {  // useful
                 ++caller->helped;
                 caller->helped_turn = turn_;
-                caller->reward += HELPED_JOY * caller->feeling(Sociability);
+                caller->reward += HELPED_JOY * caller->feeling(Sociability) * caller->value(HelpValue);
                 ++helper.helping;
                 ++helper.help_given[static_cast<std::size_t>(helper.help_kind)];
-                const double joy = HELPING_JOY * helper.feeling(Sociability);
+                const double joy = HELPING_JOY * helper.feeling(Sociability) * helper.value(HelpValue);
                 helper.reward += joy;
                 const double rate = learning_rate(helper);
                 if (joy > 0 && rate > 0 && helper.brain) {  // the deed it did, taught against what it sensed as it chose
@@ -6328,7 +6359,7 @@ void Simulation::settle_fights() {
     for (const Settled& challenge : challenges) {  // glory and shame (see CHALLENGE_GLORY)
         Bitzkey& winner = *challenge.winner;
         Bitzkey& loser = *challenge.loser;
-        winner.reward += CHALLENGE_GLORY * (0.5 + winner.feeling(Dominance));
+        winner.reward += CHALLENGE_GLORY * (0.5 + winner.feeling(Dominance)) * winner.value(GloryValue);
         loser.reward -= CHALLENGE_LOSS;
         loser.humbled_until = turn_ + std::max(0, CHALLENGE_HUMBLED);
         ++challenge.leader->challenges_faced;
@@ -6722,7 +6753,7 @@ void Simulation::act(Bitzkey& agent, int action, Situation& s) {
         }
         if (caller->answered_count >= ANSWERS_A_TURN) continue;
         ++caller->answered_count;
-        caller->reward += ANSWERED_JOY * caller->feeling(Sociability);
+        caller->reward += ANSWERED_JOY * caller->feeling(Sociability) * caller->value(TalkValue);
         ++(kind == 0 ? initiative_tally_[static_cast<std::size_t>(caller->species)].answered_heeded
                      : initiative_tally_[static_cast<std::size_t>(caller->species)].answered_back);
     }
@@ -7060,13 +7091,15 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
             }
             const auto steps = CONFIDE_STEPS ? agent.project_deeds : std::array<double, ACTION_COUNT>{};  // what moves its aim (see CONFIDE_STEPS)
             const auto step_things = CONFIDE_STEPS ? agent.project_things : std::array<double, OUTSIDE_SEEN>{};
-            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth, deed_words, thing_words, steps, step_things] {
+            const auto shown = shown_values(agent);  // see VALUE_TEACH
+            const auto share = [this, from, to, aim, dir, x, y, group, idea, worth, deed_words, thing_words, steps, step_things, shown] {
                 Bitzkey* other = find_agent(to);
                 const Bitzkey* teller = find_agent(from);
                 if (!other || !other->alive() || !teller) return;
                 const double regard = std::clamp(regard_for(*other, *teller), 0.0, 1.0);
                 other->aim_value[static_cast<std::size_t>(aim)] += std::clamp(CONFIDE_SHARE, 0.0, 1.0) * worth * regard;
                 ++other->confided_to;
+                teach_values(*other, shown, family(*other, *teller) ? 1.0 : regard);
                 for (const bool deed : {true, false}) {  // its words, taken up as words settled are, and counted when they are
                     LexiconTally& tally = (deed ? deed_tally_ : lexicon_tally_)[static_cast<std::size_t>(other->species)];
                     for (const LexiconWord& word : deed ? deed_words : thing_words) {
@@ -8834,7 +8867,9 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         const int heard_thing = heard_last && !agent.meant_by_deed ? agent.meant_thing : -1;
         const int heard_deed = heard_last && agent.meant_by_deed ? agent.meant_deed : -1;
         const int heard_one = agent.called_turn == turn_ - 1 ? agent.called_one : -1;
+        std::array<double, SPARK_CUES> rise{};  // its wanting woken the more this turn, by cue (see LIKING)
         const auto wake = [&](double& spark, double& fade, int& from, double want, double cue, int source, double trait) {
+            const double before = spark;
             spark *= linger;
             if (DESIRE > 0 && want > 0 && cue > 0) {
                 const double woken = DESIRE * want * cue * trait * (1.0 - fade);
@@ -8842,6 +8877,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
                     spark = woken;
                     from = source;
                 }
+                if (woken > before) rise[static_cast<std::size_t>(source)] += woken - before;
             }
             fade *= 1.0 - recover;
         };
@@ -8876,6 +8912,16 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
                 source = CueHeard;
             }
             wake(one.spark, one.fade, one.spark_from, one.want, cue, source, social);
+        }
+        if (LIKING > 0) {  // anticipation: its wanting woken the more, felt (see LIKING)
+            const double scale = LIKING * agent.value(LikingValue);
+            for (std::size_t cue = 0; cue < SPARK_CUES; ++cue) {
+                if (rise[cue] <= 0) continue;
+                const double joy = scale * rise[cue];
+                agent.reward += joy;
+                agent.liked += joy;
+                agent.liked_by_cue[cue] += joy;
+            }
         }
         // Its enemies (see VENDETTA): seen, the grudge faded, the dead let go, and each sparked by sight, place or name.
         const double fierce = 0.5 + agent.feeling(Aggression), fading = VENDETTA_MEMORY > 0 ? 1.0 / VENDETTA_MEMORY : 1.0;
@@ -8927,7 +8973,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
         const bool sated = !pulled && push < GOAL_SATED;
         const double patience = agent.feeling(Patience);
         if (met) {
-            double joy = agent.goal_project || agent.goal_vendetta ? 0.0 : GOAL_JOY * agent.goal_urgency;  // a project's step: only progress brings joy
+            double joy = agent.goal_project || agent.goal_vendetta ? 0.0 : GOAL_JOY * agent.goal_urgency * agent.value(GoalValue);  // a project's step: only progress brings joy
             if (agent.goal_instructed) ++agent.instructions_taken;
             if (agent.goal_desire) {  // as much as its pleasure in it has not faded, and fading the more (PLEASURE_FADE)
                 if (double* fade = fade_of(agent.goal_kind, agent.goal_target)) {
@@ -8967,7 +9013,7 @@ void Simulation::pursue(Bitzkey& agent, Situation& s, Senses& senses, int sight,
     // its own joys only, not a goal's joy or progress, lest whatever it sought be liked for being sought.
     if (lived && WANTING_RATE > 0) {
         const double rate = std::min(1.0, WANTING_RATE);
-        const double good = std::max(0.0, agent.reward - agent.joy_mark);
+        const double good = std::max(0.0, agent.reward - agent.joy_mark - agent.liked);  // liking kept out (see LIKING)
         const double gain = good - agent.good_drift;
         agent.good_drift += rate * (good - agent.good_drift);
         for (std::size_t thing = 0; thing < OUTSIDE_SEEN; ++thing) {
@@ -9574,7 +9620,7 @@ void Simulation::attack(Bitzkey& agent, Bitzkey& victim, std::string_view activi
         agent.reward += 2 * joy;
         witness(agent, meal / agent.stomach / 100);  // its pack sees it succeed: the fullness it gained
         if ((rival_weight(agent, victim) > 0 || is_foe(agent, victim)) && wanting(agent)) {  // one fewer rival for the feeding ground, in want
-            agent.reward += RIVAL_KILL_JOY * agent.rivalry * (1 - 0.5 * agent.feeling(Tolerance));
+            agent.reward += RIVAL_KILL_JOY * agent.rivalry * (1 - 0.5 * agent.feeling(Tolerance)) * agent.value(GloryValue);
         }
         experience(agent, Kill);
     }
@@ -9933,6 +9979,7 @@ void Simulation::give_birth(Bitzkey& mother) {
         inherit_words(child, mother);  // a share of each parent's words (see LEXICON_INHERIT)
         if (const Bitzkey* father = find_agent(young.father)) inherit_words(child, *father);
         inherit_relief(child, mother, find_agent(young.father));  // and what eased its parents' needs (see RELIEF_INHERIT)
+        inherit_values(child, mother, find_agent(young.father));  // and its parents' values, and some of what its mother was taught
         name_at_birth(child, mother);  // and its mother names it (see NAMES_SIZE)
         if (CUES) {  // its mother's cry, or now and then another
             child.cry = mother.own_cry();

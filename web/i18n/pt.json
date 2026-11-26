@@ -2415,5 +2415,13 @@
 "Hawk joy": "Alegria do pregão",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "um negócio apregoado ensina a chamada do dono a isto vezes o que de facto ganhou e a sua sociabilidade, e a aproximação do comprador vezes o seu ganho e curiosidade; 0 para nenhuma",
 "Hawk buyer": "Comprador do pregão",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: um negócio apregoado também ensina ao comprador o movimento que fez ao ouvir a chamada; 0: só a chamada do vendedor é ensinada"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: um negócio apregoado também ensina ao comprador o movimento que fez ao ouvir a chamada; 0: só a chamada do vendedor é ensinada",
+"Value mutation": "Mutação de valores",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "quanto cada valor herdado de um recém-nascido pode afastar-se da média dos pais, para um lado ou outro, em 0 a 3",
+"Value inheritance": "Herança de valores",
+"share of its mother's taught values a newborn starts with": "parte dos valores ensinados da mãe com que um recém-nascido começa",
+"Value teaching": "Ensino de valores",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "ao confiar ou ensinar, a parte do caminho que os valores ensinados do ouvinte percorrem para tornar seus os de quem conta, vezes a sua confiança e o seu valor de ensinável; 0 para nenhum",
+"Liking": "Gosto",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "alegria sentida quando um sinal desperta mais o seu desejo de uma coisa, companheiro ou ato, vezes essa subida e o seu valor de gosto; só na subida e nunca aprendida como desejo; 0 para nenhuma"
 }

@@ -2415,5 +2415,13 @@
 "Hawk joy": "呼び売りの喜び",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "呼び売りの取引は、持ち主の呼び声をこの値×本当の利得×社交性で、買い手の接近をこの値×その利得×好奇心で教える。0で無効",
 "Hawk buyer": "呼び売りの買い手",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: 呼び売りの取引は買い手にも呼び声を聞いて取った動きを教える。0: 売り手の呼び声だけを教える"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: 呼び売りの取引は買い手にも呼び声を聞いて取った動きを教える。0: 売り手の呼び声だけを教える",
+"Value mutation": "価値の変異",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "新生児の受け継いだ各価値が両親の平均からどちらへどれだけずれうるか（0〜3のうち）",
+"Value inheritance": "価値の継承",
+"share of its mother's taught values a newborn starts with": "新生児が始めに持つ、母の教わった価値の割合",
+"Value teaching": "価値の教え",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "打ち明けや指導のとき、聞き手の教わった価値が語り手の価値を自分のものにする方へ進む割合。信頼と教わりやすさの価値を掛ける。0で無効",
+"Liking": "好み",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "手がかりが物・仲間・行いへの欲求をより強く呼び起こしたときに感じる喜び。その上昇と好みの価値を掛ける。上昇のときだけで、欲求として学ばれることはない。0で無効"
 }

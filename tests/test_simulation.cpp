@@ -6412,6 +6412,51 @@ TEST_CASE("hawking: a deal made with one that heard the owner call from afar and
     }
 }
 
+TEST_CASE("values: inherited from both parents and mutated a little, taught by a trusted teller, and scaling the joys they name") {
+    Simulation simulation = world();
+    Bitzkey& mother = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& father = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    Bitzkey& child = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 7, 5);
+    simulation.index_cells();
+    CHECK(child.value(TradeValue) == 1.0);  // the first all hold 1
+    mother.values.fill(2.0);
+    father.values.fill(0.0);
+    mother.taught.fill(0.4);
+    simulation.inherit_values(child, mother, &father);
+    for (int kind = 0; kind < VALUE_KINDS; ++kind) {
+        CHECK(child.values[static_cast<std::size_t>(kind)] == doctest::Approx(1.0).epsilon(VALUE_MUTATION + 1e-9));
+        CHECK(child.taught[static_cast<std::size_t>(kind)] == doctest::Approx(VALUE_INHERIT * 0.4));
+    }
+    // Taught: VALUE_TEACH of the way toward the teller's, times trust and its teachable value.
+    child.values.fill(1.0);
+    child.taught.fill(0.0);
+    std::array<double, VALUE_KINDS> shown{};
+    shown.fill(2.0);
+    Simulation::teach_values(child, shown, 1.0);
+    CHECK(child.taught[GloryValue] == doctest::Approx(VALUE_TEACH));
+    CHECK(child.value(GloryValue) == doctest::Approx(1.0 + VALUE_TEACH));
+    CHECK(child.value_lessons == 1);
+    Simulation::teach_values(child, shown, 0.0);  // from one it does not trust, nothing
+    CHECK(child.value_lessons == 1);
+    // A joy scaled by its value: trade joy twice over for one that values trade at 2.
+    Bitzkey& trader = mother;
+    Bitzkey& owner = father;
+    for (Bitzkey* one : {&trader, &owner}) {
+        for (int trait : {Aggression, Dominance, Empathy, Sociability}) one->mind[trait] = 0.0;
+        one->mind[Intellect] = 7.0;
+        one->values.fill(1.0);
+        one->taught.fill(0.0);
+        one->reward = 0.0;
+    }
+    owner.values[TradeValue] = 2.0;
+    trader.weapon = StoneAxe;
+    owner.armour = WoodArmour;
+    owner.mind[Aggression] = 7.0;
+    simulation.offer(trader, owner, ArmourPossession, WeaponPossession);
+    REQUIRE(trader.last_action == "traded");
+    CHECK(owner.reward - trader.reward == doctest::Approx(TRADE_JOY));  // its trade joy twice over
+}
+
 TEST_CASE("an offer is weighed by both: a deal that seems a gain to each is made, one that doesn't refused") {
     Simulation simulation = world();
     Bitzkey& trader = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

@@ -2415,5 +2415,13 @@
 "Hawk joy": "Gioia del banditore",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "un affare bandito insegna il richiamo del proprietario per questo valore per ciò che ha davvero guadagnato e la sua socievolezza, e l'avvicinarsi del compratore per il suo guadagno e curiosità; 0 per nulla",
 "Hawk buyer": "Compratore bandito",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: un affare bandito insegna anche al compratore il movimento fatto udendo il richiamo; 0: si insegna solo il richiamo del venditore"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: un affare bandito insegna anche al compratore il movimento fatto udendo il richiamo; 0: si insegna solo il richiamo del venditore",
+"Value mutation": "Mutazione dei valori",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "quanto ogni valore ereditato di un neonato può scostarsi dalla media dei genitori, in un senso o nell'altro, su 0 a 3",
+"Value inheritance": "Eredità dei valori",
+"share of its mother's taught values a newborn starts with": "parte dei valori insegnati della madre con cui un neonato comincia",
+"Value teaching": "Insegnamento dei valori",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "confidando o insegnando, la parte del cammino che i valori insegnati di chi ascolta percorrono per fare propri quelli di chi racconta, per la sua fiducia e il suo valore di insegnabilità; 0 per nulla",
+"Liking": "Gradimento",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "gioia provata quando un segnale risveglia di più il desiderio di una cosa, un compagno o un gesto, per quell'aumento e il suo valore di gradimento; solo nell'aumento e mai appreso come desiderio; 0 per nulla"
 }

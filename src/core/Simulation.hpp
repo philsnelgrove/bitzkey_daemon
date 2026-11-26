@@ -439,6 +439,23 @@ inline double GOAL_PROGRESS = 0.05;
 // pull is its goal, held and felt as any goal, but not let go when a need is met. Reached, its joy is what has not
 // faded, and pleasure in that one fades by PLEASURE_FADE of what is left; faded pleasure returns by PLEASURE_RETURN a turn.
 inline double DESIRE = 1.0;
+// Values (the user's design): what an animal enjoys, beyond the fixed floor of food, pain, comfort and wellbeing, is
+// its own. Each carries VALUE_KINDS inherited values, 0 to VALUE_MAX, beside its genome: trade (trade and hawking
+// joy), help (the joys of helping and being helped), gift (giving), glory (challenge glory, a rival's killing), talk
+// (being answered), goal (a goal reached), liking (see LIKING) and teachable (how readily it takes values from others).
+// A newborn's are its parents' mean, each moved by up to VALUE_MUTATION either way; the first all hold 1. Beside them
+// it holds what it was taught, -1 to VALUE_MAX, a newborn VALUE_INHERIT of its mother's: confiding a plan or tutoring,
+// the teller's values (its inherited times one plus taught) are shown, and the hearer's taught values move VALUE_TEACH
+// of the way to make its own the teller's, times its trust in the teller (1 for family, else its regard, from 0) and
+// its teachable value. Each joy of a kind is its value of that kind times as great. Liking: as a cue wakes its wanting
+// of a thing, companion or deed the more, it feels LIKING times that rise, times its liking value: anticipation, on the
+// rise only, kept out of what it learns to want, so that liking cannot feed itself.
+enum ValueKind : int { TradeValue, HelpValue, GiftValue, GloryValue, TalkValue, GoalValue, LikingValue, TeachableValue, VALUE_KINDS };
+inline constexpr double VALUE_MAX = 3.0;
+inline double VALUE_MUTATION = 0.05;
+inline double VALUE_INHERIT = 0.5;
+inline double VALUE_TEACH = 0.1;
+inline double LIKING = 0.5;
 inline double WANTING_RATE = 0.05;
 inline double WANTING_INHERIT = 0.5;
 inline double HEARD_CUE = 0.5;
@@ -1613,6 +1630,17 @@ struct Bitzkey {
     std::array<int, OUTSIDE_SEEN> spark_from_things{};  // what woke each spark (SparkCue)
     std::array<int, ACTION_COUNT> spark_from_deeds{};
     std::array<int, SPARK_CUES> desires_by_cue{};  // desires formed, by what woke them
+    // Values (see VALUE_KINDS): inherited and taught; the liking felt since it last chose (kept out of wanting), and in
+    // its life by what woke it; and value lessons taken.
+    std::array<double, VALUE_KINDS> values{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+    std::array<double, VALUE_KINDS> taught{};
+    double liked = 0.0;
+    std::array<double, SPARK_CUES> liked_by_cue{};
+    int value_lessons = 0;
+    double value(int kind) const {  // what a joy of that kind is worth to it, times
+        const auto at = static_cast<std::size_t>(kind);
+        return std::clamp(values[at] * (1.0 + taught[at]), 0.0, VALUE_MAX);
+    }
     long long desire_reach_turns = 0;
     // Ingenuity (see OPENS_RATE): what it learnt opens what; what was open to it last turn; the steps it seeks toward its
     // goal, the last its present one, since when, for which goal (its goal_turn), and the links given up for that goal;
@@ -2125,7 +2153,10 @@ public:
     void settle_call(Bitzkey& agent);  // its held call lesson, with what it did to its listeners (Call empathy)
     void teach_call_harm(Bitzkey& agent);
     void teach_call_help(Bitzkey& agent);
-    void teach_hawking(Bitzkey& agent);  // a hawked deal: the seller's call and the buyer's approach taught (see HAWK_JOY)
+    void teach_hawking(Bitzkey& agent);
+    void inherit_values(Bitzkey& child, const Bitzkey& mother, const Bitzkey* father) const;  // see VALUE_KINDS
+    static void teach_values(Bitzkey& learner, const std::array<double, VALUE_KINDS>& shown, double trust);
+    static std::array<double, VALUE_KINDS> shown_values(const Bitzkey& teller);  // a hawked deal: the seller's call and the buyer's approach taught (see HAWK_JOY)
     double aim_measure(const Bitzkey& agent, int aim, int x, int y, int group, int idea, int sight) const;  // see PROJECT_PULL
     int hostile_realm(const Bitzkey& agent) const;  // the colour group it regards worst, if below nothing; -1 none
     int chosen_concept(const Bitzkey& agent, int aim) const;  // the craft or word it would spread

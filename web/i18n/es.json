@@ -2415,5 +2415,13 @@
 "Hawk joy": "Gozo del pregón",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "un trato pregonado enseña la llamada del dueño a esto por lo que de verdad ganó y su sociabilidad, y el acercamiento del comprador por su ganancia y curiosidad; 0 para nada",
 "Hawk buyer": "Comprador del pregón",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: un trato pregonado también enseña al comprador el movimiento que hizo al oír la llamada; 0: solo se enseña la llamada del vendedor"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: un trato pregonado también enseña al comprador el movimiento que hizo al oír la llamada; 0: solo se enseña la llamada del vendedor",
+"Value mutation": "Mutación de valores",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "cuánto puede alejarse cada valor heredado de un recién nacido de la media de sus padres, en un sentido u otro, sobre 0 a 3",
+"Value inheritance": "Herencia de valores",
+"share of its mother's taught values a newborn starts with": "parte de los valores enseñados de su madre con que empieza un recién nacido",
+"Value teaching": "Enseñanza de valores",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "al confiar o enseñar, la parte del camino que los valores enseñados del oyente recorren para hacer suyos los del que cuenta, por su confianza y su valor de enseñable; 0 para nada",
+"Liking": "Agrado",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "gozo sentido cuando una señal despierta más su deseo de una cosa, compañero o acto, por esa subida y su valor de agrado; solo en la subida y nunca aprendido como deseo; 0 para nada"
 }

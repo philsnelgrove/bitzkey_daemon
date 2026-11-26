@@ -2415,5 +2415,13 @@
 "Hawk joy": "हाँक का आनंद",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "हाँक से हुआ सौदा मालिक की पुकार को इतने गुना उसके सच्चे लाभ और मिलनसारिता से सिखाता है, और खरीदार के पास आने को उसके लाभ और जिज्ञासा से; 0 कुछ नहीं",
 "Hawk buyer": "हाँक का खरीदार",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: हाँक से हुआ सौदा खरीदार को भी पुकार सुनकर की गई चाल सिखाता है; 0: केवल विक्रेता की पुकार सिखाई जाती है"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: हाँक से हुआ सौदा खरीदार को भी पुकार सुनकर की गई चाल सिखाता है; 0: केवल विक्रेता की पुकार सिखाई जाती है",
+"Value mutation": "मूल्य उत्परिवर्तन",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "नवजात का हर विरासत में मिला मूल्य माता-पिता के औसत से किसी भी ओर कितना हट सकता है, 0 से 3 में",
+"Value inheritance": "मूल्य विरासत",
+"share of its mother's taught values a newborn starts with": "माँ के सिखाए मूल्यों का वह हिस्सा जिससे नवजात शुरू करता है",
+"Value teaching": "मूल्य शिक्षा",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "योजना सौंपते या सिखाते समय, सुनने वाले के सिखाए मूल्य कहने वाले के मूल्यों को अपना बनाने की ओर कितना बढ़ें, भरोसे और सीखने-योग्यता मूल्य से गुणा; 0 कुछ नहीं",
+"Liking": "पसंद",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "जब कोई संकेत किसी चीज़, साथी या कर्म की चाह को और जगाता है तब महसूस हुआ आनंद, उस बढ़त और पसंद मूल्य से गुणा; केवल बढ़त पर, और कभी चाह के रूप में नहीं सीखा; 0 कुछ नहीं"
 }

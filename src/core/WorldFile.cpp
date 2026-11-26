@@ -385,6 +385,8 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
                                                  numbers.senses(agent.help_senses)}
                                            : json(nullptr)},
         {"help_given", agent.help_given},
+        {"values", {std::vector<double>(agent.values.begin(), agent.values.end()), std::vector<double>(agent.taught.begin(), agent.taught.end()),
+                    std::vector<double>(agent.liked_by_cue.begin(), agent.liked_by_cue.end()), agent.value_lessons, agent.liked}},
         {"hawking", {agent.hawk_call_turn, agent.hawk_to, agent.hawk_to >= 0 ? agent.hawk_deed : -1, agent.hawk_move_turn, agent.hawk_far,
                      agent.sold_turn, agent.bought_turn, agent.sold_taught_turn, agent.bought_taught_turn, agent.sold_gain, agent.bought_gain,
                      agent.sold_said ? 1 : 0, agent.hawked_sales, agent.hawked_buys}},
@@ -730,6 +732,15 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         if (agent->help_deed < 0 || agent->help_kind < 0 || agent->help_kind >= HELP_KINDS) agent->help_to = -1;
     }
     if (record.contains("help_given")) agent->help_given = record.at("help_given").get<std::array<int, HELP_KINDS>>();
+    if (record.contains("values")) {  // see VALUE_KINDS
+        const json& v = record.at("values");
+        const auto inborn = v.at(0).get<std::vector<double>>(), taught = v.at(1).get<std::vector<double>>(), liked = v.at(2).get<std::vector<double>>();
+        for (std::size_t kind = 0; kind < agent->values.size() && kind < inborn.size(); ++kind) agent->values[kind] = std::clamp(inborn[kind], 0.0, VALUE_MAX);
+        for (std::size_t kind = 0; kind < agent->taught.size() && kind < taught.size(); ++kind) agent->taught[kind] = std::clamp(taught[kind], -1.0, VALUE_MAX);
+        for (std::size_t cue = 0; cue < agent->liked_by_cue.size() && cue < liked.size(); ++cue) agent->liked_by_cue[cue] = liked[cue];
+        agent->value_lessons = v.at(3).get<int>();
+        agent->liked = v.at(4).get<double>();
+    }
     if (record.contains("hawking")) {  // see HAWK_JOY
         const json& h = record.at("hawking");
         agent->hawk_call_turn = h.at(0).get<int>();

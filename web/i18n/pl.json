@@ -2415,5 +2415,13 @@
 "Hawk joy": "Radość nawoływania",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "wywołany targ uczy wołania właściciela razy jego prawdziwy zysk i towarzyskość, a podejścia kupca razy jego zysk i ciekawość; 0 dla żadnej",
 "Hawk buyer": "Kupiec z nawoływania",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: wywołany targ uczy też kupca ruchu, który zrobił, słysząc wołanie; 0: uczone jest tylko wołanie sprzedawcy"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: wywołany targ uczy też kupca ruchu, który zrobił, słysząc wołanie; 0: uczone jest tylko wołanie sprzedawcy",
+"Value mutation": "Mutacja wartości",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "jak daleko każda odziedziczona wartość noworodka może odejść od średniej rodziców, w obie strony, w skali 0 do 3",
+"Value inheritance": "Dziedziczenie wartości",
+"share of its mother's taught values a newborn starts with": "udział wyuczonych wartości matki, z którym noworodek zaczyna",
+"Value teaching": "Nauczanie wartości",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "przy powierzaniu lub nauczaniu, część drogi, jaką wyuczone wartości słuchacza przechodzą, by przyjąć wartości mówiącego, razy jego zaufanie i wartość podatności na naukę; 0 dla żadnej",
+"Liking": "Upodobanie",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "radość, gdy wskazówka mocniej budzi pragnienie rzeczy, towarzysza lub czynu, razy ten wzrost i wartość upodobania; tylko przy wzroście i nigdy nie uczona jako pragnienie; 0 dla żadnej"
 }

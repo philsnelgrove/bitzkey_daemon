@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 597 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 601 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 597 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (277 rules)
+6. [Mind](#6-mind) (281 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (12 rules)
@@ -1444,877 +1444,901 @@ Joy, times its sociability, an animal feels when what it did for one it heard ca
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.35.3 Hawk window (`HAWK_WINDOW`)
-
-Turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked.
-
-Default **20**; from 1 to 200, in steps of 1.
-
-#### 6.35.4 Hawk joy (`HAWK_JOY`)
-
-A hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none.
-
-Default **1**; from 0 to 5, in steps of 0.05.
-
-#### 6.35.5 Hawk buyer (`HAWK_BUYER`)
-
-1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught.
-
-Default **1**; from 0 to 1, in steps of 1.
-
-#### 6.35.6 Help witnessed (`HELP_WITNESS`)
+#### 6.35.3 Help witnessed (`HELP_WITNESS`)
 
 Share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 6.36 Project learning (`PROJECT_RATE`)
+### 6.36 Value mutation (`VALUE_MUTATION`)
+
+How far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3.
+
+Default **0.05**; from 0 to 1, in steps of 0.01.
+
+#### 6.36.1 Value inheritance (`VALUE_INHERIT`)
+
+Share of its mother's taught values a newborn starts with.
+
+Default **0.5**; from 0 to 1, in steps of 0.05.
+
+#### 6.36.2 Value teaching (`VALUE_TEACH`)
+
+Confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none.
+
+Default **0.1**; from 0 to 1, in steps of 0.01.
+
+#### 6.36.3 Liking (`LIKING`)
+
+Joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none.
+
+Default **0.5**; from 0 to 5, in steps of 0.05.
+
+#### 6.36.4 Hawk window (`HAWK_WINDOW`)
+
+Turns within which a caller holding goods, and one that heard it from afar and moved, must make a deal for it to be hawked.
+
+Default **20**; from 1 to 200, in steps of 1.
+
+#### 6.36.5 Hawk joy (`HAWK_JOY`)
+
+A hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none.
+
+Default **1**; from 0 to 5, in steps of 0.05.
+
+#### 6.36.6 Hawk buyer (`HAWK_BUYER`)
+
+1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught.
+
+Default **1**; from 0 to 1, in steps of 1.
+
+### 6.37 Project learning (`PROJECT_RATE`)
 
 How fast an animal learns, from its own life, which long aims rose (or fell) before it felt good, sampled every few turns; 0 for none.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.36.1 Project sampling (`PROJECT_EVERY`)
+#### 6.37.1 Project sampling (`PROJECT_EVERY`)
 
 Turns between an animal's samples of the world's long aims, learnt against how good it felt between them.
 
 Default **24**; from 1 to 480, in steps of 1.
 
-#### 6.36.2 Project threshold (`PROJECT_MIN`)
+#### 6.37.2 Project threshold (`PROJECT_MIN`)
 
 The least an aim must be worth to it, times a half and the mean of its patience and curiosity, to take it up as its project.
 
 Default **0.02**; from 0 to 1, in steps of 0.001.
 
-#### 6.36.3 Project consistency (`PROJECT_CONSISTENCY`)
+#### 6.37.3 Project consistency (`PROJECT_CONSISTENCY`)
 
 How surely an aim must have moved its way whenever it felt good (0 never, 1 always), as well as being worth enough, to become its project; lest chance swings be taken for its doing.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.4 Project progress (`PROJECT_PROGRESS`)
+#### 6.37.4 Project progress (`PROJECT_PROGRESS`)
 
 Joy each turn its project's aim moves the way it wants.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.5 Project patience (`PROJECT_PATIENCE`)
+#### 6.37.5 Project patience (`PROJECT_PATIENCE`)
 
 Turns, times a half and its patience, a project may go without progress before it is given up.
 
 Default **480**; from 1 to 20000, in steps of 10.
 
-#### 6.36.6 Project pull (`PROJECT_PULL`)
+#### 6.37.6 Project pull (`PROJECT_PULL`)
 
 How strongly its project draws it, times a half and its patience, against its needs and desires.
 
 Default **0.4**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.7 Project resolve (`PROJECT_RESOLVE`)
+#### 6.37.7 Project resolve (`PROJECT_RESOLVE`)
 
 How much more its patience holds its project above a need: a need must pull 1 plus this times its patience as hard, rising with each turn it waits.
 
 Default **2**; from 0 to 10, in steps of 0.1.
 
-#### 6.36.8 Project inheritance (`PROJECT_INHERIT`)
+#### 6.37.8 Project inheritance (`PROJECT_INHERIT`)
 
 Share of what its parents learnt of the long aims that a newborn starts with.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.9 Instruction pull (`INSTRUCTED_PULL`)
+#### 6.37.9 Instruction pull (`INSTRUCTED_PULL`)
 
 How strongly its leader's instruction, shown or said, draws a follower, times its regard for the one instructing.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.36.10 Confided share (`CONFIDE_SHARE`)
+#### 6.37.10 Confided share (`CONFIDE_SHARE`)
 
 Share of the one confiding's worth for its aim that one confided in gains, times its regard for it; and how strongly a plan confided draws it.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.11 Gossip (`GOSSIP`)
+#### 6.37.11 Gossip (`GOSSIP`)
 
 Hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.36.12 Confided steps (`CONFIDE_STEPS`)
+#### 6.37.12 Confided steps (`CONFIDE_STEPS`)
 
 1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-#### 6.36.13 Confided words (`CONFIDE_WORDS`)
+#### 6.37.13 Confided words (`CONFIDE_WORDS`)
 
 1: confiding a plan also shares the words the one confiding holds for what its plan and goal need, the deeds and things it learnt move its aim and its goal's deed or thing, taken up as words settled are; 0: plans pass without words.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 6.37 Vendetta (`VENDETTA`)
+### 6.38 Vendetta (`VENDETTA`)
 
 How strongly a grudge against an enemy that harmed it or its own pulls it to go after that one, times its aggression and a half; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.37.1 Grudge learning (`VENDETTA_RATE`)
+#### 6.38.1 Grudge learning (`VENDETTA_RATE`)
 
 How fast its grudge against an enemy follows the joy it felt harming that one.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.37.2 Grudge memory (`VENDETTA_MEMORY`)
+#### 6.38.2 Grudge memory (`VENDETTA_MEMORY`)
 
 Turns over which a grudge fades away, and an enemy's last-seen place is remembered.
 
 Default **1000**; from 1 to 20000, in steps of 10.
 
-#### 6.37.3 Struck grudge (`ENEMY_STRUCK`)
+#### 6.38.3 Struck grudge (`ENEMY_STRUCK`)
 
 The grudge an animal starts with against one that struck it.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.37.4 Kin-killer grudge (`ENEMY_KIN_KILLED`)
+#### 6.38.4 Kin-killer grudge (`ENEMY_KIN_KILLED`)
 
 The grudge an animal starts with against one it saw kill its kin.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-#### 6.37.5 Group-killer grudge (`ENEMY_GROUP_KILLED`)
+#### 6.38.5 Group-killer grudge (`ENEMY_GROUP_KILLED`)
 
 The grudge an animal starts with against one it saw kill one of its own colour group.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.37.6 Challenge glory (`CHALLENGE_GLORY`)
+#### 6.38.6 Challenge glory (`CHALLENGE_GLORY`)
 
 Joy, times a half and its dominance, the winner of a challenge for leadership feels.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.37.7 Challenge loss (`CHALLENGE_LOSS`)
+#### 6.38.7 Challenge loss (`CHALLENGE_LOSS`)
 
 Unease the loser of a challenge for leadership feels.
 
 Default **2**; from 0 to 10, in steps of 0.1.
 
-#### 6.37.8 Challenge esteem (`CHALLENGE_ESTEEM`)
+#### 6.38.8 Challenge esteem (`CHALLENGE_ESTEEM`)
 
 How much more each of its group who saw it esteems the winner of a challenge, in deeds' worth.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.37.9 Challenge shame (`CHALLENGE_SHAME`)
+#### 6.38.9 Challenge shame (`CHALLENGE_SHAME`)
 
 How much less each of its group who saw it esteems the loser of a challenge, in deeds' worth.
 
 Default **2**; from 0 to 5, in steps of 0.1.
 
-#### 6.37.10 Humbled (`CHALLENGE_HUMBLED`)
+#### 6.38.10 Humbled (`CHALLENGE_HUMBLED`)
 
 Turns a loser of a challenge may not challenge again.
 
 Default **500**; from 0 to 20000, in steps of 10.
 
-### 6.38 Relief learning (`RELIEF_RATE`)
+### 6.39 Relief learning (`RELIEF_RATE`)
 
 How fast an animal learns, from its own life, how much each need eased after it came nearer each thing or companion, or did each deed; 0 for none.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.38.1 Relief inheritance (`RELIEF_INHERIT`)
+#### 6.39.1 Relief inheritance (`RELIEF_INHERIT`)
 
 Share of what eased its parents' needs that a newborn starts with, as if it had learnt it.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.38.2 Goal threshold (`GOAL_MIN_RELIEF`)
+#### 6.39.2 Goal threshold (`GOAL_MIN_RELIEF`)
 
 The least an animal must have found a thing, companion or deed eases its worst need to make it its goal.
 
 Default **0.01**; from 0 to 1, in steps of 0.005.
 
-#### 6.38.3 Goal urgency rise (`GOAL_RISE`)
+#### 6.39.3 Goal urgency rise (`GOAL_RISE`)
 
 How much a goal's urgency rises each turn it is unmet, times the need it serves.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.38.4 Goal stubbornness (`GOAL_STUBBORNNESS`)
+#### 6.39.4 Goal stubbornness (`GOAL_STUBBORNNESS`)
 
 How much more, times twice its patience, another goal must be worth to take the place of the one it holds.
 
 Default **0.5**; from 0 to 5, in steps of 0.1.
 
-#### 6.38.5 Goal patience (`GOAL_PATIENCE`)
+#### 6.39.5 Goal patience (`GOAL_PATIENCE`)
 
 Turns a goal is held unmet, times a half and its patience, before it is given up.
 
 Default **48**; from 1 to 1000, in steps of 1.
 
-#### 6.38.6 Goal unease (`GOAL_UNEASE`)
+#### 6.39.6 Goal unease (`GOAL_UNEASE`)
 
 Unease each turn for each unit of a goal's urgency while it is unmet.
 
 Default **0.1**; from 0 to 2, in steps of 0.05.
 
-#### 6.38.7 Goal joy (`GOAL_JOY`)
+#### 6.39.7 Goal joy (`GOAL_JOY`)
 
 Joy at reaching a goal (beside what it sought, or the deed done), for each unit of its urgency.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.38.8 Giving up (`GOAL_GIVE_UP`)
+#### 6.39.8 Giving up (`GOAL_GIVE_UP`)
 
 Unease at giving up a goal held too long.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.38.9 Goal progress (`GOAL_PROGRESS`)
+#### 6.39.9 Goal progress (`GOAL_PROGRESS`)
 
 Comfort at each step nearer what it seeks, and as much unease at each step away.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-### 6.39 Desire (`DESIRE`)
+### 6.40 Desire (`DESIRE`)
 
 How strongly a cue to what an animal has liked pulls it, against its worst need, to make it its goal; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.39.1 Liking learning (`WANTING_RATE`)
+#### 6.40.1 Liking learning (`WANTING_RATE`)
 
 How fast an animal learns, from its own life, how much good it felt after it came nearer each thing or companion, or did each deed; 0 for none.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.39.2 Liking inheritance (`WANTING_INHERIT`)
+#### 6.40.2 Liking inheritance (`WANTING_INHERIT`)
 
 Share of what its parents liked that a newborn starts with, as if it had learnt it.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.39.3 Heard cue (`HEARD_CUE`)
+#### 6.40.3 Heard cue (`HEARD_CUE`)
 
 How strongly a word, name or deed-word heard for what it likes wakes desire, against seeing it close by.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.39.4 Desire lingering (`DESIRE_LINGER`)
+#### 6.40.4 Desire lingering (`DESIRE_LINGER`)
 
 Share of a desire's spark kept each turn after its cue has gone.
 
 Default **0.7**; from 0 to 1, in steps of 0.05.
 
-#### 6.39.5 Desire threshold (`DESIRE_MIN`)
+#### 6.40.5 Desire threshold (`DESIRE_MIN`)
 
 The least spark of desire that can make a goal.
 
 Default **0.01**; from 0 to 1, in steps of 0.005.
 
-#### 6.39.6 Pleasure fading (`PLEASURE_FADE`)
+#### 6.40.6 Pleasure fading (`PLEASURE_FADE`)
 
 Share of what is left of its pleasure in a thing, companion or deed that fades each time it reaches it as a desire.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.39.7 Pleasure returning (`PLEASURE_RETURN`)
+#### 6.40.7 Pleasure returning (`PLEASURE_RETURN`)
 
 Share of faded pleasure that returns each turn.
 
 Default **0.02**; from 0 to 1, in steps of 0.005.
 
-### 6.40 Remembered cue (`REMEMBERED_CUE`)
+### 6.41 Remembered cue (`REMEMBERED_CUE`)
 
 How strongly a remembered place, out of sight, wakes desire for what was there, against seeing it close by; fading to nothing over the place memory.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.40.1 Place memory (`PLACE_MEMORY`)
+#### 6.41.1 Place memory (`PLACE_MEMORY`)
 
 Turns an animal remembers where it last found a thing close by, or last saw a companion.
 
 Default **500**; from 1 to 5000, in steps of 10.
 
-### 6.41 Opening learning (`OPENS_RATE`)
+### 6.42 Opening learning (`OPENS_RATE`)
 
 How fast an animal learns that doing a deed, or coming near a thing, opens to it a deed or thing shut before; 0 for none.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.41.1 Opening inheritance (`OPENS_INHERIT`)
+#### 6.42.1 Opening inheritance (`OPENS_INHERIT`)
 
 Share of what its parents learnt opens what that a newborn starts with.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.41.2 Opening threshold (`OPENS_MIN`)
+#### 6.42.2 Opening threshold (`OPENS_MIN`)
 
 The least a link must be worth, its strength times a half and the mean of patience and curiosity, to be followed as a step toward a goal shut to it.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 6.41.3 Planning depth (`PLAN_DEPTH`)
+#### 6.42.3 Planning depth (`PLAN_DEPTH`)
 
 How many steps beyond one an animal will chain toward a goal shut to it, times the mean of its patience and curiosity.
 
 Default **3**; from 0 to 8, in steps of 0.5.
 
-### 6.42 Call words (`CALL_WORDS`)
+### 6.43 Call words (`CALL_WORDS`)
 
 The most words a call may hold: 2 lets a call go on to a second word after its first, chosen sound by sound; a call holding a name is for the one so named; 1 a single word.
 
 Default **2**; from 1 to 2, in steps of 1.
 
-#### 6.42.1 Map blind (`MAP_BLIND`)
+#### 6.43.1 Map blind (`MAP_BLIND`)
 
 For experiments: 1 withholds the mental map senses and the way back to the last meal, so only its own memory can hold where things are.
 
 Default **0**; from 0 to 1, in steps of 1.
 
-#### 6.42.2 Call fatigue (`CALL_FATIGUE`)
+#### 6.43.2 Call fatigue (`CALL_FATIGUE`)
 
 Stamina each sound of a call costs its caller, the alert among them, as an action's tiredness is counted (an action alone costs 10).
 
 Default **0.5**; from 0 to 50, in steps of 0.5.
 
-### 6.43 Tutor cost (`TUTOR_COST`)
+### 6.44 Tutor cost (`TUTOR_COST`)
 
 Hunger a lesson costs the one who tutors.
 
 Default **0.3**; from 0 to 5, in steps of 0.05.
 
-#### 6.43.1 Call length (`CALL_LENGTH`)
+#### 6.44.1 Call length (`CALL_LENGTH`)
 
 The most sounds a call may run to, in order: 1 single sounds only, 3 pairs and threes too.
 
 Default **3**; from 1 to 3, in steps of 1.
 
-### 6.44 Silence lesson (`SILENCE_LESSON`)
+### 6.45 Silence lesson (`SILENCE_LESSON`)
 
 Share of its learning by which each call also teaches what keeping quiet would have brought: the same turn without the call's cost or pleasures; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.1.
 
-### 6.45 Call habit (`CALL_HABIT`)
+### 6.46 Call habit (`CALL_HABIT`)
 
 Pleasure of a call that matches those it made where it sensed most alike, more than its calls at large; which call goes with what is its own; 0 for none.
 
 Default **0.5**; from 0 to 2, in steps of 0.1.
 
-### 6.46 Call empathy (`CALL_EMPATHY`)
+### 6.47 Call empathy (`CALL_EMPATHY`)
 
 How much a caller learns, by its empathy, from whether those of its kind who heard its call then fared better or worse than they expected, kin most; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 6.47 Call baseline (`CALL_BASELINE`)
+### 6.48 Call baseline (`CALL_BASELINE`)
 
 How far a call learns only its own part, beyond keeping quiet: its own pleasures, habit and empathy, less its cost; 0: the whole turn, as any choice.
 
 Default **1**; from 0 to 1, in steps of 0.1.
 
-### 6.48 Call temperature (`CALL_TEMPERATURE`)
+### 6.49 Call temperature (`CALL_TEMPERATURE`)
 
 How loosely a brain picks among silence and calls, and each later sound.
 
 Default **0.1**; from 0.01 to 5, in steps of 0.01.
 
-### 6.49 Outside foresight (`OUTSIDE_FORESIGHT`)
+### 6.50 Outside foresight (`OUTSIDE_FORESIGHT`)
 
 How fast a brain learns how near it will sense a hunter, prey and meat next turn, times its foresight learning; no reward in it; 0 for none.
 
 Default **10**; from 0 to 20, in steps of 0.5.
 
-### 6.50 Speak as heard (`SPEAK_AS_HEARD`)
+### 6.51 Speak as heard (`SPEAK_AS_HEARD`)
 
 How much a call is taught by how much nearer the caller's own foresight, hearing that call, comes to the hunter, prey or meat it saw than on hearing nothing or any one sound; 0 for none.
 
 Default **15**; from 0 to 20, in steps of 0.5.
 
-#### 6.50.1 Hushing (`PARENT_HUSH`)
+#### 6.51.1 Hushing (`PARENT_HUSH`)
 
 A young one that calls with a parent in sight is taught, of that call, how much its parent would now rather keep quiet than call, this much; only a parent that has come to prefer quiet hushes; 0 for none.
 
 Default **1**; from 0 to 10, in steps of 0.1.
 
-### 6.51 Echo (`ECHO`)
+### 6.52 Echo (`ECHO`)
 
 How much readier the sounds an animal last heard just before something surprised it come, when that same thing next surprises it: it changes only which sound, never whether it calls or how long; 0 for none.
 
 Default **0**; from 0 to 10, in steps of 0.1.
 
-### 6.52 Intent (`INTENT`)
+### 6.53 Intent (`INTENT`)
 
 How much a call is taught by the share of those who heard it who then did what its caller most wished of them (come nearer, go off, flee, rest, eat, trade or fight), its wishes learnt from how others' deeds went for it; 0 for none.
 
 Default **1**; from 0 to 10, in steps of 0.1.
 
-#### 6.52.1 Wish learning (`WISH_LEARNING`)
+#### 6.53.1 Wish learning (`WISH_LEARNING`)
 
 How much a caller learns what it wants of those who hear it: each deed they then did, valued by how its own turn went against what it expected, as a share of its learning; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.05.
 
-### 6.53 Pointing (`POINTING`)
+### 6.54 Pointing (`POINTING`)
 
 How much a caller learns what to point at as it calls: those who hear it sense how close the thing it points at is to them, not what it is, and each thing is valued by how much less surprised by it they then were, as a share of its learning; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.05.
 
-#### 6.53.1 Understood (`UNDERSTOOD`)
+#### 6.54.1 Understood (`UNDERSTOOD`)
 
 How much a call is taught by how much less surprised by the thing its caller pointed at its hearers then were, so sounds that tell what is pointed at are favoured; 0 for none.
 
 Default **4**; from 0 to 20, in steps of 0.5.
 
-### 6.54 Attention (`ATTENTION`)
+### 6.55 Attention (`ATTENTION`)
 
 A finger is seen in two steps: hearing a call, or seeing one point, an animal chooses whether to attend to that one, and only the turn after, attending, sees its finger; while it attends, its sight of all else outside is dimmed by this share; 0 for no price.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.54.1 Attend learning (`ATTEND_LEARNING`)
+#### 6.55.1 Attend learning (`ATTEND_LEARNING`)
 
 How much an animal learns whether to attend to a caller or one pointing, by what came of its turn, as a share of its learning; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.05.
 
-### 6.55 Attend curiosity (`ATTEND_CURIOSITY`)
+### 6.56 Attend curiosity (`ATTEND_CURIOSITY`)
 
 How much curiosity leans an animal to attend to a caller or one pointing: the most curious lean to attend by this much, the least to ignore; 0 for none.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 6.55.1 Shown learning (`SHOWN_LEARNING`)
+#### 6.56.1 Shown learning (`SHOWN_LEARNING`)
 
 How much an attending animal learns of the thing it was shown, as a share of its foresight's learning; this and whether to attend are learnt the more the more sociable and clever it is; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.55.2 Watched repeat (`WATCHED_REPEAT`)
+#### 6.56.2 Watched repeat (`WATCHED_REPEAT`)
 
 A caller that knows it is attended to repeats its call and point until none watches, one is less surprised by the thing, or it flees or cries out; 0 for off.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 6.56 Known attend (`KNOWN_ATTEND`)
+### 6.57 Known attend (`KNOWN_ATTEND`)
 
 When one it knows (an acquaintance, a parent or its young) calls or points, an animal attends unbidden, with this chance times its sociability; strangers it still chooses whether to heed; 0 for off.
 
 Default **1**; from 0 to 1, in steps of 0.01.
 
-### 6.57 Arena things (`ARENA_THINGS`)
+### 6.58 Arena things (`ARENA_THINGS`)
 
 For experiments: animals sense only this many of the outside things, grass, plant and herd first, then hunter, then the rest; the others as none; 0 for all.
 
 Default **0**; from 0 to 21, in steps of 1.
 
-#### 6.57.1 Arena blind (`ARENA_BLIND`)
+#### 6.58.1 Arena blind (`ARENA_BLIND`)
 
 For experiments: chance an animal that heard a call senses none of the outside things that turn, so the call is all it has to go by; 0 for off.
 
 Default **0**; from 0 to 1, in steps of 0.05.
 
-#### 6.57.2 Arena payoff (`ARENA_PAYOFF`)
+#### 6.58.2 Arena payoff (`ARENA_PAYOFF`)
 
 For experiments: how a blinded listener's turn went against what it expected is taught to the call it heard, this much, whole, not weighed by care or empathy; 0 for off.
 
 Default **0**; from 0 to 20, in steps of 0.5.
 
-### 6.58 Habituation (`HABITUATION`)
+### 6.59 Habituation (`HABITUATION`)
 
 How much an animal gets used to things: each outside thing is sensed by how much nearer it is than it has lately been, this much, and by its plain nearness for the rest; 0 for off.
 
 Default **0.8**; from 0 to 1, in steps of 0.05.
 
-#### 6.58.1 Habituation rate (`HABITUATION_RATE`)
+#### 6.59.1 Habituation rate (`HABITUATION_RATE`)
 
 How fast an animal gets used to what is about it: the share of the way its sense of how near each thing has lately been moves each turn.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-### 6.59 Harm after calling (`CALL_HARM`)
+### 6.60 Harm after calling (`CALL_HARM`)
 
 Struck soon after it called, an animal's call is taught the harm, this far below nothing, against what it sensed as it called; whether calling draws hunters is left to them; 0 for none.
 
 Default **1**; from 0 to 10, in steps of 0.1.
 
-#### 6.59.1 Harm after calling: turns (`CALL_HARM_TURNS`)
+#### 6.60.1 Harm after calling: turns (`CALL_HARM_TURNS`)
 
 How many turns after calling a strike still teaches the call its harm.
 
 Default **5**; from 1 to 20, in steps of 1.
 
-### 6.60 Cues (`CUES`)
+### 6.61 Cues (`CUES`)
 
 1: each action has a cue, one of the five sounds, first by chance and then taken on from others seen calling as they act; pain and panic cry out; by its intellect an animal voices its cue by instinct or chooses its call; 0: calls by the brain alone.
 
 Default **0**; from 0 to 1, in steps of 1.
 
-#### 6.60.1 Cue urge (`CUE_URGE`)
+#### 6.61.1 Cue urge (`CUE_URGE`)
 
 With cues, the chance that an animal acting by instinct voices the cue of what it does, rather than keep silent.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.60.2 Cue favour (`CUE_FAVOUR`)
+#### 6.61.2 Cue favour (`CUE_FAVOUR`)
 
 With cues, how much more an animal choosing its call values the cue of what it does.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.60.3 Cue sociability (`CUE_SOCIABILITY`)
+#### 6.61.3 Cue sociability (`CUE_SOCIABILITY`)
 
 With cues, how much more an animal choosing its call values the cue of what it does, times its sociability less a half: the sociable lean to voicing it, the solitary to not.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 6.60.4 Cue copying (`CUE_COPY`)
+#### 6.61.4 Cue copying (`CUE_COPY`)
 
 With cues, the chance that one who hears and sees another of its kind call as it acts takes that sound as its own cue for that action.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 6.60.5 Cry drift (`CRY_DRIFT`)
+#### 6.61.5 Cry drift (`CRY_DRIFT`)
 
 With cues, the chance that a newborn's cry of pain and panic is another sound than its mother's.
 
 Default **0.02**; from 0 to 1, in steps of 0.01.
 
-### 6.61 Naming (`NAMING`)
+### 6.62 Naming (`NAMING`)
 
 How much an itch to tell, built by surprise (what it senses from afar against what it foresaw, with its herd near), lifts every sound alike over silence, times its intelligence and a half plus its sociability; which sound, and what it comes to mean, is left to it; 0 for none.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.61.1 Naming itch kept (`NAMING_KEEP`)
+#### 6.62.1 Naming itch kept (`NAMING_KEEP`)
 
 With naming, how much of its itch to tell an animal keeps from one turn to the next.
 
 Default **0.8**; from 0 to 0.99, in steps of 0.01.
 
-#### 6.61.2 Naming relief (`NAMING_RELIEF`)
+#### 6.62.2 Naming relief (`NAMING_RELIEF`)
 
 With naming, how much more a call is taught when one who heard it is then less surprised than it was, the itch passing.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-### 6.62 Alerts (`ALERTS`)
+### 6.63 Alerts (`ALERTS`)
 
 1: a grazer seeing a hunter, or a hunter a fresh kill, may alert its herd to it; 0: no alert, only the five calls.
 
 Default **0**; from 0 to 1, in steps of 1.
 
-### 6.63 Copy in own senses (`COPY_OWN_SENSES`)
+### 6.64 Copy in own senses (`COPY_OWN_SENSES`)
 
 1: a child or a reader of body language learns a heard call where it was itself; 0: where the caller was.
 
 Default **1**; from 0 to 1, in steps of 1.
 
-### 6.64 Memory steps (`MEMORY_STEPS`)
+### 6.65 Memory steps (`MEMORY_STEPS`)
 
 Choices back a lesson's error reaches the memory gates that wrote what the brain read; 0: memory is only as born.
 
 Default **1**; from 0 to 4, in steps of 1.
 
-#### 6.64.1 Memory learning (`MEMORY_LEARNING`)
+#### 6.65.1 Memory learning (`MEMORY_LEARNING`)
 
 How fast memory gates learn, times the brain's learning rate.
 
 Default **1**; from 0 to 5, in steps of 0.05.
 
-### 6.65 Map places (`MAP_PLACES`)
+### 6.66 Map places (`MAP_PLACES`)
 
 Places an animal's mental map holds, the one visited longest ago forgotten for a new one; 0: no map.
 
 Default **16**; from 0 to 32, in steps of 1.
 
-#### 6.65.1 Map learning (`MAP_LEARNING`)
+#### 6.66.1 Map learning (`MAP_LEARNING`)
 
 How far each visit moves what an animal remembers of a place in that season toward what it finds.
 
 Default **0.2**; from 0 to 1, in steps of 0.05.
 
-### 6.66 Acquaintances (`ACQUAINTANCES`)
+### 6.67 Acquaintances (`ACQUAINTANCES`)
 
 Others an animal remembers by what they did to it, the one it dealt with longest ago forgotten for a new one; 0: none.
 
 Default **8**; from 0 to 16, in steps of 1.
 
-#### 6.66.1 Regard learning (`REGARD_LEARNING`)
+#### 6.67.1 Regard learning (`REGARD_LEARNING`)
 
 How far each deed moves an animal's regard for the doer toward the deed's worth.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-### 6.67 Diary entries (`DIARY_ENTRIES`)
+### 6.68 Diary entries (`DIARY_ENTRIES`)
 
 Most vivid experiences an animal keeps and re-learns from, one each turn, the faintest forgotten for a more vivid one; 0: none.
 
 Default **8**; from 0 to 32, in steps of 1.
 
-#### 6.67.1 Diary fading (`DIARY_FADING`)
+#### 6.68.1 Diary fading (`DIARY_FADING`)
 
 How much of a diary entry's vividness is left after each turn.
 
 Default **0.999**; from 0.9 to 1, in steps of 0.001.
 
-### 6.68 Regard comfort (`REGARD_COMFORT`)
+### 6.69 Regard comfort (`REGARD_COMFORT`)
 
 Ease near a friend, more if trusting, and unease near an enemy, more if fearful.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.68.1 Grudge joy (`GRUDGE_JOY`)
+#### 6.69.1 Grudge joy (`GRUDGE_JOY`)
 
 Gladness in harming an enemy, more if aggressive, and pain in harming a friend, more if empathetic.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.68.2 Friend joy (`FRIEND_JOY`)
+#### 6.69.2 Friend joy (`FRIEND_JOY`)
 
 Extra gladness in feeding or teaching a friend; more if empathetic.
 
 Default **1**; from 0 to 5, in steps of 0.1.
 
-#### 6.68.3 Factions (`FACTIONS`)
+#### 6.69.3 Factions (`FACTIONS`)
 
 How many body colours an animal keeps a reputation for; none at 0.
 
 Default **8**; from 0 to 16, in steps of 1.
 
-#### 6.68.4 Faction share (`FACTION_SHARE`)
+#### 6.69.4 Faction share (`FACTION_SHARE`)
 
 How much of a deed's weight also falls on the doer's whole colour.
 
 Default **0.25**; from 0 to 1, in steps of 0.05.
 
-#### 6.68.5 Faction width (`FACTION_WIDTH`)
+#### 6.69.5 Faction width (`FACTION_WIDTH`)
 
 How far apart on the body ring two animals may be and count as one faction.
 
 Default **0.05**; from 0 to 0.5, in steps of 0.01.
 
-#### 6.68.6 Eavesdropping (`EAVESDROP_SHARE`)
+#### 6.69.6 Eavesdropping (`EAVESDROP_SHARE`)
 
 How much a witness's view of one is moved by seeing one it holds a friend treat that one, well or ill (a gift, a blow, a theft, a defeat), times its regard for that friend; no word passed, only seen.
 
 Default **0.1**; from 0 to 1, in steps of 0.05.
 
-#### 6.68.7 Witness share (`WITNESS_SHARE`)
+#### 6.69.7 Witness share (`WITNESS_SHARE`)
 
 How much of a deed's weight it has on regard when only seen done, not done to the animal.
 
 Default **0.25**; from 0 to 1, in steps of 0.05.
 
-### 6.69 Skill witness (`SKILL_WITNESS`)
+### 6.70 Skill witness (`SKILL_WITNESS`)
 
 How much of a deed's weight a craft, lesson or fire seen done has on how skilled the doer is held; no less than Witness share.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-### 6.70 Inherited regard (`INHERITED_REGARD`)
+### 6.71 Inherited regard (`INHERITED_REGARD`)
 
 Share of how one holds a child's parents, regard and reputation, it holds the child at until it judges it by its own deeds.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 6.71 Shared bond (`SHARED_BOND`)
+### 6.72 Shared bond (`SHARED_BOND`)
 
 How much shared moments, a fire enjoyed together or a herd-mate defended, move regard, as a share of a deed's weight; 0 for none.
 
 Default **0.2**; from 0 to 1, in steps of 0.05.
 
-### 6.72 Skill comfort (`SKILL_COMFORT`)
+### 6.73 Skill comfort (`SKILL_COMFORT`)
 
 Ease near one it holds skilled, more if curious; 0 for none.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.72.1 Watch learning (`WATCH_LEARNING`)
+#### 6.73.1 Watch learning (`WATCH_LEARNING`)
 
 Chance that a craft seen done by one of its kind it holds no foe is learnt from the watching, and share of a shot's lesson a hit seen with a bow teaches; 0 for none.
 
 Default **0.25**; from 0 to 1, in steps of 0.01.
 
-### 6.73 Tutor joy (`TUTOR_JOY`)
+### 6.74 Tutor joy (`TUTOR_JOY`)
 
 Joy of giving one of its kind a lesson in a craft or skill, the more for the empathetic.
 
 Default **0.5**; from 0 to 5, in steps of 0.05.
 
-#### 6.73.1 Tutored practice (`TUTOR_PRACTICE`)
+#### 6.74.1 Tutored practice (`TUTOR_PRACTICE`)
 
 Share of a try, or of a shot's lesson, that a lesson from a tutor is worth.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 6.74 Child call learning (`CHILD_CALL_LEARNING`)
+### 6.75 Child call learning (`CHILD_CALL_LEARNING`)
 
 Share of its own learning a child that hears its parent call learns to make that call where the parent made it, and, hearing it, what the parent then did; 0 for none.
 
 Default **1**; from 0 to 2, in steps of 0.05.
 
-### 6.75 Body language (`BODY_LANGUAGE`)
+### 6.76 Body language (`BODY_LANGUAGE`)
 
 Chance, for each point of its intellect, that one who sees the caller of its kind it hears understands what it meant: it learns to make that call where the caller made it, and, hearing it, what the caller then did; 0 for none.
 
 Default **0.1**; from 0 to 0.2, in steps of 0.01.
 
-#### 6.75.1 Elder comfort (`ELDER_COMFORT`)
+#### 6.76.1 Elder comfort (`ELDER_COMFORT`)
 
 Gladness at staying near the elder who taught it, more if trusting; 0 for none.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.75.2 Elder reach (`ELDER_REACH`)
+#### 6.76.2 Elder reach (`ELDER_REACH`)
 
 Steps from the elder who taught it within which a student is glad of it.
 
 Default **3**; from 0 to 20, in steps of 1.
 
-#### 6.75.3 Follow safety (`FOLLOW_SAFETY`)
+#### 6.76.3 Follow safety (`FOLLOW_SAFETY`)
 
 Share of its dread spared, and felt as relief, with a friend or one it holds skilled close by; 0 for none.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.75.4 Follow reach (`FOLLOW_REACH`)
+#### 6.76.4 Follow reach (`FOLLOW_REACH`)
 
 Steps within which a friend or one it holds skilled eases its dread.
 
 Default **2**; from 0 to 20, in steps of 1.
 
-### 6.76 Warrior garb (`WARRIOR_GARB`)
+### 6.77 Warrior garb (`WARRIOR_GARB`)
 
 Regard an omnivore's hide, a warrior's garb, draws those who see it toward.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.76.1 Prestige garb (`PRESTIGE_GARB`)
+#### 6.77.1 Prestige garb (`PRESTIGE_GARB`)
 
 Regard a predator's hide, a mark of prestige, draws those who see it toward.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-#### 6.76.2 Garb regard (`GARB_REGARD`)
+#### 6.77.2 Garb regard (`GARB_REGARD`)
 
 How much of a deed's weight each turn's sight of a garb has on regard.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.76.3 Lie disregard (`LIE_DISREGARD`)
+#### 6.77.3 Lie disregard (`LIE_DISREGARD`)
 
 Disregard for one seen fleeing a fight in a garb, as a share of the regard its garb had won, which is lost too.
 
 Default **1**; from 0 to 3, in steps of 0.1.
 
-#### 6.76.4 Envy level (`ENVY_LEVEL`)
+#### 6.77.4 Envy level (`ENVY_LEVEL`)
 
 Share of its own kind, ranked by moodiness or dominance, that envies no one: 0.75 leaves the top quarter envious; 1 for none.
 
 Default **0.75**; from 0 to 1, in steps of 0.05.
 
-#### 6.76.5 Envy unease (`ENVY_UNEASE`)
+#### 6.77.5 Envy unease (`ENVY_UNEASE`)
 
 Unease of seeing possessions better than its own, by how much better, at the most envious.
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-#### 6.76.6 Envy joy (`ENVY_JOY`)
+#### 6.77.6 Envy joy (`ENVY_JOY`)
 
 Gladness of the envious at gaining a better possession, by how much better.
 
 Default **1**; from 0 to 3, in steps of 0.05.
 
-### 6.77 Foe level (`FOE_LEVEL`)
+### 6.78 Foe level (`FOE_LEVEL`)
 
 Disregard beyond which one is a foe, times 0.5 plus half the beholder's empathy and sociability together.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.77.1 Victory regard (`VICTORY_REGARD`)
+#### 6.78.1 Victory regard (`VICTORY_REGARD`)
 
 How much a victory seen moves regard for the winner: up for a friend, down for a foe.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.77.2 Foe defeat regard (`FOE_DEFEAT_REGARD`)
+#### 6.78.2 Foe defeat regard (`FOE_DEFEAT_REGARD`)
 
 How much more regard a victory over one's foe wins.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.77.3 Coward disregard (`COWARD_DISREGARD`)
+#### 6.78.3 Coward disregard (`COWARD_DISREGARD`)
 
 How much fleeing a fight costs one's regard with those who hold it a friend or foe.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-### 6.78 Culture regard (`CULTURE_REGARD`)
+### 6.79 Culture regard (`CULTURE_REGARD`)
 
 Esteem for a deed its kind values, seen done by one of its kind (twice from family, or a predator's pack): victories for predators, crafting and building for omnivores, sowing and fruit picked without uprooting for grazers.
 
 Default **0.3**; from 0 to 1, in steps of 0.05.
 
-#### 6.78.1 Give level (`GIVE_LEVEL`)
+#### 6.79.1 Give level (`GIVE_LEVEL`)
 
 Share of its own kind, ranked by empathy or sociability, that never gives a friend a possession: 0.75 leaves the top quarter giving; 1 for none.
 
 Default **0.75**; from 0 to 1, in steps of 0.05.
 
-#### 6.78.2 Give joy (`GIVE_JOY`)
+#### 6.79.2 Give joy (`GIVE_JOY`)
 
 Pleasure of giving a friend a possession, times 0.5 plus empathy or sociability.
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-#### 6.78.3 Take level (`TAKE_LEVEL`)
+#### 6.79.3 Take level (`TAKE_LEVEL`)
 
 Share of its own kind, ranked by aggression or dominance, that never demands or steals a possession: 0.75 leaves the top quarter taking; 1 for none.
 
 Default **0.75**; from 0 to 1, in steps of 0.05.
 
-#### 6.78.4 Theft disregard (`THEFT_DISREGARD`)
+#### 6.79.4 Theft disregard (`THEFT_DISREGARD`)
 
 How much a theft seen costs the thief's regard, twice with its victim; regard instead with those who hold the victim a foe.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-### 6.79 Trade misjudgement (`TRADE_MISJUDGE`)
+### 6.80 Trade misjudgement (`TRADE_MISJUDGE`)
 
 How far an animal may misjudge a good's worth in a deal, either way, times one less its intelligence.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.79.1 Trade regard (`TRADE_REGARD`)
+#### 6.80.1 Trade regard (`TRADE_REGARD`)
 
 How much of a deed's weight an accepted offer has on regard, a kindness both ways.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.79.2 Trade joy (`TRADE_JOY`)
+#### 6.80.2 Trade joy (`TRADE_JOY`)
 
 Pleasure a side takes in a deal it truly gained by; one that truly lost thinks as much the worse of the other.
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-#### 6.79.3 Trade wariness (`TRADE_WARINESS`)
+#### 6.80.3 Trade wariness (`TRADE_WARINESS`)
 
 How much worse an offer seems from one its owner thinks ill of, times that ill regard.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-### 6.80 Leader followers (`LEADER_FOLLOWERS`)
+### 6.81 Leader followers (`LEADER_FOLLOWERS`)
 
 Members of its colour group who must hold one as their standout for it to be recognised a leader, kept until fewer than half as many do; 0 for no leaders.
 
 Default **5**; from 0 to 100, in steps of 1.
 
-### 6.81 Leader deference (`LEADER_DEFERENCE`)
+### 6.82 Leader deference (`LEADER_DEFERENCE`)
 
 How much kinder a follower judges its leader's offers; it yields to its leader's demands without a fight.
 
@@ -2322,19 +2346,19 @@ Default **0.5**; from 0 to 2, in steps of 0.05.
 
 Connected: 8.8 Leader rally (`LEADER_RALLY`).
 
-#### 6.81.1 Land ambition (`LAND_AMBITION`)
+#### 6.82.1 Land ambition (`LAND_AMBITION`)
 
 Pull to stay in the land of a group it dislikes, and unease in the land of one it likes unless welcome there, times its regard for that group.
 
 Default **0.1**; from 0 to 1, in steps of 0.01.
 
-#### 6.81.2 Welcome level (`WELCOME_LEVEL`)
+#### 6.82.2 Welcome level (`WELCOME_LEVEL`)
 
 How well a group's members must think of a colour group, on average, to welcome it in their land as guests who neither trespass nor contest it; above 1 for none.
 
 Default **0.5**; from 0 to 1.5, in steps of 0.05.
 
-#### 6.81.3 Leader joy (`LEADER_JOY`)
+#### 6.82.3 Leader joy (`LEADER_JOY`)
 
 Pleasure a leader takes in its followers in sight, in full with as many as Leader followers.
 
@@ -2342,7 +2366,7 @@ Default **0.3**; from 0 to 3, in steps of 0.05.
 
 Connected: 8.8 Leader rally (`LEADER_RALLY`).
 
-#### 6.81.4 Leader allure (`LEADER_ALLURE`)
+#### 6.82.4 Leader allure (`LEADER_ALLURE`)
 
 How much more joy breeding with a leader gives its partner; a leader is courted first by any that may breed with it.
 
@@ -2350,61 +2374,61 @@ Default **0.5**; from 0 to 3, in steps of 0.05.
 
 Connected: 8.8 Leader rally (`LEADER_RALLY`).
 
-### 6.82 Call payoff (`CALL_PAYOFF`)
+### 6.83 Call payoff (`CALL_PAYOFF`)
 
 Joy a caller takes in each of its kind that heard its call and then got away from a hunter or, hungry, ate; times a half and its empathy or sociability.
 
 Default **0**; from 0 to 2, in steps of 0.05.
 
-#### 6.82.1 Communication joy (`COMMUNICATION_JOY`)
+#### 6.83.1 Communication joy (`COMMUNICATION_JOY`)
 
 Share of its own gain each takes when one answers a call it heard, within a day, with a deed good for both: the caller glad to be understood, the listener to understand.
 
 Default **0.5**; from 0 to 2, in steps of 0.05.
 
-#### 6.82.2 Heeded regard (`HEEDED_REGARD`)
+#### 6.83.2 Heeded regard (`HEEDED_REGARD`)
 
 How much better one helped so thinks of its caller, of a deed's weight.
 
 Default **0**; from 0 to 1, in steps of 0.01.
 
-### 6.83 Rank bonus (`RANK_BONUS`)
+### 6.84 Rank bonus (`RANK_BONUS`)
 
 Share more of each leader's bonuses (deference, rally, joy in followers, allure) for each rank above chief.
 
 Default **0.25**; from 0 to 2, in steps of 0.05.
 
-#### 6.83.1 Title regard (`TITLE_REGARD`)
+#### 6.84.1 Title regard (`TITLE_REGARD`)
 
 Esteem a titled leader wins each turn from each who sees it and holds it no foe, times its rank.
 
 Default **0.01**; from 0 to 0.2, in steps of 0.005.
 
-### 6.84 Warrior mark (`WARRIOR_MARK`)
+### 6.85 Warrior mark (`WARRIOR_MARK`)
 
 Regard the mark of the warrior, earned by defeating an omnivore, draws those who see it toward.
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-#### 6.84.1 Prestige mark (`PRESTIGE_MARK`)
+#### 6.85.1 Prestige mark (`PRESTIGE_MARK`)
 
 Regard the mark of prestige, earned by defeating a predator, draws those who see it toward.
 
 Default **1**; from 0 to 1, in steps of 0.05.
 
-#### 6.84.2 Mark regard (`MARK_REGARD`)
+#### 6.85.2 Mark regard (`MARK_REGARD`)
 
 How much of a deed's weight each turn's sight of a mark has on regard, or, for a foe, on how dangerous it holds the bearer.
 
 Default **0.05**; from 0 to 1, in steps of 0.01.
 
-#### 6.84.3 Mark dread (`MARK_DREAD`)
+#### 6.85.3 Mark dread (`MARK_DREAD`)
 
 Unease of a foe at the sight of a mark, times its worth and a half plus its fear.
 
 Default **0.3**; from 0 to 3, in steps of 0.05.
 
-### 6.85 Land size (`LAND_SIZE`)
+### 6.86 Land size (`LAND_SIZE`)
 
 Members a colour group needs to claim land; 0 for no lands.
 
@@ -2412,7 +2436,7 @@ Default **12**; from 0 to 500, in steps of 1.
 
 Connected: 8.9.3 War kills (`WAR_KILLS`).
 
-#### 6.85.1 Land square (`LAND_PATCH`)
+#### 6.86.1 Land square (`LAND_PATCH`)
 
 Cells on a side of a square of land; a change begins all claims again.
 
@@ -2420,7 +2444,7 @@ Default **8**; from 2 to 64, in steps of 1.
 
 Connected: 8.9.3 War kills (`WAR_KILLS`).
 
-#### 6.85.2 Land hold (`LAND_HOLD`)
+#### 6.86.2 Land hold (`LAND_HOLD`)
 
 Members of a group standing in a square that claim it.
 
@@ -2428,7 +2452,7 @@ Default **3**; from 1 to 50, in steps of 1.
 
 Connected: 8.9.3 War kills (`WAR_KILLS`).
 
-#### 6.85.3 Land memory (`LAND_MEMORY`)
+#### 6.86.3 Land memory (`LAND_MEMORY`)
 
 Counts a claim lasts with none of its group in the square, or while clearly losing the war for it.
 
@@ -2436,7 +2460,7 @@ Default **5**; from 1 to 100, in steps of 1.
 
 Connected: 8.9.3 War kills (`WAR_KILLS`).
 
-#### 6.85.4 Land count (`LAND_TURNS`)
+#### 6.86.4 Land count (`LAND_TURNS`)
 
 Turns between counts of the groups and their lands.
 
@@ -2444,7 +2468,7 @@ Default **24**; from 1 to 1000, in steps of 1.
 
 Connected: 8.9.3 War kills (`WAR_KILLS`).
 
-#### 6.85.5 Land healing (`LAND_HEALING`)
+#### 6.86.5 Land healing (`LAND_HEALING`)
 
 How much faster an animal heals in its own land: 1 for twice as fast.
 
@@ -2452,7 +2476,7 @@ Default **1**; from 0 to 5, in steps of 0.1.
 
 Connected: 8.9 Land defence (`LAND_DEFENCE`); 8.9.1 Land herd (`LAND_HERD`).
 
-#### 6.85.6 Land comfort (`LAND_COMFORT`)
+#### 6.86.6 Land comfort (`LAND_COMFORT`)
 
 Ease in its own land, and unease as much away from it while its group holds land.
 
@@ -2460,7 +2484,7 @@ Default **0.1**; from 0 to 2, in steps of 0.05.
 
 Connected: 8.9 Land defence (`LAND_DEFENCE`); 8.9.1 Land herd (`LAND_HERD`).
 
-#### 6.85.7 Trespass regard (`TRESPASS_REGARD`)
+#### 6.86.7 Trespass regard (`TRESPASS_REGARD`)
 
 How much of a deed's weight a trespasser's first turn in a land costs it with those of the land who see it.
 
@@ -2468,7 +2492,7 @@ Default **0.02**; from 0 to 1, in steps of 0.01.
 
 Connected: 8.9 Land defence (`LAND_DEFENCE`); 8.9.1 Land herd (`LAND_HERD`).
 
-#### 6.85.8 Trespass growth (`TRESPASS_GROWTH`)
+#### 6.86.8 Trespass growth (`TRESPASS_GROWTH`)
 
 How much that grows, of itself, each turn the trespasser stays, to a whole deed.
 
@@ -2476,7 +2500,7 @@ Default **0.25**; from 0 to 2, in steps of 0.05.
 
 Connected: 8.9.2 Land rally (`LAND_RALLY`); 8.9.4 War nerve (`WAR_NERVE`).
 
-#### 6.85.9 War enmity (`WAR_ENMITY`)
+#### 6.86.9 War enmity (`WAR_ENMITY`)
 
 How much of a deed's weight each count of a war sets each member against its enemy's colour.
 
@@ -2484,7 +2508,7 @@ Default **0.1**; from 0 to 1, in steps of 0.05.
 
 Connected: 8.9.2 Land rally (`LAND_RALLY`); 8.9.4 War nerve (`WAR_NERVE`).
 
-#### 6.85.10 War morale (`WAR_MORALE`)
+#### 6.86.10 War morale (`WAR_MORALE`)
 
 Gladness of a war clearly being won, and unease as much of one clearly being lost, each turn.
 
@@ -2492,13 +2516,13 @@ Default **0.1**; from 0 to 2, in steps of 0.05.
 
 Connected: 8.9.2 Land rally (`LAND_RALLY`); 8.9.4 War nerve (`WAR_NERVE`).
 
-### 6.86 Standing joy (`STANDING_JOY`)
+### 6.87 Standing joy (`STANDING_JOY`)
 
 Pleasure of being held a friend by those about it, in full with three or more, times a half and its dominance.
 
 Default **0.2**; from 0 to 2, in steps of 0.05.
 
-#### 6.86.1 Follow comfort (`FOLLOW_COMFORT`)
+#### 6.87.1 Follow comfort (`FOLLOW_COMFORT`)
 
 Ease near the member of its own colour group in sight it esteems most, times that esteem and closeness, and a half plus its trust and sociability together.
 
@@ -3120,7 +3144,7 @@ Share of the chance to panic or break that a follower in sight of its leader ove
 
 Default **0.5**; from 0 to 1, in steps of 0.05.
 
-Connected: 6.81 Leader deference (`LEADER_DEFERENCE`); 6.81.3 Leader joy (`LEADER_JOY`); 6.81.4 Leader allure (`LEADER_ALLURE`).
+Connected: 6.82 Leader deference (`LEADER_DEFERENCE`); 6.82.3 Leader joy (`LEADER_JOY`); 6.82.4 Leader allure (`LEADER_ALLURE`).
 
 ### 8.9 Land defence (`LAND_DEFENCE`)
 
@@ -3128,7 +3152,7 @@ Share of a blow from an outsider kept off one in its own land.
 
 Default **0.25**; from 0 to 1, in steps of 0.05.
 
-Connected: 6.85.5 Land healing (`LAND_HEALING`); 6.85.6 Land comfort (`LAND_COMFORT`); 6.85.7 Trespass regard (`TRESPASS_REGARD`).
+Connected: 6.86.5 Land healing (`LAND_HEALING`); 6.86.6 Land comfort (`LAND_COMFORT`); 6.86.7 Trespass regard (`TRESPASS_REGARD`).
 
 #### 8.9.1 Land herd (`LAND_HERD`)
 
@@ -3136,7 +3160,7 @@ How much more its herd counts in its own land, for safety and the pack's blows: 
 
 Default **0.5**; from 0 to 3, in steps of 0.05.
 
-Connected: 6.85.5 Land healing (`LAND_HEALING`); 6.85.6 Land comfort (`LAND_COMFORT`); 6.85.7 Trespass regard (`TRESPASS_REGARD`).
+Connected: 6.86.5 Land healing (`LAND_HEALING`); 6.86.6 Land comfort (`LAND_COMFORT`); 6.86.7 Trespass regard (`TRESPASS_REGARD`).
 
 #### 8.9.2 Land rally (`LAND_RALLY`)
 
@@ -3144,7 +3168,7 @@ Share of the chance to panic, break or be overcome by primal fear that defending
 
 Default **0.75**; from 0 to 1, in steps of 0.05.
 
-Connected: 6.85.8 Trespass growth (`TRESPASS_GROWTH`); 6.85.9 War enmity (`WAR_ENMITY`); 6.85.10 War morale (`WAR_MORALE`).
+Connected: 6.86.8 Trespass growth (`TRESPASS_GROWTH`); 6.86.9 War enmity (`WAR_ENMITY`); 6.86.10 War morale (`WAR_MORALE`).
 
 #### 8.9.3 War kills (`WAR_KILLS`)
 
@@ -3152,7 +3176,7 @@ Deaths at each other's hands before a war counts as clearly won (two thirds of t
 
 Default **3**; from 1 to 100, in steps of 1.
 
-Connected: 6.85 Land size (`LAND_SIZE`); 6.85.1 Land square (`LAND_PATCH`); 6.85.2 Land hold (`LAND_HOLD`); 6.85.3 Land memory (`LAND_MEMORY`); 6.85.4 Land count (`LAND_TURNS`).
+Connected: 6.86 Land size (`LAND_SIZE`); 6.86.1 Land square (`LAND_PATCH`); 6.86.2 Land hold (`LAND_HOLD`); 6.86.3 Land memory (`LAND_MEMORY`); 6.86.4 Land count (`LAND_TURNS`).
 
 #### 8.9.4 War nerve (`WAR_NERVE`)
 
@@ -3160,7 +3184,7 @@ How much less likely to panic a war clearly being won leaves its side, and more 
 
 Default **0.25**; from 0 to 1, in steps of 0.05.
 
-Connected: 6.85.8 Trespass growth (`TRESPASS_GROWTH`); 6.85.9 War enmity (`WAR_ENMITY`); 6.85.10 War morale (`WAR_MORALE`).
+Connected: 6.86.8 Trespass growth (`TRESPASS_GROWTH`); 6.86.9 War enmity (`WAR_ENMITY`); 6.86.10 War morale (`WAR_MORALE`).
 
 #### 8.9.5 War fade (`WAR_FADE`)
 

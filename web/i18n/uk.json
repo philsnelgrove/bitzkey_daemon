@@ -2415,5 +2415,13 @@
 "Hawk joy": "Радість заклику",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "закликана угода навчає поклик власника в стільки разів на його справжній зиск і товариськість, а підхід покупця — на його зиск і цікавість; 0 — жодної",
 "Hawk buyer": "Покупець на заклик",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: закликана угода навчає й покупця руху, який він зробив, почувши поклик; 0: навчається лише поклик продавця"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: закликана угода навчає й покупця руху, який він зробив, почувши поклик; 0: навчається лише поклик продавця",
+"Value mutation": "Мутація цінностей",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "наскільки кожна успадкована цінність новонародженого може відхилитися від середнього батьків, у будь-який бік, зі шкали 0–3",
+"Value inheritance": "Успадкування цінностей",
+"share of its mother's taught values a newborn starts with": "частка навчених цінностей матері, з якою починає новонароджений",
+"Value teaching": "Навчання цінностей",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "довіряючи план чи навчаючи, частка шляху, яку навчені цінності слухача проходять, щоб перейняти цінності оповідача, помножена на довіру й цінність навчуваності; 0 — жодного",
+"Liking": "Вподобання",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "радість, коли сигнал сильніше пробуджує бажання речі, товариша чи дії, помножена на це зростання й цінність вподобання; лише при зростанні й ніколи не навчається як бажання; 0 — жодної"
 }

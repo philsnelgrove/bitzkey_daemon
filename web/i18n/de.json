@@ -2415,5 +2415,13 @@
 "Hawk joy": "Ausruffreude",
 "a hawked deal teaches the owner's call at this times what it truly gained and its sociability, and the buyer's approach at this times its gain and curiosity; 0 for none": "ein ausgerufener Handel lehrt den Ruf des Besitzers mit diesem Wert mal seinem wahren Gewinn und seiner Geselligkeit, und das Herankommen des Käufers mal dessen Gewinn und Neugier; 0 für keine",
 "Hawk buyer": "Ausruf Käufer",
-"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: ein ausgerufener Handel lehrt auch den Käufer die Bewegung, die er beim Hören des Rufs machte; 0: nur der Ruf des Verkäufers wird gelehrt"
+"1: a hawked deal also teaches the buyer the move it made on hearing the call; 0: only the seller's call is taught": "1: ein ausgerufener Handel lehrt auch den Käufer die Bewegung, die er beim Hören des Rufs machte; 0: nur der Ruf des Verkäufers wird gelehrt",
+"Value mutation": "Wertemutation",
+"how far each of a newborn's inherited values may move from its parents' mean, either way, out of 0 to 3": "wie weit jeder ererbte Wert eines Neugeborenen vom Mittel seiner Eltern abweichen darf, in beide Richtungen, auf 0 bis 3",
+"Value inheritance": "Wertevererbung",
+"share of its mother's taught values a newborn starts with": "Anteil der gelehrten Werte seiner Mutter, mit dem ein Neugeborenes beginnt",
+"Value teaching": "Wertelehre",
+"confiding or tutoring, the share of the way the hearer's taught values move to make its own the teller's, times its trust and teachable value; 0 for none": "beim Anvertrauen oder Unterrichten der Anteil des Weges, um den die gelehrten Werte des Hörers sich bewegen, um die des Erzählenden zu seinen eigenen zu machen, mal Vertrauen und Belehrbarkeit; 0 für keine",
+"Liking": "Gefallen",
+"joy felt as a cue wakes its wanting of a thing, companion or deed the more, times that rise and its liking value; on the rise only, and never learnt to want; 0 for none": "Freude, wenn ein Hinweis sein Verlangen nach einem Ding, Gefährten oder einer Tat stärker weckt, mal diesem Anstieg und seinem Gefallenswert; nur beim Anstieg und nie als Verlangen gelernt; 0 für keine"
 }
