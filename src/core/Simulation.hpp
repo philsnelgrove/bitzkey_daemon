@@ -624,6 +624,11 @@ inline int CONFIDE_WORDS = 1;
 // And one that takes up a plan confided takes up what the one confiding learnt of the deeds and things that move its aim:
 // it knows the steps (the user's design). CONFIDE_STEPS 0: it starts knowing none.
 inline int CONFIDE_STEPS = 1;
+// Gossip (the user's design): hearing a name it holds, of another than itself or the caller, an animal takes on a share
+// of the caller's regard for the one named, as a deed of that worth seen with weight GOSSIP times its trust in the caller
+// (1 for family, else its regard for it, from 0), times how strongly the caller felt as it called (its urgency), times
+// its own sociability: hearsay of one alone, never of its colour. Gossip can be false; nothing checks it. 0 for none.
+inline double GOSSIP = 0.5;
 // Vendetta (the user's design): an animal holds up to ENEMIES enemies, each one that harmed it or its own: struck it
 // (ENEMY_STRUCK of grudge to start), or killed its kin (ENEMY_KIN_KILLED) or one of its own colour group (ENEMY_GROUP_KILLED)
 // in its sight. Harming that one, its grudge follows the joy it felt (VENDETTA_RATE, see GRUDGE_JOY); the grudge fades over
@@ -2184,6 +2189,11 @@ public:
     const std::array<LexiconTally, 4>& lexicon_tally() const { return lexicon_tally_; }
     const std::array<LexiconTally, 4>& name_tally() const { return name_tally_; }  // the same, of names
     const std::array<LexiconTally, 4>& deed_tally() const { return deed_tally_; }  // and of deed-words
+    struct GossipTally {  // since the world began or was loaded (see GOSSIP)
+        long long heard = 0, ill = 0, hearsay = 0;  // gossip taken in; of it, ill of the one named; of one it did not know
+        double shift = 0.0;                          // summed: how far its regard moved
+    };
+    const std::array<GossipTally, 4>& gossip_tally() const { return gossip_tally_; }
     struct InitiativeTally {  // since the world began or was loaded (see BABBLE, ANSWERED_JOY)
         long long calls = 0, babbled = 0, babble_addressed = 0, answered_back = 0, answered_heeded = 0;
     };
@@ -2403,7 +2413,8 @@ public:
     void note_place(Bitzkey& agent, const Senses& senses);
     // What `other` did to `agent`, worth `deed`, -1 to 1, noted in its regard for them.
     // Only its reputation moves, not its regard, unless `regarded`.
-    void note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight = 1.0, DeedKind kind = PlainDeed, bool regarded = true);
+    void note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight = 1.0, DeedKind kind = PlainDeed, bool regarded = true,
+                   bool faction = true);  // faction false: of that one alone, not its colour
     void share_hearths(const std::vector<Bitzkey*>& agents, const std::vector<Sensed>& plans);  // those at a fire together bond
     void bond_in_defence(Bitzkey& defender, const Bitzkey& assailant);  // and those who stood together against an attacker
     // A deed of `doer`'s, done to `target` if to anyone, noted by those who see it.
@@ -2969,6 +2980,7 @@ private:
     std::array<LexiconTally, 4> lexicon_tally_{};
     std::array<LexiconTally, 4> name_tally_{};
     std::array<LexiconTally, 4> deed_tally_{};
+    std::array<GossipTally, 4> gossip_tally_{};
     std::array<InitiativeTally, 4> initiative_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;

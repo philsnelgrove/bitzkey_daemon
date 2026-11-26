@@ -2407,5 +2407,7 @@
 "Confided steps": "打ち明けた手順",
 "1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none": "1: 打ち明けられた計画を受け入れた者は、打ち明けた者が目的を進める行いと物について学んだことも受け入れ、手順を知る。0: 何も知らずに始める",
 "Hostility in want": "欠乏時の敵意",
-"1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1: 過密な縄張りが同族を殺すためらいを弱め、競争相手を殺すことが喜びとなり、自分の群れを減らすことが目標となる（満たされれば捨てる）のは、故郷の帯に繁殖に足る食べ物がない間だけ。0: 食べ物に関係なく"
+"1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1: 過密な縄張りが同族を殺すためらいを弱め、競争相手を殺すことが喜びとなり、自分の群れを減らすことが目標となる（満たされれば捨てる）のは、故郷の帯に繁殖に足る食べ物がない間だけ。0: 食べ物に関係なく",
+"Gossip": "噂話",
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "他者の名を聞くと、動物は呼び手がその名の者に抱く評価のこの割合を、呼び手への信頼、呼び手の切迫さ、自身の社交性を掛けて取り入れる。その者だけの噂で、その色の群れには及ばず、確かめられることもない。0で無効"
 }

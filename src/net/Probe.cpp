@@ -2737,6 +2737,12 @@ Json Probe::culture(Simulation& world) const {
             {"alive", static_cast<long long>(living.size())},
             {"words_confided", {{"thing_words", world.lexicon_tally()[static_cast<std::size_t>(species)].confided},  // since loaded (see CONFIDE_WORDS)
                                 {"deed_words", world.deed_tally()[static_cast<std::size_t>(species)].confided}}},
+            {"gossip", [&] {  // since loaded (see GOSSIP)
+                 const Simulation::GossipTally& heard = world.gossip_tally()[static_cast<std::size_t>(species)];
+                 return Json{{"heard", heard.heard}, {"ill_share", ratio(static_cast<double>(heard.ill), static_cast<double>(heard.heard))},
+                             {"of_strangers_share", ratio(static_cast<double>(heard.hearsay), static_cast<double>(heard.heard))},
+                             {"mean_shift", ratio(heard.shift, static_cast<double>(heard.heard))}};
+             }()},
             {"shared_plans", {{"confided", pairs_json(confided)}, {"neighbours_same_plan", pairs_json(same_plan)}, {"neighbours_otherwise", pairs_json(other)}}},
             {"holding", {{"with_project", side_json(holding)}, {"without", side_json(none)},
                          {"calls_unlike", unlike(holding.calls, none.calls)}, {"calls_unlike_by_chance", unlike(even, odd)}}},

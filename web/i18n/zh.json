@@ -2407,5 +2407,7 @@
 "Confided steps": "托付的步骤",
 "1: one that takes up a plan confided also takes up what the one confiding learnt of the deeds and things that move its aim, so it knows the steps; 0: it starts knowing none": "1：接受托付计划者也接受托付者学到的能推进目标的行为和事物，从而知道步骤；0：开始时一无所知",
 "Hostility in want": "匮乏时的敌意",
-"1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1：拥挤的领地削弱杀死同类的顾忌、杀死对手成为乐事、减少本群数量成为目标（吃饱后放弃），仅当其家乡带的食物不足以繁殖时；0：不论食物多少"
+"1: an overcrowded territory wears down reluctance to kill its own kind, killing a rival is a joy, and lowering its own group's numbers is an aim (dropped once fed), only while its home band holds too little food for it to breed; 0: whatever the food": "1：拥挤的领地削弱杀死同类的顾忌、杀死对手成为乐事、减少本群数量成为目标（吃饱后放弃），仅当其家乡带的食物不足以繁殖时；0：不论食物多少",
+"Gossip": "闲话",
+"hearing a name of another, an animal takes on this share of the caller's regard for the one named, times its trust in the caller, the caller's urgency and its own sociability; hearsay of one alone, never of its colour, and never checked; 0 for none": "听到他者的名字时，动物会接受呼叫者对被点名者看法的这一份额，乘以它对呼叫者的信任、呼叫者的急迫和它自己的合群性；只关乎那一个，从不关乎它的颜色，也从不核实；0为无"
 }

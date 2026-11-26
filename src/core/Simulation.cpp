@@ -2961,6 +2961,36 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         Bitzkey* caller = find_agent(situation.heard_from);
         if (caller && caller->alive() && caller->named >= 0 && caller->named_turn == turn_ - 1 && caller != agents[index]) told[index] = caller;
     }
+    // Gossip: a name heard this turn, of another than itself or the caller; all weighed first, then taken in, so that
+    // what one hears does not change what another is told this turn (see GOSSIP).
+    struct Hearsay {
+        Bitzkey* hearer;
+        const Bitzkey* named;
+        double view, weight;
+    };
+    std::vector<Hearsay> hearsay;
+    for (std::size_t index = 0; GOSSIP > 0 && index < agents.size(); ++index) {
+        Bitzkey& agent = *agents[index];
+        if (idle[index] || agent.called_turn != turn_ || agent.called_one < 0 || agent.word_from < 0) continue;
+        const Bitzkey* caller = find_agent(agent.word_from);
+        const Bitzkey* named = find_agent(agent.called_one);
+        if (!caller || !named || !caller->alive() || !named->alive() || named == caller || named == &agent || caller == &agent) continue;
+        const double view = raw_regard_for(*caller, *named);
+        const double trust = family(agent, *caller) ? 1.0 : std::clamp(regard_for(agent, *caller), 0.0, 1.0);
+        const double weight = GOSSIP * trust * std::clamp(caller->call_urgency, 0.0, 1.0) * agent.feeling(Sociability);
+        if (view != 0.0 && weight > 0.0) hearsay.push_back({&agent, named, view, weight});
+    }
+    for (const Hearsay& one : hearsay) {
+        Bitzkey& agent = *one.hearer;
+        const bool knew = std::any_of(agent.known.begin(), agent.known.end(), [&](const Acquaintance& a) { return a.identifier == one.named->identifier; });
+        const double before = raw_regard_for(agent, *one.named);
+        note_deed(agent, *one.named, one.view, one.weight, PlainDeed, true, false);
+        GossipTally& tally = gossip_tally_[static_cast<std::size_t>(agent.species)];
+        ++tally.heard;
+        tally.ill += one.view < 0;
+        tally.hearsay += !knew;
+        tally.shift += std::abs(raw_regard_for(agent, *one.named) - before);
+    }
     // How fresh an option is to an animal: 1 if untried or BOREDOM_HORIZON turns past, 0 if just done.
     const auto novelty = [this](const Bitzkey& agent, int option) {
         const int tried = agent.last_tried[static_cast<std::size_t>(option)];
@@ -4927,11 +4957,11 @@ void note_reputation(Memory& one, DeedKind kind, double rate) {
 
 }  // namespace
 
-void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded) {
+void Simulation::note_deed(Bitzkey& agent, const Bitzkey& other, double deed, double weight, DeedKind kind, bool regarded, bool faction) {
     std::vector<Acquaintance>& known = agent.known;
     const auto least = [](const Acquaintance& a, const Acquaintance& b) { return least_impact(a, b); };
     while (static_cast<int>(known.size()) > std::max(0, ACQUAINTANCES)) known.erase(std::min_element(known.begin(), known.end(), least));
-    if (&agent != &other) note_faction(agent, other, deed, weight, kind, regarded);
+    if (&agent != &other && faction) note_faction(agent, other, deed, weight, kind, regarded);
     if (ACQUAINTANCES <= 0 || &agent == &other) return;
     auto found = std::find_if(known.begin(), known.end(), [&](const Acquaintance& one) { return one.identifier == other.identifier; });
     if (found == known.end()) {

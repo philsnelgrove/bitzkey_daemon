@@ -3226,6 +3226,50 @@ TEST_CASE("names: hearing a name it holds, it senses how close and how regarded 
     CHECK(judged.situation.word_reward == doctest::Approx(LEXICON_HEED));
 }
 
+TEST_CASE("gossip: hearing a name from one it trusts, it takes on a share of the caller's regard for the one named, of that one alone") {
+    Simulation simulation = world(40);
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& named = simulation.add_agent(encode_dna(Species::Grazer), 14, 10);
+    simulation.index_cells();
+    hearer.names.push_back(LexiconWord{FirstCall + 1, {2, -1}, named.identifier, 0.5, 0});
+    hearer.mind[Sociability] = TRAIT_MAX;
+    hearer.known.push_back(Acquaintance{caller.identifier, 1.0, 0});
+    caller.known.push_back(Acquaintance{named.identifier, -0.8, 0});
+    caller.call = FirstCall + 1;
+    caller.sounds = {2, -1};
+    caller.call_turn = simulation.turn() - 1;
+    caller.call_urgency = 1.0;
+    const auto factions = hearer.factions.size();
+    simulation.think(hearer);
+    CHECK(hearer.called_one == named.identifier);
+    const auto found = std::find_if(hearer.known.begin(), hearer.known.end(), [&](const Acquaintance& one) { return one.identifier == named.identifier; });
+    REQUIRE(found != hearer.known.end());
+    CHECK(found->regard < 0.0);  // ill spoken of: thought ill of
+    CHECK(found->regard > -0.8);  // but not as ill as the caller thinks
+    CHECK(hearer.factions.size() == factions);  // of that one alone, not its colour
+    const auto& tally = simulation.gossip_tally()[static_cast<std::size_t>(Species::Grazer)];
+    CHECK(tally.heard == 1);
+    CHECK(tally.ill == 1);
+    CHECK(tally.hearsay == 1);
+    // From one it does not trust, nothing is taken in.
+    Simulation other = world(40);
+    Bitzkey& liar = other.add_agent(encode_dna(Species::Grazer), 10, 10);
+    Bitzkey& doubter = other.add_agent(encode_dna(Species::Grazer), 12, 10);
+    Bitzkey& victim = other.add_agent(encode_dna(Species::Grazer), 14, 10);
+    other.index_cells();
+    doubter.names.push_back(LexiconWord{FirstCall + 1, {2, -1}, victim.identifier, 0.5, 0});
+    doubter.mind[Sociability] = TRAIT_MAX;
+    doubter.known.push_back(Acquaintance{liar.identifier, -0.5, 0});
+    liar.known.push_back(Acquaintance{victim.identifier, -0.8, 0});
+    liar.call = FirstCall + 1;
+    liar.sounds = {2, -1};
+    liar.call_turn = other.turn() - 1;
+    liar.call_urgency = 1.0;
+    other.think(doubter);
+    CHECK(other.gossip_tally()[static_cast<std::size_t>(Species::Grazer)].heard == 0);
+}
+
 TEST_CASE("names: settled by accord pointing at one; full, the dead are forgotten first; and the one pointed at is in sight") {
     Simulation simulation = world(40);
     Bitzkey& holder = simulation.add_agent(encode_dna(Species::Grazer), 10, 10);
