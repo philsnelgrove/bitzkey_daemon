@@ -1827,6 +1827,7 @@ struct Bitzkey {
     int held_unit_count = 0;
     bool held_units_stopped = false;
     int heard_unit_count = 0;
+    std::array<std::array<int, 4>, 4> word_orders{};  // its word units and the next it said, by kind, since born or loaded (measuring only)
     // Its last call's lesson, held a turn for what it then did to those who heard it (Call empathy): the senses it called
     // by, the outputs of its sounds (and of where it stopped), the target, and whether one is held.
     Senses call_senses{};

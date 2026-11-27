@@ -1959,7 +1959,83 @@ Json Probe::language(Simulation& world) const {
                              {"repeat_share", ratio(static_cast<double>(repeats), total)}, {"next_unit_bits_without_repeats", changed_bits(false)},
                              {"next_unit_bits_without_repeats_by_chance", changed_bits(true)},
                              {"word_orders", orders}, {"order_judged", got.order_judged},
-                             {"order_influence", ratio(got.order_moved, static_cast<double>(got.order_judged))}};
+                             {"order_influence", ratio(got.order_moved, static_cast<double>(got.order_judged))},
+                             {"order_by_who", [&] {  // whether one order holds within a speaker, a realm, or mother and young
+                                  // The share of a pair said its more usual way, against that share by chance (each way
+                                  // equally likely: the expected majority of n fair coin tosses), so a habit that differs
+                                  // from speaker to speaker or realm to realm shows even when the species totals are even.
+                                  const auto chance_majority = [](int n) {
+                                      double expected = 0.0, p = std::pow(0.5, n);  // binomial(n, k) / 2^n, from k = 0
+                                      for (int k = 0; k <= n; ++k) {
+                                          expected += p * std::max(k, n - k) / n;
+                                          p = p * (n - k) / (k + 1);
+                                      }
+                                      return expected;
+                                  };
+                                  std::vector<const Bitzkey*> speakers;
+                                  for (const auto& agent : world.agents()) {
+                                      if (agent->species == species && agent->alive()) speakers.push_back(agent.get());
+                                  }
+                                  Json pairs = Json::array();
+                                  for (int a = 0; a < 4; ++a) {
+                                      for (int b = a + 1; b < 4; ++b) {
+                                          const auto way = [&](const Bitzkey& one) {
+                                              return std::pair<long long, long long>{one.word_orders[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)],
+                                                                                     one.word_orders[static_cast<std::size_t>(b)][static_cast<std::size_t>(a)]};
+                                          };
+                                          const auto judge = [&](const std::vector<std::pair<long long, long long>>& counts, long long least) {
+                                              double seen = 0.0, chance = 0.0;
+                                              int judged = 0, leaning = 0;
+                                              for (const auto& [ab, ba] : counts) {
+                                                  const long long n = ab + ba;
+                                                  if (n < least) continue;
+                                                  ++judged;
+                                                  seen += static_cast<double>(std::max(ab, ba)) / static_cast<double>(n);
+                                                  chance += n <= 1000 ? chance_majority(static_cast<int>(n)) : 0.5 + 0.3989 / std::sqrt(static_cast<double>(n));
+                                                  leaning += std::abs(static_cast<double>(ab - ba)) / std::sqrt(static_cast<double>(n)) > 1.96;
+                                              }
+                                              return Json{{"judged", judged}, {"majority_share", judged ? seen / judged : 0.0},
+                                                          {"by_chance", judged ? chance / judged : 0.0}, {"leaning_share", judged ? static_cast<double>(leaning) / judged : 0.0},
+                                                          {"leaning_by_chance", 0.05}};
+                                          };
+                                          std::vector<std::pair<long long, long long>> by_speaker;
+                                          std::map<int, std::pair<long long, long long>> realms;
+                                          long long total = 0, ab_all = 0;
+                                          for (const Bitzkey* one : speakers) {
+                                              const auto [ab, ba] = way(*one);
+                                              if (ab + ba == 0) continue;
+                                              by_speaker.push_back({ab, ba});
+                                              total += ab + ba;
+                                              ab_all += ab;
+                                              if (one->realm >= 0) {
+                                                  realms[one->realm].first += ab;
+                                                  realms[one->realm].second += ba;
+                                              }
+                                          }
+                                          if (total == 0) continue;
+                                          std::vector<std::pair<long long, long long>> by_realm;
+                                          for (const auto& [realm, counts] : realms) by_realm.push_back(counts);
+                                          // Mother and young, both living and each with the pair said at least 5 times: whether
+                                          // the young leans the way its mother does, against a half by chance.
+                                          int families = 0, same = 0;
+                                          for (const Bitzkey* one : speakers) {
+                                              const auto [ab, ba] = way(*one);
+                                              if (ab + ba < 5 || ab == ba || one->mother < 0) continue;
+                                              const Bitzkey* mother = world.find_agent(one->mother);
+                                              if (mother == nullptr || !mother->alive()) continue;
+                                              const auto [mab, mba] = way(*mother);
+                                              if (mab + mba < 5 || mab == mba) continue;
+                                              ++families;
+                                              same += (ab > ba) == (mab > mba);
+                                          }
+                                          pairs.push_back({{"words", std::string(WORDS[static_cast<std::size_t>(a)]) + "+" + WORDS[static_cast<std::size_t>(b)]},
+                                                           {"said", total}, {"first_way_share", static_cast<double>(ab_all) / static_cast<double>(total)},
+                                                           {"by_speaker", judge(by_speaker, 8)}, {"by_realm", judge(by_realm, 30)},
+                                                           {"mother_and_young", {{"judged", families}, {"same_way_share", families ? static_cast<double>(same) / families : 0.0}, {"by_chance", 0.5}}}});
+                                      }
+                                  }
+                                  return pairs;
+                              }()}};
              }()},
             {"influence", [&] {  // since loaded (see INFLUENCE_JOY): how far calls moved what their hearers chose
                  const Simulation::InfluenceTally& got = world.influence_tally()[static_cast<std::size_t>(species)];

@@ -1670,7 +1670,10 @@ void Simulation::speak_units(const std::vector<Bitzkey*>& agents, const std::vec
         for (int place = 0; place < agent->unit_count; ++place) {
             const int unit = agent->units[static_cast<std::size_t>(place)].unit;
             if (unit < UnitThing) continue;
-            if (last_word >= 0) ++tally.word_pairs[static_cast<std::size_t>(last_word)][static_cast<std::size_t>(unit - UnitThing)];
+            if (last_word >= 0) {
+                ++tally.word_pairs[static_cast<std::size_t>(last_word)][static_cast<std::size_t>(unit - UnitThing)];
+                ++const_cast<Bitzkey*>(agent)->word_orders[static_cast<std::size_t>(last_word)][static_cast<std::size_t>(unit - UnitThing)];
+            }
             last_word = unit - UnitThing;
         }
         if (agent->units_stopped || agent->unit_count < MESSAGE_UNITS) ++tally.by_unit[UnitStop];
