@@ -2435,5 +2435,17 @@
 "Conversation joy": "Alegría de conversar",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "un intercambio da a cada parte esto por su sociabilidad y su valor de charla, se dijera lo que se dijera; 0 para ninguna",
 "Concept-words": "Palabras de conceptos",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "palabras para ideas (metas de proyecto y valores), por cada punto de intelecto y una más, fijadas al confiar y enseñar; 0 para ninguna"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "palabras para ideas (metas de proyecto y valores), por cada punto de intelecto y una más, fijadas al confiar y enseñar; 0 para ninguna",
+"Influence joy": "Alegría de influir",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "alegría de quien llama por cuánto movió su llamada lo que eligieron sus oyentes, por su sociabilidad y valor de charla; 0 para ninguna",
+"Influence lesson": "Lección de influencia",
+"how much of its call's influence on its hearers is added to that call's own lesson": "cuánto de la influencia de una llamada en sus oyentes se suma a la lección de esa llamada",
+"Influence hearers": "Oyentes de influencia",
+"the most hearers whose influence a call is credited with": "el máximo de oyentes cuya influencia se acredita a una llamada",
+"Influence sample": "Muestra de influencia",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "parte de los oyentes pensados una segunda vez, sordos, para medir la influencia de una llamada; menos es más rápido",
+"Influence only useful": "Solo influencia útil",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: la influencia de una llamada solo cuenta de un oyente cuyo turno fue al menos tan bien como esperaba",
+"Deaf": "Sordos",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: ningún animal oye la llamada de otro, para juzgar si las palabras importan (para copias de mundos)"
 }

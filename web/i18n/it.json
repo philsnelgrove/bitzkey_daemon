@@ -2435,5 +2435,17 @@
 "Conversation joy": "Gioia della conversazione",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "uno scambio dà a ciascuna parte questo per la sua socievolezza e il suo valore della parola, qualunque cosa si sia detta; 0 per nessuna",
 "Concept-words": "Parole di concetti",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "parole per idee (scopi di progetto e valori), per ogni punto di intelletto e una in più, fissate confidando e insegnando; 0 per nessuna"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "parole per idee (scopi di progetto e valori), per ogni punto di intelletto e una in più, fissate confidando e insegnando; 0 per nessuna",
+"Influence joy": "Gioia dell'influenza",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "gioia di chi chiama per quanto il suo richiamo ha mosso le scelte di chi ascolta, per socievolezza e valore della parola; 0 per nessuna",
+"Influence lesson": "Lezione d'influenza",
+"how much of its call's influence on its hearers is added to that call's own lesson": "quanta dell'influenza di un richiamo sui suoi ascoltatori si aggiunge alla lezione di quel richiamo",
+"Influence hearers": "Ascoltatori d'influenza",
+"the most hearers whose influence a call is credited with": "il massimo di ascoltatori la cui influenza è accreditata a un richiamo",
+"Influence sample": "Campione d'influenza",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "parte degli ascoltatori pensati una seconda volta, sordi, per misurare l'influenza di un richiamo; meno è più veloce",
+"Influence only useful": "Solo influenza utile",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: l'influenza di un richiamo conta solo da un ascoltatore il cui turno è andato almeno come si aspettava",
+"Deaf": "Sordi",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: nessun animale sente il richiamo di un altro, per giudicare se le parole contano (per copie di mondi)"
 }

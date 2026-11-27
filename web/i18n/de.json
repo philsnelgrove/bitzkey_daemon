@@ -2435,5 +2435,17 @@
 "Conversation joy": "Gesprächsfreude",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "ein Austausch gibt jeder Seite diesen Wert mal ihre Geselligkeit und ihren Gesprächswert, was auch gesagt wurde; 0 für keine",
 "Concept-words": "Begriffswörter",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "Wörter für Ideen (Projektziele und Werte), je Intelligenzpunkt und einer mehr, festgelegt beim Anvertrauen und Lehren; 0 für keine"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "Wörter für Ideen (Projektziele und Werte), je Intelligenzpunkt und einer mehr, festgelegt beim Anvertrauen und Lehren; 0 für keine",
+"Influence joy": "Einflussfreude",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "Freude eines Rufers darüber, wie weit sein Ruf die Wahl der Hörer verschob, mal Geselligkeit und Gesprächswert; 0 für keine",
+"Influence lesson": "Einflusslehre",
+"how much of its call's influence on its hearers is added to that call's own lesson": "wie viel vom Einfluss eines Rufs auf seine Hörer zur Lehre dieses Rufs hinzukommt",
+"Influence hearers": "Einflusshörer",
+"the most hearers whose influence a call is credited with": "die meisten Hörer, deren Einfluss einem Ruf gutgeschrieben wird",
+"Influence sample": "Einflussstichprobe",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "Anteil der Hörer, die ein zweites Mal taub bedacht werden, um den Einfluss eines Rufs zu messen; weniger ist schneller",
+"Influence only useful": "Nur nützlicher Einfluss",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: der Einfluss eines Rufs zählt nur bei einem Hörer, dessen Zug mindestens so gut verlief wie erwartet",
+"Deaf": "Taub",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: kein Tier hört den Ruf eines anderen, um zu prüfen, ob Wörter zählen (für Kopien von Welten)"
 }

@@ -2435,5 +2435,17 @@
 "Conversation joy": "वार्तालाप आनंद",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "एक आदान-प्रदान हर पक्ष को इतना गुणा उसकी मिलनसारिता और बातचीत मूल्य देता है, जो भी कहा गया हो; 0 कोई नहीं",
 "Concept-words": "विचार-शब्द",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "विचारों (परियोजना लक्ष्य और मूल्य) के शब्द, बुद्धि के हर अंक पर और एक अधिक, बताने और सिखाने में तय; 0 कोई नहीं"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "विचारों (परियोजना लक्ष्य और मूल्य) के शब्द, बुद्धि के हर अंक पर और एक अधिक, बताने और सिखाने में तय; 0 कोई नहीं",
+"Influence joy": "प्रभाव आनंद",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "पुकारने वाले का आनंद कि उसकी पुकार ने सुनने वालों का चुनाव कितना बदला, मिलनसारिता और बातचीत मूल्य से गुणा; 0 कोई नहीं",
+"Influence lesson": "प्रभाव पाठ",
+"how much of its call's influence on its hearers is added to that call's own lesson": "पुकार के सुनने वालों पर प्रभाव का कितना भाग उस पुकार के पाठ में जुड़ता है",
+"Influence hearers": "प्रभाव श्रोता",
+"the most hearers whose influence a call is credited with": "अधिकतम श्रोता जिनका प्रभाव किसी पुकार को दिया जाता है",
+"Influence sample": "प्रभाव नमूना",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "श्रोताओं का भाग जिन्हें प्रभाव मापने को दूसरी बार बहरा मानकर सोचा जाता है; कम तेज़ है",
+"Influence only useful": "केवल उपयोगी प्रभाव",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: पुकार का प्रभाव केवल उस श्रोता से गिना जाता है जिसकी बारी कम से कम अपेक्षा जितनी अच्छी गई",
+"Deaf": "बहरे",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: कोई प्राणी दूसरे की पुकार नहीं सुनता, यह परखने को कि शब्द मायने रखते हैं (दुनिया की प्रतियों हेतु)"
 }

@@ -2435,5 +2435,17 @@
 "Conversation joy": "会話の喜び",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "やり取りは各側にこの値×社交性×会話の価値を与える。何を話したかは問わない。0で無し",
 "Concept-words": "概念の言葉",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "考え（計画の目的と価値）を表す言葉。知性1点ごとと1つ多く、打ち明けと教えで決まる。0で無し"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "考え（計画の目的と価値）を表す言葉。知性1点ごとと1つ多く、打ち明けと教えで決まる。0で無し",
+"Influence joy": "影響の喜び",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "呼び声が聞き手の選択をどれだけ動かしたかで呼び手が感じる喜び。社交性と会話の価値を掛ける。0で無し",
+"Influence lesson": "影響の教え",
+"how much of its call's influence on its hearers is added to that call's own lesson": "呼び声の聞き手への影響のうち、その呼び声の教えに加える分",
+"Influence hearers": "影響の聞き手",
+"the most hearers whose influence a call is credited with": "呼び声の影響として数える聞き手の最大数",
+"Influence sample": "影響の標本",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "呼び声の影響を測るため、聞こえないものとしてもう一度考える聞き手の割合。少ないほど速い",
+"Influence only useful": "有益な影響のみ",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: 自分のターンが期待以上だった聞き手からのみ呼び声の影響を数える",
+"Deaf": "聴覚なし",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: どの動物も他の呼び声を聞かない。言葉が意味を持つか確かめるため（世界の写しで）"
 }

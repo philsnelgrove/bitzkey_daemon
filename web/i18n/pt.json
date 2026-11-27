@@ -2435,5 +2435,17 @@
 "Conversation joy": "Alegria de conversar",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "uma troca dá a cada lado isto vezes a sua sociabilidade e o seu valor de conversa, fosse o que fosse dito; 0 para nenhuma",
 "Concept-words": "Palavras de conceitos",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "palavras para ideias (metas de projeto e valores), por ponto de intelecto e uma a mais, fixadas ao confiar e ensinar; 0 para nenhuma"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "palavras para ideias (metas de projeto e valores), por ponto de intelecto e uma a mais, fixadas ao confiar e ensinar; 0 para nenhuma",
+"Influence joy": "Alegria de influenciar",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "alegria de quem chama pelo quanto o seu chamado moveu as escolhas de quem ouve, vezes sociabilidade e valor de conversa; 0 para nenhuma",
+"Influence lesson": "Lição de influência",
+"how much of its call's influence on its hearers is added to that call's own lesson": "quanto da influência de um chamado nos ouvintes se soma à lição desse chamado",
+"Influence hearers": "Ouvintes de influência",
+"the most hearers whose influence a call is credited with": "o máximo de ouvintes cuja influência é creditada a um chamado",
+"Influence sample": "Amostra de influência",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "parte dos ouvintes pensados uma segunda vez, surdos, para medir a influência de um chamado; menos é mais rápido",
+"Influence only useful": "Só influência útil",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: a influência de um chamado só conta de um ouvinte cujo turno correu pelo menos tão bem como esperava",
+"Deaf": "Surdos",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: nenhum animal ouve o chamado de outro, para julgar se as palavras importam (para cópias de mundos)"
 }

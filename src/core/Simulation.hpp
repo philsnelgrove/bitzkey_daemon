@@ -628,6 +628,22 @@ inline double CONVERSE_JOY = 0.3;
 // else its most felt value, with chance LEXICON_SPEAK times its sociability; hearing a concept-word it holds, it knows
 // what is meant (counted; no sense is added). A newborn inherits them as words. CONCEPTS_SIZE 0 for none.
 inline int CONCEPTS_SIZE = 1;
+// Influence (the user's choice: one general wish to make a difference, not a desire for each use of words): each hearer
+// of a call, of a share INFLUENCE_SAMPLE of them, is thought twice, once as it was and once with all it heard this turn
+// taken out (the calls, their sounds and tag, the finger it saw point, and the words, names and deed-words it knew in
+// them); how far its choice odds moved between the two, half the summed difference, 0 to 1, divided by the share, is
+// the call's influence on it. The next turn, once its turn is judged, that is credited to the caller it heard: added
+// to the call's own lesson at INFLUENCE_LESSON, and felt as a joy at INFLUENCE_JOY times its sociability and talk
+// value, for at most INFLUENCE_HEARERS hearers a call. With INFLUENCE_USEFUL 1, only from a hearer whose turn went at
+// least as well as it expected. What the call should mean, or what hearers should do, is not said. 0 for none.
+inline double INFLUENCE_JOY = 0.5;
+inline double INFLUENCE_LESSON = 1.0;
+inline int INFLUENCE_HEARERS = 3;
+inline double INFLUENCE_SAMPLE = 1.0;
+inline int INFLUENCE_USEFUL = 0;
+// For experiments on a copy of a world: DEAF 1 and no animal hears another's call (the hard-wired alert aside), to
+// judge whether words matter, by how the animals fare without them.
+inline int DEAF = 0;
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -1780,6 +1796,15 @@ struct Bitzkey {
     double chosen_value = 0.0;          // what its brain valued its last choice at, to judge how the turn went against it
     int chosen_turn = -1;               // and the turn it chose it
     int call_heeded = -1;               // the caller of its kind it heard as it last chose, whose call shares in how that went
+    // Influence (see INFLUENCE_JOY): as a hearer, how far the call it heard moved its choice, the turn that was judged, and
+    // what that call held (0 none, 1 a thing-word, 2 a deed-word, 3 a name, 4 a concept-word) and its first sound; as a
+    // caller, its call's influence this turn and on how many, and in its life, its influence felt and hearers moved.
+    double influence_given = 0.0;
+    int influence_turn = -1, influence_kind = 0, influence_sound = -1;
+    double influence_credit = 0.0;
+    int influence_hearers = 0;
+    double influence_life = 0.0;
+    int influence_moved = 0;
     // Its last call's lesson, held a turn for what it then did to those who heard it (Call empathy): the senses it called
     // by, the outputs of its sounds (and of where it stopped), the target, and whether one is held.
     Senses call_senses{};
@@ -2290,6 +2315,18 @@ public:
         double shift = 0.0;                          // summed: how far its regard moved
     };
     const std::array<GossipTally, 4>& gossip_tally() const { return gossip_tally_; }
+    struct InfluenceTally {  // since the world began or was loaded (see INFLUENCE_JOY)
+        long long credited = 0, moved = 0;           // hearers whose influence was credited; of them, moved by more than 0.05
+        double sum = 0.0;                             // the influence credited
+        std::array<long long, 5> kind_count{};        // by what the call held: none, a thing-word, deed-word, name, concept-word
+        std::array<double, 5> kind_sum{};
+        std::array<long long, 5> sound_count{};       // by its first sound
+        std::array<double, 5> sound_sum{};
+    };
+    const std::array<InfluenceTally, 4>& influence_tally() const { return influence_tally_; }
+    static Senses deafened(const Senses& senses);  // all heard this turn taken out (see INFLUENCE_JOY)
+    void reindex_callers() { index_callers(); }  // for tests: who called last turn, as all would hear them
+    std::size_t callers_heard() const { return callers_.size(); }
     struct InitiativeTally {  // since the world began or was loaded (see BABBLE, ANSWERED_JOY)
         long long calls = 0, babbled = 0, babble_addressed = 0, answered_back = 0, answered_heeded = 0;
     };
@@ -3086,6 +3123,7 @@ private:
     std::array<LexiconTally, 4> name_tally_{};
     std::array<LexiconTally, 4> deed_tally_{};
     std::array<GossipTally, 4> gossip_tally_{};
+    std::array<InfluenceTally, 4> influence_tally_{};
     std::array<InitiativeTally, 4> initiative_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;

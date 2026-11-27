@@ -2435,5 +2435,17 @@
 "Conversation joy": "对话之乐",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "一次交流给双方此值乘以其社交性与谈话价值，不论说了什么；0为无",
 "Concept-words": "概念词",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "表示想法（计划目标与价值）的词，每点智力及多一个，于倾诉与教导时确定；0为无"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "表示想法（计划目标与价值）的词，每点智力及多一个，于倾诉与教导时确定；0为无",
+"Influence joy": "影响之乐",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "呼唤者因其呼唤改变听者选择的程度而感到的快乐，乘以社交性与谈话价值；0为无",
+"Influence lesson": "影响之教",
+"how much of its call's influence on its hearers is added to that call's own lesson": "呼唤对听者的影响中加入该呼唤之教的份额",
+"Influence hearers": "影响听者数",
+"the most hearers whose influence a call is credited with": "一次呼唤最多计入影响的听者数",
+"Influence sample": "影响抽样",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "为测量呼唤影响而以失聪状态再思考一次的听者比例；越少越快",
+"Influence only useful": "仅计有益影响",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1：只计入本回合至少如预期般顺利的听者所受的影响",
+"Deaf": "失聪",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1：没有动物听到别者的呼唤，用以判断言语是否重要（用于世界副本）"
 }

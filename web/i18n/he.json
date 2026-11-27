@@ -2435,5 +2435,17 @@
 "Conversation joy": "שמחת שיחה",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "חילופי דברים נותנים לכל צד ערך זה כפול חברותיותו וערך הדיבור שלו, יהיה הנאמר אשר יהיה; 0 לאף אחת",
 "Concept-words": "מילות מושגים",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "מילים לרעיונות (מטרות פרויקט וערכים) לכל נקודת תבונה ועוד אחת, נקבעות בשיתוף ובהוראה; 0 לאף אחת"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "מילים לרעיונות (מטרות פרויקט וערכים) לכל נקודת תבונה ועוד אחת, נקבעות בשיתוף ובהוראה; 0 לאף אחת",
+"Influence joy": "שמחת השפעה",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "שמחת הקורא על כמה קריאתו הזיזה את בחירת שומעיו, כפול חברותיותו וערך הדיבור; 0 לאף אחת",
+"Influence lesson": "שיעור השפעה",
+"how much of its call's influence on its hearers is added to that call's own lesson": "כמה מהשפעת הקריאה על שומעיה נוסף לשיעור של אותה קריאה",
+"Influence hearers": "שומעי השפעה",
+"the most hearers whose influence a call is credited with": "מרב השומעים שהשפעתם נזקפת לקריאה",
+"Influence sample": "מדגם השפעה",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "חלק השומעים הנחשבים פעם שנייה כחירשים כדי למדוד השפעת קריאה; פחות מהיר יותר",
+"Influence only useful": "רק השפעה מועילה",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: השפעת קריאה נספרת רק משומע שתורו עבר לפחות כמצופה",
+"Deaf": "חירשים",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: אף חיה אינה שומעת קריאת אחרת, כדי לבחון אם למילים יש משמעות (להעתקי עולמות)"
 }

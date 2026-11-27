@@ -2435,5 +2435,17 @@
 "Conversation joy": "Радість розмови",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "обмін дає кожній стороні стільки, помножене на її товариськість і цінність розмови, хоч би що було сказано; 0 — жодної",
 "Concept-words": "Слова понять",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "слова для ідей (цілей проєктів і цінностей), на кожен пункт інтелекту й ще одне, встановлені при довірі й навчанні; 0 — жодних"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "слова для ідей (цілей проєктів і цінностей), на кожен пункт інтелекту й ще одне, встановлені при довірі й навчанні; 0 — жодних",
+"Influence joy": "Радість впливу",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "радість того, хто кличе, від того, наскільки поклик змінив вибір слухачів, помножена на товариськість і цінність розмови; 0 — жодної",
+"Influence lesson": "Урок впливу",
+"how much of its call's influence on its hearers is added to that call's own lesson": "скільки впливу поклику на слухачів додається до уроку цього поклику",
+"Influence hearers": "Слухачі впливу",
+"the most hearers whose influence a call is credited with": "найбільше слухачів, чий вплив зараховують поклику",
+"Influence sample": "Вибірка впливу",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "частка слухачів, яких обмірковують удруге як глухих, щоб виміряти вплив поклику; менше — швидше",
+"Influence only useful": "Лише корисний вплив",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: вплив поклику рахується лише від слухача, чий хід минув щонайменше так, як він очікував",
+"Deaf": "Глухі",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: жодна тварина не чує поклику іншої, щоб з'ясувати, чи слова мають значення (для копій світів)"
 }

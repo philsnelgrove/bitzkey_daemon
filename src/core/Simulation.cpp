@@ -1479,6 +1479,23 @@ int call_reach(const Bitzkey& caller) {
     return std::min(MAX_CALL_REACH, std::max(1, static_cast<int>(py_round(CALL_REACH * (0.5 + caller.physique(Size))))));
 }
 
+Senses Simulation::deafened(const Senses& senses) {
+    Senses deaf = senses;
+    const auto clear = [&](int from, int to) {
+        for (int sense = from; sense < to; ++sense) deaf[static_cast<std::size_t>(sense)] = 0.0;
+    };
+    clear(SenseHeardCall, SenseMemory);
+    clear(SenseCallerKnown, SenseCallerRegard + 1);
+    clear(SenseUtterance, SenseVoice + VOICE_SENSES);
+    clear(SensePointed + PointedAny, SensePointed + PointedCloseness + 1);
+    clear(SensePointed + Addressed, SensePointed + Addressed + 1);
+    clear(SenseMeant, SenseMeant + LEXICON_SENSES);
+    clear(SenseNamed, SenseNamed + NAME_SENSES);
+    clear(SenseMeantDeed, SenseMeantDeed + ACTION_COUNT);
+    clear(SenseUtterance2, SenseImagined);
+    return deaf;
+}
+
 void Simulation::index_callers() {
     // Each square's callers of last turn, in the order its list holds them, each with how far its call carries: so
     // each listener, sensing, looks at those who called alone, rather than at all about it.
@@ -1488,7 +1505,7 @@ void Simulation::index_callers() {
     for (std::size_t cell = 0; cell < area; ++cell) {
         caller_start_[cell] = static_cast<int>(callers_.size());
         for (Bitzkey* other : cells_[cell]) {
-            if (other->alive() && other->call >= FirstCall && other->call_turn == turn_ - 1) callers_.push_back({other, call_reach(*other)});
+            if (!DEAF && other->alive() && other->call >= FirstCall && other->call_turn == turn_ - 1) callers_.push_back({other, call_reach(*other)});  // see DEAF
         }
     }
     caller_start_[area] = static_cast<int>(callers_.size());
@@ -2341,6 +2358,7 @@ void Simulation::settle_call(Bitzkey& agent) {
     if (agent.call_listeners > 0) target += CALL_EMPATHY * agent.feeling(Empathy) * agent.call_credit / agent.call_listeners;
     if (agent.call_listeners > 0 && agent.held_intent >= 0) target += INTENT * agent.intent_met / static_cast<double>(agent.call_listeners);
     if (agent.arena_listeners > 0) target += ARENA_PAYOFF * agent.arena_credit / agent.arena_listeners;
+    target += INFLUENCE_LESSON * agent.influence_credit;  // how far it moved its hearers (see INFLUENCE_JOY)
     const bool pointed = agent.held_point >= 0 && agent.understood_count > 0;
     const double understood = pointed ? agent.understood_sum / agent.understood_count : 0.0;  // how much less surprised, on average
     target += UNDERSTOOD * understood;
@@ -2499,17 +2517,41 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
         agent->call_listeners = 0;
         agent->arena_credit = 0.0;
         agent->arena_listeners = 0;
+        agent->influence_credit = 0.0;
+        agent->influence_hearers = 0;
         agent->wishes_done = 0;
         agent->intent_met = 0;
         agent->wish_judged = wishing && agent->call_held && agent->has_last_senses && agent->chosen_turn == turn_ - 1;
         agent->wish_advantage = agent->wish_judged ? targets[index] - agent->chosen_value : 0.0;
     }
-    if (CALL_EMPATHY <= 0 && !wishing && ARENA_PAYOFF <= 0) return;
+    if (CALL_EMPATHY <= 0 && !wishing && ARENA_PAYOFF <= 0 && INFLUENCE_JOY <= 0 && INFLUENCE_LESSON <= 0) return;
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& listener = *agents[index];
         if (!listener.has_last_senses || listener.call_heeded < 0 || listener.chosen_turn != turn_ - 1) continue;
         Bitzkey* caller = find_agent(listener.call_heeded);
-        if (!caller || !caller->alive() || !caller->call_held || caller == &listener) continue;
+        if (!caller || !caller->alive() || caller == &listener) continue;
+        // Its call's influence on this one, now this one's turn is judged (see INFLUENCE_JOY).
+        if ((INFLUENCE_JOY > 0 || INFLUENCE_LESSON > 0) && listener.influence_turn == listener.chosen_turn && caller->influence_hearers < INFLUENCE_HEARERS &&
+            (!INFLUENCE_USEFUL || targets[index] - listener.chosen_value >= 0)) {
+            const double moved = listener.influence_given;
+            ++caller->influence_hearers;
+            caller->influence_credit += moved;
+            caller->influence_life += moved;
+            caller->influence_moved += moved > 0.05;
+            caller->reward += INFLUENCE_JOY * moved * caller->feeling(Sociability) * caller->value(TalkValue);
+            InfluenceTally& tally = influence_tally_[static_cast<std::size_t>(caller->species)];
+            ++tally.credited;
+            tally.moved += moved > 0.05;
+            tally.sum += moved;
+            const auto kind = static_cast<std::size_t>(std::clamp(listener.influence_kind, 0, 4));
+            ++tally.kind_count[kind];
+            tally.kind_sum[kind] += moved;
+            if (listener.influence_sound >= 0 && listener.influence_sound < 5) {
+                ++tally.sound_count[static_cast<std::size_t>(listener.influence_sound)];
+                tally.sound_sum[static_cast<std::size_t>(listener.influence_sound)] += moved;
+            }
+        }
+        if (!caller->call_held) continue;
         if (ARENA_PAYOFF > 0 && listener.blinded_turn == listener.chosen_turn) {  // the call was all it had: shared whole
             caller->arena_credit += targets[index] - listener.chosen_value;
             ++caller->arena_listeners;
@@ -2852,8 +2894,25 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         });
     }
     std::vector<Values> heard_as(hearing.size());
+    // Influence (see INFLUENCE_JOY): each hearer of a call, of a share of them, thought again with what it heard taken out.
+    std::vector<std::size_t> deaf_of;
+    std::vector<Senses> deaf_senses;
+    if ((INFLUENCE_JOY > 0 || INFLUENCE_LESSON > 0) && !DEAF) {
+        for (const std::size_t index : asked) {
+            const Bitzkey& agent = *agents[index];
+            const int from = plans[index].situation.heard_from;
+            if (from < 0 || from == agent.identifier || agent.species == Species::Plant) continue;
+            if (INFLUENCE_SAMPLE < 1.0 && whim(agent.identifier ^ 0x494E464C, turn_) >= INFLUENCE_SAMPLE) continue;
+            deaf_of.push_back(index);
+        }
+        deaf_senses.resize(deaf_of.size());
+        std::vector<std::size_t> order(deaf_of.size());
+        std::iota(order.begin(), order.end(), std::size_t{0});
+        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) { deaf_senses[at] = deafened(plans[deaf_of[at]].senses); });
+    }
+    std::vector<Values> deaf_values(deaf_senses.size());
     if (gpu_) {  // every brain at once, on the GPUs
-        const std::size_t all = asked.size() + hearing.size();
+        const std::size_t all = asked.size() + hearing.size() + deaf_senses.size();
         std::vector<gpu::BrainEngine::Handle> handles(all);
         std::vector<Senses> senses(all);
         std::vector<std::size_t> places(all);  // the batch put together, and taken apart, on every core
@@ -2862,9 +2921,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             if (place < asked.size()) {
                 handles[place] = agents[asked[place]]->gpu;
                 senses[place] = plans[asked[place]].senses;
-            } else {
+            } else if (place < asked.size() + hearing.size()) {
                 handles[place] = agents[speakers[place - asked.size()]]->gpu;
                 senses[place] = hearing[place - asked.size()];
+            } else {
+                const std::size_t at = place - asked.size() - hearing.size();
+                handles[place] = agents[deaf_of[at]]->gpu;
+                senses[place] = deaf_senses[at];
             }
         });
         std::vector<Values> batch(senses.size());
@@ -2872,7 +2935,8 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             if (!senses.empty()) gpu_->values(handles, senses, batch);
             std::for_each(std::execution::par, places.begin(), places.end(), [&](std::size_t place) {
                 if (place < asked.size()) values[asked[place]] = batch[place];
-                else heard_as[place - asked.size()] = batch[place];
+                else if (place < asked.size() + hearing.size()) heard_as[place - asked.size()] = batch[place];
+                else deaf_values[place - asked.size() - hearing.size()] = batch[place];
             });
         } catch (const std::runtime_error& error) {
             leave_gpu(error);  // and this turn's thinking is done on the CPU, below
@@ -2885,6 +2949,32 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         std::iota(places.begin(), places.end(), std::size_t{0});
         std::for_each(std::execution::par, places.begin(), places.end(),
                       [&](std::size_t place) { heard_as[place] = agents[speakers[place]]->brain->values(hearing[place]); });
+        std::vector<std::size_t> deaf_places(deaf_senses.size());
+        std::iota(deaf_places.begin(), deaf_places.end(), std::size_t{0});
+        std::for_each(std::execution::par, deaf_places.begin(), deaf_places.end(),
+                      [&](std::size_t at) { deaf_values[at] = agents[deaf_of[at]]->brain->values(deaf_senses[at]); });
+    }
+    {  // how far what it heard moved its choice, kept by each hearer till its turn is judged (see INFLUENCE_JOY)
+        std::vector<std::size_t> order(deaf_of.size());
+        std::iota(order.begin(), order.end(), std::size_t{0});
+        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) {
+            const std::size_t index = deaf_of[at];
+            Bitzkey& hearer = *agents[index];
+            const std::vector<int>& options = plans[index].options;
+            const auto heard = choice_odds(values[index], options), deaf = choice_odds(deaf_values[at], options);
+            double moved = 0.0;
+            for (std::size_t option = 0; option < heard.size() && option < deaf.size(); ++option) moved += std::abs(heard[option].second - deaf[option].second);
+            hearer.influence_given = std::min(1.0, 0.5 * moved / std::max(0.05, INFLUENCE_SAMPLE));
+            hearer.influence_turn = turn_;
+            hearer.influence_kind = 0;
+            hearer.influence_sound = -1;
+            if (const Bitzkey* caller = find_agent(plans[index].situation.heard_from)) {  // what that call held, as it was made
+                const int made = turn_ - 1;
+                hearer.influence_kind = caller->concept_spoke_turn == made ? 4 : caller->name_spoke_turn == made ? 3
+                                      : caller->deed_spoke_turn == made ? 2 : caller->lexicon_spoke_turn == made ? 1 : 0;
+                hearer.influence_sound = caller->call >= FirstCall ? caller->call - FirstCall : -1;
+            }
+        });
     }
     for (std::size_t speaker = 0; speaker + 1 < starts.size(); ++speaker) {  // how much nearer what it saw its call brings it
         const auto from = static_cast<std::ptrdiff_t>(starts[speaker]), to = static_cast<std::ptrdiff_t>(starts[speaker + 1]);
@@ -4052,7 +4142,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         // Prey it heard call last turn, out of sight: the nearest, the first met on a tie (see HUNTERS_HEAR).
         int nearest = std::numeric_limits<int>::max();
         for (Bitzkey* other : around(agent, MAX_CALL_REACH)) {
-            if (other->call < FirstCall || other->call_turn != turn_ - 1 || other->spoke_alone() || !other->alive() || !preys_on(agent, *other)) continue;
+            if (DEAF || other->call < FirstCall || other->call_turn != turn_ - 1 || other->spoke_alone() || !other->alive() || !preys_on(agent, *other)) continue;
             const int away = distance(other->x, other->y, agent.x, agent.y);
             if (away <= call_reach(*other) && (away < nearest || (away == nearest && other->identifier < s.quarry->identifier))) {
                 nearest = away;
@@ -4585,7 +4675,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             senses[SenseStandoutEsteem] = best;
             senses[SenseStandoutCloseness] = near;
             double heard = 0.0;  // its voice known among the rest, and from where, in sight or out of it
-            if (standout->call >= FirstCall && standout->call_turn == turn_ - 1 && away <= call_reach(*standout) &&
+            if (!DEAF && standout->call >= FirstCall && standout->call_turn == turn_ - 1 && away <= call_reach(*standout) &&
                 !standout->spoke_alone()) {  // not a call said to another alone
                 heard = 1 - static_cast<double>(away) / (call_reach(*standout) + 1);
             }
@@ -4708,7 +4798,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             }
         } else {
             for (Bitzkey* other : around(agent, furthest)) {
-                if (other->call >= FirstCall && other->call_turn == turn_ - 1) hear(other, call_reach(*other));
+                if (!DEAF && other->call >= FirstCall && other->call_turn == turn_ - 1) hear(other, call_reach(*other));
             }
         }
         if (addressed) {  // spoken to: that call is the one it hears, whatever else was louder

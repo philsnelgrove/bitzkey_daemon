@@ -6476,6 +6476,48 @@ TEST_CASE("concept-words: coined from a call made, kept and said again, taken on
     CHECK(Simulation::concept_on_mind(one) == PROJECT_AIMS + GloryValue);
 }
 
+TEST_CASE("influence: deafened senses hear nothing; a call that moved a hearer is credited to its caller, capped, and DEAF hears none") {
+    Senses heard{};
+    heard.fill(0.5);
+    const Senses deaf = Simulation::deafened(heard);
+    CHECK(deaf[static_cast<std::size_t>(SenseHeardCall)] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(utterance_sense(0, 0))] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(SenseMeant + Meant)] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(SenseNamed + Named)] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(SenseMeantDeed)] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(utterance2_sense(0, 0))] == 0.0);
+    CHECK(deaf[static_cast<std::size_t>(SenseMemory)] == 0.5);  // memory kept: only this turn's hearing is taken out
+    CHECK(deaf[static_cast<std::size_t>(SenseGoal)] == 0.5);
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    caller.mind[Sociability] = TRAIT_MAX;
+    const int now = simulation.turn();
+    hearer.has_last_senses = true;
+    hearer.call_heeded = caller.identifier;
+    hearer.chosen_turn = hearer.influence_turn = now - 1;
+    hearer.influence_given = 0.4;
+    caller.reward = 0.0;
+    simulation.credit_callers({&caller, &hearer}, {0.0, 0.0});
+    CHECK(caller.influence_hearers == 1);
+    CHECK(caller.influence_credit == doctest::Approx(0.4));
+    CHECK(caller.reward == doctest::Approx(INFLUENCE_JOY * 0.4 * caller.feeling(Sociability) * caller.value(TalkValue)));
+    CHECK(simulation.influence_tally()[static_cast<std::size_t>(Species::Omnivore)].moved == 1);
+    hearer.influence_turn = now - 5;  // a choice it made before: nothing
+    simulation.credit_callers({&caller, &hearer}, {0.0, 0.0});
+    CHECK(caller.influence_credit == 0.0);
+    // DEAF: a call made last turn is heard by none.
+    caller.call = FirstCall;
+    caller.call_turn = now - 1;
+    DEAF = 1;
+    simulation.reindex_callers();
+    CHECK(simulation.callers_heard() == 0);
+    DEAF = 0;
+    simulation.reindex_callers();
+    CHECK(simulation.callers_heard() == 1);
+}
+
 TEST_CASE("values: inherited from both parents and mutated a little, taught by a trusted teller, and scaling the joys they name") {
     Simulation simulation = world();
     Bitzkey& mother = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

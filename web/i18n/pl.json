@@ -2435,5 +2435,17 @@
 "Conversation joy": "Radość rozmowy",
 "an exchange gives each side this times its sociability and talk value, whatever was said; 0 for none": "wymiana daje każdej stronie tyle razy jej towarzyskość i wartość mowy, cokolwiek powiedziano; 0 bez",
 "Concept-words": "Słowa pojęć",
-"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "słowa na idee (cele projektów i wartości), na każdy punkt intelektu i jedno więcej, ustalane przy zwierzaniu i nauczaniu; 0 bez"
+"words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none": "słowa na idee (cele projektów i wartości), na każdy punkt intelektu i jedno więcej, ustalane przy zwierzaniu i nauczaniu; 0 bez",
+"Influence joy": "Radość wpływu",
+"joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none": "radość wołającego z tego, jak bardzo jego wołanie zmieniło wybory słuchaczy, razy towarzyskość i wartość mowy; 0 bez",
+"Influence lesson": "Lekcja wpływu",
+"how much of its call's influence on its hearers is added to that call's own lesson": "ile wpływu wołania na słuchaczy dodaje się do lekcji tego wołania",
+"Influence hearers": "Słuchacze wpływu",
+"the most hearers whose influence a call is credited with": "najwięcej słuchaczy, których wpływ zalicza się wołaniu",
+"Influence sample": "Próbka wpływu",
+"share of hearers thought a second time, deaf, to measure a call's influence; less is faster": "część słuchaczy rozważanych drugi raz jako głusi, by zmierzyć wpływ wołania; mniej to szybciej",
+"Influence only useful": "Tylko pożyteczny wpływ",
+"1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: wpływ wołania liczy się tylko od słuchacza, któremu tura poszła co najmniej tak dobrze, jak oczekiwał",
+"Deaf": "Głusi",
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: żadne zwierzę nie słyszy wołania innego, by ocenić, czy słowa mają znaczenie (dla kopii światów)"
 }

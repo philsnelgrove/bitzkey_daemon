@@ -4,7 +4,7 @@ Bitzkeys began as an arena of sorts.  It was a test to see who would be the last
 So, we started implementing rules... some of them are natural laws, and some of them are instinct.  The goal of these rules was to bring balance to the world.  The first such rules nerfed omnivores by buffing the food gathering of grazers and predators.
 The coming years brought numerous tweaks, balances and special case considerations.  What follows below, is a complete list of every rule and it's definition.  These are all configurable in the sim client.
 
-There are 607 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
+There are 613 rules in 13 sections. Each gives its default, the range it may be set within and the step it moves by. Rules declared together in the code, because they shape one behaviour, are listed as numbered subsections of the first of them; where such a rule sits in another section, the connection is noted beneath it.
 
 ## Contents
 
@@ -13,7 +13,7 @@ There are 607 rules in 13 sections. Each gives its default, the range it may be 
 3. [Breeding](#3-breeding) (33 rules)
 4. [Feelings](#4-feelings) (26 rules)
 5. [Society](#5-society) (17 rules)
-6. [Mind](#6-mind) (287 rules)
+6. [Mind](#6-mind) (293 rules)
 7. [Food](#7-food) (85 rules)
 8. [Fighting](#8-fighting) (30 rules)
 9. [Territory](#9-territory) (12 rules)
@@ -1527,6 +1527,42 @@ Default **0.3**; from 0 to 5, in steps of 0.05.
 Words for ideas (project aims and values) held for each point of intellect and one more, settled in confiding and teaching; 0 for none.
 
 Default **1**; from 0 to 10, in steps of 1.
+
+#### 6.36.13 Influence joy (`INFLUENCE_JOY`)
+
+Joy a caller feels for how far its call moved what its hearers chose, times its sociability and talk value; 0 for none.
+
+Default **0.5**; from 0 to 5, in steps of 0.05.
+
+#### 6.36.14 Influence lesson (`INFLUENCE_LESSON`)
+
+How much of its call's influence on its hearers is added to that call's own lesson.
+
+Default **1**; from 0 to 5, in steps of 0.05.
+
+#### 6.36.15 Influence hearers (`INFLUENCE_HEARERS`)
+
+The most hearers whose influence a call is credited with.
+
+Default **3**; from 1 to 20, in steps of 1.
+
+#### 6.36.16 Influence sample (`INFLUENCE_SAMPLE`)
+
+Share of hearers thought a second time, deaf, to measure a call's influence; less is faster.
+
+Default **1**; from 0.05 to 1, in steps of 0.05.
+
+#### 6.36.17 Influence only useful (`INFLUENCE_USEFUL`)
+
+1: a call's influence counts only from a hearer whose turn went at least as well as it expected.
+
+Default **0**; from 0 to 1, in steps of 1.
+
+#### 6.36.18 Deaf (`DEAF`)
+
+1: no animal hears another's call, to judge whether words matter (for copies of worlds).
+
+Default **0**; from 0 to 1, in steps of 1.
 
 ### 6.37 Project learning (`PROJECT_RATE`)
 

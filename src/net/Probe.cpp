@@ -1881,6 +1881,18 @@ Json Probe::language(Simulation& world) const {
                        {"confirmed", made.confirmed}, {"overridden", made.overridden}, {"refused", made.refused}};
         }
         result[std::string(species_name(species))] = {
+            {"influence", [&] {  // since loaded (see INFLUENCE_JOY): how far calls moved what their hearers chose
+                 const Simulation::InfluenceTally& got = world.influence_tally()[static_cast<std::size_t>(species)];
+                 static constexpr std::array<const char*, 5> KINDS = {"no_word", "thing_word", "deed_word", "name", "concept_word"};
+                 Json by_kind = Json::object(), by_sound = Json::array();
+                 for (std::size_t kind = 0; kind < 5; ++kind) {
+                     by_kind[KINDS[kind]] = {{"hearers", got.kind_count[kind]}, {"mean", ratio(got.kind_sum[kind], static_cast<double>(got.kind_count[kind]))}};
+                     by_sound.push_back({{"hearers", got.sound_count[kind]}, {"mean", ratio(got.sound_sum[kind], static_cast<double>(got.sound_count[kind]))}});
+                 }
+                 return Json{{"deaf", DEAF != 0}, {"hearers_credited", got.credited}, {"mean_influence", ratio(got.sum, static_cast<double>(got.credited))},
+                             {"moved_share", ratio(static_cast<double>(got.moved), static_cast<double>(got.credited))},
+                             {"by_what_the_call_held", by_kind}, {"by_first_sound", by_sound}};
+             }()},
             {"initiative", [&] {  // see BABBLE and ANSWERED_JOY
                  const Simulation::InitiativeTally& got = world.initiative_tally()[static_cast<std::size_t>(species)];
                  return Json{{"calls", got.calls}, {"babbled", got.babbled}, {"babble_share", ratio(static_cast<double>(got.babbled), static_cast<double>(got.calls))},
