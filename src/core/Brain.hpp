@@ -260,13 +260,23 @@ constexpr int point_output(int point) { return point == PointOne ? POINT_ONE : p
 // first sound and up to two more, in places four to six, each valued apart: stopping there, or each of the five sounds.
 constexpr int SECOND_WORD = POINT_SELF + 1;
 constexpr int word2_output(int place, int sound) { return SECOND_WORD + place * SOUND_CHOICES + 1 + sound; }  // place 0..2
-constexpr int OUTPUT_COUNT = SECOND_WORD + MAX_SOUNDS * SOUND_CHOICES;
+// Messages (the user's design): after its words, a call may go on, unit by unit, all in the one turn: each unit one of the
+// five sounds, or a word it holds said whole (its thing-word for what it points at, its deed-word for what it does, its
+// name for the one it points at, its concept-word for what is on its mind), or stopping. Each is chosen by the same
+// brain, sensing what it has said so far, so what comes next may hang on what came before (see Simulation's MESSAGE_UNITS).
+enum Unit : int { UnitStop, UnitSound, UnitThing = UnitSound + 5, UnitDeed, UnitName, UnitConcept, UNIT_CHOICES };
+constexpr int UNIT_KINDS = UNIT_CHOICES - 1;  // as sensed, said or heard: the five sounds, then the four kinds of word
+constexpr int MAX_UNITS = 4;
+constexpr int MESSAGE_UNIT = SECOND_WORD + MAX_SOUNDS * SOUND_CHOICES;  // the first of them: stopping, then each unit
+constexpr int unit_output(int unit) { return MESSAGE_UNIT + unit; }
+constexpr int OUTPUT_COUNT = MESSAGE_UNIT + UNIT_CHOICES;
 // The output valuing, at `place` (1 the second sound, 2 the third), stopping (sound -1) or a sound 0..4.
 constexpr int sound_output(int place, int sound) { return MORE_SOUNDS + (place - 1) * SOUND_CHOICES + 1 + sound; }
 // Whether an output values a second or third sound (not stopping): a new brain holds back from them as from calling.
 constexpr bool later_sound(int output) {
     return (output >= MORE_SOUNDS && output < OUTSIDE && (output - MORE_SOUNDS) % SOUND_CHOICES != 0) ||
-           (output >= SECOND_WORD && output < OUTPUT_COUNT && (output - SECOND_WORD) % SOUND_CHOICES != 0);  // and a second word's
+           (output >= SECOND_WORD && output < MESSAGE_UNIT && (output - SECOND_WORD) % SOUND_CHOICES != 0) ||  // and a second word's
+           (output > MESSAGE_UNIT && output < OUTPUT_COUNT);  // and a message's units
 }
 using Foresight = std::array<double, FORESEEN>;
 static_assert(SenseMapFood == SenseMemory + MEMORY_NEURONS);
@@ -322,6 +332,8 @@ constexpr std::array<std::string_view, OUTPUT_COUNT> OUTPUTS = [] {
     names[POINT_SELF] = "point_self";
     constexpr std::array<std::string_view, MAX_SOUNDS * SOUND_CHOICES> second = {"fourth_stop", "fourth_call_1", "fourth_call_2", "fourth_call_3", "fourth_call_4", "fourth_call_5", "fifth_stop", "fifth_call_1", "fifth_call_2", "fifth_call_3", "fifth_call_4", "fifth_call_5", "sixth_stop", "sixth_call_1", "sixth_call_2", "sixth_call_3", "sixth_call_4", "sixth_call_5"};
     for (int output = 0; output < MAX_SOUNDS * SOUND_CHOICES; ++output) names[SECOND_WORD + output] = second[output];
+    constexpr std::array<std::string_view, UNIT_CHOICES> units = {"unit_stop", "unit_sound_1", "unit_sound_2", "unit_sound_3", "unit_sound_4", "unit_sound_5", "unit_thing_word", "unit_deed_word", "unit_name", "unit_concept_word"};
+    for (int unit = 0; unit < UNIT_CHOICES; ++unit) names[unit_output(unit)] = units[unit];
     return names;
 }();
 constexpr int SenseInborn = SenseMind + TEMPERAMENT_COUNT;  // then its dot's and social background's traits, as born, 0..1
@@ -400,7 +412,14 @@ static_assert(ACTION_COUNT <= 1 << IMAGINED_BITS);
 // A call (or silence) pictured is numbered after the actions, so foresight may learn what follows a call too.
 constexpr int imagined_call(int call) { return ACTION_COUNT + call; }
 static_assert(ACTION_COUNT + CALL_OPTIONS <= 1 << IMAGINED_BITS);
-constexpr int INPUT_SIZE = SenseImagined + IMAGINED_BITS;
+// Then a message's units (see MESSAGE_UNITS): what it has said so far as it chooses the next, place by place, each the
+// unit said there, 1, of the five sounds and the four kinds of word; and, the same way, the units of the loudest call it
+// heard, each the sound it began with and, for a word it holds, which kind of word it knows it as.
+constexpr int SenseSaid = SenseImagined + IMAGINED_BITS;
+constexpr int said_sense(int place, int kind) { return SenseSaid + UNIT_KINDS * place + kind; }  // kind 0..8, the unit less one
+constexpr int SenseHeardUnit = SenseSaid + MAX_UNITS * UNIT_KINDS;
+constexpr int heard_unit_sense(int place, int kind) { return SenseHeardUnit + UNIT_KINDS * place + kind; }
+constexpr int INPUT_SIZE = SenseHeardUnit + MAX_UNITS * UNIT_KINDS;
 // The senses as a brain reads them: each that runs 0..1 centred, read as -1..1, so that a lesson moves a neuron's weights
 // both ways (senses never below 0 push all its weights the same way, lesson after lesson, until the neuron jams at its
 // limit, the same whatever it senses, and learns no more); those already running -1..1 read as they are.
@@ -413,7 +432,7 @@ constexpr bool signed_sense(int sense) {
            sense == SenseMapDangerEast || sense == SenseMapDangerSouth || sense == SenseMapComfortEast || sense == SenseMapComfortSouth ||
            sense == SenseKnownRegard || sense == SenseKnownEast || sense == SenseKnownSouth || sense == SenseCallerRegard ||
            sense == SenseElderEast || sense == SenseElderSouth || sense == SenseOwnLandEast || sense == SenseOwnLandSouth ||
-           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense == SenseNamed + NamedRegard || sense == SenseGoal + GoalOneRegard || sense == SenseGoal + GoalEast || sense == SenseGoal + GoalSouth || sense == SensePlan + PlanEast || sense == SensePlan + PlanSouth || sense == SensePlan + PlanRaise || sense >= SenseImagined;
+           sense == SenseWarStanding || sense == SenseStandoutEast || sense == SenseStandoutSouth || sense == SenseLandOwnerRegard || sense == SenseNamed + NamedRegard || sense == SenseGoal + GoalOneRegard || sense == SenseGoal + GoalEast || sense == SenseGoal + GoalSouth || sense == SensePlan + PlanEast || sense == SensePlan + PlanSouth || sense == SensePlan + PlanRaise || (sense >= SenseImagined && sense < SenseImagined + IMAGINED_BITS);
 }
 constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "hunger", "health", "grass_here", "grass_seen", "grass_closeness", "mate_near", "mate_closeness",
@@ -452,7 +471,8 @@ constexpr std::array<std::string_view, INPUT_SIZE> SENSES = {
     "plan", "plan_progressing", "plan_east", "plan_south", "plan_site", "plan_group", "plan_kin", "plan_self", "plan_concept", "plan_raise",
     "meant", "meant_closeness", "named", "named_closeness", "named_regard", "named_me",
     "meant_eat", "meant_forage", "meant_browse", "meant_uproot", "meant_scavenge", "meant_feast", "meant_rest", "meant_court", "meant_breed", "meant_hunt", "meant_attack", "meant_defend", "meant_flee", "meant_herd", "meant_go_north", "meant_go_south", "meant_go_east", "meant_go_west", "meant_walk_north", "meant_walk_south", "meant_walk_east", "meant_walk_west", "meant_revisit", "meant_feed_young", "meant_teach", "meant_take_meat", "meant_take_fruit", "meant_drop_meat", "meant_drop_fruit", "meant_eat_pile", "meant_eat_carried", "meant_take_stone", "meant_take_bone", "meant_take_wood", "meant_drop_stone", "meant_drop_bone", "meant_drop_wood", "meant_dress", "meant_make_bone_axe", "meant_make_bone_armour", "meant_make_club", "meant_make_wood_armour", "meant_make_stone_axe", "meant_make_bow", "meant_make_wagon", "meant_take_gear", "meant_drop_weapon", "meant_drop_armour", "meant_cut", "meant_dig", "meant_light_fire", "meant_feed_fire", "meant_cook", "meant_construct", "meant_eat_seed", "meant_plant_seed", "meant_build_road", "meant_eat_marrow", "meant_fertilize", "meant_skin", "meant_demand", "meant_steal", "meant_give", "meant_offer", "meant_shoot", "meant_practise", "meant_tutor", "meant_hitch", "meant_unhitch", "meant_store_food", "meant_craft_arrows", "meant_address", "meant_learn", "meant_confide", "meant_challenge",
-    "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7"};
+    "heard_fourth_1", "heard_fourth_2", "heard_fourth_3", "heard_fourth_4", "heard_fourth_5", "heard_fifth_1", "heard_fifth_2", "heard_fifth_3", "heard_fifth_4", "heard_fifth_5", "heard_sixth_1", "heard_sixth_2", "heard_sixth_3", "heard_sixth_4", "heard_sixth_5", "imagined_1", "imagined_2", "imagined_3", "imagined_4", "imagined_5", "imagined_6", "imagined_7",
+    "said_unit_1_sound_1", "said_unit_1_sound_2", "said_unit_1_sound_3", "said_unit_1_sound_4", "said_unit_1_sound_5", "said_unit_1_thing_word", "said_unit_1_deed_word", "said_unit_1_name", "said_unit_1_concept_word", "said_unit_2_sound_1", "said_unit_2_sound_2", "said_unit_2_sound_3", "said_unit_2_sound_4", "said_unit_2_sound_5", "said_unit_2_thing_word", "said_unit_2_deed_word", "said_unit_2_name", "said_unit_2_concept_word", "said_unit_3_sound_1", "said_unit_3_sound_2", "said_unit_3_sound_3", "said_unit_3_sound_4", "said_unit_3_sound_5", "said_unit_3_thing_word", "said_unit_3_deed_word", "said_unit_3_name", "said_unit_3_concept_word", "said_unit_4_sound_1", "said_unit_4_sound_2", "said_unit_4_sound_3", "said_unit_4_sound_4", "said_unit_4_sound_5", "said_unit_4_thing_word", "said_unit_4_deed_word", "said_unit_4_name", "said_unit_4_concept_word", "heard_unit_1_sound_1", "heard_unit_1_sound_2", "heard_unit_1_sound_3", "heard_unit_1_sound_4", "heard_unit_1_sound_5", "heard_unit_1_thing_word", "heard_unit_1_deed_word", "heard_unit_1_name", "heard_unit_1_concept_word", "heard_unit_2_sound_1", "heard_unit_2_sound_2", "heard_unit_2_sound_3", "heard_unit_2_sound_4", "heard_unit_2_sound_5", "heard_unit_2_thing_word", "heard_unit_2_deed_word", "heard_unit_2_name", "heard_unit_2_concept_word", "heard_unit_3_sound_1", "heard_unit_3_sound_2", "heard_unit_3_sound_3", "heard_unit_3_sound_4", "heard_unit_3_sound_5", "heard_unit_3_thing_word", "heard_unit_3_deed_word", "heard_unit_3_name", "heard_unit_3_concept_word", "heard_unit_4_sound_1", "heard_unit_4_sound_2", "heard_unit_4_sound_3", "heard_unit_4_sound_4", "heard_unit_4_sound_5", "heard_unit_4_thing_word", "heard_unit_4_deed_word", "heard_unit_4_name", "heard_unit_4_concept_word"};
 // Senses that are mostly nothing, an event or a thing near, carried or worn, read as 0..2: off, they push nothing and
 // teach nothing, where read as -1 each was a steady push that, over dozens of them, jammed neurons; on, they count as
 // the centred senses do. Those off for 70% of the animals of every species, 135,000 turns into a world (2026-11-10).
@@ -475,7 +495,8 @@ inline constexpr std::array<std::uint8_t, INPUT_SIZE> SENSE_READINGS = [] {
     std::array<std::uint8_t, INPUT_SIZE> readings{};
     for (int sense = 0; sense < INPUT_SIZE; ++sense) {
         readings[static_cast<std::size_t>(sense)] = signed_sense(sense) ? SignedReading : CentredReading;
-        if (sense >= SenseGoal && sense < SenseGoal + GOAL_SENSES && !signed_sense(sense)) readings[static_cast<std::size_t>(sense)] = SparseReading;  // its goal
+        if (sense >= SenseGoal && sense < SenseGoal + GOAL_SENSES && !signed_sense(sense)) readings[static_cast<std::size_t>(sense)] = SparseReading;
+        if (sense >= SenseSaid) readings[static_cast<std::size_t>(sense)] = SparseReading;  // a message's units, said and heard  // its goal
         for (const std::string_view name : SPARSE_SENSES) {
             if (SENSES[static_cast<std::size_t>(sense)] == name) readings[static_cast<std::size_t>(sense)] = SparseReading;
         }
@@ -488,7 +509,7 @@ static_assert([] {
         for (const std::uint8_t each : SENSE_READINGS) found += each == reading;
     }
     return found;
-}() == static_cast<int>(SPARSE_SENSES.size()) + GOAL_SENSES - 3);  // each a sense it has, and the goal's but its signed three
+}() == static_cast<int>(SPARSE_SENSES.size()) + GOAL_SENSES - 3 + 2 * MAX_UNITS * UNIT_KINDS);  // each a sense it has, and the goal's but its signed three
 inline double read_sense(int sense, double value) {
     const std::uint8_t reading = SENSE_READINGS[static_cast<std::size_t>(sense)];
     return reading == SignedReading ? value : reading == SparseReading ? value * 2.0 : value * 2.0 - 1.0;

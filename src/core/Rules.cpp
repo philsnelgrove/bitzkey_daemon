@@ -283,6 +283,8 @@ std::vector<Rule> make_rules() {
         {"INFLUENCE_SAMPLE", "Mind", "Influence sample", "share of hearers thought a second time, deaf, to measure a call's influence; less is faster", 0.05, 1.0, 0.05, false, &INFLUENCE_SAMPLE},
         {"INFLUENCE_USEFUL", "Mind", "Influence only useful", "1: a call's influence counts only from a hearer whose turn went at least as well as it expected", 0, 1, 1, true, &INFLUENCE_USEFUL},
         {"DEAF", "Mind", "Deaf", "1: no animal hears another's call, to judge whether words matter (for copies of worlds)", 0, 1, 1, true, &DEAF},
+        {"MESSAGE_UNITS", "Mind", "Message units", "the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none", 0, 4, 1, true, &MESSAGE_UNITS},
+        {"ORDER_SAMPLE", "Mind", "Order sample", "share of hearers of two units or more thought again with the units reversed, to measure whether order matters", 0.0, 1.0, 0.05, false, &ORDER_SAMPLE},
         {"HELP_WITNESS", "Mind", "Help witnessed", "share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none", 0.0, 1.0, 0.05, false, &HELP_WITNESS},
         {"PROJECT_RATE", "Mind", "Project learning", "how fast an animal learns, from its own life, which long aims rose (or fell) before it felt good, sampled every few turns; 0 for none", 0.0, 1.0, 0.01, false, &PROJECT_RATE},
         {"PROJECT_EVERY", "Mind", "Project sampling", "turns between an animal's samples of the world's long aims, learnt against how good it felt between them", 1, 480, 1, true, &PROJECT_EVERY},

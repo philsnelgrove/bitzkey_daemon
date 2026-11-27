@@ -644,6 +644,19 @@ inline int INFLUENCE_USEFUL = 0;
 // For experiments on a copy of a world: DEAF 1 and no animal hears another's call (the hard-wired alert aside), to
 // judge whether words matter, by how the animals fare without them.
 inline int DEAF = 0;
+// Messages (the user's design): a call may go on after its words with up to MESSAGE_UNITS units, all one action in
+// one turn (see Brain's Unit), each chosen by its brain sensing what it has said so far, and each costing as a sound.
+// Hearers sense the units of the loudest call place by place. Each unit is taught as the call is, with its influence.
+// A call's influence is now weighed against the same call scrambled (its sounds and units drawn anew, the same length,
+// its words unknown), not against silence, so what pays is what was said, not that something was. ORDER_SAMPLE of the
+// hearers of two units or more are thought once more with the units reversed, to measure whether order matters.
+inline int MESSAGE_UNITS = 4;
+inline double ORDER_SAMPLE = 0.1;
+struct MessageUnit {
+    int unit = UnitStop;                            // what was chosen (see Brain's Unit)
+    int call = -1;                                  // as heard: its first sound, as a call
+    std::array<int, MAX_SOUNDS - 1> sounds{-1, -1};  // and its later sounds, a word's
+};
 // Projects (the user's design): long aims, about a site, a group, its kin, itself or a idea, each a quantity of the
 // world it may raise or lower (ProjectAim). Every PROJECT_EVERY turns each animal samples them, and learns at
 // PROJECT_RATE how far each moved with how good it felt meanwhile: what it values, from its own life; a newborn starts
@@ -1805,6 +1818,15 @@ struct Bitzkey {
     int influence_hearers = 0;
     double influence_life = 0.0;
     int influence_moved = 0;
+    // A message (see MESSAGE_UNITS): its units this turn, how many, and whether it stopped of its own choice; those of
+    // its last call, held to be taught; and how many units the loudest call it heard ran to.
+    std::array<MessageUnit, MAX_UNITS> units{};
+    int unit_count = 0, units_turn = -1;
+    bool units_stopped = false;
+    std::array<MessageUnit, MAX_UNITS> held_units{};
+    int held_unit_count = 0;
+    bool held_units_stopped = false;
+    int heard_unit_count = 0;
     // Its last call's lesson, held a turn for what it then did to those who heard it (Call empathy): the senses it called
     // by, the outputs of its sounds (and of where it stopped), the target, and whether one is held.
     Senses call_senses{};
@@ -2325,6 +2347,20 @@ public:
     };
     const std::array<InfluenceTally, 4>& influence_tally() const { return influence_tally_; }
     static Senses deafened(const Senses& senses);  // all heard this turn taken out (see INFLUENCE_JOY)
+    static Senses scrambled(const Senses& senses, int seed);  // what it heard, its content drawn anew (see MESSAGE_UNITS)
+    static Senses reversed_units(const Senses& senses, int count);  // the units it heard, in the other order
+    static Senses with_said(const Senses& senses, const std::array<MessageUnit, MAX_UNITS>& units, int count);  // so far
+    static void hear_units(const Bitzkey& hearer, const Bitzkey& caller, Senses& senses);  // the loudest call's units
+    void speak_units(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, const std::vector<Senses>& senses);
+    struct MessageTally {  // since the world began or was loaded (see MESSAGE_UNITS)
+        long long calls = 0, with_units = 0, units = 0;
+        std::array<long long, UNIT_CHOICES> by_unit{};
+        std::array<std::array<long long, UNIT_KINDS>, UNIT_KINDS> pairs{};  // each unit and the next
+        std::array<std::array<long long, 4>, 4> word_pairs{};               // each word unit and the next word unit
+        long long order_judged = 0;
+        double order_moved = 0.0;
+    };
+    const std::array<MessageTally, 4>& message_tally() const { return message_tally_; }
     void reindex_callers() { index_callers(); }  // for tests: who called last turn, as all would hear them
     std::size_t callers_heard() const { return callers_.size(); }
     struct InitiativeTally {  // since the world began or was loaded (see BABBLE, ANSWERED_JOY)
@@ -3124,6 +3160,7 @@ private:
     std::array<LexiconTally, 4> deed_tally_{};
     std::array<GossipTally, 4> gossip_tally_{};
     std::array<InfluenceTally, 4> influence_tally_{};
+    std::array<MessageTally, 4> message_tally_{};
     std::array<InitiativeTally, 4> initiative_tally_{};
     std::array<IntentWindow, 4> intent_window_{};
     bool gathering_intent_ = false;

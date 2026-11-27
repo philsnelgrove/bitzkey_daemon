@@ -1881,6 +1881,51 @@ Json Probe::language(Simulation& world) const {
                        {"confirmed", made.confirmed}, {"overridden", made.overridden}, {"refused", made.refused}};
         }
         result[std::string(species_name(species))] = {
+            {"messages", [&] {  // since loaded (see MESSAGE_UNITS): how long, of what, in what order, and whether order matters
+                 const Simulation::MessageTally& got = world.message_tally()[static_cast<std::size_t>(species)];
+                 static constexpr std::array<const char*, UNIT_CHOICES> UNITS = {"stop", "sound_1", "sound_2", "sound_3", "sound_4", "sound_5", "thing_word", "deed_word", "name", "concept_word"};
+                 static constexpr std::array<const char*, 4> WORDS = {"thing_word", "deed_word", "name", "concept_word"};
+                 Json units = Json::object();
+                 for (int unit = 0; unit < UNIT_CHOICES; ++unit) units[UNITS[static_cast<std::size_t>(unit)]] = got.by_unit[static_cast<std::size_t>(unit)];
+                 // How much a unit tells of the next: their mutual information, in bits, against none by chance.
+                 double total = 0.0;
+                 std::array<double, UNIT_KINDS> rows{}, cols{};
+                 for (int a = 0; a < UNIT_KINDS; ++a) {
+                     for (int b = 0; b < UNIT_KINDS; ++b) {
+                         const double n = static_cast<double>(got.pairs[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)]);
+                         total += n;
+                         rows[static_cast<std::size_t>(a)] += n;
+                         cols[static_cast<std::size_t>(b)] += n;
+                     }
+                 }
+                 double bits = 0.0;
+                 for (int a = 0; a < UNIT_KINDS && total > 0; ++a) {
+                     for (int b = 0; b < UNIT_KINDS; ++b) {
+                         const double n = static_cast<double>(got.pairs[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)]);
+                         if (n > 0) bits += n / total * std::log2(n * total / (rows[static_cast<std::size_t>(a)] * cols[static_cast<std::size_t>(b)]));
+                     }
+                 }
+                 Json orders = Json::array();
+                 for (int a = 0; a < 4; ++a) {
+                     for (int b = 0; b < 4; ++b) {
+                         const long long n = got.word_pairs[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
+                         if (n > 0) orders.push_back({{"first", WORDS[static_cast<std::size_t>(a)]}, {"then", WORDS[static_cast<std::size_t>(b)]}, {"count", n}});
+                     }
+                 }
+                 return Json{{"calls", got.calls}, {"with_units_share", ratio(static_cast<double>(got.with_units), static_cast<double>(got.calls))},
+                             {"units_per_call", ratio(static_cast<double>(got.units), static_cast<double>(got.calls))}, {"units", units},
+                             {"unit_pairs", static_cast<long long>(total)}, {"next_unit_bits", bits},
+                             {"next_unit_bits_by_chance", [&] {  // what so few pairs would show of none (Miller-Madow)
+                                  int used_rows = 0, used_cols = 0;
+                                  for (int k = 0; k < UNIT_KINDS; ++k) {
+                                      used_rows += rows[static_cast<std::size_t>(k)] > 0;
+                                      used_cols += cols[static_cast<std::size_t>(k)] > 0;
+                                  }
+                                  return total > 0 ? std::max(0, used_rows - 1) * std::max(0, used_cols - 1) / (2.0 * total * std::log(2.0)) : 0.0;
+                              }()},
+                             {"word_orders", orders}, {"order_judged", got.order_judged},
+                             {"order_influence", ratio(got.order_moved, static_cast<double>(got.order_judged))}};
+             }()},
             {"influence", [&] {  // since loaded (see INFLUENCE_JOY): how far calls moved what their hearers chose
                  const Simulation::InfluenceTally& got = world.influence_tally()[static_cast<std::size_t>(species)];
                  static constexpr std::array<const char*, 5> KINDS = {"no_word", "thing_word", "deed_word", "name", "concept_word"};

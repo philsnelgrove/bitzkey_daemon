@@ -2447,5 +2447,9 @@
 "Influence only useful": "有益な影響のみ",
 "1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: 自分のターンが期待以上だった聞き手からのみ呼び声の影響を数える",
 "Deaf": "聴覚なし",
-"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: どの動物も他の呼び声を聞かない。言葉が意味を持つか確かめるため（世界の写しで）"
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: どの動物も他の呼び声を聞かない。言葉が意味を持つか確かめるため（世界の写しで）",
+"Message units": "伝言の単位",
+"the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none": "呼び声が言葉の後に続けられる単位（音、または丸ごとの言葉）の最大数。それぞれ前を知って選ぶ。0で無し",
+"Order sample": "語順の標本",
+"share of hearers of two units or more thought again with the units reversed, to measure whether order matters": "2単位以上を聞いた聞き手のうち、単位を逆順にしてもう一度考える割合。語順が重要か測るため"
 }

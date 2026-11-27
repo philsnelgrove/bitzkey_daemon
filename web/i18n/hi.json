@@ -2447,5 +2447,9 @@
 "Influence only useful": "केवल उपयोगी प्रभाव",
 "1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: पुकार का प्रभाव केवल उस श्रोता से गिना जाता है जिसकी बारी कम से कम अपेक्षा जितनी अच्छी गई",
 "Deaf": "बहरे",
-"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: कोई प्राणी दूसरे की पुकार नहीं सुनता, यह परखने को कि शब्द मायने रखते हैं (दुनिया की प्रतियों हेतु)"
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: कोई प्राणी दूसरे की पुकार नहीं सुनता, यह परखने को कि शब्द मायने रखते हैं (दुनिया की प्रतियों हेतु)",
+"Message units": "संदेश इकाइयाँ",
+"the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none": "अधिकतम इकाइयाँ (ध्वनियाँ, या पूरे शब्द) जिनसे पुकार अपने शब्दों के बाद आगे बढ़ सकती है, हर एक पिछले को जानकर चुनी; 0 कोई नहीं",
+"Order sample": "क्रम नमूना",
+"share of hearers of two units or more thought again with the units reversed, to measure whether order matters": "दो या अधिक इकाइयाँ सुनने वालों का भाग जिन्हें उल्टे क्रम से फिर सोचा जाता है, यह मापने को कि क्रम मायने रखता है"
 }

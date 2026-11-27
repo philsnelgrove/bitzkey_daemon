@@ -2447,5 +2447,9 @@
 "Influence only useful": "Nur nützlicher Einfluss",
 "1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1: der Einfluss eines Rufs zählt nur bei einem Hörer, dessen Zug mindestens so gut verlief wie erwartet",
 "Deaf": "Taub",
-"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: kein Tier hört den Ruf eines anderen, um zu prüfen, ob Wörter zählen (für Kopien von Welten)"
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1: kein Tier hört den Ruf eines anderen, um zu prüfen, ob Wörter zählen (für Kopien von Welten)",
+"Message units": "Nachrichteneinheiten",
+"the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none": "die meisten Einheiten (Laute oder ganze Wörter), mit denen ein Ruf nach seinen Wörtern weitergehen kann, jede in Kenntnis des Vorigen gewählt; 0 für keine",
+"Order sample": "Reihenfolgestichprobe",
+"share of hearers of two units or more thought again with the units reversed, to measure whether order matters": "Anteil der Hörer von zwei oder mehr Einheiten, die erneut mit umgekehrter Reihenfolge bedacht werden, um zu messen, ob Reihenfolge zählt"
 }

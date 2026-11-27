@@ -1496,6 +1496,187 @@ Senses Simulation::deafened(const Senses& senses) {
     return deaf;
 }
 
+Senses Simulation::scrambled(const Senses& senses, int seed) {
+    // The same call, the same length, its content drawn anew: its heard calls swapped among the five, each sound place
+    // that sounded given a sound at whim, each unit likewise and known as no word; words, names and deed-words unknown.
+    Senses out = senses;
+    std::array<int, CALL_COUNT> order{};
+    std::iota(order.begin(), order.end(), 0);
+    for (int at = CALL_COUNT - 1; at > 0; --at) std::swap(order[static_cast<std::size_t>(at)], order[static_cast<std::size_t>(std::min(at, static_cast<int>(whim(seed ^ (0x5C00 + at), 7) * (at + 1))))]);
+    for (int call = 0; call < CALL_COUNT; ++call) {
+        for (int part = 0; part < HEARD_SENSES; ++part)
+            out[static_cast<std::size_t>(heard_sense(FirstCall + order[static_cast<std::size_t>(call)], part))] = senses[static_cast<std::size_t>(heard_sense(FirstCall + call, part))];
+    }
+    int draw = 0;
+    const auto redraw = [&](auto sense_of) {
+        for (int place = 0; place < MAX_SOUNDS; ++place) {
+            bool sounded = false;
+            for (int sound = 0; sound < CALL_COUNT; ++sound) {
+                sounded = sounded || senses[static_cast<std::size_t>(sense_of(place, sound))] != 0.0;
+                out[static_cast<std::size_t>(sense_of(place, sound))] = 0.0;
+            }
+            if (sounded) out[static_cast<std::size_t>(sense_of(place, static_cast<int>(whim(seed ^ (0x5C20 + draw++), 7) * CALL_COUNT) % CALL_COUNT))] = 1.0;
+        }
+    };
+    redraw([](int place, int sound) { return utterance_sense(place, sound); });
+    redraw([](int place, int sound) { return utterance2_sense(place, sound); });
+    for (int place = 0; place < MAX_UNITS; ++place) {
+        bool sounded = false;
+        for (int kind = 0; kind < UNIT_KINDS; ++kind) {
+            sounded = sounded || senses[static_cast<std::size_t>(heard_unit_sense(place, kind))] != 0.0;
+            out[static_cast<std::size_t>(heard_unit_sense(place, kind))] = 0.0;
+        }
+        if (sounded) out[static_cast<std::size_t>(heard_unit_sense(place, static_cast<int>(whim(seed ^ (0x5C40 + place), 7) * CALL_COUNT) % CALL_COUNT))] = 1.0;
+    }
+    for (int sense = SenseMeant; sense < SenseMeant + LEXICON_SENSES; ++sense) out[static_cast<std::size_t>(sense)] = 0.0;
+    for (int sense = SenseNamed; sense < SenseNamed + NAME_SENSES; ++sense) out[static_cast<std::size_t>(sense)] = 0.0;
+    for (int deed = 0; deed < ACTION_COUNT; ++deed) out[static_cast<std::size_t>(SenseMeantDeed + deed)] = 0.0;
+    return out;
+}
+
+Senses Simulation::reversed_units(const Senses& senses, int count) {
+    Senses out = senses;
+    count = std::clamp(count, 0, MAX_UNITS);
+    for (int place = 0; place < count; ++place) {
+        for (int kind = 0; kind < UNIT_KINDS; ++kind)
+            out[static_cast<std::size_t>(heard_unit_sense(place, kind))] = senses[static_cast<std::size_t>(heard_unit_sense(count - 1 - place, kind))];
+    }
+    return out;
+}
+
+Senses Simulation::with_said(const Senses& senses, const std::array<MessageUnit, MAX_UNITS>& units, int count) {
+    Senses out = senses;
+    for (int place = 0; place < MAX_UNITS; ++place) {
+        for (int kind = 0; kind < UNIT_KINDS; ++kind) out[static_cast<std::size_t>(said_sense(place, kind))] = 0.0;
+    }
+    for (int place = 0; place < std::min(count, MAX_UNITS); ++place) {
+        const int unit = units[static_cast<std::size_t>(place)].unit;
+        if (unit > UnitStop && unit < UNIT_CHOICES) out[static_cast<std::size_t>(said_sense(place, unit - 1))] = 1.0;
+    }
+    return out;
+}
+
+void Simulation::hear_units(const Bitzkey& hearer, const Bitzkey& caller, Senses& senses) {
+    // The loudest call's units, place by place: the sound each began with, and for one it holds as a word, which kind.
+    for (int place = 0; place < caller.unit_count && place < MAX_UNITS; ++place) {
+        const MessageUnit& unit = caller.units[static_cast<std::size_t>(place)];
+        if (unit.call < FirstCall) continue;
+        senses[static_cast<std::size_t>(heard_unit_sense(place, unit.call - FirstCall))] = 1.0;
+        const auto holds = [&](const std::vector<LexiconWord>& words) {
+            return std::any_of(words.begin(), words.end(), [&](const LexiconWord& word) { return word.call == unit.call && word.sounds == unit.sounds; });
+        };
+        if (holds(hearer.lexicon)) senses[static_cast<std::size_t>(heard_unit_sense(place, UnitThing - 1))] = 1.0;
+        if (holds(hearer.deeds)) senses[static_cast<std::size_t>(heard_unit_sense(place, UnitDeed - 1))] = 1.0;
+        if (holds(hearer.names)) senses[static_cast<std::size_t>(heard_unit_sense(place, UnitName - 1))] = 1.0;
+        if (holds(hearer.concepts)) senses[static_cast<std::size_t>(heard_unit_sense(place, UnitConcept - 1))] = 1.0;
+    }
+}
+
+void Simulation::speak_units(const std::vector<Bitzkey*>& agents, const std::vector<int>& choices, const std::vector<Senses>& senses) {
+    // Each that called this turn goes on, unit by unit, all its brains asked at once for each place (see MESSAGE_UNITS).
+    std::vector<std::size_t> speaking;
+    for (std::size_t index = 0; index < agents.size(); ++index) {
+        Bitzkey& agent = *agents[index];
+        agent.unit_count = 0;
+        agent.units_stopped = false;
+        if (MESSAGE_UNITS > 0 && agent.call >= FirstCall && agent.call_turn == turn_ && agent.brain) {
+            agent.units_turn = turn_;
+            speaking.push_back(index);
+        }
+    }
+    // The word it would say whole, of each kind, or none.
+    const auto word_of = [this](const Bitzkey& agent, int unit, int choice) -> const LexiconWord* {
+        const auto find = [](const std::vector<LexiconWord>& words, int thing) -> const LexiconWord* {
+            for (const LexiconWord& word : words) {
+                if (word.thing == thing) return &word;
+            }
+            return nullptr;
+        };
+        if (unit == UnitThing) return agent.point >= 0 && agent.point < OUTSIDE_SEEN ? find(agent.lexicon, agent.point) : nullptr;
+        if (unit == UnitDeed) return find(agent.deeds, agent.point == PointSelf ? agent.point_one : choice);
+        if (unit == UnitName) return agent.point == PointOne ? find(agent.names, agent.point_one) : nullptr;
+        if (unit == UnitConcept) return find(agent.concepts, concept_on_mind(agent));
+        return nullptr;
+    };
+    for (int place = 0; place < std::min(MESSAGE_UNITS, MAX_UNITS) && !speaking.empty(); ++place) {
+        std::vector<Senses> asked(speaking.size());
+        std::vector<std::size_t> order(speaking.size());
+        std::iota(order.begin(), order.end(), std::size_t{0});
+        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) {
+            const Bitzkey& agent = *agents[speaking[at]];
+            asked[at] = with_said(senses[speaking[at]], agent.units, agent.unit_count);
+        });
+        std::vector<Values> valued(asked.size());
+        if (gpu_) {
+            std::vector<gpu::BrainEngine::Handle> handles(asked.size());
+            for (std::size_t at = 0; at < asked.size(); ++at) handles[at] = agents[speaking[at]]->gpu;
+            try {
+                gpu_->values(handles, asked, valued);
+            } catch (const std::runtime_error& error) {
+                leave_gpu(error);
+            }
+        }
+        if (!gpu_) std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) { valued[at] = agents[speaking[at]]->brain->values(asked[at]); });
+        std::vector<std::size_t> going_on;
+        for (std::size_t at = 0; at < speaking.size(); ++at) {
+            Bitzkey& agent = *agents[speaking[at]];
+            const int choice = choices[speaking[at]];
+            std::vector<int> outputs{unit_output(UnitStop)};
+            for (int sound = 0; sound < CALL_COUNT; ++sound) outputs.push_back(unit_output(UnitSound + sound));
+            for (const int unit : {UnitThing, UnitDeed, UnitName, UnitConcept}) {
+                if (word_of(agent, unit, choice)) outputs.push_back(unit_output(unit));
+            }
+            double roll = whim(agent.identifier ^ (0x554E4954 + place), turn_);
+            int picked = outputs[0];
+            for (const auto& [output, chance] : choice_odds(valued[at], outputs, CALL_TEMPERATURE)) {
+                roll -= chance;
+                picked = output;
+                if (roll < 0) break;
+            }
+            const int unit = picked - MESSAGE_UNIT;
+            if (unit == UnitStop) {
+                agent.units_stopped = true;
+                continue;
+            }
+            MessageUnit& said = agent.units[static_cast<std::size_t>(agent.unit_count)];
+            said = MessageUnit{};
+            said.unit = unit;
+            if (const LexiconWord* word = unit >= UnitThing ? word_of(agent, unit, choice) : nullptr) {
+                said.call = word->call;
+                said.sounds = word->sounds;
+            } else {
+                said.call = FirstCall + unit - UnitSound;
+            }
+            ++agent.unit_count;
+            going_on.push_back(speaking[at]);
+        }
+        speaking = std::move(going_on);
+    }
+    for (const Bitzkey* agent : agents) {  // tallied, in their order
+        if (agent->units_turn != turn_ || agent->call < FirstCall || agent->call_turn != turn_) continue;
+        MessageTally& tally = message_tally_[static_cast<std::size_t>(agent->species)];
+        ++tally.calls;
+        tally.with_units += agent->unit_count > 0;
+        tally.units += agent->unit_count;
+        for (int place = 0; place < agent->unit_count; ++place) {
+            const int unit = agent->units[static_cast<std::size_t>(place)].unit;
+            ++tally.by_unit[static_cast<std::size_t>(unit)];
+            if (place + 1 < agent->unit_count) {
+                const int next = agent->units[static_cast<std::size_t>(place + 1)].unit;
+                ++tally.pairs[static_cast<std::size_t>(unit - 1)][static_cast<std::size_t>(next - 1)];
+            }
+        }
+        int last_word = -1;
+        for (int place = 0; place < agent->unit_count; ++place) {
+            const int unit = agent->units[static_cast<std::size_t>(place)].unit;
+            if (unit < UnitThing) continue;
+            if (last_word >= 0) ++tally.word_pairs[static_cast<std::size_t>(last_word)][static_cast<std::size_t>(unit - UnitThing)];
+            last_word = unit - UnitThing;
+        }
+        if (agent->units_stopped || agent->unit_count < MESSAGE_UNITS) ++tally.by_unit[UnitStop];
+    }
+}
+
 void Simulation::index_callers() {
     // Each square's callers of last turn, in the order its list holds them, each with how far its call carries: so
     // each listener, sensing, looks at those who called alone, rather than at all about it.
@@ -2034,6 +2215,12 @@ int Simulation::sounds_made(const Bitzkey& agent) {
     if (agent.call < FirstCall) return 0;
     int made = 1;
     for (const int sound : agent.sounds) made += sound >= 0;
+    if (agent.units_turn == agent.call_turn) {  // and its message's units, each sound of each
+        for (int place = 0; place < agent.unit_count; ++place) {
+            made += 1;
+            for (const int sound : agent.units[static_cast<std::size_t>(place)].sounds) made += sound >= 0;
+        }
+    }
     return made;
 }
 
@@ -2046,6 +2233,9 @@ void Simulation::teach_call(Bitzkey& agent, const Senses& senses, const std::arr
         agent.call_outputs = outputs;
         agent.call2_outputs = utterance2_outputs(agent);
         agent.held_call_target = target;
+        agent.held_units = agent.units;  // its message's units, of the call it last made (see MESSAGE_UNITS)
+        agent.held_unit_count = agent.units_turn == turn_ - 1 ? agent.unit_count : 0;
+        agent.held_units_stopped = agent.units_turn == turn_ - 1 && agent.units_stopped;
         agent.held_intent = agent.intent;
         agent.held_point = agent.pointed_at(turn_ - 1);
         agent.held_learn = agent.learn_correct && agent.learn_turn == turn_ - 1 ? agent.learn_gain : 0.0;
@@ -2375,6 +2565,12 @@ void Simulation::settle_call(Bitzkey& agent) {
     }
     for (const int output : agent.call2_outputs) {  // and its second word, alike
         if (output >= 0) lesson(output, target, rate);
+    }
+    for (int place = 0; place < agent.held_unit_count + (agent.held_units_stopped ? 1 : 0) && place < MAX_UNITS; ++place) {  // and each unit, as it chose it
+        const int unit = place < agent.held_unit_count ? agent.held_units[static_cast<std::size_t>(place)].unit : UnitStop;
+        const Senses said = with_said(agent.call_senses, agent.held_units, place);
+        if (gpu_) queue_lesson(agent, said, unit_output(unit), target, rate, false, 0.0);
+        else learning_brain(agent).learn(said, unit_output(unit), target, rate);
     }
     // Its wishes: each deed its hearers did, taught by how its own turn went against what it expected.
     if (WISH_LEARNING > 0 && agent.wish_judged) {
@@ -2897,6 +3093,7 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
     // Influence (see INFLUENCE_JOY): each hearer of a call, of a share of them, thought again with what it heard taken out.
     std::vector<std::size_t> deaf_of;
     std::vector<Senses> deaf_senses;
+    std::size_t deaf_scrambles = 0;  // those scrambled; after them, those with the units reversed
     if ((INFLUENCE_JOY > 0 || INFLUENCE_LESSON > 0) && !DEAF) {
         for (const std::size_t index : asked) {
             const Bitzkey& agent = *agents[index];
@@ -2905,10 +3102,20 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
             if (INFLUENCE_SAMPLE < 1.0 && whim(agent.identifier ^ 0x494E464C, turn_) >= INFLUENCE_SAMPLE) continue;
             deaf_of.push_back(index);
         }
+        const std::size_t scrambles = deaf_of.size();
+        for (std::size_t at = 0; at < scrambles && ORDER_SAMPLE > 0; ++at) {  // and some, the units it heard reversed
+            const Bitzkey& agent = *agents[deaf_of[at]];
+            if (agent.heard_unit_count >= 2 && whim(agent.identifier ^ 0x4F524445, turn_) < ORDER_SAMPLE) deaf_of.push_back(deaf_of[at]);
+        }
         deaf_senses.resize(deaf_of.size());
         std::vector<std::size_t> order(deaf_of.size());
         std::iota(order.begin(), order.end(), std::size_t{0});
-        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) { deaf_senses[at] = deafened(plans[deaf_of[at]].senses); });
+        std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) {
+            const Bitzkey& agent = *agents[deaf_of[at]];
+            deaf_senses[at] = at < scrambles ? scrambled(plans[deaf_of[at]].senses, agent.identifier ^ turn_)
+                                             : reversed_units(plans[deaf_of[at]].senses, agent.heard_unit_count);
+        });
+        deaf_scrambles = scrambles;
     }
     std::vector<Values> deaf_values(deaf_senses.size());
     if (gpu_) {  // every brain at once, on the GPUs
@@ -2955,8 +3162,18 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
                       [&](std::size_t at) { deaf_values[at] = agents[deaf_of[at]]->brain->values(deaf_senses[at]); });
     }
     {  // how far what it heard moved its choice, kept by each hearer till its turn is judged (see INFLUENCE_JOY)
-        std::vector<std::size_t> order(deaf_of.size());
+        std::vector<std::size_t> order(deaf_scrambles);
         std::iota(order.begin(), order.end(), std::size_t{0});
+        for (std::size_t at = deaf_scrambles; at < deaf_of.size(); ++at) {  // whether order mattered, in their order
+            const std::size_t index = deaf_of[at];
+            const std::vector<int>& options = plans[index].options;
+            const auto heard = choice_odds(values[index], options), turned = choice_odds(deaf_values[at], options);
+            double moved = 0.0;
+            for (std::size_t option = 0; option < heard.size() && option < turned.size(); ++option) moved += std::abs(heard[option].second - turned[option].second);
+            MessageTally& tally = message_tally_[static_cast<std::size_t>(agents[index]->species)];
+            ++tally.order_judged;
+            tally.order_moved += 0.5 * moved;
+        }
         std::for_each(std::execution::par, order.begin(), order.end(), [&](std::size_t at) {
             const std::size_t index = deaf_of[at];
             Bitzkey& hearer = *agents[index];
@@ -3667,6 +3884,13 @@ void Simulation::think_all(const std::vector<Bitzkey*>& agents) {
         hearer.told_by = told[index] ? told[index]->identifier : -1;
         hearer.told_turn = turn_;
         hearer.told_surprise = hearer.outside_surprise;
+    }
+    if (MESSAGE_UNITS > 0) {  // each caller's message, unit by unit (see MESSAGE_UNITS)
+        clock = std::chrono::steady_clock::now();
+        std::vector<Senses> chose_by(agents.size());
+        for (std::size_t index = 0; index < agents.size(); ++index) chose_by[index] = plans[index].senses;
+        speak_units(agents, choices, chose_by);
+        timings.think += lap(clock);
     }
     if (gpu_) {  // the brains of all about to breed, and their mates', back from the GPUs at once
         std::vector<Bitzkey*> breeding;
@@ -4849,6 +5073,13 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         }
         const CallTag tag = call_tag(*caller, agent);  // and the tag it carries, read by all who hear it
         for (int part = 0; part < VOICE_SENSES; ++part) senses[voice_sense(part)] = tag[static_cast<std::size_t>(part)];
+        agent.heard_unit_count = 0;
+        if (caller->units_turn == turn_ - 1 && caller->call_turn == turn_ - 1) {  // and its message's units (see MESSAGE_UNITS)
+            hear_units(agent, *caller, senses);
+            agent.heard_unit_count = caller->unit_count;
+        }
+    } else {
+        agent.heard_unit_count = 0;
     }
     if (has_sea() && agent.terrain != Terrain::Avian && agent.terrain != Terrain::Amphibious) {
         for (int heading = 0; heading < 4; ++heading) {  // north, south, east, west: the nearest shore it can't cross

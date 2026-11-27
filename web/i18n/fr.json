@@ -2447,5 +2447,9 @@
 "Influence only useful": "Influence utile seulement",
 "1: a call's influence counts only from a hearer whose turn went at least as well as it expected": "1 : l'influence d'un appel ne compte que d'un auditeur dont le tour s'est passé au moins aussi bien qu'il l'attendait",
 "Deaf": "Sourds",
-"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1 : aucun animal n'entend l'appel d'un autre, pour juger si les mots comptent (pour des copies de mondes)"
+"1: no animal hears another's call, to judge whether words matter (for copies of worlds)": "1 : aucun animal n'entend l'appel d'un autre, pour juger si les mots comptent (pour des copies de mondes)",
+"Message units": "Unités du message",
+"the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none": "le plus d'unités (sons, ou mots dits entiers) dont un appel peut se poursuivre après ses mots, chacune choisie en sachant ce qui précède ; 0 pour aucune",
+"Order sample": "Échantillon d'ordre",
+"share of hearers of two units or more thought again with the units reversed, to measure whether order matters": "part des auditeurs de deux unités ou plus pensés de nouveau avec les unités inversées, pour mesurer si l'ordre compte"
 }

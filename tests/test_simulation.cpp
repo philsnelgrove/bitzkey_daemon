@@ -5206,8 +5206,9 @@ TEST_CASE("pointing: a caller points at one outside thing, its hearers read the 
     CHECK(OUTPUTS[ATTEND + AttendNo] == "ignore");
     CHECK(OUTPUTS[POINT_ONE] == "point_one");  // and pointing at one animal (see NAMES_SIZE)
     CHECK(OUTPUTS[POINT_SELF] == "point_self");  // and at itself (see DEEDS_SIZE)
-    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "sixth_call_5");  // then a second word's sounds (see CALL_WORDS)
-    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN + ATTEND_OPTIONS + 2 + MAX_SOUNDS * SOUND_CHOICES);
+    CHECK(OUTPUTS[MESSAGE_UNIT - 1] == "sixth_call_5");  // then a second word's sounds (see CALL_WORDS)
+    CHECK(OUTPUTS[OUTPUT_COUNT - 1] == "unit_concept_word");  // then a message's units (see MESSAGE_UNITS)
+    CHECK(OUTPUT_COUNT == POINT + OUTSIDE_SEEN + ATTEND_OPTIONS + 2 + MAX_SOUNDS * SOUND_CHOICES + UNIT_CHOICES);
     CHECK(SENSES[SensePointed + PointedAny] == "pointed");
     CHECK(SENSES[SensePointed + PointedCloseness] == "pointed_closeness");
     CHECK(SENSES[SensePointed + Attending] == "attending");
@@ -6516,6 +6517,49 @@ TEST_CASE("influence: deafened senses hear nothing; a call that moved a hearer i
     DEAF = 0;
     simulation.reindex_callers();
     CHECK(simulation.callers_heard() == 1);
+}
+
+TEST_CASE("messages: units said so far are sensed, heard units are known by kind, scrambled keeps the length and drops the words, reversed turns them about") {
+    std::array<MessageUnit, MAX_UNITS> units{};
+    units[0] = MessageUnit{UnitSound + 2, FirstCall + 2, {-1, -1}};
+    units[1] = MessageUnit{UnitThing, FirstCall + 1, {3, -1}};
+    Senses senses{};
+    const Senses said = Simulation::with_said(senses, units, 2);
+    CHECK(said[static_cast<std::size_t>(said_sense(0, UnitSound + 2 - 1))] == 1.0);
+    CHECK(said[static_cast<std::size_t>(said_sense(1, UnitThing - 1))] == 1.0);
+    CHECK(Simulation::with_said(senses, units, 1)[static_cast<std::size_t>(said_sense(1, UnitThing - 1))] == 0.0);
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    caller.units = units;
+    caller.unit_count = 2;
+    hearer.lexicon.push_back(LexiconWord{FirstCall + 1, {3, -1}, SenseGrassCloseness, 0.5, 0});
+    Senses heard{};
+    Simulation::hear_units(hearer, caller, heard);
+    CHECK(heard[static_cast<std::size_t>(heard_unit_sense(0, 2))] == 1.0);  // the third sound
+    CHECK(heard[static_cast<std::size_t>(heard_unit_sense(1, 1))] == 1.0);  // its first sound
+    CHECK(heard[static_cast<std::size_t>(heard_unit_sense(1, UnitThing - 1))] == 1.0);  // known as a thing-word
+    CHECK(heard[static_cast<std::size_t>(heard_unit_sense(0, UnitThing - 1))] == 0.0);
+    const Senses turned = Simulation::reversed_units(heard, 2);
+    CHECK(turned[static_cast<std::size_t>(heard_unit_sense(0, UnitThing - 1))] == 1.0);
+    CHECK(turned[static_cast<std::size_t>(heard_unit_sense(1, 2))] == 1.0);
+    heard[static_cast<std::size_t>(SenseMeant + Meant)] = 1.0;
+    heard[static_cast<std::size_t>(utterance_sense(0, 1))] = 1.0;
+    const Senses mixed = Simulation::scrambled(heard, 12345);
+    CHECK(mixed[static_cast<std::size_t>(SenseMeant + Meant)] == 0.0);
+    int place0 = 0, units_heard = 0, sounds_heard = 0;
+    for (int sound = 0; sound < CALL_COUNT; ++sound) sounds_heard += mixed[static_cast<std::size_t>(utterance_sense(0, sound))] != 0.0;
+    for (int place = 0; place < MAX_UNITS; ++place) {
+        int here = 0;
+        for (int kind = 0; kind < UNIT_KINDS; ++kind) here += mixed[static_cast<std::size_t>(heard_unit_sense(place, kind))] != 0.0;
+        units_heard += here > 0;
+        if (place == 0) place0 = here;
+    }
+    CHECK(sounds_heard == 1);  // the same length
+    CHECK(units_heard == 2);
+    CHECK(place0 == 1);  // a sound, known as no word
+    CHECK(OUTPUTS[static_cast<std::size_t>(unit_output(UnitConcept))] == "unit_concept_word");
+    CHECK(SENSES[static_cast<std::size_t>(heard_unit_sense(3, UnitConcept - 1))] == "heard_unit_4_concept_word");
 }
 
 TEST_CASE("values: inherited from both parents and mutated a little, taught by a trusted teller, and scaling the joys they name") {

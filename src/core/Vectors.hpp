@@ -6,7 +6,7 @@
 
 namespace bitzkey::vectors {
 
-inline constexpr std::size_t MOST = 512;  // the longest run dot takes
+inline constexpr std::size_t MOST = 640;  // the longest run dot takes
 
 // Whether the processor is going four at a time. `use_wide` turns that off and on, for the tests, and answers
 // what it was; on a processor that can't, it stays off.
