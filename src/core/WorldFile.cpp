@@ -395,6 +395,11 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
                     agent.wooed_turn, agent.came_turn, agent.wooed_taught_turn, agent.came_taught_turn, agent.wooed_said ? 1 : 0,
                     agent.matings, agent.wooed_count, agent.came_count, agent.wooed_far_total,
                     std::vector<int>(agent.woo_calls.begin(), agent.woo_calls.end())}},
+        {"heard_orders", [&] {  // see ORDER_JOY
+             std::vector<int> all;
+             for (const auto& row : agent.heard_orders) all.insert(all.end(), row.begin(), row.end());
+             return all;
+         }()},
         {"woo_senses", agent.woo_to >= 0 || agent.came_turn > agent.came_taught_turn ? numbers.senses(agent.woo_senses) : json(nullptr)},
         {"wooed_call", agent.wooed_said ? json{std::vector<int>(agent.wooed_senses.begin(), agent.wooed_senses.end()), std::vector<int>(agent.wooed_sounds.begin(), agent.wooed_sounds.end())} : json(nullptr)},
         {"sold_call", agent.sold_said ? json{std::vector<int>(agent.sold_senses.begin(), agent.sold_senses.end()), std::vector<int>(agent.sold_sounds.begin(), agent.sold_sounds.end())} : json(nullptr)},
@@ -846,6 +851,10 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         agent->wooed_far_total = w.at(13).get<int>();
         const auto calls = w.at(14).get<std::vector<int>>();
         for (std::size_t i = 0; i < agent->woo_calls.size() && i < calls.size(); ++i) agent->woo_calls[i] = calls[i];
+        if (record.contains("heard_orders")) {
+            const auto all = record.at("heard_orders").get<std::vector<int>>();
+            for (std::size_t i = 0; i < all.size() && i < 16; ++i) agent->heard_orders[i / 4][i % 4] = all[i];
+        }
         if (record.contains("woo_senses") && !record.at("woo_senses").is_null()) agent->woo_senses = numbers.senses(record.at("woo_senses"));
         else agent->came_taught_turn = std::max(agent->came_taught_turn, agent->came_turn);
         if (agent->woo_deed < 0) agent->woo_to = -1;

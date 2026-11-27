@@ -285,6 +285,8 @@ std::vector<Rule> make_rules() {
         {"DEAF", "Mind", "Deaf", "1: no animal hears another's call, to judge whether words matter (for copies of worlds)", 0, 1, 1, true, &DEAF},
         {"MESSAGE_UNITS", "Mind", "Message units", "the most units (sounds, or words said whole) a call may go on with after its words, each chosen knowing what came before; 0 for none", 0, 4, 1, true, &MESSAGE_UNITS},
         {"ORDER_SAMPLE", "Mind", "Order sample", "share of hearers of two units or more thought again with the units reversed, to measure whether order matters", 0.0, 1.0, 0.05, false, &ORDER_SAMPLE},
+        {"ORDER_JOY", "Mind", "Order joy", "joy a caller feels when its hearers heard its words in the order they are used to hearing (and pain when not), times its sociability and talk value; which order is not said; 0 for none", 0.0, 5.0, 0.05, false, &ORDER_JOY},
+        {"ORDER_LESSON", "Mind", "Order lesson", "how much of its hearers' agreement with its word order is added to that call's own lesson", 0.0, 5.0, 0.05, false, &ORDER_LESSON},
         {"HELP_WITNESS", "Mind", "Help witnessed", "share of the joy of helping that each who saw useful help feels, beside esteeming the helper; 0 for none", 0.0, 1.0, 0.05, false, &HELP_WITNESS},
         {"PROJECT_RATE", "Mind", "Project learning", "how fast an animal learns, from its own life, which long aims rose (or fell) before it felt good, sampled every few turns; 0 for none", 0.0, 1.0, 0.01, false, &PROJECT_RATE},
         {"PROJECT_EVERY", "Mind", "Project sampling", "turns between an animal's samples of the world's long aims, learnt against how good it felt between them", 1, 480, 1, true, &PROJECT_EVERY},

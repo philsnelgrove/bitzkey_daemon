@@ -2552,6 +2552,7 @@ void Simulation::settle_call(Bitzkey& agent) {
     if (agent.call_listeners > 0 && agent.held_intent >= 0) target += INTENT * agent.intent_met / static_cast<double>(agent.call_listeners);
     if (agent.arena_listeners > 0) target += ARENA_PAYOFF * agent.arena_credit / agent.arena_listeners;
     target += INFLUENCE_LESSON * agent.influence_credit;  // how far it moved its hearers (see INFLUENCE_JOY)
+    target += ORDER_LESSON * agent.order_credit;  // said as its hearers are used to hearing (see ORDER_JOY)
     const bool pointed = agent.held_point >= 0 && agent.understood_count > 0;
     const double understood = pointed ? agent.understood_sum / agent.understood_count : 0.0;  // how much less surprised, on average
     target += UNDERSTOOD * understood;
@@ -2718,12 +2719,14 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
         agent->arena_listeners = 0;
         agent->influence_credit = 0.0;
         agent->influence_hearers = 0;
+        agent->order_credit = 0.0;
+        agent->order_hearers = 0;
         agent->wishes_done = 0;
         agent->intent_met = 0;
         agent->wish_judged = wishing && agent->call_held && agent->has_last_senses && agent->chosen_turn == turn_ - 1;
         agent->wish_advantage = agent->wish_judged ? targets[index] - agent->chosen_value : 0.0;
     }
-    if (CALL_EMPATHY <= 0 && !wishing && ARENA_PAYOFF <= 0 && INFLUENCE_JOY <= 0 && INFLUENCE_LESSON <= 0) return;
+    if (CALL_EMPATHY <= 0 && !wishing && ARENA_PAYOFF <= 0 && INFLUENCE_JOY <= 0 && INFLUENCE_LESSON <= 0 && ORDER_JOY <= 0 && ORDER_LESSON <= 0) return;
     for (std::size_t index = 0; index < agents.size(); ++index) {
         const Bitzkey& listener = *agents[index];
         if (!listener.has_last_senses || listener.call_heeded < 0 || listener.chosen_turn != turn_ - 1) continue;
@@ -2749,6 +2752,16 @@ void Simulation::credit_callers(const std::vector<Bitzkey*>& agents, const std::
                 ++tally.sound_count[static_cast<std::size_t>(listener.influence_sound)];
                 tally.sound_sum[static_cast<std::size_t>(listener.influence_sound)] += moved;
             }
+        }
+        // Its word order, against this one's habit of hearing (see ORDER_JOY).
+        if ((ORDER_JOY > 0 || ORDER_LESSON > 0) && listener.order_turn == listener.chosen_turn && listener.order_from == caller->identifier &&
+            caller->order_hearers < INFLUENCE_HEARERS) {
+            ++caller->order_hearers;
+            caller->order_credit += listener.order_agreed;
+            caller->reward += ORDER_JOY * listener.order_agreed * caller->feeling(Sociability) * caller->value(TalkValue);
+            MessageTally& tally = message_tally_[static_cast<std::size_t>(caller->species)];
+            ++tally.agree_credited;
+            tally.agree_credit += listener.order_agreed;
         }
         if (!caller->call_held) continue;
         if (ARENA_PAYOFF > 0 && listener.blinded_turn == listener.chosen_turn) {  // the call was all it had: shared whole
@@ -5080,6 +5093,32 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         if (caller->units_turn == turn_ - 1 && caller->call_turn == turn_ - 1) {  // and its message's units (see MESSAGE_UNITS)
             hear_units(agent, *caller, senses);
             agent.heard_unit_count = caller->unit_count;
+            if (agent.order_turn != turn_) {  // its word pairs, against the ways round it has heard them (see ORDER_JOY)
+                int judged = 0, sum = 0, last = -1;
+                for (int place = 0; place < caller->unit_count && place < MAX_UNITS; ++place) {
+                    const int unit = caller->units[static_cast<std::size_t>(place)].unit;
+                    if (unit < UnitThing) continue;
+                    const int kind = unit - UnitThing;
+                    if (last >= 0 && last != kind) {
+                        const int with = agent.heard_orders[static_cast<std::size_t>(last)][static_cast<std::size_t>(kind)];
+                        const int against = agent.heard_orders[static_cast<std::size_t>(kind)][static_cast<std::size_t>(last)];
+                        ++judged;
+                        const int said = (with > against) - (with < against);
+                        sum += said;
+                        MessageTally& tally = message_tally_[static_cast<std::size_t>(agent.species)];
+                        ++tally.agree_judged;
+                        tally.agreed += said > 0;
+                        tally.disagreed += said < 0;
+                        ++agent.heard_orders[static_cast<std::size_t>(last)][static_cast<std::size_t>(kind)];
+                    }
+                    last = kind;
+                }
+                if (judged > 0) {
+                    agent.order_agreed = static_cast<double>(sum) / judged;
+                    agent.order_turn = turn_;
+                    agent.order_from = caller->identifier;
+                }
+            }
         }
     } else {
         agent.heard_unit_count = 0;

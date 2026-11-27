@@ -1960,6 +1960,9 @@ Json Probe::language(Simulation& world) const {
                              {"next_unit_bits_without_repeats_by_chance", changed_bits(true)},
                              {"word_orders", orders}, {"order_judged", got.order_judged},
                              {"order_influence", ratio(got.order_moved, static_cast<double>(got.order_judged))},
+                             {"agreement", {{"judged", got.agree_judged}, {"agreed_share", ratio(static_cast<double>(got.agreed), static_cast<double>(got.agree_judged))},
+                                            {"disagreed_share", ratio(static_cast<double>(got.disagreed), static_cast<double>(got.agree_judged))},
+                                            {"credited", got.agree_credited}, {"mean_credit", ratio(got.agree_credit, static_cast<double>(got.agree_credited))}}},
                              {"order_by_who", [&] {  // whether one order holds within a speaker, a realm, or mother and young
                                   // The share of a pair said its more usual way, against that share by chance (each way
                                   // equally likely: the expected majority of n fair coin tosses), so a habit that differs

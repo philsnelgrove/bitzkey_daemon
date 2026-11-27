@@ -6519,6 +6519,28 @@ TEST_CASE("influence: deafened senses hear nothing; a call that moved a hearer i
     CHECK(simulation.callers_heard() == 1);
 }
 
+TEST_CASE("order agreement: a hearer's agreement with its habit of hearing is credited to its caller it heard, felt and taught, either way") {
+    Simulation simulation = world();
+    Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 6, 5);
+    simulation.index_cells();
+    caller.mind[Sociability] = TRAIT_MAX;
+    const int now = simulation.turn();
+    hearer.has_last_senses = true;
+    hearer.call_heeded = caller.identifier;
+    hearer.chosen_turn = hearer.order_turn = now - 1;
+    hearer.order_from = caller.identifier;
+    hearer.order_agreed = -0.5;  // said against the way it is used to hearing
+    caller.reward = 0.0;
+    simulation.credit_callers({&caller, &hearer}, {0.0, 0.0});
+    CHECK(caller.order_hearers == 1);
+    CHECK(caller.order_credit == doctest::Approx(-0.5));
+    CHECK(caller.reward == doctest::Approx(ORDER_JOY * -0.5 * caller.feeling(Sociability) * caller.value(TalkValue)));
+    hearer.order_from = caller.identifier + 1;  // heard from another: nothing to this one
+    simulation.credit_callers({&caller, &hearer}, {0.0, 0.0});
+    CHECK(caller.order_credit == 0.0);
+}
+
 TEST_CASE("messages: units said so far are sensed, heard units are known by kind, scrambled keeps the length and drops the words, reversed turns them about") {
     std::array<MessageUnit, MAX_UNITS> units{};
     units[0] = MessageUnit{UnitSound + 2, FirstCall + 2, {-1, -1}};

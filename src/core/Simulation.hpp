@@ -652,6 +652,15 @@ inline int DEAF = 0;
 // hearers of two units or more are thought once more with the units reversed, to measure whether order matters.
 inline int MESSAGE_UNITS = 4;
 inline double ORDER_SAMPLE = 0.1;
+// Order agreement (the user's choice, after readings found hearers reading order while speakers kept none): each animal
+// remembers which way round it has heard each pair of kinds of word come in messages. A hearer of a message with two
+// word units of different kinds, one after the other, judges each such pair against what it has heard: the way it has
+// heard more often counts 1, the other -1, a pair it has heard equally or never 0; the mean of those, -1 to 1, is
+// credited to the caller the next turn as influence is (at most INFLUENCE_HEARERS hearers a call): added to the call's
+// lesson at ORDER_LESSON and felt as a joy at ORDER_JOY times its sociability and talk value. Which way round is not
+// said: only being said as one's hearers are used to hearing. 0 for none.
+inline double ORDER_JOY = 0.5;
+inline double ORDER_LESSON = 1.0;
 struct MessageUnit {
     int unit = UnitStop;                            // what was chosen (see Brain's Unit)
     int call = -1;                                  // as heard: its first sound, as a call
@@ -1816,6 +1825,13 @@ struct Bitzkey {
     int influence_turn = -1, influence_kind = 0, influence_sound = -1;
     double influence_credit = 0.0;
     int influence_hearers = 0;
+    // Order agreement (see ORDER_JOY): which way round it has heard each pair of word kinds; as a hearer, the last
+    // message's agreement with that, the turn it was heard, and from whom; as a caller, what its hearers credited.
+    std::array<std::array<int, 4>, 4> heard_orders{};
+    double order_agreed = 0.0;
+    int order_turn = -1, order_from = -1;
+    double order_credit = 0.0;
+    int order_hearers = 0;
     double influence_life = 0.0;
     int influence_moved = 0;
     // A message (see MESSAGE_UNITS): its units this turn, how many, and whether it stopped of its own choice; those of
@@ -2360,6 +2376,9 @@ public:
         std::array<std::array<long long, 4>, 4> word_pairs{};               // each word unit and the next word unit
         long long order_judged = 0;
         double order_moved = 0.0;
+        long long agree_judged = 0, agreed = 0, disagreed = 0;  // mixed word pairs heard, against the hearer's habit (see ORDER_JOY)
+        double agree_credit = 0.0;
+        long long agree_credited = 0;
     };
     const std::array<MessageTally, 4>& message_tally() const { return message_tally_; }
     void reindex_callers() { index_callers(); }  // for tests: who called last turn, as all would hear them
