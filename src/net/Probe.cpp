@@ -1905,6 +1905,39 @@ Json Probe::language(Simulation& world) const {
                          if (n > 0) bits += n / total * std::log2(n * total / (rows[static_cast<std::size_t>(a)] * cols[static_cast<std::size_t>(b)]));
                      }
                  }
+                 // The same, leaving out a unit followed by its own kind again: what is left is change, not repetition.
+                 const auto changed_bits = [&](bool by_chance) {
+                     double n_all = 0.0;
+                     std::array<double, UNIT_KINDS> r{}, c{};
+                     for (int x = 0; x < UNIT_KINDS; ++x) {
+                         for (int y = 0; y < UNIT_KINDS; ++y) {
+                             if (x == y) continue;
+                             const double n = static_cast<double>(got.pairs[static_cast<std::size_t>(x)][static_cast<std::size_t>(y)]);
+                             n_all += n;
+                             r[static_cast<std::size_t>(x)] += n;
+                             c[static_cast<std::size_t>(y)] += n;
+                         }
+                     }
+                     if (n_all <= 0) return 0.0;
+                     if (by_chance) {  // Miller-Madow, as above, over the cells that may be filled
+                         int used_r = 0, used_c = 0;
+                         for (int k = 0; k < UNIT_KINDS; ++k) {
+                             used_r += r[static_cast<std::size_t>(k)] > 0;
+                             used_c += c[static_cast<std::size_t>(k)] > 0;
+                         }
+                         return std::max(0, used_r - 1) * std::max(0, used_c - 1) / (2.0 * n_all * std::log(2.0));
+                     }
+                     double mi = 0.0;
+                     for (int x = 0; x < UNIT_KINDS; ++x) {
+                         for (int y = 0; y < UNIT_KINDS; ++y) {
+                             const double n = static_cast<double>(got.pairs[static_cast<std::size_t>(x)][static_cast<std::size_t>(y)]);
+                             if (x != y && n > 0) mi += n / n_all * std::log2(n * n_all / (r[static_cast<std::size_t>(x)] * c[static_cast<std::size_t>(y)]));
+                         }
+                     }
+                     return mi;
+                 };
+                 long long repeats = 0;
+                 for (int k = 0; k < UNIT_KINDS; ++k) repeats += got.pairs[static_cast<std::size_t>(k)][static_cast<std::size_t>(k)];
                  Json orders = Json::array();
                  for (int a = 0; a < 4; ++a) {
                      for (int b = 0; b < 4; ++b) {
@@ -1923,6 +1956,8 @@ Json Probe::language(Simulation& world) const {
                                   }
                                   return total > 0 ? std::max(0, used_rows - 1) * std::max(0, used_cols - 1) / (2.0 * total * std::log(2.0)) : 0.0;
                               }()},
+                             {"repeat_share", ratio(static_cast<double>(repeats), total)}, {"next_unit_bits_without_repeats", changed_bits(false)},
+                             {"next_unit_bits_without_repeats_by_chance", changed_bits(true)},
                              {"word_orders", orders}, {"order_judged", got.order_judged},
                              {"order_influence", ratio(got.order_moved, static_cast<double>(got.order_judged))}};
              }()},
