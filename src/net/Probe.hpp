@@ -114,6 +114,7 @@ public:
     Json values(Simulation& world) const;  // what each kind and colour group enjoys (see VALUE_KINDS)
     Json talk(Simulation& world) const;    // what each band of intellect and sociability talks about (see CONVERSE_JOY)
     Json culture(Simulation& world) const;  // projects and language: whether shared plans, holding one, sites and steps go with words and calls
+    Json terrain(Simulation& world) const;  // ridges, thickets, caves, windfalls and told places
     Json language(Simulation& world) const;  // what each call goes with and brings about, and whether neighbours, kin and groups share calls
     Json eavesdrop(Simulation& world) const;  // whether hunters that heard another kind's call went towards it, against those that heard none
     Json tellings(Simulation& world) const;   // every call made as animals last chose: who, its sounds, what most surprised it, what it did

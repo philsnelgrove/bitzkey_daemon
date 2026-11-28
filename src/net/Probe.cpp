@@ -1324,6 +1324,31 @@ Json Probe::eavesdrop(Simulation& world) const {
     return {{"turn", world.turn()}, {"species", result}};
 }
 
+// Terrain (see TERRAIN_RIDGES): the share of the land that is ridge and thicket, and the caves; windfalls (see
+// WINDFALL_DAYS) dropped, lying, and of those gone, the share anyone ate from, eaters each, and the share of eaters that
+// came by a told place; and places told (see TOLD_MEMORY), and of them, windfalls.
+Json Probe::terrain(Simulation& world) const {
+    long long land = 0, ridges = 0, thickets = 0, caves = 0;
+    for (int y = 0; y < world.height(); ++y) {
+        for (int x = 0; x < world.width(); ++x) {
+            if (world.sea(x, y)) continue;
+            ++land;
+            ridges += world.ridge_at(x, y);
+            thickets += world.thicket_at(x, y);
+            caves += world.ridge_at(x, y) && world.shelter_at(x, y);
+        }
+    }
+    const Simulation::WindfallTally& tally = world.windfall_tally();
+    const auto share = [](double part, double whole) { return whole > 0 ? part / whole : 0.0; };
+    return {{"turn", world.turn()}, {"land", land}, {"ridge_share", share(static_cast<double>(ridges), static_cast<double>(land))},
+            {"thicket_share", share(static_cast<double>(thickets), static_cast<double>(land))}, {"caves", caves}, {"line_of_sight", LINE_OF_SIGHT},
+            {"windfalls", {{"made", tally.made}, {"lying", world.windfalls_lying()}, {"gone", tally.gone},
+                           {"found_share", share(static_cast<double>(tally.found), static_cast<double>(tally.gone))},
+                           {"eaters_per_found", share(static_cast<double>(tally.eaters), static_cast<double>(tally.found))},
+                           {"told_eaters_share", share(static_cast<double>(tally.told_eaters), static_cast<double>(tally.eaters))}}},
+            {"told", {{"places", tally.told}, {"of_windfalls", tally.told_of_windfalls}}}};
+}
+
 Json Probe::language(Simulation& world) const {
     // Meaning is never assigned, only looked for, each against what chance gives:
     // - each free call's profile: how much likelier each thing is when it is made than over all choices (lift 1 is none);
@@ -3929,6 +3954,9 @@ void Probe::install(httplib::Server& server, const std::string& prefix) {
     }));
     server.Get(prefix + "/diary", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return diary(world); }));
+    }));
+    server.Get(prefix + "/terrain", answered([=, this](const httplib::Request&, httplib::Response& response) {
+        reply(response, looked([this](Simulation& world) { return terrain(world); }));
     }));
     server.Get(prefix + "/language", answered([=, this](const httplib::Request&, httplib::Response& response) {
         reply(response, looked([this](Simulation& world) { return language(world); }));

@@ -460,6 +460,12 @@ function drawMap() {
     const [x0, x1] = [Math.max(0, Math.floor(-geometry.x / cell) - 1), Math.min(frame.width, Math.ceil((view.w - geometry.x) / cell) + 1)];
     const [y0, y1] = [Math.max(0, Math.floor(-geometry.y / cell) - 1), Math.min(frame.height, Math.ceil((view.h - geometry.y) / cell) + 1)];
     const size = Math.round(cell);
+    const terrain = (x, y, square) => {  // ridges grey-brown, thickets dark green
+      if (!(square & 12)) return;
+      ctx.fillStyle = square & 4 ? 'rgba(122,104,84,0.67)' : 'rgba(34,82,40,0.7)';
+      ctx.fillRect(geometry.x + x * cell, geometry.y + y * cell, cell, cell);
+    };
+    if (cell < TEXTURE_FROM) for (let y = y0; y < y1; ++y) for (let x = x0; x < x1; ++x) terrain(x, y, frame.grass[y * frame.width + x]);
     if (cell >= TEXTURE_FROM) {  // the ground's texture by the temperature now (sand to ice), or waves at sea; grass as tufts
       for (let y = y0; y < y1; ++y) {
         const land = GROUNDS[Math.max(0, Math.min(3, Math.round(frame.temperatures[y])))];
@@ -467,6 +473,7 @@ function drawMap() {
           const square = frame.grass[y * frame.width + x];
           const variant = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % GROUND_VARIANTS;
           ctx.drawImage(groundTile(square & 2 ? 'sea' : land, size, variant), geometry.x + x * cell, geometry.y + y * cell, cell, cell);
+          terrain(x, y, square);
           if (square & 1) ctx.drawImage(grassTuft(size, (square & 2) !== 0), geometry.x + x * cell, geometry.y + y * cell, cell, cell);
         }
       }
@@ -947,6 +954,10 @@ function drawGlobeGround(frame) {
       const square = frame.grass[y * frame.width + x];
       ctx.fillStyle = square & 2 ? sea : zone;
       ctx.fillRect(x * per, y * per, per, per);
+      if (square & 12) {  // terrain
+        ctx.fillStyle = square & 4 ? 'rgb(122,104,84)' : 'rgb(34,82,40)';
+        ctx.fillRect(x * per, y * per, per, per);
+      }
       if (per >= TEXTURE_FROM) {
         const variant = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % GROUND_VARIANTS;
         ctx.drawImage(groundTile(square & 2 ? 'sea' : land, per, variant), x * per, y * per, per, per);

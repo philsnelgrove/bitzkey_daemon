@@ -6519,6 +6519,41 @@ TEST_CASE("influence: deafened senses hear nothing; a call that moved a hearer i
     CHECK(simulation.callers_heard() == 1);
 }
 
+TEST_CASE("terrain: a ridge or thicket between hides a square, one into it or beside is seen, and one on a ridge sees over") {
+    Simulation simulation = world();
+    Bitzkey& seer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 2, 5);
+    simulation.index_cells();
+    CHECK(simulation.in_view(seer, 8, 5));
+    simulation.set_relief(5, 5, 2);
+    CHECK_FALSE(simulation.in_view(seer, 8, 5));
+    CHECK(simulation.in_view(seer, 5, 5));
+    CHECK(simulation.in_view(seer, 3, 5));
+    CHECK(simulation.in_view(seer, 8, 8));
+    simulation.set_relief(2, 5, 1);
+    CHECK(simulation.in_view(seer, 8, 5));
+    LINE_OF_SIGHT = 0;
+    simulation.set_relief(2, 5, 0);
+    CHECK(simulation.in_view(seer, 8, 5));
+    LINE_OF_SIGHT = 1;
+}
+
+TEST_CASE("terrain: a pile behind a thicket is unseen, and a told place is sensed and sought though unseen") {
+    Simulation simulation = world();
+    Bitzkey& hearer = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 2, 5);
+    simulation.index_cells();
+    simulation.set_relief(4, 5, 2);
+    simulation.add_to_pile(6, 5, FruitPile, 5);
+    CHECK_FALSE(simulation.in_view(hearer, 6, 5));
+    hearer.told_kind = FruitPile;
+    hearer.told_x = 6;
+    hearer.told_y = 5;
+    hearer.told_until = simulation.turn() + 3;
+    CHECK(simulation.told_pile(hearer, FruitPile) == std::optional<Cell>(Cell{6, 5}));
+    CHECK_FALSE(simulation.told_pile(hearer, MeatPile));
+    hearer.told_until = simulation.turn() - 1;
+    CHECK_FALSE(simulation.told_pile(hearer, FruitPile));
+}
+
 TEST_CASE("order agreement: a hearer's agreement with its habit of hearing is credited to its caller it heard, felt and taught, either way") {
     Simulation simulation = world();
     Bitzkey& caller = simulation.add_agent(encode_dna(Species::Omnivore, {{"size", 3}}), 5, 5);

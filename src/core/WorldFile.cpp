@@ -400,6 +400,7 @@ json agent_record(const Bitzkey& agent, Numbers& numbers) {
              for (const auto& row : agent.heard_orders) all.insert(all.end(), row.begin(), row.end());
              return all;
          }()},
+        {"told", agent.told_kind >= 0 ? json{agent.told_kind, agent.told_x, agent.told_y, agent.told_until} : json(nullptr)},  // see TOLD_MEMORY
         {"woo_senses", agent.woo_to >= 0 || agent.came_turn > agent.came_taught_turn ? numbers.senses(agent.woo_senses) : json(nullptr)},
         {"wooed_call", agent.wooed_said ? json{std::vector<int>(agent.wooed_senses.begin(), agent.wooed_senses.end()), std::vector<int>(agent.wooed_sounds.begin(), agent.wooed_sounds.end())} : json(nullptr)},
         {"sold_call", agent.sold_said ? json{std::vector<int>(agent.sold_senses.begin(), agent.sold_senses.end()), std::vector<int>(agent.sold_sounds.begin(), agent.sold_sounds.end())} : json(nullptr)},
@@ -854,6 +855,13 @@ std::unique_ptr<Bitzkey> agent_from(const json& record, const Reader& numbers) {
         if (record.contains("heard_orders")) {
             const auto all = record.at("heard_orders").get<std::vector<int>>();
             for (std::size_t i = 0; i < all.size() && i < 16; ++i) agent->heard_orders[i / 4][i % 4] = all[i];
+        }
+        if (record.contains("told") && record.at("told").is_array() && record.at("told").size() == 4) {  // see TOLD_MEMORY
+            const json& told = record.at("told");
+            agent->told_kind = told.at(0).get<int>();
+            agent->told_x = told.at(1).get<int>();
+            agent->told_y = told.at(2).get<int>();
+            agent->told_until = told.at(3).get<int>();
         }
         if (record.contains("woo_senses") && !record.at("woo_senses").is_null()) agent->woo_senses = numbers.senses(record.at("woo_senses"));
         else agent->came_taught_turn = std::max(agent->came_taught_turn, agent->came_turn);
@@ -1401,6 +1409,13 @@ void WorldFile::write(Simulation& simulation, std::ostream& out) {
                       {"mind_mutation", simulation.mind_mutation_}, {"body_mutation", simulation.body_mutation_},
                       {"year_length", YEAR_LENGTH}, {"initial_grass", simulation.initial_grass_}, {"ocean", simulation.ocean_}}},
         {"sea", std::move(sea)},
+        {"relief", [&] {  // each square's terrain, a digit each (see TERRAIN_RIDGES)
+             std::string relief;
+             relief.reserve(simulation.relief_.size());
+             for (const std::uint8_t square : simulation.relief_) relief.push_back(static_cast<char>('0' + square));
+             if (relief.empty()) relief.assign(simulation.grass_.size(), '0');  // none grown: none, kept so
+             return relief;
+         }()},
         {"rules", std::move(rules)},
         {"turn", simulation.turn_}, {"deaths", simulation.deaths_}, {"next_identifier", simulation.next_identifier_},
         {"death_causes", std::move(death_causes)}, {"death_tally", std::move(death_tally)},
@@ -1649,6 +1664,16 @@ std::unique_ptr<Simulation> WorldFile::from_bytes(std::string_view data) {
         }
         world.stones_scattered_ = record.value("stones_scattered", false);
         world.scatter_stones();  // a world saved before stones has them now, the once
+        if (const std::string relief = record.value("relief", std::string()); relief.size() == world.grass_.size()) {
+            world.relief_.assign(relief.size(), 0);
+            world.relief_squares_ = 0;
+            for (std::size_t square = 0; square < relief.size(); ++square) {
+                world.relief_[square] = static_cast<std::uint8_t>(std::clamp(relief[square] - '0', 0, 2));
+                world.relief_squares_ += world.relief_[square] != 0;
+            }
+            world.relief_grown_ = true;
+        }
+        world.grow_relief();  // a world saved before terrain has it now, the once, caves and all
         world.seeds_.clear();
         for (const json& seed : record.at("seeds")) {
             world.seeds_.push_back({seed.at(0).get<int>(), seed.at(1).get<int>(), genome_from(seed.at(2)),

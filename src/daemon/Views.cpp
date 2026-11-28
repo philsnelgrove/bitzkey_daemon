@@ -264,7 +264,7 @@ std::string frame(const Simulation& simulation) {
     put<std::uint32_t>(out, static_cast<std::uint32_t>(trail_cells));
     for (int y = 0; y < height; ++y) put<float>(out, static_cast<float>(simulation.temperature(y)));
     for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) out.push_back(static_cast<char>((simulation.grass_at(x, y) > 0 ? 1 : 0) | (simulation.sea(x, y) ? 2 : 0)));  // and the sea
+        for (int x = 0; x < width; ++x) out.push_back(static_cast<char>((simulation.grass_at(x, y) > 0 ? 1 : 0) | (simulation.sea(x, y) ? 2 : 0) | (simulation.ridge_at(x, y) ? 4 : 0) | (simulation.thicket_at(x, y) ? 8 : 0)));  // the sea, and terrain
     }
     for (const auto& agent : agents) {
         put<std::uint32_t>(out, static_cast<std::uint32_t>(agent->identifier));

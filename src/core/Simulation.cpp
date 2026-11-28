@@ -162,6 +162,12 @@ double closeness(const Bitzkey& agent, std::optional<Cell> cell, int sight) {
     return std::min(1.0, 1 - static_cast<double>(distance(cell->x, cell->y, agent.x, agent.y) - 1) / sight);
 }
 
+// A pile's closeness, one told of beyond its sight (see TOLD_MEMORY) faint but above none.
+double pile_closeness(const Bitzkey& agent, std::optional<Cell> cell, int sight) {
+    if (!cell) return 0.0;
+    return closeness(agent, cell, std::max(sight, distance(cell->x, cell->y, agent.x, agent.y)));
+}
+
 std::optional<Cell> cell_of(const Bitzkey* agent) {
     if (!agent) return std::nullopt;
     return Cell{agent->x, agent->y};
@@ -474,6 +480,7 @@ Simulation::Simulation(Settings settings)
     grass_regrowth_ = initial_grass * GRASS_REGROWTH;
     sow(initial_grass);
     scatter_stones();
+    if (settings.population > 0) grow_relief();  // a world to live in; a bare one, as in tests, has none unless set
     if (settings.population > 0) {  // the plants first, and their head start; then the animals
         spawn_biomes(true);
         if (settings.pregrowth > 0) pregrow(settings.pregrowth);
@@ -1094,6 +1101,8 @@ void Simulation::take_turn() {
         if (agent->died_turn && turn_ - *agent->died_turn >= FRESH_KILL_TURNS) agent->meat = std::max(0.0, agent->meat - agent->rot);
     }
     if (any_piles_) spoil_piles();
+    settle_windfalls();
+    drop_windfall();
     go_fallow();
     rot_works();
     for (const auto& agent : agents_) {  // bodies rotted away, not eaten to the last portion, may feed a new plant
@@ -4209,7 +4218,7 @@ void Simulation::hushed_by_parent(Bitzkey& child, double rate) {
     for (const int id : {child.mother, child.father}) {
         const Bitzkey* parent = id >= 0 ? find_agent(id) : nullptr;
         if (!parent || !parent->alive() || parent->quiet_wish <= 0) continue;
-        if (distance(parent->x, parent->y, child.x, child.y) > sight_now(*parent)) continue;  // it must see its young call
+        if (distance(parent->x, parent->y, child.x, child.y) > sight_now(*parent) || !in_view(*parent, child.x, child.y)) continue;  // it must see its young call
         if (!hushing || parent->quiet_wish > hushing->quiet_wish) hushing = parent;
     }
     if (!hushing) return;
@@ -4229,7 +4238,7 @@ void Simulation::read_body_language(Bitzkey& listener, double target, double cal
     }
     const Bitzkey* caller = find_agent(listener.heard_from);
     if (!caller || !caller->alive() || !caller->has_last_senses || caller->last_call < FirstCall) return;
-    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener)) return;  // heard, but not seen
+    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener) || !in_view(listener, caller->x, caller->y)) return;  // heard, but not seen
     if (whim(~listener.identifier, turn_) >= BODY_LANGUAGE * listener.mind[Intellect]) return;  // seen, but not read
     const auto lesson = [&](const Senses& senses, int output, double value) {
         if (gpu_) queue_lesson(listener, senses, output, value, rate, false, 0.0);
@@ -4247,7 +4256,7 @@ void Simulation::copy_cue(Bitzkey& listener) {
     const Bitzkey* caller = find_agent(listener.heard_from);
     if (!caller || !caller->alive() || !caller->has_last_senses || caller->last_call < FirstCall || caller->species != listener.species) return;
     if (caller->call_kind == 1) return;  // a cry tells of pain, not of what it did
-    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener)) return;  // heard, but not seen
+    if (distance(caller->x, caller->y, listener.x, listener.y) > sight_now(listener) || !in_view(listener, caller->x, caller->y)) return;  // heard, but not seen
     if (whim(listener.identifier ^ 0xC0B1, turn_) >= CUE_COPY) return;
     listener.cues[static_cast<std::size_t>(caller->last_choice)] = static_cast<std::int8_t>(caller->last_call);
 }
@@ -4339,6 +4348,8 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     if (any_piles_) {
         s.meat_pile = nearest_pile(agent, sight, MeatPile);
         s.fruit_pile = nearest_pile(agent, sight, FruitPile);
+        if (!s.meat_pile) s.meat_pile = told_pile(agent, MeatPile);  // or one it was shown, unseen (see TOLD_MEMORY)
+        if (!s.fruit_pile) s.fruit_pile = told_pile(agent, FruitPile);
         // cooked food in sight first, then raw, then cooked food smelt beyond sight
         const int reach = std::min(MAX_SIGHT, std::max(sight, static_cast<int>(py_round(sight * SMELL_REACH))));
         const auto cooked_meat = nearest_pile(agent, reach, CookedMeatPile), cooked_fruit = nearest_pile(agent, reach, CookedFruitPile);
@@ -4348,6 +4359,9 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         s.stone_pile = nearest_pile(agent, sight, StonePile);
         s.bone_pile = nearest_pile(agent, sight, BonePile);
         s.wood_pile = nearest_pile(agent, sight, WoodPile);
+        if (!s.stone_pile) s.stone_pile = told_pile(agent, StonePile);
+        if (!s.bone_pile) s.bone_pile = told_pile(agent, BonePile);
+        if (!s.wood_pile) s.wood_pile = told_pile(agent, WoodPile);
         const bool room = agent.load() < agent.capacity();  // a tool beside those it has, if it has room to carry it
         for (const PileKind kind : {BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile}) {
             const bool wields = kind <= StoneAxePile;
@@ -4369,7 +4383,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         const Side side = tie_side(agent);
         for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
             const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-            if (fire_at(x, y) > turn_) {
+            if (fire_at(x, y) > turn_ && in_view(agent, x, y)) {
                 s.fire = Cell{x, y};
                 break;
             }
@@ -4396,7 +4410,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
                               : agent.species == Species::Omnivore ? OMNIVORE_MATING_CALL_RANGE
                                                                    : 0.0;
     if (!s.suitor && call_range > 0 && agent.can_breed()) {  // the mating call reaches further
-        for (Bitzkey* other : around(agent, static_cast<int>(std::min(call_range, MAX_MATING_CALL_RANGE) * sight))) {
+        for (Bitzkey* other : around(agent, static_cast<int>(std::min(call_range, MAX_MATING_CALL_RANGE) * sight), false)) {  // heard, so through terrain
             if (compatible(agent, *other) && other->can_breed()) {
                 s.suitor = other;
                 break;
@@ -4785,14 +4799,14 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
     senses[SenseLoad] = std::min(1.0, static_cast<double>(agent.load()) / agent.capacity());
     senses[SenseMeatCarried] = agent.load() ? static_cast<double>(agent.carried_meat) / agent.load() : 0.0;
     senses[SenseFruitCarried] = agent.load() ? static_cast<double>(agent.carried_fruit) / agent.load() : 0.0;
-    senses[SenseMeatPileCloseness] = closeness(agent, s.meat_pile, sight);
-    senses[SenseFruitPileCloseness] = closeness(agent, s.fruit_pile, sight);
+    senses[SenseMeatPileCloseness] = pile_closeness(agent, s.meat_pile, sight);
+    senses[SenseFruitPileCloseness] = pile_closeness(agent, s.fruit_pile, sight);
     senses[SenseStoneCarried] = agent.load() ? static_cast<double>(agent.carried_stone) / agent.load() : 0.0;
     senses[SenseBoneCarried] = agent.load() ? static_cast<double>(agent.carried_bone) / agent.load() : 0.0;
     senses[SenseWoodCarried] = agent.load() ? static_cast<double>(agent.carried_wood) / agent.load() : 0.0;
-    senses[SenseStonePileCloseness] = closeness(agent, s.stone_pile, sight);
-    senses[SenseBonePileCloseness] = closeness(agent, s.bone_pile, sight);
-    senses[SenseWoodPileCloseness] = closeness(agent, s.wood_pile, sight);
+    senses[SenseStonePileCloseness] = pile_closeness(agent, s.stone_pile, sight);
+    senses[SenseBonePileCloseness] = pile_closeness(agent, s.bone_pile, sight);
+    senses[SenseWoodPileCloseness] = pile_closeness(agent, s.wood_pile, sight);
     senses[SenseGearPileCloseness] = closeness(agent, s.gear_pile, sight);
     senses[SenseFireCloseness] = closeness(agent, s.fire, sight);
     senses[SenseFireFriendly] = s.fire && fire_friendly(agent, *s.fire);
@@ -5232,7 +5246,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
         // Attending, as it chose last turn: the one it watches, if still in sight, and that one's finger, where the thing
         // it points at lies for this one, not what it is; that thing kept clear, all else outside dimmed.
         const Bitzkey* watched = agent.attend_turn == turn_ - 1 && agent.attending >= 0 ? find_agent(agent.attending) : nullptr;
-        if (watched && watched->alive() && watched != &agent && distance(watched->x, watched->y, agent.x, agent.y) <= sight) {
+        if (watched && watched->alive() && watched != &agent && distance(watched->x, watched->y, agent.x, agent.y) <= sight && in_view(agent, watched->x, watched->y)) {
             senses[SensePointed + Attending] = 1.0;
             s.attend_to = watched->identifier;  // it may keep its focus, or lose it
             s.attend_known = recognises(agent, *watched);
@@ -5240,6 +5254,7 @@ Simulation::Sensed Simulation::sense(Bitzkey& agent, bool surveyed) {
             if (thing >= 0) {
                 s.pointed = thing;
                 s.pointed_from = watched->identifier;
+                if (TOLD_MEMORY > 0 && thing < OUTSIDE_SEEN && senses[OUTSIDE_SENSES[static_cast<std::size_t>(thing)]] <= 0) tell_place(agent, *watched, thing);
                 senses[SensePointed + PointedAny] = 1.0;
                 senses[SensePointed + PointedCloseness] = thing == PointSelf  ? closeness(agent, cell_of(watched), sight)
                                                         : thing == PointOne ? one_closeness(agent, watched->pointed_one_at(turn_ - 1), sight)
@@ -5674,7 +5689,7 @@ int Simulation::names_capacity(const Bitzkey& agent) {
 
 double Simulation::one_closeness(const Bitzkey& agent, int one, int sight) const {
     const Bitzkey* other = one >= 0 ? find_agent(one) : nullptr;
-    if (!other || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight) return 0.0;
+    if (!other || !other->alive() || distance(other->x, other->y, agent.x, agent.y) > sight || !in_view(agent, other->x, other->y)) return 0.0;
     return closeness(agent, cell_of(other), sight);
 }
 
@@ -5682,7 +5697,7 @@ int Simulation::one_to_point_at(const Bitzkey& agent, int prefer) const {
     const int sight = sight_now(agent);
     if (prefer >= 0) {
         const Bitzkey* other = find_agent(prefer);
-        if (other && other->alive() && other != &agent && distance(other->x, other->y, agent.x, agent.y) <= sight) return prefer;
+        if (other && other->alive() && other != &agent && distance(other->x, other->y, agent.x, agent.y) <= sight && in_view(agent, other->x, other->y)) return prefer;
     }
     const Bitzkey* named = nullptr;
     const Bitzkey* kind = nullptr;
@@ -7822,11 +7837,13 @@ void Simulation::perform(Bitzkey& agent, int action, Situation& s) {
         case WalkWest: {
             const Heading& heading = HEADINGS[static_cast<std::size_t>(action - GoNorth)];
             const int cells = heading.walk ? 1 : agent.pace();
-            int moved = 0;  // as far as it goes before the map's edge (north and south) or a full square
+            int moved = 0, spent = 0;  // as far as it goes before the map's edge (north and south) or a full square
             for (int step = 1; step <= cells; ++step) {
                 const int x = py_mod(agent.x + heading.dx * step, width_), y = agent.y + heading.dy * step;
                 if (y < 0 || y >= height_ || !can_enter(agent, Cell{x, y}) || room_in(Cell{x, y}, &agent) < agent.space()) break;
                 moved = step;
+                spent += THICKET_SLOW > 1 && thicket_at(x, y) ? THICKET_SLOW : 1;  // a thicket takes longer (see THICKET_SLOW)
+                if (spent >= cells) break;
             }
             if (moved) move(agent, py_mod(agent.x + heading.dx * moved, width_), agent.y + heading.dy * moved);
             if (heading.walk) {
@@ -8240,6 +8257,7 @@ void Simulation::take_meat(Bitzkey& agent, Situation& s) {
             return;
         }
         add_to_pile(s.meat_pile->x, s.meat_pile->y, true, -1);
+        windfall_eaten(agent, s.meat_pile->x, s.meat_pile->y);
         ++carrying[MeatFromPile];
     } else {
         Bitzkey& corpse = *s.kill;
@@ -8270,6 +8288,7 @@ void Simulation::take_fruit(Bitzkey& agent, Situation& s) {
             return;
         }
         add_to_pile(s.fruit_pile->x, s.fruit_pile->y, false, -1);
+        windfall_eaten(agent, s.fruit_pile->x, s.fruit_pile->y);
         ++carrying[FruitFromPile];
         ++agent.carried_fruit;
         agent.last_action = "took fruit";
@@ -8354,6 +8373,7 @@ void Simulation::eat_pile(Bitzkey& agent, Situation& s) {
         return;
     }
     add_to_pile(pile.x, pile.y, kind, -1);
+    windfall_eaten(agent, pile.x, pile.y);
     ++carrying[PileEaten];
     if (kind == FruitPile) keep_seed(agent);
     agent.nourish((eats_meat ? meat : fruit) * (kind == raw ? 1.0 : COOKED_FOOD), eats_meat);
@@ -8810,6 +8830,7 @@ void Simulation::cook(Bitzkey& agent, Situation& s) {
             break;
         case HandFood::MeatPile:
             add_to_pile(s.meat_pile->x, s.meat_pile->y, true, -1);
+        windfall_eaten(agent, s.meat_pile->x, s.meat_pile->y);
             ++carrying[MeatFromPile];
             ++agent.carried_meat;
             break;
@@ -8823,6 +8844,7 @@ void Simulation::cook(Bitzkey& agent, Situation& s) {
             break;
         case HandFood::FruitPile:
             add_to_pile(s.fruit_pile->x, s.fruit_pile->y, false, -1);
+        windfall_eaten(agent, s.fruit_pile->x, s.fruit_pile->y);
             ++carrying[FruitFromPile];
             ++agent.carried_fruit;
             break;
@@ -10412,6 +10434,7 @@ void Simulation::Around::iterator::settle() {
         if (!list_) {
             list_ = around_->simulation_.cell_if(around_->cell_.x + offsets[offset_].dx, around_->cell_.y + offsets[offset_].dy);
             inner_ = 0;
+            if (list_ && around_->sighted_ && !list_->empty() && !around_->simulation_.line_clear(around_->cell_, offsets[offset_].dx, offsets[offset_].dy)) list_ = nullptr;
             if (!list_) {
                 ++offset_;
                 continue;
@@ -10592,7 +10615,7 @@ std::optional<Cell> Simulation::nearest_grass(const Bitzkey& agent, int sight) c
     const Side side = tie_side(agent);
     for (const Offset& offset : SIGHT_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-        if (grass_at(x, y) > 0 && can_enter(agent, Cell{x, y}) && agent.climate_steps(temperature(y)) <= worst) return Cell{x, y};
+        if (grass_at(x, y) > 0 && can_enter(agent, Cell{x, y}) && agent.climate_steps(temperature(y)) <= worst && in_view(agent, x, y)) return Cell{x, y};
     }
     return std::nullopt;
 }
@@ -10601,9 +10624,200 @@ std::optional<Cell> Simulation::nearest_pile(const Bitzkey& agent, int sight, Pi
     const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-        if (pile_at(x, y, kind) > 0 && can_enter(agent, Cell{x, y})) return Cell{x, y};
+        if (pile_at(x, y, kind) > 0 && can_enter(agent, Cell{x, y}) && in_view(agent, x, y)) return Cell{x, y};
     }
     return std::nullopt;
+}
+
+bool Simulation::line_clear(Cell from, int dx, int dy) const {
+    // Bresenham's line from one to the other, the squares at its ends aside.
+    const int ax = std::abs(dx), ay = std::abs(dy), sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1;
+    if (std::max(ax, ay) <= 1 || relief_.empty()) return true;
+    int x = 0, y = 0, error = ax - ay;
+    for (;;) {
+        const int doubled = 2 * error;
+        if (doubled > -ay) {
+            error -= ay;
+            x += sx;
+        }
+        if (doubled < ax) {
+            error += ax;
+            y += sy;
+        }
+        if (x == dx && y == dy) return true;
+        const int row = from.y + y;
+        if (row < 0 || row >= height_) return true;
+        if (relief_[static_cast<std::size_t>(row) * width_ + py_mod(from.x + x, width_)]) return false;
+    }
+}
+
+bool Simulation::in_view(const Bitzkey& agent, int x, int y) const {
+    if (!sight_blocks(agent)) return true;
+    int dx = x - agent.x;
+    if (dx > width_ / 2) dx -= width_;
+    else if (dx < -(width_ / 2)) dx += width_;
+    return line_clear({agent.x, agent.y}, dx, y - agent.y);
+}
+
+void Simulation::grow_relief() {
+    if (relief_grown_) return;
+    relief_grown_ = true;
+    const std::size_t area = static_cast<std::size_t>(width_) * height_;
+    relief_.assign(area, 0);
+    relief_squares_ = 0;
+    // An LCG of the map's size, as the stones' (and Python's the same), so that the world's own draws are untouched.
+    std::uint64_t state = static_cast<std::uint64_t>(width_) * 2000029u + static_cast<std::uint64_t>(height_) * 7u + 1u;
+    const auto draw = [&](int below) {
+        state = state * 6364136223846793005ull + 1442695040888963407ull;
+        return static_cast<int>((state >> 33) % static_cast<std::uint64_t>(std::max(1, below)));
+    };
+    std::size_t land = 0;
+    for (int y = 0; y < height_; ++y) {
+        for (int x = 0; x < width_; ++x) land += !sea(x, y);
+    }
+    const auto target = [&](double percent) { return static_cast<std::size_t>(static_cast<double>(land) * std::clamp(percent, 0.0, 100.0) / 100); };
+    constexpr int DX[8] = {1, 1, 0, -1, -1, -1, 0, 1}, DY[8] = {0, 1, 1, 1, 0, -1, -1, -1};
+    std::size_t ridges = 0, thickets = 0;
+    std::vector<std::size_t> ridge_squares;
+    const std::size_t ridges_wanted = target(TERRAIN_RIDGES), thickets_wanted = target(TERRAIN_THICKETS);
+    for (int tries = 0; ridges < ridges_wanted && tries < 100000; ++tries) {  // each a wandering line of hills
+        int x = draw(width_), y = draw(height_), heading = draw(8);
+        const int length = 12 + draw(30);
+        for (int step = 0; step < length && ridges < ridges_wanted; ++step) {
+            if (y < 0 || y >= height_ || sea(x, y)) break;
+            const std::size_t square = static_cast<std::size_t>(y) * width_ + x;
+            if (!relief_[square]) {
+                relief_[square] = 1;
+                ++ridges;
+                ridge_squares.push_back(square);
+            }
+            if (draw(4) == 0) heading = (heading + (draw(2) ? 1 : 7)) % 8;
+            x = py_mod(x + DX[heading], width_);
+            y += DY[heading];
+        }
+    }
+    for (int tries = 0; thickets < thickets_wanted && tries < 100000; ++tries) {  // each a ragged patch
+        const int cx = draw(width_), cy = draw(height_), radius = 2 + draw(3);
+        if (sea(cx, cy)) continue;
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                const int x = py_mod(cx + dx, width_), y = cy + dy;
+                if (dx * dx + dy * dy > radius * radius - draw(radius + 1) || y < 0 || y >= height_ || sea(x, y)) continue;
+                std::uint8_t& square = relief_[static_cast<std::size_t>(y) * width_ + x];
+                if (square) continue;
+                square = 2;
+                ++thickets;
+            }
+        }
+    }
+    relief_squares_ = static_cast<int>(ridges + thickets);
+    for (const std::size_t square : ridge_squares) {  // caves, shelters in all ways
+        if (draw(10000) < static_cast<int>(std::clamp(RIDGE_CAVES, 0.0, 100.0) * 100)) shelters_[square] = 1;
+    }
+}
+
+void Simulation::set_relief(int x, int y, int kind) {
+    if (!in_bounds(x, y)) return;
+    if (relief_.empty()) relief_.assign(static_cast<std::size_t>(width_) * height_, 0);
+    relief_grown_ = true;
+    std::uint8_t& square = relief_[static_cast<std::size_t>(y) * width_ + x];
+    relief_squares_ += (kind != 0) - (square != 0);
+    square = static_cast<std::uint8_t>(std::clamp(kind, 0, 2));
+}
+
+std::optional<Cell> Simulation::told_pile(const Bitzkey& agent, PileKind kind) const {
+    if (TOLD_MEMORY <= 0 || agent.told_kind != kind || agent.told_until < turn_ || pile_at(agent.told_x, agent.told_y, kind) <= 0) return std::nullopt;
+    return Cell{agent.told_x, agent.told_y};
+}
+
+void Simulation::tell_place(Bitzkey& hearer, const Bitzkey& pointer, int thing) {
+    static constexpr std::array<std::pair<int, PileKind>, 5> TOLD = {{{SenseMeatPileCloseness, MeatPile}, {SenseFruitPileCloseness, FruitPile},
+        {SenseStonePileCloseness, StonePile}, {SenseBonePileCloseness, BonePile}, {SenseWoodPileCloseness, WoodPile}}};
+    const int sense = OUTSIDE_SENSES[static_cast<std::size_t>(thing)];
+    for (const auto& [told_sense, kind] : TOLD) {
+        if (told_sense != sense) continue;
+        const std::optional<Cell> pile = nearest_pile(pointer, sight_now(pointer), kind);  // the one it sees
+        if (!pile) return;
+        hearer.told_kind = kind;
+        hearer.told_x = pile->x;
+        hearer.told_y = pile->y;
+        hearer.told_until = turn_ + TOLD_MEMORY;
+        const std::lock_guard<std::mutex> hold(*windfall_writing_);  // animals sense side by side
+        ++windfall_tally_.told;
+        for (const Windfall& fall : windfalls_) windfall_tally_.told_of_windfalls += fall.x == pile->x && fall.y == pile->y;
+        return;
+    }
+}
+
+void Simulation::drop_windfall() {
+    if (WINDFALL_DAYS <= 0 || DAY_LENGTH <= 0 || width_ <= 0 || height_ <= 0) return;
+    // A draw of its own, from the turn, so that the world's own draws are untouched.
+    std::uint64_t state = static_cast<std::uint64_t>(turn_) * 0x9E3779B97F4A7C15ull ^ (static_cast<std::uint64_t>(width_) * 1000003u + height_);
+    const auto next = [&]() {
+        state += 0x9E3779B97F4A7C15ull;
+        std::uint64_t z = state;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+        return z ^ (z >> 31);
+    };
+    if (static_cast<double>(next() >> 11) / 9007199254740992.0 >= 1.0 / (WINDFALL_DAYS * DAY_LENGTH)) return;
+    const bool fruit = next() % 2 == 0;
+    std::optional<Cell> best;
+    int best_seen = 0;
+    bool best_hidden = false;
+    for (int tries = 0; tries < 64; ++tries) {  // where none sees it, hidden by terrain if it can be
+        const int x = static_cast<int>(next() % static_cast<std::uint64_t>(width_)), y = static_cast<int>(next() % static_cast<std::uint64_t>(height_));
+        if (sea(x, y) || ridge_at(x, y)) continue;
+        bool hidden = thicket_at(x, y);
+        for (int dy = -1; dy <= 1 && !hidden; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) hidden = hidden || relief_at(py_mod(x + dx, width_), y + dy) != 0;
+        }
+        int seen = 0;
+        for (const Bitzkey* other : nearby_cell({x, y}, MAX_SIGHT, nullptr)) {
+            if (other->species == Species::Plant) continue;
+            seen += distance(other->x, other->y, x, y) <= sight_now(*other) && in_view(*other, x, y);
+        }
+        if (!best || seen < best_seen || (seen == best_seen && hidden && !best_hidden)) {
+            best = Cell{x, y};
+            best_seen = seen;
+            best_hidden = hidden;
+        }
+        if (seen == 0 && hidden) break;
+    }
+    if (!best) return;
+    const PileKind kind = fruit ? FruitPile : MeatPile;
+    add_to_pile(best->x, best->y, kind, std::max(1, fruit ? WINDFALL_FRUIT : WINDFALL_MEAT));
+    any_piles_ = true;
+    windfalls_.push_back({best->x, best->y, kind, turn_, {}, 0});
+    ++windfall_tally_.made;
+}
+
+void Simulation::settle_windfalls() {
+    for (std::size_t index = 0; index < windfalls_.size();) {
+        const Windfall& fall = windfalls_[index];
+        if (pile_at(fall.x, fall.y, static_cast<PileKind>(fall.kind)) > 0) {
+            ++index;
+            continue;
+        }
+        ++windfall_tally_.gone;
+        windfall_tally_.found += !fall.eaters.empty();
+        windfall_tally_.eaters += static_cast<long long>(fall.eaters.size());
+        windfall_tally_.told_eaters += fall.told_eaters;
+        windfalls_.erase(windfalls_.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+}
+
+void Simulation::windfall_eaten(const Bitzkey& agent, int x, int y) {
+    if (windfalls_.empty()) return;
+    for (Windfall& fall : windfalls_) {
+        if (fall.x != x || fall.y != y) continue;
+        const std::lock_guard<std::mutex> hold(*windfall_writing_);
+        if (std::find(fall.eaters.begin(), fall.eaters.end(), agent.identifier) == fall.eaters.end()) {
+            fall.eaters.push_back(agent.identifier);
+            fall.told_eaters += agent.told_until >= turn_ && agent.told_x == x && agent.told_y == y;
+        }
+        return;
+    }
 }
 
 double Simulation::warmth(const Bitzkey& agent, int y) const {
@@ -10615,7 +10829,7 @@ Bitzkey* Simulation::nearest_carrion(const Bitzkey& agent, int sight) const {
     const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-        if (!in_bounds(x, y)) continue;
+        if (!in_bounds(x, y) || carrion_[static_cast<std::size_t>(y) * width_ + x].empty() || !in_view(agent, x, y)) continue;
         for (Bitzkey* corpse : carrion_[static_cast<std::size_t>(y) * width_ + x]) {
             if (corpse->meat > 0 && agent.can_be(corpse->wet)) return corpse;
         }
@@ -10628,7 +10842,7 @@ Bitzkey* Simulation::nearest_kill(const Bitzkey& agent, int sight) const {
     const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(sight)]) {
         const int x = agent.x + side.x * offset.dx, y = agent.y + side.y * offset.dy;
-        if (!in_bounds(x, y)) continue;
+        if (!in_bounds(x, y) || kills_[static_cast<std::size_t>(y) * width_ + x].empty() || !in_view(agent, x, y)) continue;
         for (Bitzkey* corpse : kills_[static_cast<std::size_t>(y) * width_ + x]) {
             if (feeds_on(agent, *corpse) && agent.can_be(corpse->wet) && !spares(agent, *corpse)) return corpse;
         }
@@ -10643,12 +10857,13 @@ Simulation::Seen Simulation::look_around(const Bitzkey& agent, int sight, int pr
     const bool hunted = agent.species != Species::Plant;
     const bool browses = agent.species == Species::Grazer || agent.species == Species::Omnivore;
     const bool courts = agent.can_breed();
+    const bool blocks = sight_blocks(agent);
     const Side side = tie_side(agent);
     for (const Offset& offset : SEEN_WITHIN[static_cast<std::size_t>(std::max(sight, prey_sight))]) {
         const bool far = std::abs(offset.dx) + std::abs(offset.dy) > sight;  // beyond its sight but for prey
         if ((seen.quarry || !hunts) && (far || ((seen.hunter || !hunted) && (seen.suitor || !courts) && (seen.flora || !browses)))) break;
         const auto* list = cell_if(agent.x + side.x * offset.dx, agent.y + side.y * offset.dy);
-        if (!list) continue;
+        if (!list || list->empty() || (blocks && !line_clear({agent.x, agent.y}, side.x * offset.dx, side.y * offset.dy))) continue;
         for (Bitzkey* other : *list) {
             if (other == &agent || !other->alive()) continue;
             if (!seen.quarry && preys_on(agent, *other)) {
@@ -10678,6 +10893,11 @@ void Simulation::move(Bitzkey& agent, int x, int y) {
     for (int step = 0; step < cells; ++step) {
         agent.trail.emplace_back(py_mod(agent.x + dx * step / cells, width_), agent.y + dy * step / cells);
     }
+    if (RIDGE_CLIMB > 1 && relief_squares_ > 0) {  // each ridge square stepped onto, a climb (see RIDGE_CLIMB)
+        for (int step = 1; step <= cells; ++step) {
+            if (ridge_at(py_mod(agent.x + dx * step / cells, width_), agent.y + dy * step / cells)) agent.hunger += agent.burn * GO_EFFORT * (RIDGE_CLIMB - 1);
+        }
+    }
     if (in_bounds(agent.x, agent.y)) {
         auto& from = cell_at(agent.x, agent.y);
         const auto found = std::find(from.begin(), from.end(), &agent);
@@ -10703,6 +10923,7 @@ void Simulation::move_toward(Bitzkey& agent, int x, int y, int steps) {
         }
         if (!moved) break;
         ++cells;
+        if (THICKET_SLOW > 1 && thicket_at(agent.x, agent.y)) taken += THICKET_SLOW - 1;  // see THICKET_SLOW
     }
     effort(agent, cells);
 }
@@ -10715,6 +10936,7 @@ void Simulation::move_away(Bitzkey& agent, Cell threat) {
         const int dy = agent.y == threat.y ? side.y : agent.y > threat.y ? 1 : -1;
         if (!step(agent, py_mod(agent.x + dx, width_), within(agent.y + dy))) break;
         ++cells;
+        if (THICKET_SLOW > 1 && thicket_at(agent.x, agent.y)) taken += THICKET_SLOW - 1;  // see THICKET_SLOW
     }
     effort(agent, cells);
 }

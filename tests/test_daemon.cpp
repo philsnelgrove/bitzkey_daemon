@@ -173,6 +173,10 @@ TEST_CASE("the map frame holds every Bitzkey and the grass") {
         std::size_t piled = 0;
         for (int y = 0; y < 30; ++y) {
             for (int x = 0; x < 30; ++x) {
+                if (simulation.shelter_at(x, y)) {  // a cave in a ridge
+                    ++piled;
+                    continue;
+                }
                 for (const PileKind kind : {MeatPile, FruitPile, StonePile, BonePile, WoodPile, BoneAxePile, ClubPile, StoneAxePile, BoneArmourPile, WoodArmourPile, CookedMeatPile, CookedFruitPile}) {
                     if (simulation.pile_at(x, y, kind)) {
                         ++piled;

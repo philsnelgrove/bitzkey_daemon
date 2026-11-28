@@ -661,6 +661,28 @@ inline double ORDER_SAMPLE = 0.1;
 // said: only being said as one's hearers are used to hearing. 0 for none.
 inline double ORDER_JOY = 0.5;
 inline double ORDER_LESSON = 1.0;
+// Terrain (the user's design, 2026-11-27): ridges, long winding lines of hills, and thickets, patches of scrub, grown once
+// in a world's life on its land (TERRAIN_RIDGES and TERRAIN_THICKETS percent of it) by a draw of their own. Both block
+// sight through them (LINE_OF_SIGHT: a thing is seen only if the straight line to it crosses neither, its two ends aside),
+// though one standing on a ridge sees over all; calls are heard through them, and smell passes. A step onto a ridge
+// costs RIDGE_CLIMB times a step's effort, and a step into a thicket THICKET_SLOW steps of its pace. RIDGE_CAVES percent
+// of ridge squares hold a cave, a shelter in all ways. 0 for none of each.
+inline int LINE_OF_SIGHT = 1;
+inline double TERRAIN_RIDGES = 3.0;
+inline double TERRAIN_THICKETS = 8.0;
+inline double RIDGE_CAVES = 5.0;
+inline double RIDGE_CLIMB = 2.0;
+inline int THICKET_SLOW = 2;
+// Told places: one attending to a finger pointed at a pile (meat, fruit, stone, bone or wood) it does not itself see
+// knows where that pile lies, the one the pointer sees, for TOLD_MEMORY turns or until it is gone: sensed and sought as a
+// pile in sight is. Whether it goes is its own. 0 for none.
+inline int TOLD_MEMORY = 10;
+// Windfalls: about once in WINDFALL_DAYS days, somewhere on the land, a fruiting tree drops WINDFALL_FRUIT portions of
+// fruit or a carcass leaves WINDFALL_MEAT portions of meat, where no animal sees it, hidden by terrain if it can be; it
+// spoils as any pile does. Drawn apart from the world's own draws. 0 days for none.
+inline double WINDFALL_DAYS = 7.0;
+inline int WINDFALL_FRUIT = 40;
+inline int WINDFALL_MEAT = 10;
 struct MessageUnit {
     int unit = UnitStop;                            // what was chosen (see Brain's Unit)
     int call = -1;                                  // as heard: its first sound, as a call
@@ -1832,6 +1854,8 @@ struct Bitzkey {
     int order_turn = -1, order_from = -1;
     double order_credit = 0.0;
     int order_hearers = 0;
+    // A told place (see TOLD_MEMORY): the pile's kind (-1 none), its square, and the last turn it is remembered.
+    int told_kind = -1, told_x = 0, told_y = 0, told_until = -1;
     double influence_life = 0.0;
     int influence_moved = 0;
     // A message (see MESSAGE_UNITS): its units this turn, how many, and whether it stopped of its own choice; those of
@@ -2797,21 +2821,24 @@ public:
 
     private:
         friend class Simulation;
-        Around(const Simulation& simulation, Cell cell, int radius, const Bitzkey* except)
-            : simulation_(simulation), cell_(cell), radius_(radius), except_(except) {}
+        Around(const Simulation& simulation, Cell cell, int radius, const Bitzkey* except, bool sighted = false)
+            : simulation_(simulation), cell_(cell), radius_(radius), except_(except), sighted_(sighted) {}
         const Simulation& simulation_;
         Cell cell_;
         int radius_;
         const Bitzkey* except_;
+        bool sighted_;  // only those it sees, terrain aside (see LINE_OF_SIGHT)
     };
-    Around around(const Bitzkey& agent, int radius) const {
+    // Those within a radius of it that it sees, terrain aside (see LINE_OF_SIGHT); or, not `sighted`, all of them, as
+    // a call is heard.
+    Around around(const Bitzkey& agent, int radius, bool sighted = true) const {
         if (guard_claims && acting_) {  // the whole of what it looks over, by its corners
             claim(agent.x - radius, agent.y);
             claim(agent.x + radius, agent.y);
             claim(agent.x, agent.y - radius);
             claim(agent.x, agent.y + radius);
         }
-        return Around(*this, {agent.x, agent.y}, radius, &agent);
+        return Around(*this, {agent.x, agent.y}, radius, &agent, sighted && sight_blocks(agent));
     }
     // The Bitzkey of this identifier, living or dead, while the world still holds it; agents_ stays in the order
     // they were made, so it is found by halving.
@@ -2865,6 +2892,28 @@ public:
     void eat_seed(Bitzkey& agent);
     void plant_seed(Bitzkey& agent);
     bool shelter_at(int x, int y) const { return in_bounds(x, y) && shelters_[static_cast<std::size_t>(y) * width_ + x]; }
+    // Terrain (see TERRAIN_RIDGES): 0 open, 1 ridge, 2 thicket.
+    int relief_at(int x, int y) const { return in_bounds(x, y) && !relief_.empty() ? relief_[static_cast<std::size_t>(y) * width_ + x] : 0; }
+    bool ridge_at(int x, int y) const { return relief_at(x, y) == 1; }
+    bool thicket_at(int x, int y) const { return relief_at(x, y) == 2; }
+    int relief_squares() const { return relief_squares_; }
+    // Whether terrain may hide anything from it: LINE_OF_SIGHT on, terrain in the world, and it not on a ridge.
+    bool sight_blocks(const Bitzkey& agent) const { return LINE_OF_SIGHT > 0 && relief_squares_ > 0 && !ridge_at(agent.x, agent.y); }
+    // Whether the straight line from a square to the square (dx, dy) from it crosses no ridge or thicket, its ends aside.
+    bool line_clear(Cell from, int dx, int dy) const;
+    // Whether terrain leaves that square in its view (how far it is aside).
+    bool in_view(const Bitzkey& agent, int x, int y) const;
+    void grow_relief();  // ridges, thickets and caves, once in a world's life, by a draw of their own
+    void set_relief(int x, int y, int kind);  // one square's terrain, for tests and tools
+    std::optional<Cell> told_pile(const Bitzkey& agent, PileKind kind) const;  // the told place of that kind, still lying
+    // Windfalls (see WINDFALL_DAYS) and told places (see TOLD_MEMORY), since the world began or was loaded: windfalls
+    // dropped, and of those gone, how many anyone ate from, how many ate, and how many of those came by a told place;
+    // places told, and of them, windfalls.
+    struct WindfallTally {
+        long long made = 0, gone = 0, found = 0, eaters = 0, told_eaters = 0, told = 0, told_of_windfalls = 0;
+    };
+    const WindfallTally& windfall_tally() const { return windfall_tally_; }
+    std::size_t windfalls_lying() const { return windfalls_.size(); }
     bool safe_inside(const Bitzkey& animal) const { return animal.last_choice == Rest && under_cover(animal); }
     bool under_cover(const Bitzkey& animal) const { return shelter_at(animal.x, animal.y) || animal.wagon >= 0 || parked_.contains(cell_index(animal.x, animal.y)); }
     std::size_t cell_index(int x, int y) const { return static_cast<std::size_t>(y) * width_ + x; }
@@ -3391,6 +3440,21 @@ private:
     std::array<std::vector<int>, PILE_KINDS> piles_;  // the portions lying on each square, of each kind
     std::array<std::vector<int>, PILE_KINDS> pile_turns_;  // the turn of each's last drop
     bool stones_scattered_ = false;
+    std::vector<std::uint8_t> relief_;  // each square's terrain (see relief_at), empty before it is grown
+    int relief_squares_ = 0;            // how many are ridge or thicket
+    bool relief_grown_ = false;
+    struct Windfall {
+        int x, y, kind, turn;
+        std::vector<int> eaters;
+        int told_eaters = 0;
+    };
+    std::vector<Windfall> windfalls_;  // those still lying
+    WindfallTally windfall_tally_;
+    std::unique_ptr<std::mutex> windfall_writing_ = std::make_unique<std::mutex>();
+    void drop_windfall();    // see WINDFALL_DAYS
+    void settle_windfalls();  // those eaten or spoilt away, counted
+    void windfall_eaten(const Bitzkey& agent, int x, int y);  // a portion of a pile there eaten by it
+    void tell_place(Bitzkey& hearer, const Bitzkey& pointer, int thing);  // see TOLD_MEMORY
     std::vector<int> site_turns_;  // the turn each site was last built on
     std::vector<std::uint8_t> arable_;  // each square, whether it is worked land
     std::vector<int> tended_;  // the turn each worked square was last tended
